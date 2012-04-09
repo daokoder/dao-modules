@@ -2345,7 +2345,7 @@ Function* DaoJitHandle::Compile( int start, int end )
 		case DVM_DATA_F :
 		case DVM_DATA_D :
 		case DVM_DATA_C :
-			value = getInt32( (int) vmc->b );
+			value = sizeof(daoint) == 4 ? getInt32( vmc->b ) : getInt64( vmc->b );
 			switch( vmc->code ){
 			case DVM_DATA_C :
 				dA = CreateUIToFP( double_zero, double_type );
