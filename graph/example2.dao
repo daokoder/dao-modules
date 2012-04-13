@@ -1,13 +1,7 @@
 
 load graph;
 
-class MyGraph : Graph<float>
-{
-	routine MyGraph() : Graph<float>( $directed ){}
-}
-
-#graph = MyGraph( $directed );
-graph = MyGraph();
+graph = Graph<float>( $directed );
 node1 = graph.AddNode();
 node2 = graph.AddNode();
 node3 = graph.AddNode();
@@ -22,3 +16,13 @@ io.writeln( edge1.Nodes() );
 io.writeln( graph.Nodes(), graph.Edges() )
 
 io.writeln( graph.MaxFlow( node1, node3 ) );
+
+node1.SetWeight(1);
+node2.SetWeight(2);
+node3.SetWeight(3);
+
+nodes = node1.Search::{ X.GetWeight() >= 20 }
+io.writeln( nodes );
+
+nodes = graph.FindNodes( $all )::{ X.GetWeight() >= 2 }
+io.writeln( nodes );

@@ -84,6 +84,11 @@ DAO_DLL void DaoxGraph_Delete( DaoxGraph *self );
 DAO_DLL DaoxNode* DaoxGraph_AddNode( DaoxGraph *self );
 DAO_DLL DaoxEdge* DaoxGraph_AddEdge( DaoxGraph *self, DaoxNode *first, DaoxNode *second );
 
+DAO_DLL daoint DaoxGraph_RandomInit( DaoxGraph *self, daoint N, double prob );
+
+DAO_DLL void DaoxNode_BreadthFirstSearch( DaoxNode *self, DArray *nodes );
+DAO_DLL void DaoxNode_DepthFirstSearch( DaoxNode *self, DArray *nodes );
+DAO_DLL void DaoxGraph_ConnectedComponents( DaoxGraph *self, DArray *cclist );
 DAO_DLL double DaoxGraph_MaxFlow_PushRelabelToFront( DaoxGraph *self, DaoxNode *source, DaoxNode *sink );
 
 #endif

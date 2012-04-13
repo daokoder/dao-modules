@@ -11,6 +11,7 @@
   See the GNU Lesser General Public License for more details.
   =========================================================================================*/
 
+#include"math.h"
 #include"daoGC.h"
 #include"daoValue.h"
 #include"dao_graph.h"
@@ -156,11 +157,102 @@ static void DaoxGraph_GetGCFields( void *p, DArray *values, DArray *arrays, DArr
 }
 
 
+
 /*****************************************************************/
-/* Maximum Flow: Relabel-second-front algorithm, with FIFO heuristic */
+/*****************************************************************/
+/*                                                               */
+/* Random Graph                                                  */
+/*                                                               */
+/*****************************************************************/
 /*****************************************************************/
 
-/* DaoxNode: U1.i, height; */
+daoint DaoxGraph_RandomInit( DaoxGraph *self, daoint N, double prob )
+{
+	daoint i, j, E = 0;
+	if( self->nodes->size ) return 0;
+	for(i=0; i<N; i++) DaoxGraph_AddNode( self );
+	for(i=0; i<N; i++){
+		DaoxNode *inode = (DaoxNode*) self->nodes->items.pVoid[i];
+		for(j=self->directed?0:(i+1); j<N; j++){
+			DaoxNode *jnode = (DaoxNode*) self->nodes->items.pVoid[j];
+			double p = rand() / (RAND_MAX + 1.0);
+			if( p < prob ) E += DaoxGraph_AddEdge( self, inode, jnode ) != NULL;
+		}
+	}
+	return E;
+}
+
+
+/*****************************************************************/
+/*****************************************************************/
+/*                                                               */
+/* Searching                                                     */
+/*                                                               */
+/*****************************************************************/
+/*****************************************************************/
+
+/*
+// DaoxNode: U3.I, visit tag;
+// They must have been set to zero before calling these methods.
+*/
+
+void DaoxNode_BreadthFirstSearch( DaoxNode *self, DArray *nodes )
+{
+	daoint i, j;
+	DArray_Clear( nodes );
+	DArray_PushBack( nodes, self );
+	self->U3.I = 1;
+	for(i=0; i<nodes->size; i++){
+		DaoxNode *node = (DaoxNode*) nodes->items.pVoid[i];
+		for(j=0; j<node->edges->size; j++){
+			DaoxEdge *edge = (DaoxEdge*) node->edges->items.pVoid[j];
+			DaoxNode *node2 = edge->second;
+			if( node2 == node ){ /* in-edges: */
+				if( self->graph->directed ) break;
+				node2 = edge->first;
+			}
+			if( node2->U3.I ) continue;
+			node2->U3.I = 1;
+			DArray_PushBack( nodes, node2 );
+		}
+	}
+}
+
+void DaoxNode_DepthFirstSearch( DaoxNode *self, DArray *nodes )
+{
+	DArray *stack = DArray_New(0);
+	daoint j;
+	DArray_Clear( nodes );
+	DArray_PushBack( stack, self );
+	while( stack->size ){
+		DaoxNode *node = (DaoxNode*) DArray_Back( stack );
+		DArray_PopBack( stack );
+		if( node->U3.I ) continue;
+		node->U3.I = 1;
+		DArray_PushBack( nodes, node );
+		for(j=0; j<node->edges->size; j++){
+			DaoxEdge *edge = (DaoxEdge*) node->edges->items.pVoid[j];
+			DaoxNode *node2 = edge->second;
+			if( node2 == node ){ /* in-edges: */
+				if( self->graph->directed ) break;
+				node2 = edge->first;
+			}
+			DArray_PushBack( stack, node2 );
+		}
+	}
+	DArray_Delete( stack );
+}
+
+
+/*****************************************************************/
+/*****************************************************************/
+/*                                                               */
+/* Maximum Flow: Relabel-to-front algorithm, with FIFO heuristic */
+/*                                                               */
+/*****************************************************************/
+/*****************************************************************/
+
+/* DaoxNode: U1.I, height; */
 /* DaoxNode: U2, excess; */
 /* DaoxEdge: W1, capacity; */
 /* DaoxEdge: W2, forward flow; */
@@ -197,7 +289,7 @@ static void MaxFlow_RelabelInt( DaoxNode *U )
 		if( U == edge->first ){ /* out edges */
 			DaoxNode *V = edge->second;
 			if( (edge->W1.I > edge->W2.I) && (V->U1.I < min_height) ) min_height = V->U1.I;
-		}else{ /* in edges */
+		}else{ /* in-edges */
 			DaoxNode *V = edge->first;
 			if( (0 > edge->W3.I) && (V->U1.I < min_height) ) min_height = V->U1.I;
 		}
@@ -213,7 +305,7 @@ static void MaxFlow_DischargeInt( DaoxNode *U )
 			if( U == edge->first ){ /* out edges */
 				DaoxNode *V = edge->second;
 				if( (edge->W1.I > edge->W2.I) && (U->U1.I > V->U1.I) ) MaxFlow_PushInt( U, edge );
-			}else{ /* in edges */
+			}else{ /* in-edges */
 				DaoxNode *V = edge->first;
 				if( (0 > edge->W3.I) && (U->U1.I > V->U1.I) ) MaxFlow_PushInt( U, edge );
 			}
@@ -296,7 +388,7 @@ static void MaxFlow_RelabelFloat( DaoxNode *U )
 		if( U == edge->first ){ /* out edges */
 			DaoxNode *V = edge->second;
 			if( (edge->W1.F > edge->W2.F) && (V->U1.I < min_height) ) min_height = V->U1.I;
-		}else{ /* in edges */
+		}else{ /* in-edges */
 			DaoxNode *V = edge->first;
 			if( (0 > edge->W3.F) && (V->U1.I < min_height) ) min_height = V->U1.I;
 		}
@@ -312,7 +404,7 @@ static void MaxFlow_DischargeFloat( DaoxNode *U )
 			if( U == edge->first ){ /* out edges */
 				DaoxNode *V = edge->second;
 				if( (edge->W1.F > edge->W2.F) && (U->U1.I > V->U1.I) ) MaxFlow_PushFloat( U, edge );
-			}else{ /* in edges */
+			}else{ /* in-edges */
 				DaoxNode *V = edge->first;
 				if( (0 > edge->W3.F) && (U->U1.I > V->U1.I) ) MaxFlow_PushFloat( U, edge );
 			}
@@ -395,7 +487,7 @@ static void MaxFlow_RelabelDouble( DaoxNode *U )
 		if( U == edge->first ){ /* out edges */
 			DaoxNode *V = edge->second;
 			if( (edge->W1.D > edge->W2.D) && (V->U1.I < min_height) ) min_height = V->U1.I;
-		}else{ /* in edges */
+		}else{ /* in-edges */
 			DaoxNode *V = edge->first;
 			if( (0 > edge->W3.D) && (V->U1.I < min_height) ) min_height = V->U1.I;
 		}
@@ -411,7 +503,7 @@ static void MaxFlow_DischargeDouble( DaoxNode *U )
 			if( U == edge->first ){ /* out edges */
 				DaoxNode *V = edge->second;
 				if( (edge->W1.D > edge->W2.D) && (U->U1.I > V->U1.I) ) MaxFlow_PushDouble( U, edge );
-			}else{ /* in edges */
+			}else{ /* in-edges */
 				DaoxNode *V = edge->first;
 				if( (0 > edge->W3.D) && (U->U1.I > V->U1.I) ) MaxFlow_PushDouble( U, edge );
 			}
@@ -474,8 +566,86 @@ double DaoxGraph_MaxFlow_PushRelabelToFront( DaoxGraph *self, DaoxNode *source, 
 }
 
 
+
+/*****************************************************************/
+/*****************************************************************/
+/*                                                               */
+/* Connected Components                                          */
+/*                                                               */
+/*****************************************************************/
+/*****************************************************************/
+
+void DaoxGraph_ConnectedComponents( DaoxGraph *self, DArray *cclist )
+{
+	DArray *nodes;
+	DaoxGraph *subgraph;
+	daoint i, j, k, n;
+	if( self->nodes->size == 0 ){
+		DArray_PushBack( cclist, self );
+		return;
+	}
+	for(i=0; i<self->nodes->size; i++){
+		DaoxNode *node = (DaoxNode*) self->nodes->items.pVoid[i];
+		node->U3.I = 0;
+	}
+	nodes = DArray_New(0);
+	while( self->nodes->size ){
+		DaoxNode_BreadthFirstSearch( (DaoxNode*) self->nodes->items.pVoid[0], nodes );
+#if 0
+		printf( "self->nodes->size = %i, %i\n", self->nodes->size, nodes->size );
+#endif
+		if( nodes->size == self->nodes->size ){
+			DArray_PushBack( cclist, self );
+			break;
+		}
+		subgraph = DaoxGraph_New( self->ctype, self->directed );
+		DArray_PushBack( cclist, subgraph );
+		for(i=0,n=nodes->size; i<n; i++){
+			DaoxNode *node = (DaoxNode*) nodes->items.pVoid[i];
+			GC_ShiftRC( subgraph, node->graph );
+			node->graph = subgraph;
+			DArray_PushBack( subgraph->nodes, node );
+			for(j=0; j<node->edges->size; j++){
+				DaoxEdge *edge = (DaoxEdge*) node->edges->items.pVoid[j];
+				if( edge->first != node ) break;
+				GC_ShiftRC( subgraph, edge->graph );
+				edge->graph = subgraph;
+				DArray_PushBack( subgraph->edges, edge );
+			}
+		}
+		for(i=0,k=0,n=self->nodes->size; i<n; i++){
+			DaoxNode *node = (DaoxNode*) self->nodes->items.pVoid[i];
+			/* Ensure no duplication of the reference (for the Concurrent GC): */
+			self->nodes->items.pVoid[i] = NULL;
+			if( node->graph != self ){
+				GC_DecRC( node );
+				continue;
+			}
+			self->nodes->items.pVoid[k++] = node;
+		}
+		self->nodes->size = k;
+		for(i=0,k=0,n=self->edges->size; i<n; i++){
+			DaoxNode *edge = (DaoxNode*) self->edges->items.pVoid[i];
+			/* Ensure no duplication of the reference (for the Concurrent GC): */
+			self->edges->items.pVoid[i] = NULL;
+			if( edge->graph != self ){
+				GC_DecRC( edge );
+				continue;
+			}
+			self->edges->items.pVoid[k++] = edge;
+		}
+		self->edges->size = k;
+	}
+	DArray_Delete( nodes );
+}
+
+
 /***************************/
-/* Interface second Dao        */
+/***************************/
+/*                         */
+/* Interfaces to Dao       */
+/*                         */
+/***************************/
 /***************************/
 
 static void NODE_GetWeight( DaoProcess *proc, DaoValue *p[], int N )
@@ -498,7 +668,7 @@ static void NODE_SetWeight( DaoProcess *proc, DaoValue *p[], int N )
 }
 static void NODE_GetWeights( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoTuple *tuple = DaoProcess_PutTuple( proc );
+	DaoTuple *tuple = DaoProcess_PutTuple( proc, 0 );
 	DaoxNode *self = (DaoxNode*) p[0];
 	switch( self->graph->wtype ){
 	case DAO_INTEGER :
@@ -588,7 +758,7 @@ static void EDGE_SetWeight( DaoProcess *proc, DaoValue *p[], int N )
 }
 static void EDGE_GetWeights( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoTuple *tuple = DaoProcess_PutTuple( proc );
+	DaoTuple *tuple = DaoProcess_PutTuple( proc, 0 );
 	DaoxEdge *self = (DaoxEdge*) p[0];
 	switch( self->graph->wtype ){
 	case DAO_INTEGER :
@@ -642,7 +812,7 @@ static void EDGE_SetValue( DaoProcess *proc, DaoValue *p[], int N )
 static void EDGE_GetNodes( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxEdge *self = (DaoxEdge*) p[0];
-	DaoTuple *res = DaoProcess_PutTuple( proc );
+	DaoTuple *res = DaoProcess_PutTuple( proc, 0 );
 	DaoTuple_SetItem( res, (DaoValue*)self->first, 0 );
 	DaoTuple_SetItem( res, (DaoValue*)self->second, 1 );
 }
@@ -676,6 +846,29 @@ static void GRAPH_AddEdge( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxEdge *edge = DaoxGraph_AddEdge( (DaoxGraph*) p[0], (DaoxNode*) p[1], (DaoxNode*) p[2] );
 	DaoProcess_PutValue( proc, (DaoValue*) edge );
 }
+
+static void GRAPH_RandomInit( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraph *self = (DaoxGraph*) p[0];
+	daoint added = DaoxGraph_RandomInit( self, p[1]->xInteger.value, p[2]->xDouble.value );
+	DaoProcess_PutInteger( proc, added );
+}
+
+static void GRAPH_ConnectedComponents( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraph *self = (DaoxGraph*) p[0];
+	DaoList *graphs = DaoProcess_PutList( proc );
+	DArray *cclist;
+	daoint i, n;
+	if( self->nodes->size == 0 ){
+		DaoList_PushBack( graphs, (DaoValue*)self );
+		return;
+	}
+	cclist = DArray_New(0);
+	DaoxGraph_ConnectedComponents( self, cclist );
+	for(i=0,n=cclist->size; i<n; i++) DaoList_PushBack( graphs, cclist->items.pValue[i] );
+	DArray_Delete( cclist );
+}
 static void GRAPH_MaxFlow( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraph *self = (DaoxGraph*) p[0];
@@ -694,6 +887,125 @@ static void GRAPH_MaxFlow( DaoProcess *proc, DaoValue *p[], int N )
 }
 
 
+/***************************************/
+/***************************************/
+/*                                     */
+/* Functional or code section methods: */
+/*                                     */
+/***************************************/
+/***************************************/
+
+static void NODE_Search( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DArray *nodes;
+	DaoVmCode *sect = DaoGetSectionCode( proc->activeCode );
+	DaoList *list = DaoProcess_PutList( proc );
+	DaoxNode *self = (DaoxNode*) p[0];
+	daoint method = p[1]->xEnum.value;
+	daoint which = p[2]->xEnum.value;
+	daoint i, j, entry;
+
+	if( sect == NULL ) return;
+	if( DaoProcess_PushSectionFrame( proc ) == NULL ) return;
+	for(i=0; i<self->graph->nodes->size; i++){
+		DaoxNode *node = (DaoxNode*) self->graph->nodes->items.pVoid[i];
+		node->U3.I = 0;
+	}
+	nodes = DArray_New(0);
+	DArray_PushBack( nodes, self );
+
+	entry = proc->topFrame->entry;
+	DaoProcess_AcquireCV( proc );
+	while( nodes->size ){
+		DaoxNode *node = NULL;
+		if( method ){
+			node = (DaoxNode*) DArray_Front( nodes );
+			DArray_PopFront( nodes );
+		}else{
+			node = (DaoxNode*) DArray_Back( nodes );
+			DArray_PopBack( nodes );
+		}
+		if( node->U3.I ) continue;
+		node->U3.I = 1;
+
+		if( sect->b >0 ) DaoProcess_SetValue( proc, sect->a, (DaoValue*) node );
+		proc->topFrame->entry = entry;
+		DaoProcess_Execute( proc );
+		if( proc->status == DAO_VMPROC_ABORTED ) break;
+		if( proc->stackValues[0]->xInteger.value ){
+			DaoList_PushBack( list, (DaoValue*) node );
+			if( which == 0 ) break;
+		}
+
+		for(j=0; j<node->edges->size; j++){
+			DaoxEdge *edge = (DaoxEdge*) node->edges->items.pVoid[j];
+			DaoxNode *node2 = edge->second;
+			if( node2 == node ){ /* in-edges: */
+				if( self->graph->directed ) break;
+				node2 = edge->first;
+			}
+			DArray_PushBack( nodes, node2 );
+		}
+	}
+	DaoProcess_PopFrame( proc );
+	DaoProcess_ReleaseCV( proc );
+	DArray_Delete( nodes );
+}
+
+static void GRAPH_FindNodes( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraph *self = (DaoxGraph*) p[0];
+	DaoVmCode *sect = DaoGetSectionCode( proc->activeCode );
+	DaoList *list = DaoProcess_PutList( proc );
+	daoint which = p[1]->xEnum.value;
+	daoint i, j, entry;
+
+	if( sect == NULL ) return;
+	if( DaoProcess_PushSectionFrame( proc ) == NULL ) return;
+	entry = proc->topFrame->entry;
+	DaoProcess_AcquireCV( proc );
+	for(i=0; i<self->nodes->size; i++){
+		DaoxNode *node = (DaoxNode*) self->nodes->items.pVoid[i];
+		if( sect->b >0 ) DaoProcess_SetValue( proc, sect->a, (DaoValue*) node );
+		proc->topFrame->entry = entry;
+		DaoProcess_Execute( proc );
+		if( proc->status == DAO_VMPROC_ABORTED ) break;
+		if( proc->stackValues[0]->xInteger.value ){
+			DaoList_PushBack( list, (DaoValue*) node );
+			if( which == 0 ) break;
+		}
+	}
+	DaoProcess_PopFrame( proc );
+	DaoProcess_ReleaseCV( proc );
+}
+static void GRAPH_FindEdges( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraph *self = (DaoxGraph*) p[0];
+	DaoVmCode *sect = DaoGetSectionCode( proc->activeCode );
+	DaoList *list = DaoProcess_PutList( proc );
+	daoint which = p[1]->xEnum.value;
+	daoint i, j, entry;
+
+	if( sect == NULL ) return;
+	if( DaoProcess_PushSectionFrame( proc ) == NULL ) return;
+	entry = proc->topFrame->entry;
+	DaoProcess_AcquireCV( proc );
+	for(i=0; i<self->edges->size; i++){
+		DaoxEdge *edge = (DaoxEdge*) self->edges->items.pVoid[i];
+		if( sect->b >0 ) DaoProcess_SetValue( proc, sect->a, (DaoValue*) edge );
+		proc->topFrame->entry = entry;
+		DaoProcess_Execute( proc );
+		if( proc->status == DAO_VMPROC_ABORTED ) break;
+		if( proc->stackValues[0]->xInteger.value ){
+			DaoList_PushBack( list, (DaoValue*) edge );
+			if( which == 0 ) break;
+		}
+	}
+	DaoProcess_PopFrame( proc );
+	DaoProcess_ReleaseCV( proc );
+}
+
+
 static DaoFuncItem DaoxNodeMeths[]=
 {
 	{ NODE_GetWeight, "GetWeight( self :Node<@W,@N,@E> ) => @W" },
@@ -703,6 +1015,9 @@ static DaoFuncItem DaoxNodeMeths[]=
 	{ NODE_GetValue, "GetValue( self :Node<@W,@N,@E> ) => @N" },
 	{ NODE_SetValue, "SetValue( self :Node<@W,@N,@E>, value :@N )" },
 	{ NODE_GetEdges, "Edges( self :Node<@W,@N,@E>, set :enum<in,out> = $out ) => list<Edge<@W,@N,@E>>" },
+
+	{ NODE_Search, "Search( self :Node<@W,@N,@E>, method :enum<breadth,depth> = $breadth, which :enum<first,all> = $first )[node :Node<@W,@N,@E> =>int] => list<Node<@W,@N,@E>>" },
+	// { NODE_Traverse, "Traverse( self :Node<@W,@N,@E>, method :enum<breadth,depth> = $breadth ) [node :Node<@W,@N,@E>]" } ,
 	{ NULL, NULL }
 };
 
@@ -740,20 +1055,16 @@ static DaoFuncItem DaoxGraphMeths[]=
 	{ GRAPH_AddNode, "AddNode( self :Graph<@W,@N,@E> ) => Node<@W,@N,@E>" },
 	{ GRAPH_AddEdge, "AddEdge( self :Graph<@W,@N,@E>, first :Node<@W,@N,@E>, second :Node<@W,@N,@E> ) => Edge<@W,@N,@E>" },
 
-	//{ GRAPH_MaxFlow, "BreadthFirstSearch( self :Graph<@W,@N,@E>, start :Node<@W,@N,@E> )[node :Node<@W,@N,@E> =>int] => Node<@W,@N,@E>" },
-	//{ GRAPH_MaxFlow, "DepthFirstSearch( self :Graph<@W,@N,@E>, start :Node<@W,@N,@E> )[node :Node<@W,@N,@E> =>int] => Node<@W,@N,@E>" },
-	//{ GRAPH_MaxFlow, "Search( self :Graph<@W,@N,@E>, start :Node<@W,@N,@E>, method :enum<breadth,depth> = $breadth )[node :Node<@W,@N,@E> =>int] => Node<@W,@N,@E>" },
-	//{ GRAPH_MaxFlow, "FindNode( self :Graph<@W,@N,@E> )[node :Node<@W,@N,@E> =>int] => Node<@W,@N,@E>" },
-	//{ GRAPH_MaxFlow, "FindEdge( self :Graph<@W,@N,@E> )[node :Edge<@W,@N,@E> =>int] => Edge<@W,@N,@E>" },
-	//{ GRAPH_MaxFlow, "FindNodes( self :Graph<@W,@N,@E> )[node :Node<@W,@N,@E> =>int] => list<Node<@W,@N,@E>>" },
-	//{ GRAPH_MaxFlow, "FindEdges( self :Graph<@W,@N,@E> )[node :Edge<@W,@N,@E> =>int] => list<Edge<@W,@N,@E>>" },
+	{ GRAPH_RandomInit, "RandomInit( self :Graph<@W,@N,@E>, N :int, P :double ) => int" },
+
+	{ GRAPH_FindNodes, "FindNodes( self :Graph<@W,@N,@E>, which :enum<first,all> = $first )[node :Node<@W,@N,@E> =>int] => list<Node<@W,@N,@E>>" },
+	{ GRAPH_FindEdges, "FindEdges( self :Graph<@W,@N,@E>, which :enum<first,all> = $first )[node :Edge<@W,@N,@E> =>int] => list<Edge<@W,@N,@E>>" },
 
 	//{ GRAPH_Distance, "Distance( self :Graph<@W,@N,@E>, start :Node<@W,@N,@E>, end :Node<@W,@N,@E> ) => int" },
 	//{ GRAPH_Distances, "Distances( self :Graph<@W,@N,@E>, start :Node<@W,@N,@E> ) => list<tuple<end:Node<@W,@N,@E>,dist:int>>" },
 	//{ GRAPH_Distances, "Distances( self :Graph<@W,@N,@E> ) => list<tuple<start:Node<@W,@N,@E>,end:Node<@W,@N,@E>,dist:int>>" },
 
-	//{ GRAPH_ConnectedComponents, "ConnectedComponents( self :Graph<@W,@N,@E> ) => list<list<Node<@W,@N,@E>>>" },
-	//{ GRAPH_SplitByCC, "SplitByCC( self :Graph<@W,@N,@E> ) => list<Graph<@W,@N,@E>>" },
+	{ GRAPH_ConnectedComponents, "ConnectedComponents( self :Graph<@W,@N,@E> ) => list<Graph<@W,@N,@E>>" },
 	//{ GRAPH_MininumSpanTree, "MininumSpanTree( self :Graph<@W,@N,@E> ) => Graph<@W,Node<@W,@N,@E>,@E>" },
 
 	{ GRAPH_MaxFlow, "MaxFlow( self :Graph<@W,@N,@E>, source :Node<@W,@N,@E>, sink :Node<@W,@N,@E> ) => @W" },
