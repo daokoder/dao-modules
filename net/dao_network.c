@@ -494,7 +494,6 @@ static int DaoNetwork_SendExt( DaoProcess *proc, int sockfd, DaoValue *data[], i
 }
 int DaoNetwork_ReceiveExt( DaoProcess *proc, int sockfd, DaoList *data )
 {
-	DaoFactory *fac = DaoProcess_GetFactory( proc );
 	int i, j, numbytes, start, size, M;
 	char buf[ MAX_DATA + MAX_DATA + 100];
 	char *buf2 = buf;
@@ -550,22 +549,22 @@ int DaoNetwork_ReceiveExt( DaoProcess *proc, int sockfd, DaoList *data )
 			/* printf( "type = %i\n", inpack->type ); */
 			switch( inpack->type ){
 			case DAO_INTEGER :
-				item = (DaoValue*) DaoFactory_NewInteger( fac, DaoParseNumber( inpack->data ) );
+				item = (DaoValue*) DaoProcess_NewInteger( proc, DaoParseNumber( inpack->data ) );
 				DaoList_PushBack( data, item );
 				break;
 			case DAO_FLOAT :
-				item = (DaoValue*) DaoFactory_NewFloat( fac, DaoParseNumber( inpack->data ) );
+				item = (DaoValue*) DaoProcess_NewFloat( proc, DaoParseNumber( inpack->data ) );
 				/* printf( "number: %s %g\n", inpack->data, num->item.f ); */
 				DaoList_PushBack( data, item );
 				break;
 			case DAO_DOUBLE :
-				item = (DaoValue*) DaoFactory_NewDouble( fac, DaoParseNumber( inpack->data ) );
+				item = (DaoValue*) DaoProcess_NewDouble( proc, DaoParseNumber( inpack->data ) );
 				DaoList_PushBack( data, item );
 				break;
 			case DAO_STRING :
 				if( inpack->tag == 0 ) DString_Clear( str );
 				DString_AppendMBS( str, inpack->data );
-				item = (DaoValue*) DaoFactory_NewMBString( fac, NULL, 0);
+				item = (DaoValue*) DaoProcess_NewMBString( proc, NULL, 0);
 				DaoString_Set( DaoValue_CastString( item ), str );
 				/* printf( "string: %s\n", inpack->data ); */
 				if( inpack->tag ==2 || size <= MAX_DATA ) DaoList_PushBack( data, item );
@@ -574,7 +573,7 @@ int DaoNetwork_ReceiveExt( DaoProcess *proc, int sockfd, DaoList *data )
 				com.real = DaoParseNumber( buf2 );
 				while( *buf2 ) buf2 ++;
 				com.imag = DaoParseNumber( buf2+1 );
-				item = (DaoValue*) DaoFactory_NewComplex( fac, com );
+				item = (DaoValue*) DaoProcess_NewComplex( proc, com );
 				DaoList_PushBack( data, item );
 				break;
 			case DAO_ARRAY :
@@ -583,7 +582,7 @@ int DaoNetwork_ReceiveExt( DaoProcess *proc, int sockfd, DaoList *data )
 				j = ntohl( inpack->dataI2 );
 				/* printf( "ARRAY: M=%i; j=%i\n", M, j ); */
 				if( j == 0 ){
-					item = (DaoValue*) DaoFactory_NewArray( fac, DAO_INTEGER );
+					item = (DaoValue*) DaoProcess_NewArray( proc, DAO_INTEGER );
 					arr = DaoValue_CastArray( item );
 					DaoArray_SetNumType( arr, numtype );
 					DaoArray_ResizeVector( arr, M );
@@ -910,7 +909,6 @@ static void DaoNetLib_GetHost( DaoProcess *proc, DaoValue *par[], int N  )
 	struct in_addr id;
 	size_t size = sizeof( struct sockaddr_in );
 	const char *host = DaoString_GetMBS( DaoValue_CastString( par[0] ) );
-	DaoFactory *factory = DaoProcess_GetFactory( proc );
 	DaoMap *res = DaoProcess_PutMap( proc, 0 );
 	DaoValue *value;
 	if( DaoString_Size( DaoValue_CastString( par[0] ) ) ==0 ) return;
@@ -936,7 +934,7 @@ static void DaoNetLib_GetHost( DaoProcess *proc, DaoValue *par[], int N  )
 		char **p = hent->h_aliases;
 		char **q = hent->h_addr_list;
 		while( *p ){
-			value = (DaoValue*) DaoFactory_NewMBString( factory, inet_ntoa( *(struct in_addr*) (*q) ), 0 );
+			value = (DaoValue*) DaoProcess_NewMBString( proc, inet_ntoa( *(struct in_addr*) (*q) ), 0 );
 			DaoMap_InsertMBS( res, *p, value );
 			p ++;
 			q ++;
@@ -951,8 +949,7 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 	struct timeval tv;
 	int i;
 	fd_set set1, set2;
-	DaoFactory *factory = DaoProcess_GetFactory( proc );
-	DaoTuple *tuple = DaoProcess_PutTuple( proc );
+	DaoTuple *tuple = DaoProcess_PutTuple( proc, 0 );
 	DaoList *list1 = DaoValue_CastList( par[0] );
 	DaoList *list2 = DaoValue_CastList( par[1] );
 	DaoList *reslist;
@@ -1008,7 +1005,7 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
 		return;
 	}
-	value = (DaoValue*) DaoFactory_NewList( factory );
+	value = (DaoValue*) DaoProcess_NewList( proc );
 	DaoTuple_SetItem( tuple, value, 0 );
 	reslist = DaoValue_CastList( DaoTuple_GetItem( tuple, 0 ) );
 	for( i = 0; i < DaoList_Size( list1 ); i++ ){
@@ -1019,7 +1016,7 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 		}else if( FD_ISSET( ((DaoSocket*)DaoValue_TryGetCdata( value ))->id, &set1 ) )
 			DaoList_PushBack( reslist, value );
 	}
-	value = (DaoValue*) DaoFactory_NewList( factory );
+	value = (DaoValue*) DaoProcess_NewList( proc );
 	DaoTuple_SetItem( tuple, value, 1 );
 	reslist = DaoValue_CastList( DaoTuple_GetItem( tuple, 1 ) );
 	for( i = 0; i < DaoList_Size( list2 ); i++ ){

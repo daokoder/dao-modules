@@ -318,7 +318,6 @@ extern DaoTypeBase fsnodeTyper;
 
 int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *dest, DaoRegex *pattern )
 {
-	DaoFactory *factory = DaoProcess_GetFactory( proc );
 	char buffer[MAX_PATH + 1];
 	int len, res;
 #ifdef WIN32
@@ -353,7 +352,7 @@ int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *des
 					return res;
 				}
 				if( ( fsnode->type == type || type == 2 ) && DaoRegex_Match( pattern, str, NULL, NULL ) ){
-					value = (DaoValue*) DaoFactory_NewCdata( factory, daox_type_fsnode, fsnode, 1 );
+					value = (DaoValue*) DaoProcess_NewCdata( proc, daox_type_fsnode, fsnode, 1 );
 					DaoList_PushBack( dest, value );
 				}
 				else
@@ -382,7 +381,7 @@ int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *des
 					return res;
 				}
 				if( ( fsnode->type == type || type == 2 ) && DaoRegex_Match( pattern, str, NULL, NULL ) ){
-					value = (DaoValue*) DaoFactory_NewCdata( factory, daox_type_fsnode, fsnode, 1 );
+					value = (DaoValue*) DaoProcess_NewCdata( proc, daox_type_fsnode, fsnode, 1 );
 					DaoList_PushBack( dest, value );
 				}
 				else

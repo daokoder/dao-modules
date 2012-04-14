@@ -32,29 +32,29 @@ extern char ** environ;
 
 static DaoVmSpace *vmMaster = NULL;
 
-static void InsertKeyValue( DaoFactory *fac, DaoMap *mulmap, DaoMap *map, DaoValue *vk, DaoValue *vv )
+static void InsertKeyValue( DaoProcess *proc, DaoMap *mulmap, DaoMap *map, DaoValue *vk, DaoValue *vv )
 {
 	DaoValue *val, *vlist;
 	DaoMap_Insert( map, vk, vv );
 	if( mulmap ){
 		val = DaoMap_GetValue( mulmap, vk );
 		if( val == NULL ){
-			vlist = (DaoValue*) DaoFactory_NewList( fac );
+			vlist = (DaoValue*) DaoProcess_NewList( proc );
 			DaoMap_Insert( mulmap, vk, vlist );
 			val = DaoMap_GetValue( mulmap, vk );
 		}
 		DaoList_PushBack( DaoValue_CastList( val ), vv );
 	}
 }
-static void ParseKeyValueString( DaoFactory *fac, DaoMap *mulmap, DaoMap *map, const char *s )
+static void ParseKeyValueString( DaoProcess *proc, DaoMap *mulmap, DaoMap *map, const char *s )
 {
 	int i = 0;
 	int nc = 0;
 	int len = 0;
 	char buffer[ LOCAL_BUF_SIZE + 1 ];
 	
-	DaoValue *vk = (DaoValue*) DaoFactory_NewMBString( fac, NULL, 0 );
-	DaoValue *vv = (DaoValue*) DaoFactory_NewMBString( fac, NULL, 0 );
+	DaoValue *vk = (DaoValue*) DaoProcess_NewMBString( proc, NULL, 0 );
+	DaoValue *vv = (DaoValue*) DaoProcess_NewMBString( proc, NULL, 0 );
 	DString *key = DaoString_Get( DaoValue_CastString( vk ) );
 	DString *value = DaoString_Get( DaoValue_CastString( vv ) );
 
@@ -77,7 +77,7 @@ static void ParseKeyValueString( DaoFactory *fac, DaoMap *mulmap, DaoMap *map, c
 			if( DString_Size( key ) > 0 ){
 				buffer[ nc ] = 0;
 				DString_AppendMBS( value, buffer );
-				InsertKeyValue( fac, mulmap, map, vk, vv );
+				InsertKeyValue( proc, mulmap, map, vk, vv );
 				DString_Clear( key );
 				DString_Clear( value );
 				nc = 0;
@@ -86,7 +86,7 @@ static void ParseKeyValueString( DaoFactory *fac, DaoMap *mulmap, DaoMap *map, c
 				buffer[ nc ] = 0;
 				DString_AppendMBS( key, buffer );
 				DString_SetMBS( value, "NULL" );
-				InsertKeyValue( fac, mulmap, map, vk, vv );
+				InsertKeyValue( proc, mulmap, map, vk, vv );
 				DString_Clear( key );
 				DString_Clear( value );
 				nc = 0;
@@ -118,21 +118,21 @@ static void ParseKeyValueString( DaoFactory *fac, DaoMap *mulmap, DaoMap *map, c
 	if( DString_Size( key ) > 0 ){
 		buffer[ nc ] = 0;
 		DString_AppendMBS( value, buffer );
-		InsertKeyValue( fac, mulmap, map, vk, vv );
+		InsertKeyValue( proc, mulmap, map, vk, vv );
 	}else if( nc > 0 ){
 		buffer[ nc ] = 0;
 		DString_AppendMBS( key, buffer );
 		DString_SetMBS( value, "NULL" );
-		InsertKeyValue( fac, mulmap, map, vk, vv );
+		InsertKeyValue( proc, mulmap, map, vk, vv );
 	}
 }
-static void ParseKeyValueStringArray( DaoFactory *fac, DaoMap *map, char **p )
+static void ParseKeyValueStringArray( DaoProcess *proc, DaoMap *map, char **p )
 {
 	int nc = 0;
 	char buffer[ LOCAL_BUF_SIZE + 1 ];
 	
-	DaoValue *vk = (DaoValue*) DaoFactory_NewMBString( fac, NULL, 0 );
-	DaoValue *vv = (DaoValue*) DaoFactory_NewMBString( fac, NULL, 0 );
+	DaoValue *vk = (DaoValue*) DaoProcess_NewMBString( proc, NULL, 0 );
+	DaoValue *vv = (DaoValue*) DaoProcess_NewMBString( proc, NULL, 0 );
 	DString *key = DaoString_Get( DaoValue_CastString( vk ) );
 	DString *value = DaoString_Get( DaoValue_CastString( vv ) );
 	while( *p != NULL ){
@@ -158,10 +158,10 @@ static void ParseKeyValueStringArray( DaoFactory *fac, DaoMap *map, char **p )
 		p ++;
 	}
 }
-static void PreparePostData( DaoFactory *fac, DaoMap *httpPOSTS, DaoMap *httpPOST, DaoMap *httpFILE )
+static void PreparePostData( DaoProcess *proc, DaoMap *httpPOSTS, DaoMap *httpPOST, DaoMap *httpFILE )
 {
-	DaoValue *vk = (DaoValue*) DaoFactory_NewMBString( fac, NULL, 0 );
-	DaoValue *vv = (DaoValue*) DaoFactory_NewMBString( fac, NULL, 0 );
+	DaoValue *vk = (DaoValue*) DaoProcess_NewMBString( proc, NULL, 0 );
+	DaoValue *vv = (DaoValue*) DaoProcess_NewMBString( proc, NULL, 0 );
 	DString *key = DaoString_Get( DaoValue_CastString( vk ) );
 	DString *value = DaoString_Get( DaoValue_CastString( vv ) );
 	DString *dynaBuffer = DString_New(1);
@@ -196,7 +196,7 @@ static void PreparePostData( DaoFactory *fac, DaoMap *httpPOSTS, DaoMap *httpPOS
 					*p = 0; // null-terminating
 					p++;
 					DString_AppendMBS( dynaBuffer, buffer );
-					ParseKeyValueString( fac, httpPOSTS, httpPOST, DString_GetMBS( dynaBuffer ) );
+					ParseKeyValueString( proc, httpPOSTS, httpPOST, DString_GetMBS( dynaBuffer ) );
 					DString_Clear( dynaBuffer );
 					DString_AppendMBS( dynaBuffer, p );
 				}else{
@@ -204,7 +204,7 @@ static void PreparePostData( DaoFactory *fac, DaoMap *httpPOSTS, DaoMap *httpPOS
 				}
 				i += LOCAL_BUF_SIZE;
 			}
-			ParseKeyValueString( fac, httpPOSTS, httpPOST, DString_GetMBS( dynaBuffer ) );
+			ParseKeyValueString( proc, httpPOSTS, httpPOST, DString_GetMBS( dynaBuffer ) );
 		}else{
 			char *boundary = strstr( contentType, "boundary" );
 			boundary = strstr( boundary, "------" );
@@ -248,7 +248,7 @@ static void PreparePostData( DaoFactory *fac, DaoMap *httpPOSTS, DaoMap *httpPOS
 					if( p != NULL ) part = p;
 					DaoMap_Insert( httpPOST, vk, vv );
 				}else{
-					DaoValue *vs = (DaoValue*) DaoFactory_NewStream( fac, tmpfile() );
+					DaoValue *vs = (DaoValue*) DaoProcess_NewStream( proc, tmpfile() );
 					FILE *file = DaoStream_GetFile( DaoValue_CastStream( vs ) );
 					char *t = NULL;
 					p = strchr( p, '\"' ) + 1;
@@ -325,54 +325,6 @@ static void PreparePostData( DaoFactory *fac, DaoMap *httpPOSTS, DaoMap *httpPOS
 	}
 	DString_Delete( dynaBuffer );
 }
-/*
-static int RequestHandler_Execute( RequestHandler *self )
-{
-	char *docroot = getenv(  "DOCUMENT_ROOT", self->request.envp );
-	char *script = getenv(  "SCRIPT_NAME", self->request.envp );
-	char *remote = getenv(  "REMOTE_ADDR", self->request.envp );
-	char *conlen = getenv(  "CONTENT_LENGTH", self->request.envp );
-	
-	char path[512];
-	path[0] = '\0';
-	strcat( path, docroot );
-	if( docroot[ strlen( docroot ) -1 ] != '/' ) strcat( path, "/" );
-	if( script[0] == '/' ) script++;
-	strcat( path, script );
-
-	char *p = strrchr( path, '/' );
-	p[0] = 0;
-	DaoVmSpace_SetPath( self->vmSpace, path );
-	DaoVmSpace_SetPath( vmMaster, path );
-	p[0] = '/';
-
-	DaoRoutine *rout = getRoutine( path );
-	ClientData *data = getClientData( remote );
-	PrepareHttpVariables( data, & self->request );
-
-	strcpy( self->signature, remote );
-	strcat( self->signature, path );
-	printf("%s\n", self->signature );
-	if( data->seeStop ){
-		int i;
-		for( i=0; i<thdCount; i++){
-			RequestHandler *p = engines[i];
-			//XXX if( this != p && strcmp( self->signature, p->self->signature ) == 0 ) p->stop();
-		}
-	}
-
-	// They must be set after FCGX_Accept_r() !!!
-	DaoVmSpace_SetStdReader( self->vmSpace, & self->stdReader );
-	DaoVmSpace_SetStdWriter( self->vmSpace, & self->stdWriter );
-	//self->vmSpace->setEventHandler( eventHandler );
-	
-	DaoVmSpace_SetNameSpace( self->vmSpace, data->nsData );
-	int bl = DaoVmSpace_ExecRoutine( self->vmSpace, rout, 0 );
-	data->timestamp = time(NULL);
-	DaoVmSpace_SetNameSpace( self->vmSpace, NULL );
-	return bl;
-}
-*/
 const char alnumChars[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 void DaoCGI_RandomString( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -391,7 +343,7 @@ void DaoCGI_RandomString( DaoProcess *proc, DaoValue *p[], int N )
 
 int DaoCGI_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	DaoFactory *factory = DaoVmSpace_AcquireFactory( vmSpace );
+	DaoProcess *process = DaoVmSpace_AcquireProcess( vmSpace );
 	DaoMap *httpENV, *httpGET, *httpPOST, *httpFILE, *httpCOOKIE;
 	DaoMap *httpGETS, *httpPOSTS;
 	srand( time(NULL) );
@@ -416,17 +368,17 @@ int DaoCGI_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace_AddValue( ns,"HTTP_POSTS",(DaoValue*)httpPOSTS,"map<string,list<string> >");
 
 	// Prepare HTTP_ENV:
-	ParseKeyValueStringArray( factory, httpENV, environ );
+	ParseKeyValueStringArray( process, httpENV, environ );
 	
 	// Prepare HTTP_GET:
 	char *query = getenv( "QUERY_STRING" );
-	if( query ) ParseKeyValueString( factory, httpGETS, httpGET, query );
+	if( query ) ParseKeyValueString( process, httpGETS, httpGET, query );
 	query = getenv( "HTTP_COOKIE" );
-	if( query ) ParseKeyValueString( factory, NULL, httpCOOKIE, query );
+	if( query ) ParseKeyValueString( process, NULL, httpCOOKIE, query );
 
-	PreparePostData( factory, httpPOSTS, httpPOST, httpFILE );
+	PreparePostData( process, httpPOSTS, httpPOST, httpFILE );
 
-	DaoVmSpace_ReleaseFactory( vmSpace, factory );
+	DaoVmSpace_ReleaseProcess( vmSpace, process );
 	return 0;
 }
 
