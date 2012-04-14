@@ -17,7 +17,7 @@
 #include"dao_graph.h"
 
 
-/* @W: type of weights (U1, U2, U3) in nodes, (W1, W2, W3) in edges; */
+/* @W: type of weights (U1, U2) in nodes, (W1, W2) in edges; */
 /* @N: type of user data for nodes; */
 /* @E: type of user data for edges; */
 
@@ -76,6 +76,8 @@ DaoxGraph* DaoxGraph_New( DaoType *type, int directed )
 	self->wtype = 0;
 	self->nodeType = NULL;
 	self->edgeType = NULL;
+	self->nodeData = NULL;
+	self->edgeData = NULL;
 	if( type ){
 		if( type->nested->size ) self->wtype = type->nested->items.pType[0]->tid;
 		self->nodeType = DaoCdataType_Specialize( daox_node_template_type, type->nested );
@@ -93,6 +95,8 @@ void DaoxGraph_Delete( DaoxGraph *self )
 	DArray_Delete( self->edges );
 	GC_DecRC( self->nodeType );
 	GC_DecRC( self->edgeType );
+	if( self->nodeData ) DString_Delete( self->nodeData );
+	if( self->edgeData ) DString_Delete( self->edgeData );
 	dao_free( self );
 }
 
@@ -157,6 +161,30 @@ static void DaoxGraph_GetGCFields( void *p, DArray *values, DArray *arrays, DArr
 }
 
 
+void DaoxGraph_InitUserData( DaoxGraph *self, int nodeDataSize, int edgeDataSize )
+{
+	daoint i, N = self->nodes->size;
+	daoint M = self->edges->size;
+	char *data;
+	if( self->nodeData == NULL ){
+		self->nodeData = DString_New(1);
+		DString_SetSharing( self->nodeData, 0 );
+	}
+	if( self->edgeData == NULL ){
+		self->edgeData = DString_New(1);
+		DString_SetSharing( self->edgeData, 0 );
+	}
+	DString_Reserve( self->nodeData, N * nodeDataSize );
+	DString_Reserve( self->edgeData, M * edgeDataSize );
+	for(i=0, data=self->nodeData->mbs;  i<N;  i++, data+=nodeDataSize){
+		DaoxNode *node = (DaoxNode*) self->nodes->items.pValue[i];
+		node->X.Void = data;
+	}
+	for(i=0, data=self->edgeData->mbs;  i<N;  i++, data+=edgeDataSize){
+		DaoxEdge *edge = (DaoxEdge*) self->edges->items.pValue[i];
+		edge->X.Void = data;
+	}
+}
 
 /*****************************************************************/
 /*****************************************************************/
@@ -192,7 +220,7 @@ daoint DaoxGraph_RandomInit( DaoxGraph *self, daoint N, double prob )
 /*****************************************************************/
 
 /*
-// DaoxNode: U3.I, visit tag;
+// DaoxNode: state, visit tag;
 // They must have been set to zero before calling these methods.
 */
 
@@ -201,7 +229,7 @@ void DaoxNode_BreadthFirstSearch( DaoxNode *self, DArray *nodes )
 	daoint i, j;
 	DArray_Clear( nodes );
 	DArray_PushBack( nodes, self );
-	self->U3.I = 1;
+	self->state = 1;
 	for(i=0; i<nodes->size; i++){
 		DaoxNode *node = (DaoxNode*) nodes->items.pVoid[i];
 		for(j=0; j<node->edges->size; j++){
@@ -211,8 +239,8 @@ void DaoxNode_BreadthFirstSearch( DaoxNode *self, DArray *nodes )
 				if( self->graph->directed ) break;
 				node2 = edge->first;
 			}
-			if( node2->U3.I ) continue;
-			node2->U3.I = 1;
+			if( node2->state ) continue;
+			node2->state = 1;
 			DArray_PushBack( nodes, node2 );
 		}
 	}
@@ -227,8 +255,8 @@ void DaoxNode_DepthFirstSearch( DaoxNode *self, DArray *nodes )
 	while( stack->size ){
 		DaoxNode *node = (DaoxNode*) DArray_Back( stack );
 		DArray_PopBack( stack );
-		if( node->U3.I ) continue;
-		node->U3.I = 1;
+		if( node->state ) continue;
+		node->state = 1;
 		DArray_PushBack( nodes, node );
 		for(j=0; j<node->edges->size; j++){
 			DaoxEdge *edge = (DaoxEdge*) node->edges->items.pVoid[j];
@@ -252,33 +280,52 @@ void DaoxNode_DepthFirstSearch( DaoxNode *self, DArray *nodes )
 /*****************************************************************/
 /*****************************************************************/
 
-/* DaoxNode: U1.I, height; */
-/* DaoxNode: U2, excess; */
-/* DaoxEdge: W1, capacity; */
-/* DaoxEdge: W2, forward flow; */
-/* DaoxEdge: W3, backward flow; */
+struct DaoxNodeMFxI
+{
+	daoint  height;
+	daoint  excess;
+};
+struct DaoxEdgeMFxI
+{
+	daoint  capacity;
+	daoint  flow_fw; /* forward flow; */
+	daoint  flow_bw; /* backward flow; */
+};
+
+struct DaoxNodeMFxD
+{
+	daoint  height;
+	double  excess;
+};
+struct DaoxEdgeMFxD
+{
+	double  capacity;
+	double  flow_fw; /* forward flow; */
+	double  flow_bw; /* backward flow; */
+};
 
 /* For integer type weighted network: */
 static void MaxFlow_PushInt( DaoxNode *node, DaoxEdge *edge )
 {
-	DaoxNode *U = node;
-	DaoxNode *V = edge->second;
-	daoint  CUV =   edge->W1.I;
-	daoint *FUV = & edge->W2.I;
-	daoint *FVU = & edge->W3.I;
+	DaoxEdgeMFxI *E = edge->X.MFxI;
+	DaoxNodeMFxI *U = node->X.MFxI;
+	DaoxNodeMFxI *V = edge->second->X.MFxI;
+	daoint  CUV =   E->capacity;
+	daoint *FUV = & E->flow_fw;
+	daoint *FVU = & E->flow_bw;
 	daoint send;
 	if( node == edge->second ){
-		V = edge->first;
+		V = edge->first->X.MFxI;
 		CUV = 0;
-		FUV = & edge->W3.I;
-		FVU = & edge->W2.I;
+		FUV = & E->flow_bw;
+		FVU = & E->flow_fw;
 	}
 	send = CUV - (*FUV);
-	if( U->U2.I < send ) send = U->U2.I;
+	if( U->excess < send ) send = U->excess;
 	*FUV += send;
 	*FVU -= send;
-	U->U2.I -= send;
-	V->U2.I += send;
+	U->excess -= send;
+	V->excess += send;
 }
 static void MaxFlow_RelabelInt( DaoxNode *U )
 {
@@ -286,28 +333,38 @@ static void MaxFlow_RelabelInt( DaoxNode *U )
 	daoint i, n;
 	for(i=0,n=U->edges->size; i<n; i++){
 		DaoxEdge *edge = (DaoxEdge*) U->edges->items.pValue[i];
+		DaoxEdgeMFxI *EMF = edge->X.MFxI;
 		if( U == edge->first ){ /* out edges */
 			DaoxNode *V = edge->second;
-			if( (edge->W1.I > edge->W2.I) && (V->U1.I < min_height) ) min_height = V->U1.I;
+			DaoxNodeMFxI *VMF = V->X.MFxI;
+			if( (EMF->capacity > EMF->flow_fw) && (VMF->height < min_height) )
+				min_height = VMF->height;
 		}else{ /* in-edges */
 			DaoxNode *V = edge->first;
-			if( (0 > edge->W3.I) && (V->U1.I < min_height) ) min_height = V->U1.I;
+			DaoxNodeMFxI *VMF = V->X.MFxI;
+			if( (0 > EMF->flow_bw) && (VMF->height < min_height) ) min_height = VMF->height;
 		}
 	}
-	U->U1.I = min_height + 1;
+	U->X.MFxI->height = min_height + 1;
 }
 static void MaxFlow_DischargeInt( DaoxNode *U )
 {
 	daoint i, n;
-	while( U->U2.I > 0 ){
+	DaoxNodeMFxI *UMF = U->X.MFxI;
+	while( UMF->excess > 0 ){
 		for(i=0,n=U->edges->size; i<n; i++){
 			DaoxEdge *edge = (DaoxEdge*) U->edges->items.pValue[i];
+			DaoxEdgeMFxI *EMF = edge->X.MFxI;
 			if( U == edge->first ){ /* out edges */
 				DaoxNode *V = edge->second;
-				if( (edge->W1.I > edge->W2.I) && (U->U1.I > V->U1.I) ) MaxFlow_PushInt( U, edge );
+				DaoxNodeMFxI *VMF = V->X.MFxI;
+				if( (EMF->capacity > EMF->flow_fw) && (UMF->height > VMF->height) )
+					MaxFlow_PushInt( U, edge );
 			}else{ /* in-edges */
 				DaoxNode *V = edge->first;
-				if( (0 > edge->W3.I) && (U->U1.I > V->U1.I) ) MaxFlow_PushInt( U, edge );
+				DaoxNodeMFxI *VMF = V->X.MFxI;
+				if( (0 > EMF->flow_bw) && (UMF->height > VMF->height) )
+					MaxFlow_PushInt( U, edge );
 			}
 		}
 		MaxFlow_RelabelInt( U );
@@ -321,16 +378,17 @@ daoint DaoxGraph_MaxFlow_PRTF_Int( DaoxGraph *self, DaoxNode *source, DaoxNode *
 
 	for(i=0,n=source->edges->size; i<n; i++){
 		DaoxEdge *edge = (DaoxEdge*) source->edges->items.pValue[i];
-		if( source == edge->first ) inf += edge->W1.I;
+		if( source == edge->first ) inf += edge->X.MFxI->capacity;
 	}
 	for(i=0,n=self->nodes->size; i<n; i++){
 		DaoxNode *node = (DaoxNode*) self->nodes->items.pValue[i];
-		node->U1.I = n;
-		node->U2.I = inf;
+		node->X.MFxI->height = n;
+		node->X.MFxI->excess = inf;
 	}
 	for(i=0,n=self->edges->size; i<n; i++){
 		DaoxEdge *edge = (DaoxEdge*) self->edges->items.pValue[i];
-		edge->W2.I = edge->W3.I = 0;
+		edge->X.MFxI->flow_fw = 0;
+		edge->X.MFxI->flow_bw = 0;
 	}
 	for(i=0,n=source->edges->size; i<n; i++){
 		DaoxEdge *edge = (DaoxEdge*) source->edges->items.pValue[i];
@@ -339,9 +397,9 @@ daoint DaoxGraph_MaxFlow_PRTF_Int( DaoxGraph *self, DaoxNode *source, DaoxNode *
 	i = 0;
 	while( i < list->size ){
 		DaoxNode *U = (DaoxNode*) list->items.pValue[i];
-		daoint old_height = U->U1.I;
+		daoint old_height = U->X.MFxI->height;
 		MaxFlow_DischargeInt( U );
-		if( U->U1.I > old_height ){
+		if( U->X.MFxI->height > old_height ){
 			DArray_Erase( list, i, 1 );
 			DArray_PushFront( list, U );
 			i = 0;
@@ -353,130 +411,32 @@ daoint DaoxGraph_MaxFlow_PRTF_Int( DaoxGraph *self, DaoxNode *source, DaoxNode *
 	inf = 0;
 	for(i=0,n=source->edges->size; i<n; i++){
 		DaoxEdge *edge = (DaoxEdge*) source->edges->items.pValue[i];
-		if( source == edge->first ) inf += edge->W2.I;
-	}
-	return inf;
-}
-/* For float type weighted network: */
-static void MaxFlow_PushFloat( DaoxNode *node, DaoxEdge *edge )
-{
-	DaoxNode *U = node;
-	DaoxNode *V = edge->second;
-	float  CUV =   edge->W1.F;
-	float *FUV = & edge->W2.F;
-	float *FVU = & edge->W3.F;
-	float send;
-	if( node == edge->second ){
-		V = edge->first;
-		CUV = 0;
-		FUV = & edge->W3.F;
-		FVU = & edge->W2.F;
-	}
-	send = CUV - (*FUV);
-	if( U->U2.F < send ) send = U->U2.F;
-	*FUV += send;
-	*FVU -= send;
-	U->U2.F -= send;
-	V->U2.F += send;
-}
-static void MaxFlow_RelabelFloat( DaoxNode *U )
-{
-	daoint min_height = 100 * U->graph->nodes->size;
-	daoint i, n;
-	for(i=0,n=U->edges->size; i<n; i++){
-		DaoxEdge *edge = (DaoxEdge*) U->edges->items.pValue[i];
-		if( U == edge->first ){ /* out edges */
-			DaoxNode *V = edge->second;
-			if( (edge->W1.F > edge->W2.F) && (V->U1.I < min_height) ) min_height = V->U1.I;
-		}else{ /* in-edges */
-			DaoxNode *V = edge->first;
-			if( (0 > edge->W3.F) && (V->U1.I < min_height) ) min_height = V->U1.I;
-		}
-	}
-	U->U1.I = min_height + 1;
-}
-static void MaxFlow_DischargeFloat( DaoxNode *U )
-{
-	daoint i, n;
-	while( U->U2.F > 0 ){
-		for(i=0,n=U->edges->size; i<n; i++){
-			DaoxEdge *edge = (DaoxEdge*) U->edges->items.pValue[i];
-			if( U == edge->first ){ /* out edges */
-				DaoxNode *V = edge->second;
-				if( (edge->W1.F > edge->W2.F) && (U->U1.I > V->U1.I) ) MaxFlow_PushFloat( U, edge );
-			}else{ /* in-edges */
-				DaoxNode *V = edge->first;
-				if( (0 > edge->W3.F) && (U->U1.I > V->U1.I) ) MaxFlow_PushFloat( U, edge );
-			}
-		}
-		MaxFlow_RelabelFloat( U );
-	}
-}
-float DaoxGraph_MaxFlow_PRTF_Float( DaoxGraph *self, DaoxNode *source, DaoxNode *sink )
-{
-	daoint i, n;
-	float inf = 0;
-	DArray *list = DArray_New(0);
-
-	for(i=0,n=source->edges->size; i<n; i++){
-		DaoxEdge *edge = (DaoxEdge*) source->edges->items.pValue[i];
-		if( source == edge->first ) inf += edge->W1.F;
-	}
-	for(i=0,n=self->nodes->size; i<n; i++){
-		DaoxNode *node = (DaoxNode*) self->nodes->items.pValue[i];
-		node->U1.I = n;
-		node->U2.F = inf;
-	}
-	for(i=0,n=self->edges->size; i<n; i++){
-		DaoxEdge *edge = (DaoxEdge*) self->edges->items.pValue[i];
-		edge->W2.F = edge->W3.F = 0;
-	}
-	for(i=0,n=source->edges->size; i<n; i++){
-		DaoxEdge *edge = (DaoxEdge*) source->edges->items.pValue[i];
-		if( source == edge->first ) MaxFlow_PushFloat( source, edge );
-	}
-	i = 0;
-	while( i < list->size ){
-		DaoxNode *U = (DaoxNode*) list->items.pValue[i];
-		daoint old_height = U->U1.I;
-		MaxFlow_DischargeFloat( U );
-		if( U->U1.I > old_height ){
-			DArray_Erase( list, i, 1 );
-			DArray_PushFront( list, U );
-			i = 0;
-		}else{
-			i += 1;
-		}
-	}
-	DArray_Delete( list );
-	inf = 0;
-	for(i=0,n=source->edges->size; i<n; i++){
-		DaoxEdge *edge = (DaoxEdge*) source->edges->items.pValue[i];
-		if( source == edge->first ) inf += edge->W2.F;
+		if( source == edge->first ) inf += edge->X.MFxI->flow_fw;
 	}
 	return inf;
 }
 /* For double type weighted network: */
 static void MaxFlow_PushDouble( DaoxNode *node, DaoxEdge *edge )
 {
-	DaoxNode *U = node;
-	DaoxNode *V = edge->second;
-	double  CUV =   edge->W1.D;
-	double *FUV = & edge->W2.D;
-	double *FVU = & edge->W3.D;
+	DaoxEdgeMFxD *E = edge->X.MFxD;
+	DaoxNodeMFxD *U = node->X.MFxD;
+	DaoxNodeMFxD *V = edge->second->X.MFxD;
+	double  CUV =   E->capacity;
+	double *FUV = & E->flow_fw;
+	double *FVU = & E->flow_bw;
 	double send;
 	if( node == edge->second ){
-		V = edge->first;
+		V = edge->first->X.MFxD;
 		CUV = 0;
-		FUV = & edge->W3.D;
-		FVU = & edge->W2.D;
+		FUV = & E->flow_bw;
+		FVU = & E->flow_fw;
 	}
 	send = CUV - (*FUV);
-	if( U->U2.D < send ) send = U->U2.D;
+	if( U->excess < send ) send = U->excess;
 	*FUV += send;
 	*FVU -= send;
-	U->U2.D -= send;
-	V->U2.D += send;
+	U->excess -= send;
+	V->excess += send;
 }
 static void MaxFlow_RelabelDouble( DaoxNode *U )
 {
@@ -484,28 +444,38 @@ static void MaxFlow_RelabelDouble( DaoxNode *U )
 	daoint i, n;
 	for(i=0,n=U->edges->size; i<n; i++){
 		DaoxEdge *edge = (DaoxEdge*) U->edges->items.pValue[i];
+		DaoxEdgeMFxD *EMF = edge->X.MFxD;
 		if( U == edge->first ){ /* out edges */
 			DaoxNode *V = edge->second;
-			if( (edge->W1.D > edge->W2.D) && (V->U1.I < min_height) ) min_height = V->U1.I;
+			DaoxNodeMFxD *VMF = V->X.MFxD;
+			if( (EMF->capacity > EMF->flow_fw) && (VMF->height < min_height) )
+				min_height = VMF->height;
 		}else{ /* in-edges */
 			DaoxNode *V = edge->first;
-			if( (0 > edge->W3.D) && (V->U1.I < min_height) ) min_height = V->U1.I;
+			DaoxNodeMFxD *VMF = V->X.MFxD;
+			if( (0 > EMF->flow_bw) && (VMF->height < min_height) ) min_height = VMF->height;
 		}
 	}
-	U->U1.I = min_height + 1;
+	U->X.MFxD->height = min_height + 1;
 }
 static void MaxFlow_DischargeDouble( DaoxNode *U )
 {
 	daoint i, n;
-	while( U->U2.D > 0 ){
+	DaoxNodeMFxD *UMF = U->X.MFxD;
+	while( UMF->excess > 0 ){
 		for(i=0,n=U->edges->size; i<n; i++){
 			DaoxEdge *edge = (DaoxEdge*) U->edges->items.pValue[i];
+			DaoxEdgeMFxD *EMF = edge->X.MFxD;
 			if( U == edge->first ){ /* out edges */
 				DaoxNode *V = edge->second;
-				if( (edge->W1.D > edge->W2.D) && (U->U1.I > V->U1.I) ) MaxFlow_PushDouble( U, edge );
+				DaoxNodeMFxD *VMF = V->X.MFxD;
+				if( (EMF->capacity > EMF->flow_fw) && (UMF->height > VMF->height) )
+					MaxFlow_PushDouble( U, edge );
 			}else{ /* in-edges */
 				DaoxNode *V = edge->first;
-				if( (0 > edge->W3.D) && (U->U1.I > V->U1.I) ) MaxFlow_PushDouble( U, edge );
+				DaoxNodeMFxD *VMF = V->X.MFxD;
+				if( (0 > EMF->flow_bw) && (UMF->height > VMF->height) )
+					MaxFlow_PushDouble( U, edge );
 			}
 		}
 		MaxFlow_RelabelDouble( U );
@@ -514,21 +484,22 @@ static void MaxFlow_DischargeDouble( DaoxNode *U )
 double DaoxGraph_MaxFlow_PRTF_Double( DaoxGraph *self, DaoxNode *source, DaoxNode *sink )
 {
 	daoint i, n;
-	double inf = 0;
+	double inf = 0.0;
 	DArray *list = DArray_New(0);
 
 	for(i=0,n=source->edges->size; i<n; i++){
 		DaoxEdge *edge = (DaoxEdge*) source->edges->items.pValue[i];
-		if( source == edge->first ) inf += edge->W1.D;
+		if( source == edge->first ) inf += edge->X.MFxD->capacity;
 	}
 	for(i=0,n=self->nodes->size; i<n; i++){
 		DaoxNode *node = (DaoxNode*) self->nodes->items.pValue[i];
-		node->U1.I = n;
-		node->U2.D = inf;
+		node->X.MFxD->height = n;
+		node->X.MFxD->excess = inf;
 	}
 	for(i=0,n=self->edges->size; i<n; i++){
 		DaoxEdge *edge = (DaoxEdge*) self->edges->items.pValue[i];
-		edge->W2.D = edge->W3.D = 0;
+		edge->X.MFxD->flow_fw = 0.0;
+		edge->X.MFxD->flow_bw = 0.0;
 	}
 	for(i=0,n=source->edges->size; i<n; i++){
 		DaoxEdge *edge = (DaoxEdge*) source->edges->items.pValue[i];
@@ -537,9 +508,9 @@ double DaoxGraph_MaxFlow_PRTF_Double( DaoxGraph *self, DaoxNode *source, DaoxNod
 	i = 0;
 	while( i < list->size ){
 		DaoxNode *U = (DaoxNode*) list->items.pValue[i];
-		daoint old_height = U->U1.I;
+		daoint old_height = U->X.MFxD->height;
 		MaxFlow_DischargeDouble( U );
-		if( U->U1.I > old_height ){
+		if( U->X.MFxD->height > old_height ){
 			DArray_Erase( list, i, 1 );
 			DArray_PushFront( list, U );
 			i = 0;
@@ -548,19 +519,32 @@ double DaoxGraph_MaxFlow_PRTF_Double( DaoxGraph *self, DaoxNode *source, DaoxNod
 		}
 	}
 	DArray_Delete( list );
-	inf = 0;
+	inf = 0.0;
 	for(i=0,n=source->edges->size; i<n; i++){
 		DaoxEdge *edge = (DaoxEdge*) source->edges->items.pValue[i];
-		if( source == edge->first ) inf += edge->W2.D;
+		if( source == edge->first ) inf += edge->X.MFxD->flow_fw;
 	}
 	return inf;
 }
 double DaoxGraph_MaxFlow_PushRelabelToFront( DaoxGraph *self, DaoxNode *source, DaoxNode *sink )
 {
+	daoint i, n;
 	switch( self->wtype ){
-	case DAO_INTEGER : return DaoxGraph_MaxFlow_PRTF_Int( self, source, sink );
-	case DAO_FLOAT   : return DaoxGraph_MaxFlow_PRTF_Float( self, source, sink );
-	case DAO_DOUBLE  : return DaoxGraph_MaxFlow_PRTF_Double( self, source, sink );
+	case DAO_INTEGER :
+		DaoxGraph_InitUserData( self, sizeof(DaoxNodeMFxI), sizeof(DaoxEdgeMFxI) );
+		for(i=0, n=self->edges->size; i<n; i++){
+			DaoxEdge *edge = (DaoxEdge*) self->edges->items.pValue[i];
+			edge->X.MFxI->capacity = edge->W1.I;
+		}
+		return DaoxGraph_MaxFlow_PRTF_Int( self, source, sink );
+	case DAO_FLOAT   :
+	case DAO_DOUBLE  :
+		DaoxGraph_InitUserData( self, sizeof(DaoxNodeMFxD), sizeof(DaoxEdgeMFxD) );
+		for(i=0, n=self->edges->size; i<n; i++){
+			DaoxEdge *edge = (DaoxEdge*) self->edges->items.pValue[i];
+			edge->X.MFxD->capacity = edge->W1.D;
+		}
+		return DaoxGraph_MaxFlow_PRTF_Double( self, source, sink );
 	}
 	return 0;
 }
@@ -586,7 +570,7 @@ void DaoxGraph_ConnectedComponents( DaoxGraph *self, DArray *cclist )
 	}
 	for(i=0; i<self->nodes->size; i++){
 		DaoxNode *node = (DaoxNode*) self->nodes->items.pVoid[i];
-		node->U3.I = 0;
+		node->state = 0;
 	}
 	nodes = DArray_New(0);
 	while( self->nodes->size ){
@@ -607,7 +591,7 @@ void DaoxGraph_ConnectedComponents( DaoxGraph *self, DArray *cclist )
 			DArray_PushBack( subgraph->nodes, node );
 			for(j=0; j<node->edges->size; j++){
 				DaoxEdge *edge = (DaoxEdge*) node->edges->items.pVoid[j];
-				if( edge->first != node ) break;
+				if( edge->graph == subgraph ) continue;
 				GC_ShiftRC( subgraph, edge->graph );
 				edge->graph = subgraph;
 				DArray_PushBack( subgraph->edges, edge );
@@ -653,7 +637,7 @@ static void NODE_GetWeight( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxNode *self = (DaoxNode*) p[0];
 	switch( self->graph->wtype ){
 	case DAO_INTEGER : DaoProcess_PutInteger( proc, self->U1.I ); break;
-	case DAO_FLOAT   : DaoProcess_PutFloat( proc, self->U1.F ); break;
+	case DAO_FLOAT   : DaoProcess_PutFloat( proc, self->U1.D ); break;
 	case DAO_DOUBLE  : DaoProcess_PutDouble( proc, self->U1.D ); break;
 	}
 }
@@ -662,7 +646,7 @@ static void NODE_SetWeight( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxNode *self = (DaoxNode*) p[0];
 	switch( self->graph->wtype ){
 	case DAO_INTEGER : self->U1.I = p[1]->xInteger.value; break;
-	case DAO_FLOAT   : self->U1.F = p[1]->xFloat.value; break;
+	case DAO_FLOAT   : self->U1.D = p[1]->xFloat.value; break;
 	case DAO_DOUBLE  : self->U1.D = p[1]->xDouble.value; break;
 	}
 }
@@ -674,17 +658,14 @@ static void NODE_GetWeights( DaoProcess *proc, DaoValue *p[], int N )
 	case DAO_INTEGER :
 		tuple->items[0]->xInteger.value = self->U1.I;
 		tuple->items[1]->xInteger.value = self->U2.I;
-		tuple->items[2]->xInteger.value = self->U3.I;
 		break;
 	case DAO_FLOAT   :
-		tuple->items[0]->xFloat.value = self->U1.F;
-		tuple->items[1]->xFloat.value = self->U2.F;
-		tuple->items[2]->xFloat.value = self->U3.F;
+		tuple->items[0]->xFloat.value = self->U1.D;
+		tuple->items[1]->xFloat.value = self->U2.D;
 		break;
 	case DAO_DOUBLE  :
 		tuple->items[0]->xDouble.value = self->U1.D;
 		tuple->items[1]->xDouble.value = self->U2.D;
-		tuple->items[2]->xDouble.value = self->U3.D;
 		break;
 	}
 }
@@ -696,17 +677,14 @@ static void NODE_SetWeights( DaoProcess *proc, DaoValue *p[], int N )
 	case DAO_INTEGER :
 		self->U1.I = tuple->items[0]->xInteger.value;
 		self->U2.I = tuple->items[1]->xInteger.value;
-		self->U3.I = tuple->items[2]->xInteger.value;
 		break;
 	case DAO_FLOAT   :
-		self->U1.F = tuple->items[0]->xFloat.value;
-		self->U2.F = tuple->items[1]->xFloat.value;
-		self->U3.F = tuple->items[2]->xFloat.value;
+		self->U1.D = tuple->items[0]->xFloat.value;
+		self->U2.D = tuple->items[1]->xFloat.value;
 		break;
 	case DAO_DOUBLE  :
 		self->U1.D = tuple->items[0]->xDouble.value;
 		self->U2.D = tuple->items[1]->xDouble.value;
-		self->U3.D = tuple->items[2]->xDouble.value;
 		break;
 	}
 }
@@ -743,7 +721,7 @@ static void EDGE_GetWeight( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxEdge *self = (DaoxEdge*) p[0];
 	switch( self->graph->wtype ){
 	case DAO_INTEGER : DaoProcess_PutInteger( proc, self->W1.I ); break;
-	case DAO_FLOAT   : DaoProcess_PutFloat( proc, self->W1.F ); break;
+	case DAO_FLOAT   : DaoProcess_PutFloat( proc, self->W1.D ); break;
 	case DAO_DOUBLE  : DaoProcess_PutDouble( proc, self->W1.D ); break;
 	}
 }
@@ -752,7 +730,7 @@ static void EDGE_SetWeight( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxEdge *self = (DaoxEdge*) p[0];
 	switch( self->graph->wtype ){
 	case DAO_INTEGER : self->W1.I = p[1]->xInteger.value; break;
-	case DAO_FLOAT   : self->W1.F = p[1]->xFloat.value; break;
+	case DAO_FLOAT   : self->W1.D = p[1]->xFloat.value; break;
 	case DAO_DOUBLE  : self->W1.D = p[1]->xDouble.value; break;
 	}
 }
@@ -764,17 +742,14 @@ static void EDGE_GetWeights( DaoProcess *proc, DaoValue *p[], int N )
 	case DAO_INTEGER :
 		tuple->items[0]->xInteger.value = self->W1.I;
 		tuple->items[1]->xInteger.value = self->W2.I;
-		tuple->items[2]->xInteger.value = self->W3.I;
 		break;
 	case DAO_FLOAT   :
-		tuple->items[0]->xFloat.value = self->W1.F;
-		tuple->items[1]->xFloat.value = self->W2.F;
-		tuple->items[2]->xFloat.value = self->W3.F;
+		tuple->items[0]->xFloat.value = self->W1.D;
+		tuple->items[1]->xFloat.value = self->W2.D;
 		break;
 	case DAO_DOUBLE  :
 		tuple->items[0]->xDouble.value = self->W1.D;
 		tuple->items[1]->xDouble.value = self->W2.D;
-		tuple->items[2]->xDouble.value = self->W3.D;
 		break;
 	}
 }
@@ -786,17 +761,14 @@ static void EDGE_SetWeights( DaoProcess *proc, DaoValue *p[], int N )
 	case DAO_INTEGER :
 		self->W1.I = tuple->items[0]->xInteger.value;
 		self->W2.I = tuple->items[1]->xInteger.value;
-		self->W3.I = tuple->items[2]->xInteger.value;
 		break;
 	case DAO_FLOAT   :
-		self->W1.F = tuple->items[0]->xFloat.value;
-		self->W2.F = tuple->items[1]->xFloat.value;
-		self->W3.F = tuple->items[2]->xFloat.value;
+		self->W1.D = tuple->items[0]->xFloat.value;
+		self->W2.D = tuple->items[1]->xFloat.value;
 		break;
 	case DAO_DOUBLE  :
 		self->W1.D = tuple->items[0]->xDouble.value;
 		self->W2.D = tuple->items[1]->xDouble.value;
-		self->W3.D = tuple->items[2]->xDouble.value;
 		break;
 	}
 }
@@ -847,11 +819,42 @@ static void GRAPH_AddEdge( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutValue( proc, (DaoValue*) edge );
 }
 
+static void GRAPH_NodeCount( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraph *self = (DaoxGraph*) p[0];
+	DaoProcess_PutInteger( proc, self->nodes->size );
+}
+static void GRAPH_EdgeCount( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraph *self = (DaoxGraph*) p[0];
+	DaoProcess_PutInteger( proc, self->edges->size );
+}
+
 static void GRAPH_RandomInit( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraph *self = (DaoxGraph*) p[0];
 	daoint added = DaoxGraph_RandomInit( self, p[1]->xInteger.value, p[2]->xDouble.value );
 	DaoProcess_PutInteger( proc, added );
+}
+
+static void GRAPH_RemoveSingletonNodes( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraph *self = (DaoxGraph*) p[0];
+	DaoxGraph *save = (DaoxGraph*) DaoCdata_Cast( DaoValue_CastCdata( p[1] ), self->ctype );
+	daoint i, k, n, removed = 0;
+	for(i=0,k=0,n=self->nodes->size; i<n; i++){
+		DaoxNode *node = (DaoxNode*) self->nodes->items.pVoid[i];
+		/* Ensure no duplication of the reference (for the Concurrent GC): */
+		self->nodes->items.pVoid[i] = NULL;
+		if( node->edges->size == 0 ){
+			if( save ) DArray_Append( save->nodes, node );
+			GC_DecRC( node );
+			continue;
+		}
+		self->nodes->items.pVoid[k++] = node;
+	}
+	DaoProcess_PutInteger( proc, self->nodes->size - k );
+	self->nodes->size = k;
 }
 
 static void GRAPH_ConnectedComponents( DaoProcess *proc, DaoValue *p[], int N )
@@ -909,7 +912,7 @@ static void NODE_Search( DaoProcess *proc, DaoValue *p[], int N )
 	if( DaoProcess_PushSectionFrame( proc ) == NULL ) return;
 	for(i=0; i<self->graph->nodes->size; i++){
 		DaoxNode *node = (DaoxNode*) self->graph->nodes->items.pVoid[i];
-		node->U3.I = 0;
+		node->state = 0;
 	}
 	nodes = DArray_New(0);
 	DArray_PushBack( nodes, self );
@@ -925,8 +928,8 @@ static void NODE_Search( DaoProcess *proc, DaoValue *p[], int N )
 			node = (DaoxNode*) DArray_Back( nodes );
 			DArray_PopBack( nodes );
 		}
-		if( node->U3.I ) continue;
-		node->U3.I = 1;
+		if( node->state ) continue;
+		node->state = 1;
 
 		if( sect->b >0 ) DaoProcess_SetValue( proc, sect->a, (DaoValue*) node );
 		proc->topFrame->entry = entry;
@@ -1010,8 +1013,8 @@ static DaoFuncItem DaoxNodeMeths[]=
 {
 	{ NODE_GetWeight, "GetWeight( self :Node<@W,@N,@E> ) => @W" },
 	{ NODE_SetWeight, "SetWeight( self :Node<@W,@N,@E>, weight :@W )" },
-	{ NODE_GetWeights, "GetWeights( self :Node<@W,@N,@E> ) => tuple<U1:@W,U2:@W,U3:@W>" },
-	{ NODE_SetWeights, "SetWeights( self :Node<@W,@N,@E>, weights :tuple<U1:@W,U2:@W,U3:@W> )" },
+	{ NODE_GetWeights, "GetWeights( self :Node<@W,@N,@E> ) => tuple<U1:@W,U2:@W>" },
+	{ NODE_SetWeights, "SetWeights( self :Node<@W,@N,@E>, weights :tuple<U1:@W,U2:@W> )" },
 	{ NODE_GetValue, "GetValue( self :Node<@W,@N,@E> ) => @N" },
 	{ NODE_SetValue, "SetValue( self :Node<@W,@N,@E>, value :@N )" },
 	{ NODE_GetEdges, "Edges( self :Node<@W,@N,@E>, set :enum<in,out> = $out ) => list<Edge<@W,@N,@E>>" },
@@ -1031,8 +1034,8 @@ static DaoFuncItem DaoxEdgeMeths[]=
 {
 	{ EDGE_GetWeight, "GetWeight( self :Edge<@W,@N,@E> ) => @W" },
 	{ EDGE_SetWeight, "SetWeight( self :Edge<@W,@N,@E>, weight :@W )" },
-	{ EDGE_GetWeights, "GetWeights( self :Edge<@W,@N,@E> ) => tuple<W1:@W,W2:@W,W3:@W>" },
-	{ EDGE_SetWeights, "SetWeights( self :Edge<@W,@N,@E>, weights :tuple<W1:@W,W2:@W,W3:@W> )" },
+	{ EDGE_GetWeights, "GetWeights( self :Edge<@W,@N,@E> ) => tuple<W1:@W,W2:@W>" },
+	{ EDGE_SetWeights, "SetWeights( self :Edge<@W,@N,@E>, weights :tuple<W1:@W,W2:@W> )" },
 	{ EDGE_GetValue, "GetValue( self :Edge<@W,@N,@E> ) => @E" },
 	{ EDGE_SetValue, "SetValue( self :Edge<@W,@N,@E>, value :@E )" },
 	{ EDGE_GetNodes, "Nodes( self :Edge<@W,@N,@E> ) => tuple<first:Node<@W,@N,@E>,second:Node<@W,@N,@E>>" },
@@ -1055,7 +1058,11 @@ static DaoFuncItem DaoxGraphMeths[]=
 	{ GRAPH_AddNode, "AddNode( self :Graph<@W,@N,@E> ) => Node<@W,@N,@E>" },
 	{ GRAPH_AddEdge, "AddEdge( self :Graph<@W,@N,@E>, first :Node<@W,@N,@E>, second :Node<@W,@N,@E> ) => Edge<@W,@N,@E>" },
 
+	{ GRAPH_NodeCount, "NodeCount( self :Graph<@W,@N,@E> ) => int" },
+	{ GRAPH_EdgeCount, "EdgeCount( self :Graph<@W,@N,@E> ) => int" },
+
 	{ GRAPH_RandomInit, "RandomInit( self :Graph<@W,@N,@E>, N :int, P :double ) => int" },
+	{ GRAPH_RemoveSingletonNodes, "RemoveSingletonNodes( self :Graph<@W,@N,@E>, save :none|Graph<@W,@N,@E> = none ) => int" },
 
 	{ GRAPH_FindNodes, "FindNodes( self :Graph<@W,@N,@E>, which :enum<first,all> = $first )[node :Node<@W,@N,@E> =>int] => list<Node<@W,@N,@E>>" },
 	{ GRAPH_FindEdges, "FindEdges( self :Graph<@W,@N,@E>, which :enum<first,all> = $first )[node :Edge<@W,@N,@E> =>int] => list<Edge<@W,@N,@E>>" },

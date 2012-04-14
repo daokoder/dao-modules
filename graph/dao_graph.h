@@ -20,6 +20,20 @@ typedef struct DaoxNode   DaoxNode;
 typedef struct DaoxEdge   DaoxEdge;
 typedef struct DaoxGraph  DaoxGraph;
 
+/* Data type used by various graph algorithms: */
+
+/* Maximum Flow: */
+typedef struct DaoxNodeMFxI  DaoxNodeMFxI;
+typedef struct DaoxEdgeMFxI  DaoxEdgeMFxI;
+
+typedef struct DaoxNodeMFxD  DaoxNodeMFxD;
+typedef struct DaoxEdgeMFxD  DaoxEdgeMFxD;
+
+/* Affinity Propagation Clustering: */
+typedef struct DaoxNodeAPC  DaoxNodeAPC;
+typedef struct DaoxEdgeAPC  DaoxEdgeAPC;
+
+
 extern DaoTypeBase DaoxNode_Typer;
 extern DaoTypeBase DaoxEdge_Typer;
 extern DaoTypeBase DaoxGraph_Typer;
@@ -29,15 +43,21 @@ struct DaoxNode
 	DAO_CDATA_COMMON;
 
 	DaoxGraph  *graph;
-	/* For directed graph, out edges are pushed to front; in edges are pushed to back: */
-	DArray     *edges;  /* <DaoxEdge*>; */
-	DaoValue   *value;
+	DArray     *edges;  /* out (front) and in (back) edges: <DaoxEdge*>; */
+	DaoValue   *value;  /* user data, for Dao implementation of algorithms; */
+	daoint      state;
 
 	union {
 		daoint I;
-		float  F;
 		double D;
-	} U1, U2, U3;
+	} U1, U2;
+
+	union {
+		DaoxNodeMFxI  *MFxI;
+		DaoxNodeMFxD  *MFxD;
+		DaoxNodeAPC   *APC;
+		void          *Void;
+	} X; /* user data, for C implementation of algorithms; */
 };
 
 DAO_DLL DaoxNode* DaoxNode_New( DaoxGraph *graph );
@@ -54,9 +74,15 @@ struct DaoxEdge
 
 	union {
 		daoint I;
-		float  F;
 		double D;
-	} W1, W2, W3;
+	} W1, W2;
+
+	union {
+		DaoxEdgeMFxI  *MFxI;
+		DaoxEdgeMFxD  *MFxD;
+		DaoxEdgeAPC   *APC;
+		void          *Void;
+	} X;
 };
 
 DAO_DLL DaoxEdge* DaoxEdge_New( DaoxGraph *graph );
@@ -73,6 +99,9 @@ struct DaoxGraph
 
 	DaoType  *nodeType;
 	DaoType  *edgeType;
+	
+	DString  *nodeData;
+	DString  *edgeData;
 };
 DAO_DLL extern DaoType *daox_node_template_type;
 DAO_DLL extern DaoType *daox_edge_template_type;
@@ -85,6 +114,8 @@ DAO_DLL DaoxNode* DaoxGraph_AddNode( DaoxGraph *self );
 DAO_DLL DaoxEdge* DaoxGraph_AddEdge( DaoxGraph *self, DaoxNode *first, DaoxNode *second );
 
 DAO_DLL daoint DaoxGraph_RandomInit( DaoxGraph *self, daoint N, double prob );
+
+DAO_DLL void DaoxGraph_InitUserData( DaoxGraph *self, int nodeDataSize, int edgeDataSize );
 
 DAO_DLL void DaoxNode_BreadthFirstSearch( DaoxNode *self, DArray *nodes );
 DAO_DLL void DaoxNode_DepthFirstSearch( DaoxNode *self, DArray *nodes );
