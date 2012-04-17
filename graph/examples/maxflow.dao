@@ -15,4 +15,8 @@ edge3.SetWeight( 1 );
 io.writeln( edge1.Nodes() );
 io.writeln( graph.Nodes(), graph.Edges() )
 
-io.writeln( graph.MaxFlow( node1, node3 ) );
+GMF = GraphMaxFlow()
+GMF.Init( graph );
+GMF.Compute( node1, node3 );
+
+io.writeln( GMF.GetFlow(), GMF.GetFlow( edge2 ) );

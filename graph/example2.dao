@@ -1,7 +1,7 @@
 
 load graph;
 
-graph = Graph<float>( $directed );
+graph = Graph( $directed );
 node1 = graph.AddNode();
 node2 = graph.AddNode();
 node3 = graph.AddNode();
