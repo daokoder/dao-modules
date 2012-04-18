@@ -135,6 +135,8 @@ DAO_DLL void DaoxGraphData_Reset( DaoxGraphData *self, DaoxGraph *graph, int nod
 
 DAO_DLL void DaoxGraphData_GetGCFields( void *p, DArray *vs, DArray *as, DArray *ms, int rm );
 
+DAO_DLL int DaoxGraphData_IsAssociated( DaoxGraphData *self, DaoxGraph *graph, DaoProcess *proc );
+
 
 
 typedef struct DaoxGraphMaxFlow  DaoxGraphMaxFlow;

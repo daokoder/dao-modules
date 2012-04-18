@@ -716,7 +716,7 @@ void DaoxGraphData_Reset( DaoxGraphData *self, DaoxGraph *graph, int nodeSize, i
 		DaoxNode *node = (DaoxNode*) graph->nodes->items.pValue[i];
 		node->X.Void = data;
 	}
-	for(i=0, data=self->edgeData->mbs;  i<N;  i++, data+=edgeSize){
+	for(i=0, data=self->edgeData->mbs;  i<M;  i++, data+=edgeSize){
 		DaoxEdge *edge = (DaoxEdge*) graph->edges->items.pValue[i];
 		edge->X.Void = data;
 	}
@@ -726,6 +726,12 @@ void DaoxGraphData_GetGCFields( void *p, DArray *values, DArray *arrays, DArray 
 	DaoxGraphData *self = (DaoxGraphData*) p;
 	if( self->graph ) DArray_Append( values, self->graph );
 	if( remove ) self->graph = NULL;
+}
+int DaoxGraphData_IsAssociated( DaoxGraphData *self, DaoxGraph *graph, DaoProcess *proc )
+{
+	if( self->graph == graph ) return 1;
+	DaoProcess_RaiseException( proc, DAO_ERROR, "graph is not associated with the algorithm data!" );
+	return 0;
 }
 
 
@@ -754,6 +760,8 @@ static void GMF_Compute( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxGraphMaxFlow *self = (DaoxGraphMaxFlow*) p[0];
 	DaoxNode *source = (DaoxNode*) p[1];
 	DaoxNode *sink = (DaoxNode*) p[2];
+	if( DaoxGraphData_IsAssociated( (DaoxGraphData*)self, source->graph, proc ) == 0 ) return;
+	if( DaoxGraphData_IsAssociated( (DaoxGraphData*)self, sink->graph, proc ) == 0 ) return;
 	int error = DaoxGraphMaxFlow_Compute( self, source, sink );
 	DaoProcess_PutInteger( proc, error );
 }
@@ -761,18 +769,21 @@ static void GMF_SetCapacity( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphMaxFlow *self = (DaoxGraphMaxFlow*) p[0];
 	DaoxEdge *edge = (DaoxEdge*) p[1];
+	if( DaoxGraphData_IsAssociated( (DaoxGraphData*)self, edge->graph, proc ) == 0 ) return;
 	edge->X.MF->capacity = p[2]->xDouble.value;
 }
 static void GMF_GetCapacity( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphMaxFlow *self = (DaoxGraphMaxFlow*) p[0];
 	DaoxEdge *edge = (DaoxEdge*) p[1];
+	if( DaoxGraphData_IsAssociated( (DaoxGraphData*)self, edge->graph, proc ) == 0 ) return;
 	DaoProcess_PutDouble( proc, edge->X.MF->capacity );
 }
 static void GMF_GetEdgeFlow( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphMaxFlow *self = (DaoxGraphMaxFlow*) p[0];
 	DaoxEdge *edge = (DaoxEdge*) p[1];
+	if( DaoxGraphData_IsAssociated( (DaoxGraphData*)self, edge->graph, proc ) == 0 ) return;
 	DaoProcess_PutDouble( proc, edge->X.MF->flow_fw );
 }
 static void GMF_GetGraphFlow( DaoProcess *proc, DaoValue *p[], int N )
