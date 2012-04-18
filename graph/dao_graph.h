@@ -28,6 +28,12 @@ typedef struct DaoxEdge   DaoxEdge;
 // in C/C++.
 //
 // See the implementation of the maximum flow algorithm for an example.
+// 
+// Note:
+// No reference counting is used for some of the fields in the node and edge data
+// structures, because, doing so, there will be a huge burden on the Dao GC if the
+// graph is big (if any node or edge has refCount decrease, the GC would have to
+// scan the entire graph to determine if the node and its graph is dead).
 */
 
 /* Data type used by various graph algorithms: */
@@ -49,10 +55,10 @@ struct DaoxNode
 {
 	DAO_CDATA_COMMON;
 
-	DaoxGraph  *graph;
-	DArray     *ins;   /* in edges:  <DaoxEdge*>; */
-	DArray     *outs;  /* out edges: <DaoxEdge*>; */
-	DaoValue   *value; /* user data, for Dao implementation of algorithms; */
+	DaoxGraph  *graph; /* Without reference counting; */
+	DArray     *ins;   /* in edges:  <DaoxEdge*>; Without reference counting; */
+	DArray     *outs;  /* out edges: <DaoxEdge*>; Without reference counting; */
+	DaoValue   *value; /* Dao user data; With reference counting; */
 	double      weight;
 	daoint      state;
 
@@ -60,7 +66,7 @@ struct DaoxNode
 		void        *Void;
 		DaoxNodeMF  *MF;
 		DaoxNodeAP  *AP;
-	} X; /* user data, for C implementation of algorithms; */
+	} X; /* C user data; */
 };
 
 DAO_DLL DaoxNode* DaoxNode_New( DaoxGraph *graph );
@@ -70,10 +76,10 @@ struct DaoxEdge
 {
 	DAO_CDATA_COMMON;
 
-	DaoxGraph  *graph;
-	DaoxNode   *first;
-	DaoxNode   *second;
-	DaoValue   *value;
+	DaoxGraph  *graph;  /* Without reference counting; */
+	DaoxNode   *first;  /* Without reference counting; */
+	DaoxNode   *second; /* Without reference counting; */
+	DaoValue   *value;  /* With reference counting; */
 	double      weight;
 
 	union {
@@ -90,12 +96,12 @@ struct DaoxGraph
 {
 	DAO_CDATA_COMMON;
 
-	DArray  *nodes; /* <DaoxNode*>; */
-	DArray  *edges; /* <DaoxEdge*>; */
+	DArray  *nodes; /* <DaoxNode*>; With reference counting; */
+	DArray  *edges; /* <DaoxEdge*>; With reference counting; */
 	short    directed; /* directed graph; */
 
-	DaoType  *nodeType;
-	DaoType  *edgeType;
+	DaoType  *nodeType; /* With reference counting; */
+	DaoType  *edgeType; /* With reference counting; */
 };
 DAO_DLL extern DaoType *daox_node_template_type;
 DAO_DLL extern DaoType *daox_edge_template_type;

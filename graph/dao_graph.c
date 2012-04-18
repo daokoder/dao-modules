@@ -21,9 +21,8 @@ DaoxNode* DaoxNode_New( DaoxGraph *graph )
 {
 	DaoxNode *self = (DaoxNode*) dao_calloc( 1, sizeof(DaoxNode) );
 	DaoCdata_InitCommon( (DaoCdata*) self, graph->nodeType );
-	GC_IncRC( graph );
 	self->graph = graph;
-	self->outs = DArray_New(D_VALUE);
+	self->outs = DArray_New(0);
 	self->weight = 1;
 	return self;
 }
@@ -32,7 +31,6 @@ void DaoxNode_Delete( DaoxNode *self )
 	DaoCdata_FreeCommon( (DaoCdata*) self );
 	if( self->ins ) DArray_Delete( self->ins );
 	DArray_Delete( self->outs );
-	GC_DecRC( self->graph );
 	dao_free( self );
 }
 void DaoxNode_SetValue( DaoxNode *self, DaoValue *value )
@@ -44,7 +42,6 @@ DaoxEdge* DaoxEdge_New( DaoxGraph *graph )
 {
 	DaoxEdge *self = (DaoxEdge*) dao_calloc( 1, sizeof(DaoxEdge) );
 	DaoCdata_InitCommon( (DaoCdata*) self, graph->edgeType );
-	GC_IncRC( graph );
 	self->graph = graph;
 	self->weight = 1;
 	return self;
@@ -52,9 +49,6 @@ DaoxEdge* DaoxEdge_New( DaoxGraph *graph )
 void DaoxEdge_Delete( DaoxEdge *self )
 {
 	DaoCdata_FreeCommon( (DaoCdata*) self );
-	GC_DecRC( self->graph );
-	GC_DecRC( self->first );
-	GC_DecRC( self->second );
 	dao_free( self );
 }
 void DaoxEdge_SetValue( DaoxEdge *self, DaoValue *value )
@@ -107,39 +101,14 @@ DaoxEdge* DaoxGraph_AddEdge( DaoxGraph *self, DaoxNode *first, DaoxNode *second 
 	}
 
 	DArray_Append( self->edges, edge );
-	GC_ShiftRC( first, edge->first );
-	GC_ShiftRC( second, edge->second );
 	edge->first = first;
 	edge->second = second;
 	return edge;
 }
 
-static void DaoxNode_GetGCFields( void *p, DArray *values, DArray *arrays, DArray *maps, int remove )
-{
-	DaoxNode *self = (DaoxNode*) p;
-	if( self->graph ) DArray_Append( values, self->graph );
-	if( self->value ) DArray_Append( values, self->value );
-	if( self->ins ) DArray_Append( arrays, self->ins );
-	DArray_Append( arrays, self->outs );
-	if( remove ) self->graph = NULL;
-	if( remove ) self->value = NULL;
-}
-static void DaoxEdge_GetGCFields( void *p, DArray *values, DArray *arrays, DArray *maps, int remove )
-{
-	DaoxEdge *self = (DaoxEdge*) p;
-	if( self->graph ) DArray_Append( values, self->graph );
-	if( self->first ) DArray_Append( values, self->first );
-	if( self->second ) DArray_Append( values, self->second );
-	if( self->value ) DArray_Append( values, self->value );
-	if( remove ){
-		self->graph = NULL;
-		self->first = NULL;
-		self->second = NULL;
-		self->value = NULL;
-	}
-}
 static void DaoxGraph_GetGCFields( void *p, DArray *values, DArray *arrays, DArray *maps, int remove )
 {
+	daoint i, n;
 	DaoxGraph *self = (DaoxGraph*) p;
 	DArray_Append( arrays, self->nodes );
 	DArray_Append( arrays, self->edges );
@@ -148,6 +117,18 @@ static void DaoxGraph_GetGCFields( void *p, DArray *values, DArray *arrays, DArr
 	if( remove ){
 		self->nodeType = NULL;
 		self->edgeType = NULL;
+		for(i=0,n=self->nodes->size; i<n; i++){
+			DaoxNode *node = (DaoxNode*) self->nodes->items.pValue[i];
+			if( node->ins ) DArray_Clear( node->ins );
+			DArray_Clear( node->outs );
+			node->graph = NULL;
+		}
+		for(i=0,n=self->edges->size; i<n; i++){
+			DaoxEdge *edge = (DaoxEdge*) self->edges->items.pValue[i];
+			edge->graph = NULL;
+			edge->first = NULL;
+			edge->second = NULL;
+		}
 	}
 }
 
@@ -586,7 +567,7 @@ static DaoFuncItem DaoxNodeMeths[]=
 DaoTypeBase DaoxNode_Typer =
 {
 	"Node<@N=none,@E=none>", NULL, NULL, (DaoFuncItem*) DaoxNodeMeths, {0}, {0},
-	(FuncPtrDel)DaoxNode_Delete, DaoxNode_GetGCFields
+	(FuncPtrDel)DaoxNode_Delete, NULL
 };
 
 static DaoFuncItem DaoxEdgeMeths[]=
@@ -602,7 +583,7 @@ static DaoFuncItem DaoxEdgeMeths[]=
 DaoTypeBase DaoxEdge_Typer =
 {
 	"Edge<@N=none,@E=none>", NULL, NULL, (DaoFuncItem*) DaoxEdgeMeths, {0}, {0},
-	(FuncPtrDel)DaoxEdge_Delete, DaoxEdge_GetGCFields
+	(FuncPtrDel)DaoxEdge_Delete, NULL
 };
 
 
