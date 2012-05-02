@@ -8,12 +8,11 @@
 // Redistribution and use in source and binary forms, with or without modification,
 // are permitted provided that the following conditions are met:
 // 
-// * Redistributions of source code must retain the above copyright notice, this list
-//   of conditions and the following disclaimer.
-// 
-// * Redistributions in binary form must reproduce the above copyright notice, this list
-//   of conditions and the following disclaimer in the documentation and/or other materials
-//   provided with the distribution.
+// * Redistributions of source code must retain the above copyright notice,
+//   this list of conditions and the following disclaimer.
+// * Redistributions in binary form must reproduce the above copyright notice,
+//   this list of conditions and the following disclaimer in the documentation
+//   and/or other materials provided with the distribution.
 // 
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -21,9 +20,9 @@
 // SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
 // SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
 // OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-// HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
-// TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-// EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include<assert.h>
 #include<stdlib.h>
@@ -784,7 +783,7 @@ void DaoJIT_Init( DaoVmSpace *vms, DaoJIT *jit )
 	for(i=DVM_GETI_AII; i<=DVM_SETI_ACIC; i++) daojit_opcode_compilable[i] = 1;
 	for(i=DVM_GETMI_AII; i<=DVM_SETMI_ACIC; i++) daojit_opcode_compilable[i] = 1;
 	for(i=DVM_DATA_I; i<=DVM_SETVG_CC; i++) daojit_opcode_compilable[i] = 1;
-	for(i=DVM_NOT_I; i<=DVM_BITREV_I; i++) daojit_opcode_compilable[i] = 1;
+	for(i=DVM_NOT_I; i<=DVM_TILDE_I; i++) daojit_opcode_compilable[i] = 1;
 	daojit_opcode_compilable[ DVM_NOP ] = 1;
 	daojit_opcode_compilable[ DVM_LOAD ] = 1;
 	daojit_opcode_compilable[ DVM_GOTO ] = 1;
@@ -2529,22 +2528,22 @@ Function* DaoJitHandle::Compile( int start, int end )
 			dC = CreateIntCast( dC, daoint_type, false );
 			StoreNumber( dC, vmc->c );
 			break;
-		case DVM_UNMS_I :
+		case DVM_MINUS_I :
 			dA = GetNumberOperand( vmc->a );
 			dC = CreateSub( zero, dA );
 			StoreNumber( dC, vmc->c );
 			break;
-		case DVM_UNMS_F :
+		case DVM_MINUS_F :
 			dA = GetNumberOperand( vmc->a );
 			dC = CreateFSub( float_zero, dA );
 			StoreNumber( dC, vmc->c );
 			break;
-		case DVM_UNMS_D :
+		case DVM_MINUS_D :
 			dA = GetNumberOperand( vmc->a );
 			dC = CreateFSub( double_zero, dA );
 			StoreNumber( dC, vmc->c );
 			break;
-		case DVM_UNMS_C :
+		case DVM_MINUS_C :
 			dA = GetNumberOperand( vmc->a );
 			real1 = CreateExtractValue( dA, fidx0 );
 			imag1 = CreateExtractValue( dA, fidx1 );
