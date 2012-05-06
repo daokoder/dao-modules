@@ -1055,7 +1055,7 @@ static void DaoFormat( DaoProcess *proc, DaoValue *p[], int N )
 	DString_Delete( str );
 }
 
-int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace_WrapFunction( ns, (DaoCFunction)DaoFormat, "format( self: string, ... )=>string" );
 	return 0;

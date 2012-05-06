@@ -492,7 +492,7 @@ DaoTypeBase queueTyper = {
 	(FuncPtrDel)DaoQueue_Delete, DaoQueue_GetGCFields
 };
 
-int DaoSync_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_DLL int DaoSync_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace_WrapType( ns, &stateTyper, 0 );
 	DaoNamespace_WrapType( ns, &queueTyper, 0 );

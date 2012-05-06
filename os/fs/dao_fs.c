@@ -883,7 +883,7 @@ DaoTypeBase fsnodeTyper = {
 	"fsnode", NULL, NULL, fsnodeMeths, {NULL}, {0}, (FuncPtrDel)DInode_Delete, NULL
 };
 
-int DaoFS_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_DLL int DaoFS_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	daox_type_fsnode = DaoNamespace_WrapType( ns, & fsnodeTyper, 1 );
 	return 0;

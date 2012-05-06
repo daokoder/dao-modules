@@ -1076,7 +1076,7 @@ void DaoNetwork_Init( DaoVmSpace *vms, DaoNamespace *ns )
 
 }
 
-int DaoNet_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_DLL int DaoNet_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	daox_type_socket = DaoNamespace_WrapType( ns, & socketTyper, 1 );
 	DaoNamespace_WrapType( ns, & libNetTyper, 1 );

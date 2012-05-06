@@ -309,7 +309,7 @@ static void DaoColorPrint( DaoProcess *proc, DaoValue *p[], int N )
 	DString_Delete( str );
 }
 
-int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace_WrapFunction( ns, (DaoCFunction)DaoColorPrint, "clprint( self: stream, format: string )" );
 	return 0;

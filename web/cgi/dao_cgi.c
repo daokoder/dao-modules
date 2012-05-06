@@ -354,7 +354,7 @@ void DaoCGI_RandomString( DaoProcess *proc, DaoValue *p[], int N )
 	}
 }
 
-int DaoCGI_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_DLL int DaoCGI_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoProcess *process = DaoVmSpace_AcquireProcess( vmSpace );
 	DaoMap *httpENV, *httpGET, *httpPOST, *httpFILE, *httpCOOKIE;

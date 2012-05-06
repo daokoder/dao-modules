@@ -121,7 +121,7 @@ static void DaoBufferWrite( DaoProcess *proc, DaoValue *p[], int N )
 	fwrite( buffer->buffer.pVoid, 1, size, file );
 }
 
-int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoVmSpace_LinkModule( vmSpace, ns, "sys" );
 	DaoNamespace_WrapFunction( ns, (DaoCFunction)DaoBufferRead,   "fillbuf( self: stream, buf: buffer, count = 0 )=>int" );
