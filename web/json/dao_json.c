@@ -31,11 +31,7 @@
 
 #include"dao.h"
 
-#ifdef DAO_USE_INT64
-#define DAO_INT_LFORMAT  L"%lli"
-#else
-#define DAO_INT_LFORMAT  L"%i"
-#endif /* DAO_USE_INT64 */
+#define DAO_INT_LFORMAT  L"" DAO_INT_FORMAT
 
 void JSON_Indent( DString *text, int indent )
 {
