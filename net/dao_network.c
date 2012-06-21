@@ -978,7 +978,7 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 	FD_ZERO( &set2 );
 	for( i = 0; i < DaoList_Size( list1 ); i++ ){
 		value = DaoList_GetItem( list1, i );
-		if( DaoValue_Type( value ) == DAO_STREAM ){
+		if( DaoValue_CastStream( value ) ){
 			file = DaoStream_GetFile( DaoValue_CastStream( value ) );
 			if( file == NULL ){
 				DaoProcess_RaiseException( proc, DAO_ERROR, "The read list contains a stream not associated with a file" );
@@ -996,7 +996,7 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 	}
 	for( i = 0; i < DaoList_Size( list2 ); i++ ){
 		value = DaoList_GetItem( list2, i );
-		if( DaoValue_Type( value ) == DAO_STREAM ){
+		if( DaoValue_CastStream( value ) ){
 			file = DaoStream_GetFile( DaoValue_CastStream( value ) );
 			if( file == NULL ){
 				DaoProcess_RaiseException( proc, DAO_ERROR, "The write list contains a stream not associated with a file" );
@@ -1024,7 +1024,7 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 	reslist = DaoValue_CastList( DaoTuple_GetItem( tuple, 0 ) );
 	for( i = 0; i < DaoList_Size( list1 ); i++ ){
 		value = DaoList_GetItem( list1, i );
-		if( DaoValue_Type( value ) == DAO_STREAM ){
+		if( DaoValue_CastStream( value ) ){
 			if( FD_ISSET( fileno( DaoStream_GetFile( DaoValue_CastStream( value ) ) ), &set1 ) )
 				DaoList_PushBack( reslist, value );
 		}else if( FD_ISSET( ((DaoSocket*)DaoValue_TryGetCdata( value ))->id, &set1 ) )
@@ -1035,7 +1035,7 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 	reslist = DaoValue_CastList( DaoTuple_GetItem( tuple, 1 ) );
 	for( i = 0; i < DaoList_Size( list2 ); i++ ){
 		value = DaoList_GetItem( list2, i );
-		if( DaoValue_Type( value ) == DAO_STREAM ){
+		if( DaoValue_CastStream( value ) ){
 			if( FD_ISSET( fileno( DaoStream_GetFile( DaoValue_CastStream( value ) ) ), &set2 ) )
 				DaoList_PushBack( reslist, value );
 		}else if( FD_ISSET( ((DaoSocket*)DaoValue_TryGetCdata( value ))->id, &set2 ) )

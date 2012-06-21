@@ -30,6 +30,9 @@
 #include"daoValue.h"
 #include"daoGC.h"
 
+static DaoType *daox_type_DaoState = NULL;
+static DaoType *daox_type_DaoQueue = NULL;
+
 struct DaoState
 {
 	DAO_CDATA_COMMON;
@@ -86,7 +89,7 @@ static void DaoState_Create( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoState_Value( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoState *self = (DaoState*)DaoValue_CastCdata( p[0] );
+	DaoState *self = (DaoState*)DaoValue_CastCdata( p[0], NULL );
 	DaoMutex_Lock( self->lock );
 	DaoProcess_PutValue( proc, self->state );
 	DaoMutex_Unlock( self->lock );
@@ -94,7 +97,7 @@ static void DaoState_Value( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoState_TestSet( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoState *self = (DaoState*)DaoValue_CastCdata( p[0] );
+	DaoState *self = (DaoState*)DaoValue_CastCdata( p[0], NULL );
 	int set = 0;
 	DNode *node;
 	DaoMutex_Lock( self->lock );
@@ -113,7 +116,7 @@ static void DaoState_TestSet( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoState_Set( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoState *self = (DaoState*)DaoValue_CastCdata( p[0] );
+	DaoState *self = (DaoState*)DaoValue_CastCdata( p[0], NULL );
 	DNode *node;
 	DaoMutex_Lock( self->lock );
 	DaoValue_Copy( p[1], &self->state );
@@ -129,7 +132,7 @@ static void DaoState_Set( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoState_WaitFor( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoState *self = (DaoState*)DaoValue_CastCdata( p[0] );
+	DaoState *self = (DaoState*)DaoValue_CastCdata( p[0], NULL );
 	int eq = 0, res = 1;
 	DaoValue *state = p[1];
 	float timeout;
@@ -163,7 +166,7 @@ static void DaoState_WaitFor( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoState_WaitFor2( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoState *self = (DaoState*)DaoValue_CastCdata( p[0] );
+	DaoState *self = (DaoState*)DaoValue_CastCdata( p[0], NULL );
 	int eq = 0, res = 1;
 	DaoValue *state = p[1];
 	float timeout;
@@ -199,7 +202,7 @@ static void DaoState_WaitFor2( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoState_Waitlist( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoState *self = (DaoState*)DaoValue_CastCdata( p[0] );
+	DaoState *self = (DaoState*)DaoValue_CastCdata( p[0], NULL );
 	DaoList *list = DaoProcess_PutList( proc );
 	DNode *node;
 	DaoMutex_Lock( self->lock );
@@ -300,7 +303,7 @@ static void DaoQueue_GetGCFields( void *p, DArray *values, DArray *arrays, DArra
 
 static void DaoQueue_Size( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoQueue *self = (DaoQueue*)DaoValue_CastCdata( p[0] );
+	DaoQueue *self = (DaoQueue*)DaoValue_CastCdata( p[0], NULL );
 	int size;
 	DaoMutex_Lock( self->mtx );
 	size = self->size;
@@ -310,14 +313,14 @@ static void DaoQueue_Size( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoQueue_Capacity( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoQueue *self = (DaoQueue*)DaoValue_CastCdata( p[0] );
+	DaoQueue *self = (DaoQueue*)DaoValue_CastCdata( p[0], NULL );
 	DaoProcess_PutInteger( proc, self->capacity );
 }
 
 static void DaoQueue_Merge( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoQueue *self = (DaoQueue*)DaoValue_CastCdata( p[0] );
-	DaoQueue *other = (DaoQueue*)DaoValue_CastCdata( p[1] );
+	DaoQueue *self = (DaoQueue*)DaoValue_CastCdata( p[0], NULL );
+	DaoQueue *other = (DaoQueue*)DaoValue_CastCdata( p[1], NULL );
 	int merged = 0;
 	DaoMutex_Lock( self->mtx );
 	DaoMutex_Lock( other->mtx );
@@ -346,7 +349,7 @@ static void DaoQueue_Merge( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoQueue_Push( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoQueue *self = (DaoQueue*)DaoValue_CastCdata( p[0] );
+	DaoQueue *self = (DaoQueue*)DaoValue_CastCdata( p[0], NULL );
 	QueueItem *item = (QueueItem*)dao_malloc( sizeof(QueueItem) );
 	item->value = NULL;
 	DaoValue_Copy( p[1], &item->value );
@@ -368,7 +371,7 @@ static void DaoQueue_Push( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoQueue_TryPush( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoQueue *self = (DaoQueue*)DaoValue_CastCdata( p[0] );
+	DaoQueue *self = (DaoQueue*)DaoValue_CastCdata( p[0], NULL );
 	QueueItem *item = (QueueItem*)dao_malloc( sizeof(QueueItem) );
 	float timeout = DaoValue_TryGetFloat( p[2] );
 	int pushable = 0, timed = 0;
@@ -409,7 +412,7 @@ static void DaoQueue_TryPush( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoQueue_Pop( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoQueue *self = (DaoQueue*)DaoValue_CastCdata( p[0] );
+	DaoQueue *self = (DaoQueue*)DaoValue_CastCdata( p[0], NULL );
 	QueueItem *item = NULL;
 	DaoMutex_Lock( self->mtx );
 	while( !self->size )
@@ -431,7 +434,7 @@ static void DaoQueue_Pop( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoQueue_TryPop( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoQueue *self = (DaoQueue*)DaoValue_CastCdata( p[0] );
+	DaoQueue *self = (DaoQueue*)DaoValue_CastCdata( p[0], NULL );
 	QueueItem *item = NULL;
 	float timeout = DaoValue_TryGetFloat( p[1] );
 	int popable = 0, timed = 0;
@@ -494,7 +497,7 @@ DaoTypeBase queueTyper = {
 
 DAO_DLL int DaoSync_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	DaoNamespace_WrapType( ns, &stateTyper, 0 );
-	DaoNamespace_WrapType( ns, &queueTyper, 0 );
+	daox_type_DaoState = DaoNamespace_WrapType( ns, &stateTyper, 0 );
+	daox_type_DaoQueue = DaoNamespace_WrapType( ns, &queueTyper, 0 );
 	return 0;
 }

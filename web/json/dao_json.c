@@ -153,10 +153,6 @@ static void JSON_Serialize( DaoProcess *proc, DaoValue *p[], int N )
 				case DAO_ENUM:      strcat( buf, "enum" ); break;
 				case DAO_ARRAY:	    strcat( buf, "array" );	break;
 				case DAO_TUPLE:	    strcat( buf, "tuple" );	break;
-				case DAO_STREAM:    strcat( buf, "stream" ); break;
-				case DAO_MUTEX:
-				case DAO_SEMA:
-				case DAO_CONDVAR:
 				case DAO_OBJECT:    strcat( buf, "object" ); break;
 				case DAO_CLASS:
 				case DAO_NAMESPACE:	strcat( buf, "class/namespace" ); break;

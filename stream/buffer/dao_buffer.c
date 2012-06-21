@@ -43,7 +43,7 @@ static void DaoBufferRead( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoStream *stream = DaoValue_CastStream( p[0] );
 	FILE* file = DaoStream_GetFile( stream );
-	Dao_Buffer *buffer = (Dao_Buffer*)DaoValue_CastCdata( p[1] );
+	Dao_Buffer *buffer = Dao_Buffer_CastFromValue( p[1] );
 	size_t size = DaoValue_TryGetInteger( p[2] );
 	if( !file )
 		file = stdin;
@@ -108,7 +108,7 @@ static void DaoBufferWrite( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoStream *stream = DaoValue_CastStream( p[0] );
 	FILE* file = DaoStream_GetFile( stream );
-	Dao_Buffer *buffer = (Dao_Buffer*)DaoValue_CastCdata( p[1] );
+	Dao_Buffer *buffer = Dao_Buffer_CastFromValue( p[1] );
 	size_t size = DaoValue_TryGetInteger( p[2] );
 	if( !file )
 		file = stdout;
