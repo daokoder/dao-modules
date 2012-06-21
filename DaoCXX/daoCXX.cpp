@@ -269,16 +269,6 @@ static int dao_make_wrapper( DString *name, DaoType *routype, DString *cproto, D
 			DString_AppendMBS( wrapper, sindex );
 			DString_AppendMBS( wrapper, "] );\n" );
 			break;
-		case DAO_STREAM :
-			DString_Append( cc, pname );
-			DString_AppendMBS( cproto, "FILE *" );
-			DString_Append( cproto, pname );
-			DString_AppendMBS( wrapper, "FILE *" );
-			DString_Append( wrapper, pname );
-			DString_AppendMBS( wrapper, " = DaoStream_GetFile( DaoValue_CastStream( _p[" );
-			DString_AppendMBS( wrapper, sindex );
-			DString_AppendMBS( wrapper, "] ) );\n" );
-			break;
 		case DAO_CDATA :
 			if( strcmp( type->name->mbs, "cdata" ) == 0 ){
 				DString_Append( cc, pname );
@@ -289,6 +279,15 @@ static int dao_make_wrapper( DString *name, DaoType *routype, DString *cproto, D
 				DString_AppendMBS( wrapper, " = DaoValue_TryGetCdata( _p[" );
 				DString_AppendMBS( wrapper, sindex );
 				DString_AppendMBS( wrapper, "] );\n" );
+			}else if( DaoType_MatchTo( type, dao_type_stream, NULL ) ){
+				DString_Append( cc, pname );
+				DString_AppendMBS( cproto, "FILE *" );
+				DString_Append( cproto, pname );
+				DString_AppendMBS( wrapper, "FILE *" );
+				DString_Append( wrapper, pname );
+				DString_AppendMBS( wrapper, " = DaoStream_GetFile( DaoValue_CastStream( _p[" );
+				DString_AppendMBS( wrapper, sindex );
+				DString_AppendMBS( wrapper, "] ) );\n" );
 			}else{
 				return 1;
 			}
@@ -340,13 +339,6 @@ static int dao_make_wrapper( DString *name, DaoType *routype, DString *cproto, D
 			DString_Append( wrapper, cc );
 			DString_AppendMBS( wrapper, "DaoProcess_PutMBString( _proc, _res );\n" );
 			break;
-		case DAO_STREAM :
-			DString_InsertMBS( cproto, "FILE* ", 0, 0, 0 );
-			DString_AppendMBS( wrapper, "FILE* " );
-			DString_AppendMBS( wrapper, " _res = " );
-			DString_Append( wrapper, cc );
-			DString_AppendMBS( wrapper, "DaoProcess_PutFile( _proc, _res );\n" );
-			break;
 		case DAO_CDATA :
 			if( strcmp( type->name->mbs, "cdata" ) == 0 ){
 				DString_InsertMBS( cproto, "void* ", 0, 0, 0 );
@@ -354,6 +346,12 @@ static int dao_make_wrapper( DString *name, DaoType *routype, DString *cproto, D
 				DString_AppendMBS( wrapper, " _res = " );
 				DString_Append( wrapper, cc );
 				DString_AppendMBS( wrapper, "DaoProcess_PutCdata( _proc, _res, NULL );\n" );
+			}else if( DaoType_MatchTo( type, dao_type_stream, NULL ) ){
+				DString_InsertMBS( cproto, "FILE* ", 0, 0, 0 );
+				DString_AppendMBS( wrapper, "FILE* " );
+				DString_AppendMBS( wrapper, " _res = " );
+				DString_Append( wrapper, cc );
+				DString_AppendMBS( wrapper, "DaoProcess_PutFile( _proc, _res );\n" );
 			}else{
 				return 1;
 			}
