@@ -1049,7 +1049,7 @@ static DaoFuncItem netMeths[] =
 	{  DaoNetLib_Connect,       "connect( host :string, port :int )=>socket" },
 	{  DaoNetLib_GetHost,       "gethost( host :string )=>map<string,string>" },
 	{  DaoNetLib_Select,
-		"select( read :list<@X<stream|socket>>, write :list<@Y<stream|socket>>, timeout :float )=>tuple<read :list<@X>, write :list<@Y>>" },
+		"select( read :list<@X<io::stream|socket>>, write :list<@Y<io::stream|socket>>, timeout :float )=>tuple<read :list<@X>, write :list<@Y>>" },
 	{ NULL, NULL }
 };
 

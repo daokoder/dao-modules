@@ -124,10 +124,10 @@ static void DaoBufferWrite( DaoProcess *proc, DaoValue *p[], int N )
 DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoVmSpace_LinkModule( vmSpace, ns, "sys" );
-	DaoNamespace_WrapFunction( ns, (DaoCFunction)DaoBufferRead,   "fillbuf( self: stream, buf: buffer, count = 0 )=>int" );
-	DaoNamespace_WrapFunction( ns, (DaoCFunction)DaoBufferReadAll,"readbuf( self: stream, count = 0 )=>buffer" );
+	DaoNamespace_WrapFunction( ns, (DaoCFunction)DaoBufferRead,   "fillbuf( self: io::stream, buf: buffer, count = 0 )=>int" );
+	DaoNamespace_WrapFunction( ns, (DaoCFunction)DaoBufferReadAll,"readbuf( self: io::stream, count = 0 )=>buffer" );
 	DaoNamespace_WrapFunction( ns, (DaoCFunction)DaoBufferReadAll2,
-							   "readbuf( self: stream, file: string, count = 0 )=>buffer" );
-	DaoNamespace_WrapFunction( ns, (DaoCFunction)DaoBufferWrite,   "writebuf( self: stream, buf: buffer, count = 0 )" );
+							   "readbuf( self: io::stream, file: string, count = 0 )=>buffer" );
+	DaoNamespace_WrapFunction( ns, (DaoCFunction)DaoBufferWrite,   "writebuf( self: io::stream, buf: buffer, count = 0 )" );
 	return 0;
 }

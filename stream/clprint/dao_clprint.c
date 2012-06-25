@@ -311,6 +311,6 @@ static void DaoColorPrint( DaoProcess *proc, DaoValue *p[], int N )
 
 DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	DaoNamespace_WrapFunction( ns, (DaoCFunction)DaoColorPrint, "clprint( self: stream, format: string )" );
+	DaoNamespace_WrapFunction( ns, (DaoCFunction)DaoColorPrint, "clprint( self: io::stream, format: string )" );
 	return 0;
 }
