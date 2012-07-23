@@ -416,7 +416,7 @@ static void GRAPH_RandomInit( DaoProcess *proc, DaoValue *p[], int N )
 static void GRAPH_RemoveSingletonNodes( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraph *self = (DaoxGraph*) p[0];
-	DaoxGraph *save = (DaoxGraph*) DaoCdata_Cast( DaoValue_CastCdata( p[1] ), self->ctype );
+	DaoxGraph *save = (DaoxGraph*) p[1];
 	daoint i, k, n, removed = 0;
 	for(i=0,k=0,n=self->nodes->size; i<n; i++){
 		DaoxNode *node = (DaoxNode*) self->nodes->items.pVoid[i];
