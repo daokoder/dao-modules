@@ -82,6 +82,12 @@ typedef struct DaoxLine              DaoxLine;
 typedef struct DaoxQuad              DaoxQuad;
 typedef struct DaoxTransform         DaoxTransform;
 
+typedef struct DaoxPointArray        DaoxPointArray;
+typedef struct DaoxQuadArray         DaoxQuadArray;
+typedef struct DaoxPolygonArray      DaoxPolygonArray;
+
+typedef struct DaoxSlice             DaoxSlice;
+
 typedef  DaoxGraphicsItem  DaoxGraphicsLine;
 typedef  DaoxGraphicsItem  DaoxGraphicsRect;
 typedef  DaoxGraphicsItem  DaoxGraphicsCircle;
@@ -146,6 +152,41 @@ struct DaoxBezierSegment
 };
 
 
+struct DaoxPointArray
+{
+	DaoxPoint  *points;
+
+	int  count;
+	int  capacity;
+};
+
+struct DaoxQuadArray
+{
+	DaoxQuad  *quads;
+
+	int  count;
+	int  capacity;
+};
+
+struct DaoxSlice
+{
+	int  offset;
+	int  count;
+};
+
+struct DaoxPolygonArray
+{
+	DaoxPoint  *points;
+	DaoxSlice  *polygons;
+
+	int   pointCount;
+	int   polygonCount;
+
+	int   pointCapacity;
+	int   polygonCapacity;
+};
+
+
 struct DaoxGraphicsItem
 {
 	DAO_CDATA_COMMON;
@@ -167,6 +208,12 @@ struct DaoxGraphicsItem
 	ushort_t          capacity;  /* capacity of the array; */
 	DaoxPoint        *points;
 	DaoxPathSegment  *segments;
+
+	DaoxPointArray   *polygon;
+	DaoxQuadArray    *quads;
+
+	DaoxPolygonArray  strokePolygons;
+	DaoxPolygonArray  fillPolygons;
 
 	DString  *text;
 	DString  *font;
@@ -200,11 +247,25 @@ extern "C"{
 #endif
 
 
+DAO_DLL void DaoxPolygonArray_Init( DaoxPolygonArray *self );
+DAO_DLL void DaoxPolygonArray_Reset( DaoxPolygonArray *self );
+DAO_DLL void DaoxPolygonArray_Clear( DaoxPolygonArray *self );
+DAO_DLL void DaoxPolygonArray_PushPolygon( DaoxPolygonArray *self );
+DAO_DLL void DaoxPolygonArray_PushPointXY( DaoxPolygonArray *self, float x, float y );
+DAO_DLL void DaoxPolygonArray_PushPoint( DaoxPolygonArray *self, DaoxPoint point );
+DAO_DLL void DaoxPolygonArray_PushQuad( DaoxPolygonArray *self, DaoxQuad quad );
+
+
+
+
+
 DAO_DLL DaoxBezierSegment* DaoxBezierSegment_New();
 DAO_DLL void DaoxBezierSegment_Delete( DaoxBezierSegment *self );
 
 DAO_DLL void DaoxBezierSegment_SetPoints( DaoxBezierSegment *self, DaoxPoint P0, DaoxPoint P1, DaoxPoint P2, DaoxPoint P3 );
 DAO_DLL void DaoxBezierSegment_Refine( DaoxBezierSegment *self, float threshold );
+
+
 
 
 
@@ -237,6 +298,9 @@ DAO_DLL void DaoxGraphicsPath_CubicTo( DaoxGraphicsPath *self, float x, float y,
 DAO_DLL void DaoxGraphicsPath_CubicTo2( DaoxGraphicsPath *self, float cx0, float cy0, float x, float y, float cx, float cy );
 
 
+DAO_DLL void DaoxGraphicsItem_UpdatePolygons( DaoxGraphicsItem *self );
+
+
 
 
 
@@ -262,6 +326,8 @@ DAO_DLL DaoxGraphicsPath* DaoxGraphicsScene_AddPath( DaoxGraphicsScene *self );
 
 
 /* Utility functions: */
+
+DAO_DLL DaoxQuad DaoxQuad_FromRect( float left, float bottom, float right, float top );
 
 DAO_DLL float DaoxDistance( DaoxPoint start, DaoxPoint end );
 DAO_DLL float DaoxDistance2( DaoxPoint start, DaoxPoint end );
