@@ -80,8 +80,10 @@ typedef struct DaoxColor             DaoxColor;
 typedef struct DaoxPoint             DaoxPoint;
 typedef struct DaoxLine              DaoxLine;
 typedef struct DaoxQuad              DaoxQuad;
+typedef struct DaoxPath              DaoxPath;
 typedef struct DaoxTransform         DaoxTransform;
 
+typedef struct DaoxByteArray         DaoxByteArray;
 typedef struct DaoxPointArray        DaoxPointArray;
 typedef struct DaoxQuadArray         DaoxQuadArray;
 typedef struct DaoxPolygonArray      DaoxPolygonArray;
@@ -138,6 +140,7 @@ struct DaoxPathSegment
 	DaoxBezierSegment  *bezier;
 };
 
+
 struct DaoxBezierSegment
 {
 	unsigned int  count; /* count > 0: if this segment and its children are used; */
@@ -151,6 +154,14 @@ struct DaoxBezierSegment
 	DaoxBezierSegment  *second;
 };
 
+
+struct DaoxByteArray
+{
+	uchar_t  *bytes;
+
+	int  count;
+	int  capacity;
+};
 
 struct DaoxPointArray
 {
@@ -179,11 +190,18 @@ struct DaoxPolygonArray
 	DaoxPoint  *points;
 	DaoxSlice  *polygons;
 
-	int   pointCount;
-	int   polygonCount;
+	int  pointCount;
+	int  polygonCount;
 
-	int   pointCapacity;
-	int   polygonCapacity;
+	int  pointCapacity;
+	int  polygonCapacity;
+};
+
+
+struct DaoxPath
+{
+	DaoxPointArray  *points;
+	DaoxByteArray   *commands;
 };
 
 
@@ -204,16 +222,23 @@ struct DaoxGraphicsItem
 	DaoxColor  strokeColor;  /* stroke color: RGBA; */
 	DaoxColor  fillColor;    /* filling color: RGBA; */
 
-	ushort_t          count;     /* count of points; */
-	ushort_t          capacity;  /* capacity of the array; */
-	DaoxPoint        *points;
-	DaoxPathSegment  *segments;
+	DaoxPath  *path;  /* path, or points for polylines and polygons; */
 
-	DaoxPointArray   *polygon;
-	DaoxQuadArray    *quads;
-
-	DaoxPolygonArray  strokePolygons;
-	DaoxPolygonArray  fillPolygons;
+	/*
+	// Polygons converted from the stroking and filling areas of the item.
+	//
+	// These polygons are potentially overlapping, due to the fact that
+	// this frontend needs to be light and efficient, so that it can take
+	// the advantage of hardware acceleration.
+	//
+	// They should be filled using stencil buffer or other techniques to
+	// avoid multiple drawing in the overlapping areas.
+	//
+	// Note: two-point polygons are used to represent rectangles by pairs
+	// of points (left,bottom) and (right,top).
+	*/
+	DaoxPolygonArray  *strokePolygons;
+	DaoxPolygonArray  *fillPolygons;
 
 	DString  *text;
 	DString  *font;
@@ -236,6 +261,13 @@ struct DaoxGraphicsScene
 	DAO_CDATA_COMMON;
 
 	DArray  *items;
+
+	DaoxPath  *path;
+
+	DaoxPointArray  *points;
+	DaoxByteArray   *junctions;
+
+	DaoxBezierSegment  *bezier;
 };
 DAO_DLL extern DaoType *daox_type_graphics_scene;
 
@@ -247,13 +279,43 @@ extern "C"{
 #endif
 
 
-DAO_DLL void DaoxPolygonArray_Init( DaoxPolygonArray *self );
+
+DAO_DLL DaoxByteArray* DaoxByteArray_New();
+DAO_DLL void DaoxByteArray_Init( DaoxByteArray *self );
+DAO_DLL void DaoxByteArray_Clear( DaoxByteArray *self );
+DAO_DLL void DaoxByteArray_Delete( DaoxByteArray *self );
+DAO_DLL void DaoxByteArray_Push( DaoxByteArray *self, uchar_t byte );
+DAO_DLL void DaoxByteArray_Resize( DaoxByteArray *self, int count, uchar_t byte );
+
+
+DAO_DLL DaoxPointArray* DaoxPointArray_New();
+DAO_DLL void DaoxPointArray_Init( DaoxPointArray *self );
+DAO_DLL void DaoxPointArray_Clear( DaoxPointArray *self );
+DAO_DLL void DaoxPointArray_Delete( DaoxPointArray *self );
+DAO_DLL void DaoxPointArray_PushXY( DaoxPointArray *self, float x, float y );
+DAO_DLL void DaoxPointArray_Push( DaoxPointArray *self, DaoxPoint point );
+
+
+DAO_DLL DaoxPolygonArray* DaoxPolygonArray_New();
+DAO_DLL void DaoxPolygonArray_Delete( DaoxPolygonArray *self );
 DAO_DLL void DaoxPolygonArray_Reset( DaoxPolygonArray *self );
-DAO_DLL void DaoxPolygonArray_Clear( DaoxPolygonArray *self );
 DAO_DLL void DaoxPolygonArray_PushPolygon( DaoxPolygonArray *self );
 DAO_DLL void DaoxPolygonArray_PushPointXY( DaoxPolygonArray *self, float x, float y );
 DAO_DLL void DaoxPolygonArray_PushPoint( DaoxPolygonArray *self, DaoxPoint point );
+DAO_DLL void DaoxPolygonArray_PushRect( DaoxPolygonArray *self, DaoxPoint lb, DaoxPoint rt );
 DAO_DLL void DaoxPolygonArray_PushQuad( DaoxPolygonArray *self, DaoxQuad quad );
+
+
+
+
+
+DAO_DLL DaoxPath* DaoxPath_New();
+DAO_DLL void DaoxPath_Delete( DaoxPath *self );
+DAO_DLL void DaoxPath_Reset( DaoxPath *self );
+DAO_DLL void DaoxPath_MoveTo( DaoxPath *self, float x, float y );
+DAO_DLL void DaoxPath_LineTo( DaoxPath *self, float x, float y );
+DAO_DLL void DaoxPath_CubicTo( DaoxPath *self, float x, float y, float cx, float cy );
+DAO_DLL void DaoxPath_CubicTo2( DaoxPath *self, float cx0, float cy0, float x, float y, float cx, float cy );
 
 
 
@@ -296,9 +358,10 @@ DAO_DLL void DaoxGraphicsPath_MoveTo( DaoxGraphicsPath *self, float x, float y )
 DAO_DLL void DaoxGraphicsPath_LineTo( DaoxGraphicsPath *self, float x, float y );
 DAO_DLL void DaoxGraphicsPath_CubicTo( DaoxGraphicsPath *self, float x, float y, float cx, float cy );
 DAO_DLL void DaoxGraphicsPath_CubicTo2( DaoxGraphicsPath *self, float cx0, float cy0, float x, float y, float cx, float cy );
+DAO_DLL void DaoxGraphicsPath_Close( DaoxGraphicsPath *self );
 
 
-DAO_DLL void DaoxGraphicsItem_UpdatePolygons( DaoxGraphicsItem *self );
+DAO_DLL void DaoxGraphicsItem_UpdatePolygons( DaoxGraphicsItem *self, DaoxGraphicsScene *scene );
 
 
 
@@ -333,9 +396,9 @@ DAO_DLL float DaoxDistance( DaoxPoint start, DaoxPoint end );
 DAO_DLL float DaoxDistance2( DaoxPoint start, DaoxPoint end );
 DAO_DLL DaoxQuad DaoxLine2Quad( DaoxPoint start, DaoxPoint end, float width );
 DAO_DLL DaoxQuad DaoxLineJunctionMinor( DaoxPoint p1, DaoxPoint p2, DaoxPoint p3, float width );
-DAO_DLL DaoxQuad DaoxLineJunctionMajor( DaoxPoint p1, DaoxPoint p2, DaoxPoint p3, float width );
 DAO_DLL DaoxQuad DaoxQuadJunctionMinor( DaoxQuad *first, DaoxQuad *second );
-DAO_DLL DaoxQuad DaoxQuadJunctionMajor( DaoxQuad *first, DaoxQuad *second, DaoxPoint c, float width );
+DAO_DLL DaoxLine DaoxLineJunctionMajor( DaoxPoint p1, DaoxPoint p2, DaoxPoint p3, float width );
+DAO_DLL DaoxLine DaoxQuadJunctionMajor( DaoxQuad *first, DaoxQuad *second, DaoxPoint c, float width );
 
 #ifdef __cplusplus
 }
