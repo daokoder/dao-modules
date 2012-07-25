@@ -84,6 +84,7 @@ typedef struct DaoxPath              DaoxPath;
 typedef struct DaoxTransform         DaoxTransform;
 
 typedef struct DaoxByteArray         DaoxByteArray;
+typedef struct DaoxSliceArray        DaoxSliceArray;
 typedef struct DaoxPointArray        DaoxPointArray;
 typedef struct DaoxQuadArray         DaoxQuadArray;
 typedef struct DaoxPolygonArray      DaoxPolygonArray;
@@ -185,16 +186,19 @@ struct DaoxSlice
 	int  count;
 };
 
+struct DaoxSliceArray
+{
+	DaoxSlice  *slices;
+
+	int  count;
+	int  capacity;
+};
+
+
 struct DaoxPolygonArray
 {
-	DaoxPoint  *points;
-	DaoxSlice  *polygons;
-
-	int  pointCount;
-	int  polygonCount;
-
-	int  pointCapacity;
-	int  polygonCapacity;
+	DaoxPointArray  *points;
+	DaoxSliceArray  *polygons;
 };
 
 
@@ -281,7 +285,6 @@ extern "C"{
 
 
 DAO_DLL DaoxByteArray* DaoxByteArray_New();
-DAO_DLL void DaoxByteArray_Init( DaoxByteArray *self );
 DAO_DLL void DaoxByteArray_Clear( DaoxByteArray *self );
 DAO_DLL void DaoxByteArray_Delete( DaoxByteArray *self );
 DAO_DLL void DaoxByteArray_Push( DaoxByteArray *self, uchar_t byte );
@@ -289,11 +292,15 @@ DAO_DLL void DaoxByteArray_Resize( DaoxByteArray *self, int count, uchar_t byte 
 
 
 DAO_DLL DaoxPointArray* DaoxPointArray_New();
-DAO_DLL void DaoxPointArray_Init( DaoxPointArray *self );
 DAO_DLL void DaoxPointArray_Clear( DaoxPointArray *self );
 DAO_DLL void DaoxPointArray_Delete( DaoxPointArray *self );
 DAO_DLL void DaoxPointArray_PushXY( DaoxPointArray *self, float x, float y );
 DAO_DLL void DaoxPointArray_Push( DaoxPointArray *self, DaoxPoint point );
+
+
+DAO_DLL DaoxSliceArray* DaoxSliceArray_New();
+DAO_DLL void DaoxSliceArray_Delete( DaoxSliceArray *self );
+DAO_DLL void DaoxSliceArray_Push( DaoxSliceArray *self, int offset, int count );
 
 
 DAO_DLL DaoxPolygonArray* DaoxPolygonArray_New();
@@ -325,7 +332,7 @@ DAO_DLL DaoxBezierSegment* DaoxBezierSegment_New();
 DAO_DLL void DaoxBezierSegment_Delete( DaoxBezierSegment *self );
 
 DAO_DLL void DaoxBezierSegment_SetPoints( DaoxBezierSegment *self, DaoxPoint P0, DaoxPoint P1, DaoxPoint P2, DaoxPoint P3 );
-DAO_DLL void DaoxBezierSegment_Refine( DaoxBezierSegment *self, float threshold );
+DAO_DLL void DaoxBezierSegment_Refine( DaoxBezierSegment *self, float width, float threshold );
 
 
 
