@@ -63,21 +63,21 @@ void DaoxBezierSegment_SetPoints( DaoxBezierSegment *self, DaoxPoint P0, DaoxPoi
 	self->P3 = P3;
 	self->count = 1;
 }
-void DaoxBezierSegment_Refine( DaoxBezierSegment *self, float width, float threshold )
+void DaoxBezierSegment_Refine( DaoxBezierSegment *self, float threshold )
 {
-	float D0 = DaoxDistance( self->P0, self->P1 );
-	float D1 = DaoxDistance( self->P1, self->P2 );
-	float D2 = DaoxDistance( self->P2, self->P3 );
-	float D3 = DaoxDistance( self->P0, self->P3 );
+	float D1, D2, D3 = DaoxDistance( self->P0, self->P3 );
 	DaoxPoint Q1;
-	if( (D0 + D1 + D2) < threshold && D3 < width * (D3 - D1) / (D0 + D2) ){
+
+	Q1.x = 0.5 * (self->P1.x + self->P2.x);
+	Q1.y = 0.5 * (self->P1.y + self->P2.y);
+	D1 = DaoxDistance( Q1, self->P0 );
+	D2 = DaoxDistance( Q1, self->P3 );
+	if( (D1 + D2) < (D3 + 0.01) && D3 < 20 ){
 		self->count = 1;
 		if( self->first ) self->first->count = 0;
 		if( self->second ) self->second->count = 0;
 		return;
 	}
-	Q1.x = 0.5 * (self->P1.x + self->P2.x);
-	Q1.y = 0.5 * (self->P1.y + self->P2.y);
 	if( self->first == NULL ) self->first = DaoxBezierSegment_New();
 	if( self->second == NULL ) self->second = DaoxBezierSegment_New();
 
@@ -98,8 +98,8 @@ void DaoxBezierSegment_Refine( DaoxBezierSegment *self, float width, float thres
 	self->first->P3 = Q1;
 	self->second->P0 = Q1;
 
-	DaoxBezierSegment_Refine( self->first, width, threshold );
-	DaoxBezierSegment_Refine( self->second, width, threshold );
+	DaoxBezierSegment_Refine( self->first, threshold );
+	DaoxBezierSegment_Refine( self->second, threshold );
 	self->count = self->first->count + self->second->count;
 }
 void DaoxBezierSegment_ExportEndPoints( DaoxBezierSegment *self, DaoxPointArray *points )
@@ -302,6 +302,30 @@ void DaoxPath_LineTo( DaoxPath *self, float x, float y )
 	DaoxPointArray_PushXY( self->points, x, y );
 	DaoxByteArray_Push( self->commands, DAOX_PATH_LINE_TO );
 }
+void DaoxPath_ArcTo( DaoxPath *self, float x, float y, float degrees, int clockwise )
+{
+	DaoxPoint point, center;
+	float t = tan( 0.5 * degrees * M_PI / 180.0 ) + 1E-9;
+	float d, d2, dx, dy;
+	assert( self->points->count > 0 );
+	point = self->points->points[ self->points->count - 1 ];
+	center.x = 0.5 * (x + point.x);
+	center.y = 0.5 * (y + point.y);
+	d = DaoxDistance( center, point );
+	d2 = d / (tan( 0.5 * degrees * M_PI / 180.0 ) + 1E-9);
+	dx = point.x - center.x;
+	dy = point.y - center.y;
+	if( clockwise ){
+		center.x += - dy / t;
+		center.y += + dx / t;
+	}else{
+		center.x += + dy / t;
+		center.y += - dx / t;
+	}
+	DaoxPointArray_Push( self->points, center );
+	DaoxPointArray_PushXY( self->points, x, y );
+	DaoxByteArray_Push( self->commands, DAOX_PATH_ARCR_TO + (clockwise != 0) );
+}
 void DaoxPath_CubicTo( DaoxPath *self, float x, float y, float cx, float cy )
 {
 	DaoxPoint control, start;
@@ -357,6 +381,7 @@ DaoxGraphicsItem* DaoxGraphicsItem_New( int shape )
 	self->strokeWidth = 1;
 	self->strokeColor.alpha = 1;
 	self->path = DaoxPath_New();
+	self->dashMasks = DaoxPolygonArray_New();
 	self->strokePolygons = DaoxPolygonArray_New();
 	self->fillPolygons = DaoxPolygonArray_New();
 	return self;
@@ -366,6 +391,7 @@ void DaoxGraphicsItem_Delete( DaoxGraphicsItem *self )
 	if( self->text ) DString_Delete( self->text );
 	if( self->font ) DString_Delete( self->font );
 	if( self->children ) DArray_Delete( self->children );
+	DaoxPolygonArray_Delete( self->dashMasks );
 	DaoxPolygonArray_Delete( self->strokePolygons );
 	DaoxPolygonArray_Delete( self->fillPolygons );
 	DaoxPath_Delete( self->path );
@@ -457,6 +483,11 @@ void DaoxGraphicsPath_LineTo( DaoxGraphicsPath *self, float x, float y )
 	assert( self->ctype == daox_type_graphics_path );
 	DaoxPath_LineTo( self->path, x, y );
 }
+void DaoxGraphicsPath_ArcTo( DaoxGraphicsPath *self, float x, float y, float degrees, int clockwise )
+{
+	assert( self->ctype == daox_type_graphics_path );
+	DaoxPath_ArcTo( self->path, x, y, degrees, clockwise );
+}
 void DaoxGraphicsPath_CubicTo( DaoxGraphicsPath *self, float x, float y, float cx, float cy )
 {
 	assert( self->ctype == daox_type_graphics_path );
@@ -476,6 +507,13 @@ void DaoxGraphicsPath_Close( DaoxGraphicsPath *self )
 
 
 
+
+static void DaoxGraphicsiItem_ResetPolygons( DaoxGraphicsItem *self )
+{
+	DaoxPolygonArray_Reset( self->dashMasks );
+	DaoxPolygonArray_Reset( self->strokePolygons );
+	DaoxPolygonArray_Reset( self->fillPolygons );
+}
 
 
 int DaoxGraphics_ArcToLines( DaoxPointArray *lines, DaoxPoint start, DaoxPoint end, DaoxPoint center, int clockwise )
@@ -519,8 +557,6 @@ int DaoxGraphics_ArcToLines( DaoxPointArray *lines, DaoxPoint start, DaoxPoint e
 
 void DaoxGraphicsItem_AddPolygonFromJunction( DaoxGraphicsItem *self, DaoxQuad prev, DaoxPoint cur, DaoxQuad next, int junction )
 {
-	return;
-
 	DaoxSliceArray *polygons;
 	DaoxLine line;
 	DaoxQuad quad;
@@ -608,11 +644,23 @@ void DaoxGraphicsItem_AddPolygonsFromPath( DaoxGraphicsItem *self, DaoxPath *pat
 		}else if( command == DAOX_PATH_LINE_TO ){
 			DaoxPointArray_Push( lines, points[ K++ ] );
 			DaoxByteArray_Push( junctions, self->junction );
+		}else if( command == DAOX_PATH_ARCR_TO ){
+			lines->count -= 1;
+			DaoxGraphics_ArcToLines( lines, points[K-1], points[K+1], points[K], 0 );
+			DaoxByteArray_Resize( junctions, lines->count, DAOX_JUNCTION_ROUND );
+			junctions->bytes[ junctions->count - 1 ] = self->junction;
+			K += 2;
+		}else if( command == DAOX_PATH_ARCL_TO ){
+			lines->count -= 1;
+			DaoxGraphics_ArcToLines( lines, points[K-1], points[K+1], points[K], 1 );
+			DaoxByteArray_Resize( junctions, lines->count, DAOX_JUNCTION_ROUND );
+			junctions->bytes[ junctions->count - 1 ] = self->junction;
+			K += 2;
 		}else if( command == DAOX_PATH_CUBIC_TO ){
 			DaoxBezierSegment_SetPoints( scene->bezier, points[K-1], points[K], points[K+1], points[K+2] );
-			DaoxBezierSegment_Refine( scene->bezier, self->strokeWidth, 8.0 );
+			DaoxBezierSegment_Refine( scene->bezier, 8 );
 			DaoxBezierSegment_ExportEndPoints( scene->bezier, lines );
-			DaoxByteArray_Resize( junctions, lines->count, DAOX_JUNCTION_FLAT );
+			DaoxByteArray_Resize( junctions, lines->count, DAOX_JUNCTION_ROUND );
 			junctions->bytes[ junctions->count - 1 ] = self->junction;
 			K += 3;
 		}
@@ -634,8 +682,7 @@ void DaoxGraphicsLine_UpdatePolygons( DaoxGraphicsLine *self, DaoxGraphicsScene 
 	end.y = self->position.y + self->scale.y;
 	quad = DaoxLine2Quad( self->position, end, self->strokeWidth );
 
-	DaoxPolygonArray_Reset( self->strokePolygons );
-	DaoxPolygonArray_Reset( self->fillPolygons );
+	DaoxGraphicsiItem_ResetPolygons( self );
 	DaoxPolygonArray_PushQuad( self->strokePolygons, quad );
 }
 void DaoxGraphicsRect_UpdatePolygons( DaoxGraphicsRect *self, DaoxGraphicsScene *scene )
@@ -656,8 +703,7 @@ void DaoxGraphicsRect_UpdatePolygons( DaoxGraphicsRect *self, DaoxGraphicsScene 
 	leftQuad   = DaoxQuad_FromRect( left - W2, bottom + W2, left + W2, top - W2 );
 	rightQuad  = DaoxQuad_FromRect( right - W2, bottom + W2, right + W2, top - W2 );
 
-	DaoxPolygonArray_Reset( self->strokePolygons );
-	DaoxPolygonArray_Reset( self->fillPolygons );
+	DaoxGraphicsiItem_ResetPolygons( self );
 
 	DaoxPolygonArray_PushRect( self->fillPolygons, centerQuad.A, centerQuad.C );
 	DaoxPolygonArray_PushRect( self->strokePolygons, bottomQuad.A, bottomQuad.C );
@@ -691,8 +737,7 @@ void DaoxGraphicsEllipse_UpdatePolygons( DaoxGraphicsEllipse *self, DaoxGraphics
 		double ang = 2.0 * M_PI * i / (double) seg;
 		DaoxPointArray_PushXY( scene->path->points, CX + RX * cos( ang ), CY + RY * sin( ang ) );
 	}
-	DaoxPolygonArray_Reset( self->strokePolygons );
-	DaoxPolygonArray_Reset( self->fillPolygons );
+	DaoxGraphicsiItem_ResetPolygons( self );
 	DaoxGraphicsItem_AddPolygonsFromLines( self, scene->path->points, NULL, DAOX_JUNCTION_FLAT, 1, scene );
 }
 void DaoxGraphicsCircle_UpdatePolygons( DaoxGraphicsCircle *self, DaoxGraphicsScene *scene )
@@ -703,8 +748,7 @@ void DaoxGraphicsPolyLine_UpdatePolygons( DaoxGraphicsPolyLine *self, DaoxGraphi
 {
 	int i;
 
-	DaoxPolygonArray_Reset( self->strokePolygons );
-	DaoxPolygonArray_Reset( self->fillPolygons );
+	DaoxGraphicsiItem_ResetPolygons( self );
 
 	for(i=0; i<self->path->points->count; i+=2){
 		DaoxPoint start = self->path->points->points[i];
@@ -715,20 +759,17 @@ void DaoxGraphicsPolyLine_UpdatePolygons( DaoxGraphicsPolyLine *self, DaoxGraphi
 }
 void DaoxGraphicsPolygon_UpdatePolygons( DaoxGraphicsPolygon *self, DaoxGraphicsScene *scene )
 {
-	DaoxPolygonArray_Reset( self->strokePolygons );
-	DaoxPolygonArray_Reset( self->fillPolygons );
+	DaoxGraphicsiItem_ResetPolygons( self );
 	DaoxGraphicsItem_AddPolygonsFromLines( self, self->path->points, NULL, self->junction, 1, scene );
 }
 void DaoxGraphicsPath_UpdatePolygons( DaoxGraphicsPath *self, DaoxGraphicsScene *scene )
 {
-	DaoxPolygonArray_Reset( self->strokePolygons );
-	DaoxPolygonArray_Reset( self->fillPolygons );
+	DaoxGraphicsiItem_ResetPolygons( self );
 	DaoxGraphicsItem_AddPolygonsFromPath( self, self->path, scene );
 }
 void DaoxGraphicsText_UpdatePolygons( DaoxGraphicsText *self, DaoxGraphicsScene *scene )
 {
-	DaoxPolygonArray_Reset( self->strokePolygons );
-	DaoxPolygonArray_Reset( self->fillPolygons );
+	DaoxGraphicsiItem_ResetPolygons( self );
 }
 
 void DaoxGraphicsItem_UpdatePolygons( DaoxGraphicsItem *self, DaoxGraphicsScene *scene )
@@ -1227,6 +1268,15 @@ static void PATH_LineTo( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxGraphicsPath_LineTo( self, x, y );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
+static void PATH_ArcTo( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsPath *self = (DaoxGraphicsPath*) p[0];
+	float x = p[1]->xFloat.value;
+	float y = p[2]->xFloat.value;
+	float d = p[3]->xFloat.value;
+	DaoxGraphicsPath_ArcTo( self, x, y, d, p[4]->xInteger.value );
+	DaoProcess_PutValue( proc, (DaoValue*) self );
+}
 static void PATH_CubicTo( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphicsPath *self = (DaoxGraphicsPath*) p[0];
@@ -1260,6 +1310,7 @@ static DaoFuncItem DaoxGraphicsPathMeths[]=
 	{ PATH_New,       "GraphicsPath()" },
 	{ PATH_MoveTo,    "MoveTo( self : GraphicsPath, x : float, y : float ) => GraphicsPath" },
 	{ PATH_LineTo,    "LineTo( self : GraphicsPath, x : float, y : float ) => GraphicsPath" },
+	{ PATH_ArcTo,     "ArcTo( self : GraphicsPath, x : float, y : float, degrees : float, clockwise = 0 ) => GraphicsPath" },
 	{ PATH_CubicTo,   "CubicTo( self : GraphicsPath, x : float, y : float, cx : float, cy : float ) => GraphicsPath" },
 	{ PATH_CubicTo2,  "CubicTo( self : GraphicsPath, cx0 : float, cy0 : float, x : float, y : float, cx : float, cy : float ) => GraphicsPath" },
 	{ PATH_Close,     "Close( self : GraphicsPath ) => GraphicsPath" },

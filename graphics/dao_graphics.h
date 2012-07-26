@@ -58,6 +58,8 @@ enum DaoxGraphicsPathCommands
 {
 	DAOX_PATH_MOVE_TO ,
 	DAOX_PATH_LINE_TO ,
+	DAOX_PATH_ARCR_TO ,  /* counter clockwise */
+	DAOX_PATH_ARCL_TO ,  /* clockwise */
 	DAOX_PATH_CUBIC_TO ,
 	DAOX_PATH_CLOSE ,
 };
@@ -241,6 +243,7 @@ struct DaoxGraphicsItem
 	// Note: two-point polygons are used to represent rectangles by pairs
 	// of points (left,bottom) and (right,top).
 	*/
+	DaoxPolygonArray  *dashMasks;
 	DaoxPolygonArray  *strokePolygons;
 	DaoxPolygonArray  *fillPolygons;
 
@@ -321,6 +324,7 @@ DAO_DLL void DaoxPath_Delete( DaoxPath *self );
 DAO_DLL void DaoxPath_Reset( DaoxPath *self );
 DAO_DLL void DaoxPath_MoveTo( DaoxPath *self, float x, float y );
 DAO_DLL void DaoxPath_LineTo( DaoxPath *self, float x, float y );
+DAO_DLL void DaoxPath_ArcTo( DaoxPath *self, float x, float y, float degrees, int clockwise );
 DAO_DLL void DaoxPath_CubicTo( DaoxPath *self, float x, float y, float cx, float cy );
 DAO_DLL void DaoxPath_CubicTo2( DaoxPath *self, float cx0, float cy0, float x, float y, float cx, float cy );
 
@@ -332,7 +336,7 @@ DAO_DLL DaoxBezierSegment* DaoxBezierSegment_New();
 DAO_DLL void DaoxBezierSegment_Delete( DaoxBezierSegment *self );
 
 DAO_DLL void DaoxBezierSegment_SetPoints( DaoxBezierSegment *self, DaoxPoint P0, DaoxPoint P1, DaoxPoint P2, DaoxPoint P3 );
-DAO_DLL void DaoxBezierSegment_Refine( DaoxBezierSegment *self, float width, float threshold );
+DAO_DLL void DaoxBezierSegment_Refine( DaoxBezierSegment *self, float threshold );
 
 
 
@@ -363,6 +367,7 @@ DAO_DLL void DaoxGraphicsPolygon_Add( DaoxGraphicsPolygon *self, float x, float 
 
 DAO_DLL void DaoxGraphicsPath_MoveTo( DaoxGraphicsPath *self, float x, float y );
 DAO_DLL void DaoxGraphicsPath_LineTo( DaoxGraphicsPath *self, float x, float y );
+DAO_DLL void DaoxGraphicsPath_ArcTo( DaoxGraphicsPath *self, float x, float y, float degrees, int clockwise );
 DAO_DLL void DaoxGraphicsPath_CubicTo( DaoxGraphicsPath *self, float x, float y, float cx, float cy );
 DAO_DLL void DaoxGraphicsPath_CubicTo2( DaoxGraphicsPath *self, float cx0, float cy0, float x, float y, float cx, float cy );
 DAO_DLL void DaoxGraphicsPath_Close( DaoxGraphicsPath *self );
