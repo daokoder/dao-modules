@@ -28,7 +28,7 @@
 #ifndef __DAO_TRIANGULATOR_H__
 #define __DAO_TRIANGULATOR_H__
 
-#include "dao_graphics.h"
+#include "dao_geometry.h"
 
 typedef struct DaoxVertex  DaoxVertex;
 
@@ -80,14 +80,18 @@ struct DaoxTriangulator
 	DArray  *worklist;  /* DArray<DaoxVertex*>; */
 
 	DArray  *triangles;  /* list of triple integers; */
+
+	DaoxVertex  *caches;  /* reusable vertices; */
 };
 
 
 DAO_DLL DaoxTriangulator* DaoxTriangulator_New();
 DAO_DLL void DaoxTriangulator_Delete( DaoxTriangulator *self );
+DAO_DLL void DaoxTriangulator_Reset( DaoxTriangulator *self );
 
 DAO_DLL void DaoxTriangulator_PushPoint( DaoxTriangulator *self, float x, float y );
 DAO_DLL int  DaoxTriangulator_CloseContour( DaoxTriangulator *self );
 
+DAO_DLL void DaoxTriangulator_Triangulate( DaoxTriangulator *self );
 
 #endif

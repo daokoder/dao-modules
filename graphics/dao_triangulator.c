@@ -26,6 +26,10 @@
 */
 
 #include <math.h>
+#include <string.h>
+#include <stdlib.h>
+#include <assert.h>
+#include "daoValue.h"
 #include "dao_triangulator.h"
 
 
@@ -77,19 +81,52 @@ DaoxTriangulator* DaoxTriangulator_New()
 }
 void DaoxTriangulator_Delete( DaoxTriangulator *self )
 {
-	daoint i;
+	DaoxVertex *vertex;
+	DaoxTriangulator_Reset( self );
+	vertex = self->caches;
+	while( vertex ){
+		DaoxVertex *v = vertex;
+		vertex = vertex->next;
+		DaoxVertex_Delete( v );
+	}
 	DaoxPointArray_Delete( self->points );
-	for(i=0; i<self->vertices->size; ++i)
-		DaoxVertex_Delete( (DaoxVertex*)self->vertices->items.pVoid[i] );
 	DArray_Delete( self->vertices );
 	DArray_Delete( self->worklist );
 	DArray_Delete( self->triangles );
 	dao_free( self );
 }
+void DaoxTriangulator_Reset( DaoxTriangulator *self )
+{
+	daoint i;
+	for(i=0; i<self->vertices->size; ++i){
+		DaoxVertex *vertex = (DaoxVertex*) self->vertices->items.pVoid[i];
+		memset( vertex, 0, sizeof(DaoxVertex) );
+		vertex->next = self->caches;
+		self->caches = vertex;
+	}
+	self->points->count = 0;
+	self->vertices->size = 0;
+	self->worklist->size = 0;
+	self->triangles->size = 0;
+	self->start = NULL;
+}
+
+static DaoxVertex* DaoxTriangulator_GetVertex( DaoxTriangulator *self, daoint index )
+{
+	DaoxVertex *vertex = self->caches;
+	if( vertex ){
+		self->caches = vertex->next;
+		vertex->index = index;
+		vertex->next = NULL;
+	}else{
+		vertex = DaoxVertex_New( index );
+	}
+	return vertex;
+}
 
 void DaoxTriangulator_PushPoint( DaoxTriangulator *self, float x, float y )
 {
-	DaoxVertex *prev = NULL, *vertex = DaoxVertex_New( self->points->count );
+	DaoxVertex *prev = NULL, *vertex = DaoxTriangulator_GetVertex( self, self->points->count );
 	if( self->vertices->size ){
 		prev = (DaoxVertex*)  self->vertices->items.pVoid[self->vertices->size-1];
 		if( prev->next ){
@@ -326,8 +363,8 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 			// 1. connect the inner contour with the outer contour;
 			// 2. or break the outer contour.
 			*/
-			N2 = DaoxVertex_New( inside->index );
-			A2 = DaoxVertex_New( A->index );
+			N2 = DaoxTriangulator_GetVertex( self, inside->index );
+			A2 = DaoxTriangulator_GetVertex( self, A->index );
 			N2->sorting = inside->sorting;
 			A2->sorting = A->sorting;
 			A2->contour = N2->contour = A->contour;
