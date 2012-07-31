@@ -217,41 +217,27 @@ void DaoxTriangulator_SortVertices( DaoxTriangulator *self )
 	DaoxTriangulator_QuickSortVertices( self, vertices, 0, N-1 );
 	for(i=0; i<N; ++i) vertices[i]->sorting = i;
 }
-void DaoxTriangulator_OrientateContours( DaoxTriangulator *self )
+void DaoxTriangulator_InitContourOrientation( DaoxTriangulator *self )
 {
+	DaoxVertex *vertex, *start;
 	DaoxPoint A, B, C, *points = self->points->points;
-	DaoxVertex *vertex, *prev, *next, *start;
-	int i, N = self->vertices->size;
-	float area;
+	int i, dir, N = self->vertices->size;
 
 	/* sort vertices by the x coordinates: */
 	DaoxTriangulator_SortVertices( self );
 
-	/* convert all contours to counter-clockwise: */
-	for(i=N-1; i>=0; --i){
+	for(i=0; i<N; ++i){
 		start = self->vertices->items.pVoid[i];
 		if( start->direction != 0 ) continue;
 		A = points[start->index];
 		B = points[start->next->index];
 		C = points[start->prev->index];
-		area = DaoxTriangle_Area( A, B, C );
-		if( area < 0.0 ){ /* change to counter-clockwise: */
-			vertex = start;
-			do {
-				prev = vertex->prev;
-				next = vertex->next;
-				vertex->next = prev;
-				vertex->prev = next;
-				vertex->direction = DAOX_COUNTER_CW;
-				vertex = vertex->next;
-			} while( vertex != start );
-		}else{
-			vertex = start;
-			do {
-				vertex->direction = DAOX_COUNTER_CW;
-				vertex = vertex->next;
-			} while( vertex != start );
-		}
+		dir = DaoxTriangle_Area( A, B, C ) < 0.0 ? DAOX_CLOCKWISE : DAOX_COUNTER_CW;
+		vertex = start;
+		do {
+			vertex->direction = dir;
+			vertex = vertex->next;
+		} while( vertex != start );
 	}
 }
 void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
@@ -262,7 +248,7 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 	float dist, area, ymin, ymax, dmax;
 	float AB, BC, CA, distbound;
 
-	DaoxTriangulator_OrientateContours( self );
+	DaoxTriangulator_InitContourOrientation( self );
 
 	A = (DaoxVertex*) self->vertices->items.pVoid[0];
 	B = (DaoxVertex*) self->vertices->items.pVoid[N-1];
@@ -315,6 +301,8 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 			V = (DaoxVertex*) self->vertices->items.pVoid[i];
 			P = points[V->index];
 			if( V->done ) continue;
+			/* Ingore vertex from other contour with the same direction: */
+			if( V->contour != A->contour && V->direction == A->direction ) continue;
 			if( V->sorting == A->sorting || V->sorting == B->sorting || V->sorting == C->sorting )
 				continue;
 			if( P.y > ymax ) continue;
@@ -322,6 +310,11 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 			BC = DaoxTriangle_Area( P, PB, PC );
 			AB = DaoxTriangle_Area( P, PA, PB );
 			CA = DaoxTriangle_Area( P, PC, PA );
+			if( A->direction == DAOX_CLOCKWISE ){
+				AB = -AB;
+				BC = -BC;
+				CA = -CA;
+			}
 			if( BC >= 0.0 && AB >= 0.0 && CA >= 0.0 ){
 				if( BC > dmax ){
 					dmax = BC;
@@ -333,36 +326,24 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 			A->done = 1;
 			DaoxTriangulator_MakeTriangle( self, A );
 			DArray_PopBack( self->worklist );
-			//if( self->triangles->size >= 3*24 - 3*4 ) break;
+			//if( self->triangles->size >= 3*1 ) break;
 		}else{ /* point inside the triangle: */
 			DaoxVertex *A2, *N2;
 			if( inside->contour != A->contour ){
 				/* the "inside" vertex is from a hole: */
 				DaoxVertex *V2 = inside;
-				if( inside->direction == DAOX_COUNTER_CW ){
-					/* vertices on the hole need to be oriented clockwise: */
-					do {
-						DaoxVertex *prev = V2->prev;
-						DaoxVertex *next = V2->next;
-						V2->next = prev;
-						V2->prev = next;
-						V2->direction = next->direction = DAOX_CLOCKWISE;
-						V2->contour = next->contour = A->contour;
-						V2 = next;
-					} while( V2 != inside );
-				}else{
-					/* update contour indices: */
-					do {
-						V2->contour = A->contour;
-						V2 = V2->next;
-					} while( V2 != inside );
-				}
+				/* update contour: */
+				do {
+					V2->contour = A->contour;
+					V2->direction = A->direction;
+					V2 = V2->next;
+				} while( V2 != inside );
 			}
 			/*
 			// connect "inside" to "A" with duplicated vertices, this will either:
 			// 1. connect the inner contour with the outer contour;
 			// 2. or break the outer contour.
-			*/
+			 */
 			N2 = DaoxTriangulator_GetVertex( self, inside->index );
 			A2 = DaoxTriangulator_GetVertex( self, A->index );
 			N2->sorting = inside->sorting;

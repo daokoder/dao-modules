@@ -183,6 +183,7 @@ DAO_DLL void DaoxGraphicsPolygon_Add( DaoxGraphicsPolygon *self, float x, float 
 DAO_DLL void DaoxGraphicsPath_MoveTo( DaoxGraphicsPath *self, float x, float y );
 DAO_DLL void DaoxGraphicsPath_LineTo( DaoxGraphicsPath *self, float x, float y );
 DAO_DLL void DaoxGraphicsPath_ArcTo( DaoxGraphicsPath *self, float x, float y, float degrees, int clockwise );
+DAO_DLL void DaoxGraphicsPath_QuadTo( DaoxGraphicsPath *self, float x, float y, float cx, float cy );
 DAO_DLL void DaoxGraphicsPath_CubicTo( DaoxGraphicsPath *self, float x, float y, float cx, float cy );
 DAO_DLL void DaoxGraphicsPath_CubicTo2( DaoxGraphicsPath *self, float cx0, float cy0, float x, float y, float cx, float cy );
 DAO_DLL void DaoxGraphicsPath_Close( DaoxGraphicsPath *self );

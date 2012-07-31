@@ -38,6 +38,7 @@ enum DaoxPathCommands
 	DAOX_PATH_LINE_TO ,
 	DAOX_PATH_ARCR_TO ,  /* counter clockwise */
 	DAOX_PATH_ARCL_TO ,  /* clockwise */
+	DAOX_PATH_QUAD_TO ,
 	DAOX_PATH_CUBIC_TO ,
 	DAOX_PATH_CLOSE ,
 };
@@ -183,6 +184,9 @@ struct DaoxPathBuffer
 };
 
 
+
+
+
 #ifdef __cplusplus
 extern "C"{
 #endif
@@ -227,6 +231,7 @@ DAO_DLL void DaoxPath_Reset( DaoxPath *self );
 DAO_DLL void DaoxPath_MoveTo( DaoxPath *self, float x, float y );
 DAO_DLL void DaoxPath_LineTo( DaoxPath *self, float x, float y );
 DAO_DLL void DaoxPath_ArcTo( DaoxPath *self, float x, float y, float degrees, int clockwise );
+DAO_DLL void DaoxPath_QuadTo( DaoxPath *self, float x, float y, float cx, float cy );
 DAO_DLL void DaoxPath_CubicTo( DaoxPath *self, float x, float y, float cx, float cy );
 DAO_DLL void DaoxPath_CubicTo2( DaoxPath *self, float cx0, float cy0, float x, float y, float cx, float cy );
 DAO_DLL void DaoxPath_Close( DaoxPath *self );
@@ -239,7 +244,8 @@ DAO_DLL DaoxBezierSegment* DaoxBezierSegment_New();
 DAO_DLL void DaoxBezierSegment_Delete( DaoxBezierSegment *self );
 
 DAO_DLL void DaoxBezierSegment_SetPoints( DaoxBezierSegment *self, DaoxPoint P0, DaoxPoint P1, DaoxPoint P2, DaoxPoint P3 );
-DAO_DLL void DaoxBezierSegment_Refine( DaoxBezierSegment *self, float threshold );
+DAO_DLL void DaoxBezierSegment_RefineQuadratic( DaoxBezierSegment *self, float threshold );
+DAO_DLL void DaoxBezierSegment_RefineCubic( DaoxBezierSegment *self, float threshold );
 
 
 

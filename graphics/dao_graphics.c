@@ -175,6 +175,11 @@ void DaoxGraphicsPath_ArcTo( DaoxGraphicsPath *self, float x, float y, float deg
 	assert( self->ctype == daox_type_graphics_path );
 	DaoxPath_ArcTo( self->path, x, y, degrees, clockwise );
 }
+void DaoxGraphicsPath_QuadTo( DaoxGraphicsPath *self, float x, float y, float cx, float cy )
+{
+	assert( self->ctype == daox_type_graphics_path );
+	DaoxPath_QuadTo( self->path, x, y, cx, cy );
+}
 void DaoxGraphicsPath_CubicTo( DaoxGraphicsPath *self, float x, float y, float cx, float cy )
 {
 	assert( self->ctype == daox_type_graphics_path );
@@ -727,6 +732,16 @@ static void PATH_ArcTo( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxGraphicsPath_ArcTo( self, x, y, d, p[4]->xInteger.value );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
+static void PATH_QuadTo( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsPath *self = (DaoxGraphicsPath*) p[0];
+	float x = p[1]->xFloat.value;
+	float y = p[2]->xFloat.value;
+	float cx = p[3]->xFloat.value;
+	float cy = p[4]->xFloat.value;
+	DaoxGraphicsPath_QuadTo( self, x, y, cx, cy );
+	DaoProcess_PutValue( proc, (DaoValue*) self );
+}
 static void PATH_CubicTo( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphicsPath *self = (DaoxGraphicsPath*) p[0];
@@ -761,6 +776,7 @@ static DaoFuncItem DaoxGraphicsPathMeths[]=
 	{ PATH_MoveTo,    "MoveTo( self : GraphicsPath, x : float, y : float ) => GraphicsPath" },
 	{ PATH_LineTo,    "LineTo( self : GraphicsPath, x : float, y : float ) => GraphicsPath" },
 	{ PATH_ArcTo,     "ArcTo( self : GraphicsPath, x : float, y : float, degrees : float, clockwise = 0 ) => GraphicsPath" },
+	{ PATH_QuadTo,   "QuadTo( self : GraphicsPath, x : float, y : float, cx : float, cy : float ) => GraphicsPath" },
 	{ PATH_CubicTo,   "CubicTo( self : GraphicsPath, x : float, y : float, cx : float, cy : float ) => GraphicsPath" },
 	{ PATH_CubicTo2,  "CubicTo( self : GraphicsPath, cx0 : float, cy0 : float, x : float, y : float, cx : float, cy : float ) => GraphicsPath" },
 	{ PATH_Close,     "Close( self : GraphicsPath ) => GraphicsPath" },
