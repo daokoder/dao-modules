@@ -43,6 +43,7 @@
 #include "daoValue.h"
 
 #include "dao_geometry.h"
+#include "dao_path.h"
 #include "dao_triangulator.h"
 
 
@@ -145,6 +146,8 @@ struct DaoxGraphicsScene
 	DArray  *items;
 
 	DaoxPathBuffer  buffer;
+
+	DaoxPathGraph  *graph;
 };
 DAO_DLL extern DaoType *daox_type_graphics_scene;
 

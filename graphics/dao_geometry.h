@@ -36,7 +36,7 @@ enum DaoxPathCommands
 {
 	DAOX_PATH_MOVE_TO ,
 	DAOX_PATH_LINE_TO ,
-	DAOX_PATH_ARCR_TO ,  /* counter clockwise */
+	DAOX_PATH_ARCR_TO ,  /* counter clockwise (right-hand) */
 	DAOX_PATH_ARCL_TO ,  /* clockwise */
 	DAOX_PATH_QUAD_TO ,
 	DAOX_PATH_CUBIC_TO ,
@@ -64,7 +64,6 @@ typedef struct DaoxPointArray        DaoxPointArray;
 typedef struct DaoxQuadArray         DaoxQuadArray;
 typedef struct DaoxPolygonArray      DaoxPolygonArray;
 
-typedef struct DaoxPathSegment       DaoxPathSegment;
 typedef struct DaoxBezierSegment     DaoxBezierSegment;
 
 
@@ -90,20 +89,14 @@ struct DaoxTransform
 	float  A, B, C, D;
 };
 
-struct DaoxPathSegment
-{
-	int    command;
-
-	DaoxPoint  cp1;  /* the first control point; */
-	DaoxPoint  cp2;  /* the second control point; */
-
-	DaoxBezierSegment  *bezier;
-};
 
 
 struct DaoxBezierSegment
 {
 	unsigned int  count; /* count > 0: if this segment and its children are used; */
+
+	float  start;  /* parametric start location in the original segment; */
+	float  end;    /* parametric   end location in the original segment; */
 
 	DaoxPoint  P0;
 	DaoxPoint  P1;
@@ -244,8 +237,8 @@ DAO_DLL DaoxBezierSegment* DaoxBezierSegment_New();
 DAO_DLL void DaoxBezierSegment_Delete( DaoxBezierSegment *self );
 
 DAO_DLL void DaoxBezierSegment_SetPoints( DaoxBezierSegment *self, DaoxPoint P0, DaoxPoint P1, DaoxPoint P2, DaoxPoint P3 );
-DAO_DLL void DaoxBezierSegment_RefineQuadratic( DaoxBezierSegment *self, float threshold );
-DAO_DLL void DaoxBezierSegment_RefineCubic( DaoxBezierSegment *self, float threshold );
+DAO_DLL void DaoxBezierSegment_RefineQuadratic( DaoxBezierSegment *self, float maxdiff, float maxlen );
+DAO_DLL void DaoxBezierSegment_RefineCubic( DaoxBezierSegment *self, float maxdiff, float maxlen );
 
 
 

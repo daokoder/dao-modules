@@ -303,6 +303,10 @@ void DaoxGraphicsPath_UpdatePolygons( DaoxGraphicsPath *self, DaoxGraphicsScene 
 {
 	DaoxPolygonArray *fills = self->fillColor.alpha < 1E-9 ? NULL : self->fillPolygons;
 	DaoxGraphicsiItem_ResetPolygons( self );
+	DaoxPathGraph_Reset( scene->graph );
+	DaoxPathGraph_Import( scene->graph, self->path );
+	DaoxPathGraph_IntersectEdges( scene->graph );
+	DaoxPathGraph_Export( scene->graph, self->path );
 	DaoxPath_MakePolygons( self->path, self->strokeWidth, self->junction, self->strokePolygons, fills, & scene->buffer );
 }
 void DaoxGraphicsText_UpdatePolygons( DaoxGraphicsText *self, DaoxGraphicsScene *scene )
@@ -340,6 +344,7 @@ DaoxGraphicsScene* DaoxGraphicsScene_New()
 	self->buffer.junctions = DaoxByteArray_New();
 	self->buffer.bezier = DaoxBezierSegment_New();
 	self->buffer.triangulator = DaoxTriangulator_New();
+	self->graph = DaoxPathGraph_New();
 	return self;
 }
 void DaoxGraphicsScene_Delete( DaoxGraphicsScene *self )
@@ -350,6 +355,7 @@ void DaoxGraphicsScene_Delete( DaoxGraphicsScene *self )
 	DaoxByteArray_Delete( self->buffer.junctions );
 	DaoxBezierSegment_Delete( self->buffer.bezier );
 	DaoxTriangulator_Delete( self->buffer.triangulator );
+	DaoxPathGraph_Delete( self->graph );
 	dao_free( self );
 }
 

@@ -222,6 +222,7 @@ void DaoxTriangulator_InitContourOrientation( DaoxTriangulator *self )
 	DaoxVertex *vertex, *start;
 	DaoxPoint A, B, C, *points = self->points->points;
 	int i, dir, N = self->vertices->size;
+	float area;
 
 	/* sort vertices by the x coordinates: */
 	DaoxTriangulator_SortVertices( self );
@@ -232,7 +233,9 @@ void DaoxTriangulator_InitContourOrientation( DaoxTriangulator *self )
 		A = points[start->index];
 		B = points[start->next->index];
 		C = points[start->prev->index];
-		dir = DaoxTriangle_Area( A, B, C ) < 0.0 ? DAOX_CLOCKWISE : DAOX_COUNTER_CW;
+		area = DaoxTriangle_Area( A, B, C );
+		if( fabs( area ) < 1E-9 ) continue;
+		dir = area < 0.0 ? DAOX_CLOCKWISE : DAOX_COUNTER_CW;
 		vertex = start;
 		do {
 			vertex->direction = dir;
@@ -246,13 +249,9 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 	DaoxPoint PA, PB, PC, P, *points = self->points->points;
 	int i, imin, imax, N = self->vertices->size;
 	float dist, area, ymin, ymax, dmax;
-	float AB, BC, CA, distbound;
+	float AB, BC, CA;
 
 	DaoxTriangulator_InitContourOrientation( self );
-
-	A = (DaoxVertex*) self->vertices->items.pVoid[0];
-	B = (DaoxVertex*) self->vertices->items.pVoid[N-1];
-	distbound = 10 * N * (points[B->index].x - points[A->index].x);
 
 	DArray_Assign( self->worklist, self->vertices );
 	while( self->worklist->size ){
@@ -278,7 +277,7 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 		imin = B->sorting < C->sorting ? B->sorting : C->sorting;
 		imax = A->sorting;
 		inside = NULL;
-		dmax = - distbound;
+		dmax = - 1.0;
 		/*
 		// find the closest point to the triangle:
 		//
@@ -322,11 +321,18 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 				}
 			}
 		}
-		if( inside == NULL ){
+#if 0
+		printf( "A:  %15f  %15f   %9p\n", PA.x, PA.y, A );
+		printf( "B:  %15f  %15f   %9p\n", PB.x, PB.y, B );
+		printf( "C:  %15f  %15f   %9p\n", PC.x, PC.y, C );
+		if( inside ) printf( "I:  %15f  %15f\n", points[inside->index].x, points[inside->index].y );
+		printf( "%p\n", inside );
+#endif
+		if( inside == NULL || fabs( DaoxTriangle_Area( PA, PB, PC ) ) < 1E-9 ){
 			A->done = 1;
 			DaoxTriangulator_MakeTriangle( self, A );
 			DArray_PopBack( self->worklist );
-			//if( self->triangles->size >= 3*1 ) break;
+			//if( self->triangles->size >= 3*5 ) break;
 		}else{ /* point inside the triangle: */
 			DaoxVertex *A2, *N2;
 			if( inside->contour != A->contour ){
