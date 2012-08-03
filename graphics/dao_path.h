@@ -43,6 +43,7 @@ typedef struct DaoxFloatArray  DaoxFloatArray;
 typedef struct DaoxPathNode    DaoxPathNode;
 typedef struct DaoxPathEdge    DaoxPathEdge;
 typedef struct DaoxPathGraph   DaoxPathGraph;
+typedef struct DaoxQuadNode    DaoxQuadNode;
 typedef struct DaoxQuadTree    DaoxQuadTree;
 
 typedef struct DaoxPathSegment       DaoxPathSegment;
@@ -131,37 +132,51 @@ struct DaoxPathSegment
 	float  end;    /* parametric   end location in the original segment; */
 
 	DaoxPathEdge  *edge;
+
+	DaoxPathSegment  *next;
 };
+DaoxPathSegment* DaoxPathSegment_New();
+void DaoxPathSegment_Delete( DaoxPathSegment *self );
+
+
+
+struct DaoxQuadNode
+{
+	int    depth;
+	int    count;
+	float  left;
+	float  bottom;
+	float  width;
+
+	DaoxQuadNode  *NW;
+	DaoxQuadNode  *NE;
+	DaoxQuadNode  *SW;
+	DaoxQuadNode  *SE;
+
+	DaoxPathSegment  *segments;
+};
+
+DaoxQuadNode* DaoxQuadNode_New();
+void DaoxQuadNode_Delete( DaoxQuadNode *self );
+
+void DaoxQuadNode_Set( DaoxQuadNode *self, int depth, float left, float bottom, float width );
 
 
 
 struct DaoxQuadTree
 {
-	float  west;
-	float  south;
-	float  east;
-	float  north;
-
-	DaoxQuadTree  *NW;
-	DaoxQuadTree  *NE;
-	DaoxQuadTree  *SW;
-	DaoxQuadTree  *SE;
-
+	DaoxQuadNode  *root;
 	DaoxPathSegment  *segments;
-
-	int  total;  /* total number of segments in this node and its children; */
-	int  count;  /* number of segments in this node; */
-	int  capacity;  /* capacity of the segments array; */
 };
 
 DaoxQuadTree* DaoxQuadTree_New();
 void DaoxQuadTree_Delete( DaoxQuadTree *self );
 
 void DaoxQuadTree_Reset( DaoxQuadTree *self );
-void DaoxQuadTree_Set( DaoxQuadTree *self, float west, float south, float east, float north );
+void DaoxQuadTree_Set( DaoxQuadTree *self, float left, float bottom, float width );
 void DaoxQuadTree_InsertEdge( DaoxQuadTree *self, DaoxPathEdge *edge );
-void DaoxQuadTree_SubdivideSegments( DaoxQuadTree *self );
 
+DaoxPathSegment* DaoxQuadTree_NewPathSegment( DaoxQuadTree *self );
 
 
 #endif

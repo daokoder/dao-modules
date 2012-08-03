@@ -176,8 +176,6 @@ void DaoxTriangulator_MakeTriangle( DaoxTriangulator *self, DaoxVertex *A )
 	DArray_PushBack( self->triangles, (void*)(daoint) A->index );
 	DArray_PushBack( self->triangles, (void*)(daoint) A->next->index );
 	DArray_PushBack( self->triangles, (void*)(daoint) A->prev->index );
-	A->next->prev = A->prev;
-	A->prev->next = A->next;
 }
 
 void DaoxTriangulator_QuickSortVertices( DaoxTriangulator *self, DaoxVertex *vertices[], int first, int last )
@@ -247,29 +245,35 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 {
 	DaoxVertex *V, *A, *B, *C, *inside;
 	DaoxPoint PA, PB, PC, P, *points = self->points->points;
-	int i, imin, imax, N = self->vertices->size;
+	int i, imin, imax, contours, K = 0, N = self->vertices->size;
 	float dist, area, ymin, ymax, dmax;
 	float AB, BC, CA;
 
 	DaoxTriangulator_InitContourOrientation( self );
 
+	V = (DaoxVertex*) self->vertices->items.pVoid[N-1];
+	contours = V->contour;
+
 	DArray_Assign( self->worklist, self->vertices );
-	while( self->worklist->size ){
+	while( self->worklist->size && (++K) < 10*N ){
 		A = (DaoxVertex*) self->worklist->items.pVoid[self->worklist->size-1];
 		B = A->next;
 		C = A->prev;
+		PA = points[A->index];
+		PB = points[B->index];
+		PC = points[C->index];
 		if( A->done ){
 			DArray_PopBack( self->worklist );
 			continue;
 		}else if( B->next == C ){ /* already a triangle: */
-			DaoxTriangulator_MakeTriangle( self, A );
+			if( fabs( DaoxTriangle_Area( PA, PB, PC ) ) > 1E-9 )
+				DaoxTriangulator_MakeTriangle( self, A );
+			A->next->prev = A->prev;
+			A->prev->next = A->next;
 			A->done = B->done = C->done = 1;
 			DArray_PopBack( self->worklist );
 			continue;
 		}
-		PA = points[A->index];
-		PB = points[B->index];
-		PC = points[C->index];
 
 		ymin = ymax = PA.y;
 		if( PB.y < ymin ) ymin = PB.y; else if( PB.y > ymax ) ymax = PB.y;
@@ -315,6 +319,11 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 				CA = -CA;
 			}
 			if( BC >= 0.0 && AB >= 0.0 && CA >= 0.0 ){
+				/*
+				// Consider vertex from a different contour with different direction,
+				// only if is fully inside the triangle:
+				*/
+				if( V->direction != A->direction && (BC == 0.0 || AB == 0.0 || CA == 0.0) ) continue;
 				if( BC > dmax ){
 					dmax = BC;
 					inside = V;
@@ -328,16 +337,21 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 		if( inside ) printf( "I:  %15f  %15f\n", points[inside->index].x, points[inside->index].y );
 		printf( "%p\n", inside );
 #endif
-		if( inside == NULL || fabs( DaoxTriangle_Area( PA, PB, PC ) ) < 1E-9 ){
+		if( inside == NULL ){
 			A->done = 1;
-			DaoxTriangulator_MakeTriangle( self, A );
+			//printf( "area: %15f\n", DaoxTriangle_Area( PA, PB, PC ) );
+			if( fabs( DaoxTriangle_Area( PA, PB, PC ) ) > 1E-9 ) DaoxTriangulator_MakeTriangle( self, A );
+			A->next->prev = A->prev;
+			A->prev->next = A->next;
 			DArray_PopBack( self->worklist );
-			//if( self->triangles->size >= 3*5 ) break;
+			//if( self->triangles->size >= 3*2 ) break;
 		}else{ /* point inside the triangle: */
 			DaoxVertex *A2, *N2;
-			if( inside->contour != A->contour ){
+			int breaking = inside->contour == A->contour;
+			if( inside->contour != A->contour ){ /* joining contour: */
 				/* the "inside" vertex is from a hole: */
 				DaoxVertex *V2 = inside;
+				//printf( "joining\n" );
 				/* update contour: */
 				do {
 					V2->contour = A->contour;
@@ -361,6 +375,19 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 			A2->next = N2;  N2->prev = A2;
 			N2->next = inside->next;  inside->next->prev = N2;
 			inside->next = A;  A->prev = inside;
+
+			//printf( "dup:  %9p  %9p\n", A2, N2 );
+
+			if( breaking ){
+				contours += 1;
+				//printf( "contours = %3i\n", contours );
+				DaoxVertex *V2 = inside;
+				/* update contour: */
+				do {
+					V2->contour = contours;
+					V2 = V2->next;
+				} while( V2 != inside );
+			}
 
 			DArray_PushBack( self->vertices, N2 );
 			DArray_PushBack( self->vertices, A2 );
