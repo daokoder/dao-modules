@@ -46,7 +46,8 @@ typedef struct DaoxPathGraph   DaoxPathGraph;
 typedef struct DaoxQuadNode    DaoxQuadNode;
 typedef struct DaoxQuadTree    DaoxQuadTree;
 
-typedef struct DaoxPathSegment       DaoxPathSegment;
+typedef struct DaoxPathSegment  DaoxPathSegment;
+typedef struct DaoxBoundingBox  DaoxBoundingBox;
 
 
 struct DaoxFloatArray
@@ -79,7 +80,8 @@ struct DaoxPathEdge
 	DaoxPathNode  *first;
 	DaoxPathNode  *second;
 
-	DaoxPointArray  points;
+	DaoxPoint  C1;
+	DaoxPoint  C2;
 
 	DaoxFloatArray  breaks;
 
@@ -113,6 +115,17 @@ void DaoxPathGraph_IntersectEdges( DaoxPathGraph *self );
 
 
 
+
+struct DaoxBoundingBox
+{
+	float  left;
+	float  bottom;
+	float  right;
+	float  top;
+};
+
+
+
 struct DaoxPathSegment
 {
 	int  command;
@@ -120,8 +133,6 @@ struct DaoxPathSegment
 
 	DaoxPoint  P1;
 	DaoxPoint  P2;
-	DaoxPoint  C1;  /* the first control point; */
-	DaoxPoint  C2;  /* the second control point; */
 
 	float  left;
 	float  bottom;
@@ -167,6 +178,9 @@ struct DaoxQuadTree
 {
 	DaoxQuadNode  *root;
 	DaoxPathSegment  *segments;
+
+	DaoxPointArray     *points;
+	DaoxBezierSegment  *bezier;
 };
 
 DaoxQuadTree* DaoxQuadTree_New();

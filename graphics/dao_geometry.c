@@ -271,8 +271,8 @@ DaoxPolygonArray* DaoxPolygonArray_New()
 }
 void DaoxPolygonArray_Delete( DaoxPolygonArray *self )
 {
-	if( self->points ) DaoxPointArray_Delete( self->points );
-	if( self->polygons ) DaoxSliceArray_Delete( self->polygons );
+	DaoxPointArray_Delete( self->points );
+	DaoxSliceArray_Delete( self->polygons );
 	dao_free( self );
 }
 void DaoxPolygonArray_Reset( DaoxPolygonArray *self )
@@ -379,7 +379,7 @@ void DaoxPath_QuadTo( DaoxPath *self, float x, float y, float cx, float cy )
 	DaoxPoint current;
 	assert( self->points->count > 0 );
 	current = self->points->points[ self->points->count - 1 ];
-	DaoxPointArray_PushXY( self->points, current.x + x + cx, current.y + x + cy );
+	DaoxPointArray_PushXY( self->points, current.x + cx, current.y + cy );
 	DaoxPointArray_PushXY( self->points, current.x + x, current.y + y );
 	DaoxByteArray_Push( self->commands, DAOX_PATH_QUAD_TO );
 }
@@ -403,7 +403,7 @@ void DaoxPath_CubicTo2( DaoxPath *self, float cx0, float cy0, float x, float y, 
 	assert( self->points->count > 0 );
 	point = self->points->points[ self->points->count - 1 ];
 	DaoxPointArray_PushXY( self->points, point.x + cx0, point.y + cy0 );
-	DaoxPointArray_PushXY( self->points, point.x + x + cx, point.y + x + cy );
+	DaoxPointArray_PushXY( self->points, point.x + x + cx, point.y + y + cy );
 	DaoxPointArray_PushXY( self->points, point.x + x, point.y + y );
 	DaoxByteArray_Push( self->commands, DAOX_PATH_CUBIC_TO );
 }

@@ -33,6 +33,9 @@
 #include "dao_path.h"
 
 
+#define DAOX_MAX_TREE_DEPTH  8
+
+
 
 DaoxFloatArray* DaoxFloatArray_New()
 {
@@ -105,7 +108,6 @@ DaoxPathEdge* DaoxPathEdge_New()
 }
 void DaoxPathEdge_Delete( DaoxPathEdge *self )
 {
-	DaoxPointArray_Clear( & self->points );
 	dao_free( self );
 }
 
@@ -181,7 +183,6 @@ void DaoxPathGraph_Reset( DaoxPathGraph *self )
 	for(i=0; i<self->edges->size; ++i){
 		DaoxPathEdge *edge = (DaoxPathEdge*) self->edges->items.pVoid[i];
 		edge->first = edge->second = NULL;
-		edge->points.count = 0;
 		DaoxFloatArray_Reset( & edge->breaks );
 		DArray_Append( self->edges2, edge );
 	}
@@ -213,7 +214,7 @@ void DaoxPathGraph_Import( DaoxPathGraph *self, DaoxPath *path )
 			DaoxPathNode *node = DaoxPathGraph_NewNode( self, points[ K++ ] );
 			if( current == NULL ) continue;
 			edge = DaoxPathGraph_NewEdge( self, current, node, command );
-			DaoxPointArray_Push( & edge->points, center );
+			edge->C1 = edge->C2 = center;
 			current = node;
 			// TODO: extra points;
 		}else if( command == DAOX_PATH_QUAD_TO ){
@@ -221,7 +222,7 @@ void DaoxPathGraph_Import( DaoxPathGraph *self, DaoxPath *path )
 			DaoxPathNode *node = DaoxPathGraph_NewNode( self, points[ K++ ] );
 			if( current == NULL ) continue;
 			edge = DaoxPathGraph_NewEdge( self, current, node, command );
-			DaoxPointArray_Push( & edge->points, center );
+			edge->C1 = edge->C2 = center;
 			current = node;
 		}else if( command == DAOX_PATH_CUBIC_TO ){
 			DaoxPoint C1 = points[ K++ ];
@@ -229,8 +230,8 @@ void DaoxPathGraph_Import( DaoxPathGraph *self, DaoxPath *path )
 			DaoxPathNode *node = DaoxPathGraph_NewNode( self, points[ K++ ] );
 			if( current == NULL ) continue;
 			edge = DaoxPathGraph_NewEdge( self, current, node, command );
-			DaoxPointArray_Push( & edge->points, C1 );
-			DaoxPointArray_Push( & edge->points, C2 );
+			edge->C1 = C1;
+			edge->C2 = C2;
 			current = node;
 		}else if( command == DAOX_PATH_CLOSE ){
 			if( first == NULL || current == NULL ) continue;
@@ -271,11 +272,11 @@ void DaoxPathGraph_Export( DaoxPathGraph *self, DaoxPath *path )
 				//	TODO:
 				break;
 			case DAOX_PATH_QUAD_TO :
-				DaoxPointArray_Push( path->points, edge->points.points[0] );
+				DaoxPointArray_Push( path->points, edge->C1 );
 				break;
 			case DAOX_PATH_CUBIC_TO :
-				DaoxPointArray_Push( path->points, edge->points.points[1] );
-				DaoxPointArray_Push( path->points, edge->points.points[2] );
+				DaoxPointArray_Push( path->points, edge->C1 );
+				DaoxPointArray_Push( path->points, edge->C2 );
 				break;
 			}
 			DaoxPointArray_Push( path->points, edge->second->point );
@@ -299,12 +300,16 @@ void DaoxPathGraph_BreakLine( DaoxPathGraph *self, DaoxPathEdge *edge )
 
 	if( edge->breaks.count == 0 ) return;
 	t = edge->breaks.values[ edge->breaks.count-1 ];
+	if( t > 0.9999 ) goto NextBreak;
+
 	point.x = (1.0 - t) * edge->first->point.x + t * edge->second->point.x;
 	point.y = (1.0 - t) * edge->first->point.y + t * edge->second->point.y;
 	node = DaoxPathGraph_NewNode( self, point );
 	edge2 = DaoxPathGraph_NewEdge( self, node, edge->second, edge->command );
 	edge->second = node;
 	node->in = edge;
+
+NextBreak:
 	edge->breaks.count -= 1;
 	if( edge->breaks.count == 0 ) return;
 	for(i=0; i<edge->breaks.count; ++i) edge->breaks.values[i] /= t;
@@ -315,9 +320,74 @@ void DaoxPathGraph_BreakArc( DaoxPathGraph *self, DaoxPathEdge *edge, int clockw
 }
 void DaoxPathGraph_BreakQuad( DaoxPathGraph *self, DaoxPathEdge *edge )
 {
+	DaoxPathNode *node;
+	DaoxPathEdge *edge2;
+	DaoxPoint P01, P12, C;
+	float t;
+	int i;
+
+	if( edge->breaks.count == 0 ) return;
+	t = edge->breaks.values[ edge->breaks.count-1 ];
+	if( t > 0.9999 ) goto NextBreak;
+
+	P01.x = (1.0 - t) * edge->first->point.x + t * edge->C1.x;
+	P01.y = (1.0 - t) * edge->first->point.y + t * edge->C1.y;
+	P12.x = (1.0 - t) * edge->C1.x + t * edge->second->point.x;
+	P12.y = (1.0 - t) * edge->C1.y + t * edge->second->point.y;
+	C.x = (1.0 - t) * P01.x + t * P12.x;
+	C.y = (1.0 - t) * P01.y + t * P12.y;
+	node = DaoxPathGraph_NewNode( self, C );
+	edge2 = DaoxPathGraph_NewEdge( self, node, edge->second, edge->command );
+	edge2->C1 = P12;
+	edge->C1 = P01;
+	edge->second = node;
+	node->in = edge;
+
+NextBreak:
+	edge->breaks.count -= 1;
+	if( edge->breaks.count == 0 ) return;
+	for(i=0; i<edge->breaks.count; ++i) edge->breaks.values[i] /= t;
+	DaoxPathGraph_BreakQuad( self, edge );
 }
 void DaoxPathGraph_BreakCubic( DaoxPathGraph *self, DaoxPathEdge *edge )
 {
+	DaoxPathNode *node;
+	DaoxPathEdge *edge2;
+	DaoxPoint P01, P12, P23;
+	DaoxPoint point, C1, C2;
+	float t;
+	int i;
+
+	if( edge->breaks.count == 0 ) return;
+	t = edge->breaks.values[ edge->breaks.count-1 ];
+	if( t > 0.9999 ) goto NextBreak;
+
+	P01.x = (1.0 - t) * edge->first->point.x + t * edge->C1.x;
+	P01.y = (1.0 - t) * edge->first->point.y + t * edge->C1.y;
+	P12.x = (1.0 - t) * edge->C1.x + t * edge->C2.x;
+	P12.y = (1.0 - t) * edge->C1.y + t * edge->C2.y;
+	P23.x = (1.0 - t) * edge->C2.x + t * edge->second->point.x;
+	P23.y = (1.0 - t) * edge->C2.y + t * edge->second->point.y;
+	C1.x = (1.0 - t) * P01.x + t * P12.x;
+	C1.y = (1.0 - t) * P01.y + t * P12.y;
+	C2.x = (1.0 - t) * P12.x + t * P23.x;
+	C2.y = (1.0 - t) * P12.y + t * P23.y;
+	point.x = (1.0 - t) * C1.x + t * C2.x;
+	point.y = (1.0 - t) * C1.y + t * C2.y;
+	node = DaoxPathGraph_NewNode( self, point );
+	edge2 = DaoxPathGraph_NewEdge( self, node, edge->second, edge->command );
+	edge2->C1 = C2;
+	edge2->C2 = P23;
+	edge->C1 = P01;
+	edge->C2 = C1;
+	edge->second = node;
+	node->in = edge;
+
+NextBreak:
+	edge->breaks.count -= 1;
+	if( edge->breaks.count == 0 ) return;
+	for(i=0; i<edge->breaks.count; ++i) edge->breaks.values[i] /= t;
+	DaoxPathGraph_BreakCubic( self, edge );
 }
 void DaoxPathGraph_BreakEdge( DaoxPathGraph *self, DaoxPathEdge *edge )
 {
@@ -333,33 +403,46 @@ void DaoxPathGraph_BreakEdge( DaoxPathGraph *self, DaoxPathEdge *edge )
 }
 
 
+void DaoxBoundingBox_Init( DaoxBoundingBox *self, DaoxPoint point );
+void DaoxBoundingBox_Update( DaoxBoundingBox *self, DaoxPoint point );
 
 void DaoxPathGraph_IntersectEdges( DaoxPathGraph *self )
 {
 	DaoxPathNode *node;
-	DaoxPathSegment segment = {0};
+	DaoxBoundingBox box;
 	float left, right, bottom, top, width;
 	daoint i, n;
 
 	if( self->nodes->size == 0 ) return;
 
 	node = (DaoxPathNode*) self->nodes->items.pVoid[0];
-	left = right = node->point.x;
-	bottom = top = node->point.y;
+	DaoxBoundingBox_Init( & box, node->point );
 
 	DaoxQuadTree_Reset( self->quadtree );
 	for(i=0; i<self->edges->size; ++i){
 		DaoxPathEdge *edge = (DaoxPathEdge*) self->edges->items.pVoid[i];
-		DaoxPathSegment_Init( & segment, edge );
-		if( segment.left < left ) left = segment.left;
-		if( segment.bottom < bottom ) bottom = segment.bottom;
-		if( segment.right > right ) right = segment.right;
-		if( segment.top > top ) top = segment.top;
+		DaoxBoundingBox_Update( & box, edge->first->point );
+		DaoxBoundingBox_Update( & box, edge->second->point );
+		switch( edge->command ){
+		case DAOX_PATH_LINE_TO :
+			break;
+		case DAOX_PATH_ARCL_TO :
+			break;
+		case DAOX_PATH_ARCR_TO :
+			break;
+		case DAOX_PATH_QUAD_TO :
+			DaoxBoundingBox_Update( & box, edge->C1 );
+			break;
+		case DAOX_PATH_CUBIC_TO :
+			DaoxBoundingBox_Update( & box, edge->C1 );
+			DaoxBoundingBox_Update( & box, edge->C2 );
+			break;
+		}
 	}
-	left -= 1.0;
-	right += 1.0;
-	bottom -= 1.0;
-	top += 1.0;
+	left  = box.left - 1.0;
+	right = box.right + 1.0;
+	bottom = box.bottom - 1.0;
+	top = box.top + 1.0;
 	width = right - left;
 	if( width < (top - bottom) ) width = top - bottom;
 	printf( "%15f %15f; %15f %15f\n", left, right, bottom, top );
@@ -380,6 +463,20 @@ void DaoxPathGraph_IntersectEdges( DaoxPathGraph *self )
 
 
 
+void DaoxBoundingBox_Init( DaoxBoundingBox *self, DaoxPoint point )
+{
+	self->left = self->right = point.x;
+	self->bottom = self->top = point.y;
+}
+void DaoxBoundingBox_Update( DaoxBoundingBox *self, DaoxPoint point )
+{
+	if( point.x < self->left ) self->left = point.x;
+	if( point.x > self->right ) self->right = point.x;
+	if( point.y < self->bottom ) self->bottom = point.y;
+	if( point.y > self->top ) self->top = point.y;
+}
+
+
 DaoxPathSegment* DaoxPathSegment_New()
 {
 	DaoxPathSegment *self = (DaoxPathSegment*) dao_calloc( 1, sizeof(DaoxPathSegment) );
@@ -389,25 +486,6 @@ void DaoxPathSegment_Delete( DaoxPathSegment *self )
 {
 	dao_free( self );
 }
-void DaoxPathSegment_UpdateBoundingBox( DaoxPathSegment *self, DaoxPoint point )
-{
-	if( point.x < self->left ) self->left = point.x;
-	if( point.x > self->right ) self->right = point.x;
-	if( point.y < self->bottom ) self->bottom = point.y;
-	if( point.y > self->top ) self->top = point.y;
-}
-void DaoxPathSegment_ResetBoundingBox( DaoxPathSegment *self )
-{
-	int i;
-	self->left = self->right = self->P1.x;
-	self->bottom = self->top = self->P1.y;
-	DaoxPathSegment_UpdateBoundingBox( self, self->P2 );
-#if 0
-	for(i=0; i<self->points.count; ++i){
-		DaoxPathSegment_UpdateBoundingBox( self, self->points.points[i] );
-	}
-#endif
-}
 void DaoxPathSegment_Init( DaoxPathSegment *self, DaoxPathEdge *edge )
 {
 	self->command = edge->command;
@@ -416,8 +494,16 @@ void DaoxPathSegment_Init( DaoxPathSegment *self, DaoxPathEdge *edge )
 	self->edge = edge;
 	self->start = 0.0;
 	self->end = 1.0;
-	// TODO: arc, bezier;
-	DaoxPathSegment_ResetBoundingBox( self );
+}
+void DaoxPathSegment_ResetBoundingBox( DaoxPathSegment *self )
+{
+	DaoxBoundingBox box;
+	DaoxBoundingBox_Init( & box, self->P1 );
+	DaoxBoundingBox_Update( & box, self->P2 );
+	self->left = box.left;
+	self->bottom = box.bottom;
+	self->right = box.right;
+	self->top = box.top;
 }
 
 
@@ -460,14 +546,18 @@ int DaoxQuadNode_Insert( DaoxQuadNode *self, DaoxPathSegment segment, DaoxQuadTr
 	float ym = self->bottom + 0.5 * self->width;
 	float west = self->left, east = self->left + self->width;
 	float south = self->bottom, north = self->bottom + self->width;
-	int xcross = segment.left < xm && segment.right > xm;
-	int ycross = segment.bottom < ym && segment.top > ym;
+	int xcross, ycross;
 
+	DaoxPathSegment_ResetBoundingBox( & segment );
 	if( segment.left < west || segment.right >= east ) return 0;
 	if( segment.bottom < south || segment.top >= north ) return 0;
 
 	self->count += 1;
-	if( self->depth >= 9 || xcross || ycross ){
+
+	xcross = segment.left < xm && segment.right > xm;
+	ycross = segment.bottom < ym && segment.top > ym;
+	//printf( "DaoxQuadNode_Insert: %3i %3i %3i\n", self->depth, xcross, ycross );
+	if( self->depth >= DAOX_MAX_TREE_DEPTH || xcross || ycross ){
 		DaoxQuadNode_PushSegment( self, segment, tree );
 		return 1;
 	}
@@ -498,8 +588,9 @@ void DaoxQuadNode_InsertLine( DaoxQuadNode *self, DaoxPathEdge *edge, DaoxQuadTr
 	DaoxPathSegment segment;
 	DaoxPoint start = edge->first->point;
 	DaoxPoint end = edge->second->point;
+	float d = tree->root->width / (1<<DAOX_MAX_TREE_DEPTH);
 	float t, len = DaoxDistance( start, end );
-	int i, n = 1 + (int) (len / 8);
+	int i, n = 1 + (int) (len / d);
 
 	DaoxPathSegment_Init( & segment, edge );
 	segment.P2 = start;
@@ -518,11 +609,44 @@ void DaoxQuadNode_InsertLine( DaoxQuadNode *self, DaoxPathEdge *edge, DaoxQuadTr
 void DaoxQuadNode_InsertArc( DaoxQuadNode *self, DaoxPathEdge *edge, DaoxQuadTree *tree )
 {
 }
+int DaoxQuadNode_InsertBezier( DaoxQuadNode *self, DaoxBezierSegment *bezier, DaoxPathEdge *edge, DaoxQuadTree *tree, int index )
+{
+	DaoxPathSegment segment;
+	if( bezier->count == 1 ){
+		DaoxPathSegment_Init( & segment, edge );
+		segment.index = index;
+		segment.P1 = bezier->P0;
+		segment.P2 = bezier->P1;
+		segment.start = bezier->start;
+		segment.end = bezier->end;
+		DaoxQuadNode_Insert( self, segment, tree );
+	}else if( bezier->count ){
+		index = DaoxQuadNode_InsertBezier( self, bezier->first, edge, tree, index );
+		index = DaoxQuadNode_InsertBezier( self, bezier->second, edge, tree, index );
+	}
+	return index + 1;
+}
 void DaoxQuadNode_InsertQuad( DaoxQuadNode *self, DaoxPathEdge *edge, DaoxQuadTree *tree )
 {
+	float d = tree->root->width / (1<<DAOX_MAX_TREE_DEPTH);
+	DaoxBezierSegment *bezier = tree->bezier;
+	DaoxPoint start = edge->first->point;
+	DaoxPoint end = edge->second->point;
+
+	DaoxBezierSegment_SetPoints( bezier, start, edge->C1, edge->C1, end );
+	DaoxBezierSegment_RefineQuadratic( bezier, d );
+	DaoxQuadNode_InsertBezier( self, bezier, edge, tree, 0 );
 }
 void DaoxQuadNode_InsertCubic( DaoxQuadNode *self, DaoxPathEdge *edge, DaoxQuadTree *tree )
 {
+	float d = tree->root->width / (1<<DAOX_MAX_TREE_DEPTH);
+	DaoxBezierSegment *bezier = tree->bezier;
+	DaoxPoint start = edge->first->point;
+	DaoxPoint end = edge->second->point;
+
+	DaoxBezierSegment_SetPoints( bezier, start, edge->C1, edge->C2, end );
+	DaoxBezierSegment_RefineCubic( bezier, d );
+	DaoxQuadNode_InsertBezier( self, bezier, edge, tree, 0 );
 }
 void DaoxQuadNode_InsertEdge( DaoxQuadNode *self, DaoxPathEdge *edge, DaoxQuadTree *tree )
 {
@@ -547,6 +671,7 @@ void DaoxQuadNode_InsertEdge( DaoxQuadNode *self, DaoxPathEdge *edge, DaoxQuadTr
 int DaoxPathSegment_LineIntersect( DaoxPathSegment *AB, DaoxPathSegment *CD, float *S, float *T )
 {
 	float S2, T2, BxAx, ByAy, CxAx, CyAy, DxCx, DyCy, K;
+	//printf( "DaoxPathSegment_LineIntersect: %3i %3i\n", AB->index, CD->index );
 	if( AB->edge == CD->edge && abs(AB->index - CD->index) <= 1 ) return 0;
 	if( AB->right < CD->left || AB->left > CD->right ) return 0;
 	if( AB->top < CD->bottom || AB->bottom > CD->top ) return 0;
@@ -557,6 +682,7 @@ int DaoxPathSegment_LineIntersect( DaoxPathSegment *AB, DaoxPathSegment *CD, flo
 	DxCx = CD->P2.x - CD->P1.x;
 	DyCy = CD->P2.y - CD->P1.y;
 	K = BxAx * DyCy - ByAy * DxCx;
+	//printf( "DaoxPathSegment_LineIntersect: %3i %3i %15f\n", AB->index, CD->index, K );
 	if( K == 0.0 ) return 0;
 
 	S2 = (CxAx * DyCy - CyAy * DxCx) / K;
@@ -569,7 +695,7 @@ int DaoxPathSegment_LineIntersect( DaoxPathSegment *AB, DaoxPathSegment *CD, flo
 	if( T2 < 0.0 || T2 >= 1.0 ) return 0;
 	*S = (1.0 - S2) * AB->start + S2 * AB->end;
 	*T = (1.0 - T2) * CD->start + T2 * CD->end;
-	printf( "%10f %10f %10f:  %10f, %10f  %10f, %10f\n", K, *S, *T, AB->P2.x, AB->P2.y, CD->P1.x, CD->P1.y );
+	//printf( "%10f %10f %10f:  %10f, %10f  %10f, %10f\n", K, *S, *T, AB->P2.x, AB->P2.y, CD->P1.x, CD->P1.y );
 	return 1;
 }
 void DaoxQuadNode_SearchIntersections2( DaoxQuadNode *self, DaoxPathSegment *S2 )
@@ -601,7 +727,7 @@ void DaoxQuadNode_SearchIntersections( DaoxQuadNode *self )
 	float T1 = 0, T2 = 0;
 	int i, j;
 
-	printf( "segments = %9p; %i\n", self->segments, self->count );
+	//printf( "segments = %9p; %i\n", self->segments, self->count );
 	if( self->count <= 1 ) return;
 
 	nodes[0] = self->NW;
@@ -611,7 +737,6 @@ void DaoxQuadNode_SearchIntersections( DaoxQuadNode *self )
 
 	for(S1=self->segments; S1; S1=S1->next){
 		for(S2=self->segments; S2!=S1; S2=S2->next){
-			printf( "S1 = %9p; S2 = %9p\n", S1, S2 );
 			if( DaoxPathSegment_LineIntersect( S1, S2, & T1, & T2 ) ){
 				if( T1 > 0.001 && T1 < 0.999 ) DaoxFloatArray_Push( & S1->edge->breaks, T1 );
 				if( T2 > 0.001 && T2 < 0.999 ) DaoxFloatArray_Push( & S2->edge->breaks, T2 );
@@ -634,6 +759,8 @@ DaoxQuadTree* DaoxQuadTree_New()
 	DaoxQuadTree *self = (DaoxQuadTree*) dao_calloc( 1, sizeof(DaoxQuadTree) );
 	self->root = DaoxQuadNode_New();
 	self->root->depth = 1;
+	self->points = DaoxPointArray_New();
+	self->bezier = DaoxBezierSegment_New();
 	return self;
 }
 void DaoxQuadTree_Delete( DaoxQuadTree *self )
@@ -641,6 +768,8 @@ void DaoxQuadTree_Delete( DaoxQuadTree *self )
 	DaoxPathSegment *seg = self->segments;
 	DaoxQuadTree_Reset( self );
 	DaoxQuadNode_Delete( self->root );
+	DaoxPointArray_Delete( self->points );
+	DaoxBezierSegment_Delete( self->bezier );
 	while( seg ){
 		DaoxPathSegment *s = seg;
 		seg = seg->next;
