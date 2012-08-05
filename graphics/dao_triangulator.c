@@ -33,30 +33,6 @@
 #include "dao_triangulator.h"
 
 
-float DaoxTriangle_Area( DaoxPoint A, DaoxPoint B, DaoxPoint C )
-{
-	return 0.5 * ((A.x - C.x)*(B.y - A.y) - (A.x - B.x)*(C.y - A.y));
-}
-float DaoxTriangle_AreaBySideLength( float A, float B, float C )
-{
-	float M = 0.5 * (A + B + C);
-	return sqrt( M * (M - A) * (M - B) * (M - C) );
-}
-float DaoxTriangle_PointCloseness( DaoxPoint A, DaoxPoint B, DaoxPoint C, DaoxPoint P )
-{
-	float AB = DaoxTriangle_Area( P, A, B );
-	float BC = DaoxTriangle_Area( P, B, C );
-	float CA = DaoxTriangle_Area( P, C, A );
-	float min = AB < BC ? AB : BC;
-	return (CA < min) ? CA : min;
-}
-float DaoxTriangle_AngleCosine( DaoxPoint C, DaoxPoint A, DaoxPoint B )
-{
-	double CA = DaoxDistance2( C, A );
-	double CB = DaoxDistance2( C, B );
-	double AB = DaoxDistance2( A, B );
-	return (CA + CB - AB) / (2.0 * sqrt(CA + CB) );
-}
 
 
 DaoxVertex* DaoxVertex_New( daoint index )
@@ -124,7 +100,7 @@ static DaoxVertex* DaoxTriangulator_GetVertex( DaoxTriangulator *self, daoint in
 	return vertex;
 }
 
-void DaoxTriangulator_PushPoint( DaoxTriangulator *self, float x, float y )
+void DaoxTriangulator_PushPoint( DaoxTriangulator *self, double x, double y )
 {
 	DaoxVertex *prev = NULL, *vertex = DaoxTriangulator_GetVertex( self, self->points->count );
 	if( self->vertices->size ){
@@ -220,7 +196,7 @@ void DaoxTriangulator_InitContourOrientation( DaoxTriangulator *self )
 	DaoxVertex *vertex, *start;
 	DaoxPoint A, B, C, *points = self->points->points;
 	int i, dir, N = self->vertices->size;
-	float area;
+	double area;
 
 	/* sort vertices by the x coordinates: */
 	DaoxTriangulator_SortVertices( self );
@@ -232,7 +208,7 @@ void DaoxTriangulator_InitContourOrientation( DaoxTriangulator *self )
 		B = points[start->next->index];
 		C = points[start->prev->index];
 		area = DaoxTriangle_Area( A, B, C );
-		if( fabs( area ) < 1E-9 ) continue;
+		if( fabs( area ) < 1E-16 ) continue;
 		dir = area < 0.0 ? DAOX_CLOCKWISE : DAOX_COUNTER_CW;
 		vertex = start;
 		do {
@@ -246,8 +222,8 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 	DaoxVertex *V, *A, *B, *C, *inside;
 	DaoxPoint PA, PB, PC, P, *points = self->points->points;
 	int i, imin, imax, contours, K = 0, N = self->vertices->size;
-	float dist, area, ymin, ymax, dmax;
-	float AB, BC, CA;
+	double dist, area, ymin, ymax, dmax;
+	double AB, BC, CA, min_area = 1E-9;
 
 	DaoxTriangulator_InitContourOrientation( self );
 
@@ -266,8 +242,8 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 			DArray_PopBack( self->worklist );
 			continue;
 		}else if( B->next == C ){ /* already a triangle: */
-			if( fabs( DaoxTriangle_Area( PA, PB, PC ) ) > 1E-9 )
-				DaoxTriangulator_MakeTriangle( self, A );
+			area = DaoxTriangle_Area( PA, PB, PC );
+			if( fabs( area ) > min_area ) DaoxTriangulator_MakeTriangle( self, A );
 			A->next->prev = A->prev;
 			A->prev->next = A->next;
 			A->done = B->done = C->done = 1;
@@ -304,25 +280,38 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 			V = (DaoxVertex*) self->vertices->items.pVoid[i];
 			P = points[V->index];
 			if( V->done ) continue;
+			//printf( "%3i: %12f %12f %9p, %3i %3i %3i %3i\n", i, P.x, P.y, V, V->contour, A->contour, V->direction, A->direction );
 			/* Ingore vertex from other contour with the same direction: */
 			if( V->contour != A->contour && V->direction == A->direction ) continue;
 			if( V->sorting == A->sorting || V->sorting == B->sorting || V->sorting == C->sorting )
 				continue;
 			if( P.y > ymax ) continue;
 			if( P.y < ymin ) continue;
+			//printf( "%3i: %12f %12f %9p, %3i %3i %3i %3i\n", i, P.x, P.y, V, V->contour, A->contour, V->direction, A->direction );
 			BC = DaoxTriangle_Area( P, PB, PC );
 			AB = DaoxTriangle_Area( P, PA, PB );
 			CA = DaoxTriangle_Area( P, PC, PA );
+			//if( area < 0.0 ){
 			if( A->direction == DAOX_CLOCKWISE ){
 				AB = -AB;
 				BC = -BC;
 				CA = -CA;
 			}
+			//printf( "%3i: %12f %12f  %12f\n", i, AB, BC, CA );
+#if 0
+			if( V->direction != A->direction && BC == 0.0 ) continue;
+			if( BC > 0.0 && BC > dmax ){
+				dmax = BC;
+				inside = V;
+			}
+			continue;
+#endif
 			if( BC >= 0.0 && AB >= 0.0 && CA >= 0.0 ){
 				/*
 				// Consider vertex from a different contour with different direction,
 				// only if is fully inside the triangle:
 				*/
+				//if( V->direction != A->direction && BC == 0.0 ) continue;
 				if( V->direction != A->direction && (BC == 0.0 || AB == 0.0 || CA == 0.0) ) continue;
 				if( BC > dmax ){
 					dmax = BC;
@@ -336,15 +325,17 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 		printf( "C:  %15f  %15f   %9p\n", PC.x, PC.y, C );
 		if( inside ) printf( "I:  %15f  %15f\n", points[inside->index].x, points[inside->index].y );
 		printf( "%p\n", inside );
+		printf( "area: %15f\n", area );
 #endif
 		if( inside == NULL ){
+			area = DaoxTriangle_Area( PA, PB, PC );
 			A->done = 1;
 			//printf( "area: %15f\n", DaoxTriangle_Area( PA, PB, PC ) );
-			if( fabs( DaoxTriangle_Area( PA, PB, PC ) ) > 1E-9 ) DaoxTriangulator_MakeTriangle( self, A );
+			if( fabs( area ) > min_area ) DaoxTriangulator_MakeTriangle( self, A );
 			A->next->prev = A->prev;
 			A->prev->next = A->next;
 			DArray_PopBack( self->worklist );
-			//if( self->triangles->size >= 3*2 ) break;
+			//if( self->triangles->size >= 3*78 ) break;
 		}else{ /* point inside the triangle: */
 			DaoxVertex *A2, *N2;
 			int breaking = inside->contour == A->contour;
@@ -355,7 +346,7 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 				/* update contour: */
 				do {
 					V2->contour = A->contour;
-					V2->direction = A->direction;
+					//V2->direction = A->direction;
 					V2 = V2->next;
 				} while( V2 != inside );
 			}
@@ -410,7 +401,7 @@ static void TRIA_New( DaoProcess *proc, DaoValue *p[], int N )
 static void TRIA_Push( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxTriangulator *self = (DaoxTriangulator*) DaoValue_TryCastCdata( p[0], daox_type_triangulator );
-	DaoxTriangulator_PushPoint( self, p[1]->xFloat.value, p[2]->xFloat.value );
+	DaoxTriangulator_PushPoint( self, p[1]->xDouble.value, p[2]->xDouble.value );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void TRIA_Close( DaoProcess *proc, DaoValue *p[], int N )
@@ -440,7 +431,7 @@ static void TRIA_Get( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem DaoxTriangulatorMeths[]=
 {
 	{ TRIA_New,     "Triangulator()" },
-	{ TRIA_Push,    "PushPoint( self : Triangulator, x : float, y : float ) => Triangulator" },
+	{ TRIA_Push,    "PushPoint( self : Triangulator, x : double, y : double ) => Triangulator" },
 	{ TRIA_Close,   "CloseContour( self : Triangulator ) => Triangulator" },
 	{ TRIA_Triangulate,   "Triangulate( self : Triangulator ) => int" },
 	{ TRIA_Get,           "[]( self : Triangulator, index : int ) => tuple<int,int,int>" },

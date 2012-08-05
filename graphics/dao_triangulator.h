@@ -48,6 +48,7 @@ struct DaoxVertex
 	uint_t  index;    /* index in the original point array; */
 	uint_t  sorting;  /* index in the sorted vertex array; */
 
+	int       winding;    /* winding number; */
 	ushort_t  contour;    /* contour index; */
 	uchar_t   direction;  /* contour direction; */
 	uchar_t   done;
@@ -89,7 +90,7 @@ DAO_DLL DaoxTriangulator* DaoxTriangulator_New();
 DAO_DLL void DaoxTriangulator_Delete( DaoxTriangulator *self );
 DAO_DLL void DaoxTriangulator_Reset( DaoxTriangulator *self );
 
-DAO_DLL void DaoxTriangulator_PushPoint( DaoxTriangulator *self, float x, float y );
+DAO_DLL void DaoxTriangulator_PushPoint( DaoxTriangulator *self, double x, double y );
 DAO_DLL int  DaoxTriangulator_CloseContour( DaoxTriangulator *self );
 
 DAO_DLL void DaoxTriangulator_Triangulate( DaoxTriangulator *self );

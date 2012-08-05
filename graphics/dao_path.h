@@ -52,14 +52,14 @@ typedef struct DaoxBoundingBox  DaoxBoundingBox;
 
 struct DaoxFloatArray
 {
-	float  *values;
+	double  *values;
 	int     count;
 	int     capacity;
 };
 DaoxFloatArray* DaoxFloatArray_New();
 void DaoxFloatArray_Delete( DaoxFloatArray *self );
 void DaoxFloatArray_Reset( DaoxFloatArray *self );
-void DaoxFloatArray_Push( DaoxFloatArray *self, float value );
+void DaoxFloatArray_Push( DaoxFloatArray *self, double value );
 void DaoxFloatArray_Sort( DaoxFloatArray *self );
 
 
@@ -118,10 +118,10 @@ void DaoxPathGraph_IntersectEdges( DaoxPathGraph *self );
 
 struct DaoxBoundingBox
 {
-	float  left;
-	float  bottom;
-	float  right;
-	float  top;
+	double  left;
+	double  bottom;
+	double  right;
+	double  top;
 };
 
 
@@ -133,14 +133,16 @@ struct DaoxPathSegment
 
 	DaoxPoint  P1;
 	DaoxPoint  P2;
+	DaoxPoint  C1;
+	DaoxPoint  C2;
 
-	float  left;
-	float  bottom;
-	float  right;
-	float  top;
+	double  left;
+	double  bottom;
+	double  right;
+	double  top;
 
-	float  start;  /* parametric start location in the original segment; */
-	float  end;    /* parametric   end location in the original segment; */
+	double  start;  /* parametric start location in the original segment; */
+	double  end;    /* parametric   end location in the original segment; */
 
 	DaoxPathEdge  *edge;
 
@@ -155,9 +157,9 @@ struct DaoxQuadNode
 {
 	int    depth;
 	int    count;
-	float  left;
-	float  bottom;
-	float  width;
+	double  left;
+	double  bottom;
+	double  width;
 
 	DaoxQuadNode  *NW;
 	DaoxQuadNode  *NE;
@@ -170,7 +172,7 @@ struct DaoxQuadNode
 DaoxQuadNode* DaoxQuadNode_New();
 void DaoxQuadNode_Delete( DaoxQuadNode *self );
 
-void DaoxQuadNode_Set( DaoxQuadNode *self, int depth, float left, float bottom, float width );
+void DaoxQuadNode_Set( DaoxQuadNode *self, int depth, double left, double bottom, double width );
 
 
 
@@ -187,7 +189,7 @@ DaoxQuadTree* DaoxQuadTree_New();
 void DaoxQuadTree_Delete( DaoxQuadTree *self );
 
 void DaoxQuadTree_Reset( DaoxQuadTree *self );
-void DaoxQuadTree_Set( DaoxQuadTree *self, float left, float bottom, float width );
+void DaoxQuadTree_Set( DaoxQuadTree *self, double left, double bottom, double width );
 void DaoxQuadTree_InsertEdge( DaoxQuadTree *self, DaoxPathEdge *edge );
 
 DaoxPathSegment* DaoxQuadTree_NewPathSegment( DaoxQuadTree *self );
