@@ -60,9 +60,69 @@ void DaoxBezierSegment_SetPoints( DaoxBezierSegment *self, DaoxPoint P0, DaoxPoi
 	self->start = 0.0;
 	self->end = 1.0;
 }
-void DaoxBezierSegment_RefineQuadratic( DaoxBezierSegment *self, double maxlen )
+void DaoxBezierSegment_DivideQuadratic( DaoxBezierSegment *self, double at )
 {
 	DaoxPoint Q1;
+
+	if( self->first == NULL ) self->first = DaoxBezierSegment_New();
+	if( self->second == NULL ) self->second = DaoxBezierSegment_New();
+	self->first->count = 1;
+	self->second->count = 1;
+	self->count = 2;
+
+	self->first->P0 = self->P0;
+	self->first->P1.x = (1.0 - at)*self->P0.x + at*self->P1.x;
+	self->first->P1.y = (1.0 - at)*self->P0.y + at*self->P1.y;
+
+	self->second->P3 = self->P3;
+	self->second->P1.x = (1.0 - at)*self->P1.x + at*self->P3.x;
+	self->second->P1.y = (1.0 - at)*self->P1.y + at*self->P3.y;
+
+	Q1.x = (1.0 - at)*self->first->P1.x + at*self->second->P1.x;
+	Q1.y = (1.0 - at)*self->first->P1.y + at*self->second->P1.y;
+	self->first->P3 = Q1;
+	self->second->P0 = Q1;
+
+	self->first->start = self->start;
+	self->second->end = self->end;
+	self->first->end = self->second->start = (1.0 - at)*self->start + at*self->end;
+}
+void DaoxBezierSegment_DivideCubic( DaoxBezierSegment *self, double at )
+{
+	DaoxPoint Q1;
+
+	if( self->first == NULL ) self->first = DaoxBezierSegment_New();
+	if( self->second == NULL ) self->second = DaoxBezierSegment_New();
+	self->first->count = 1;
+	self->second->count = 1;
+	self->count = 2;
+
+	Q1.x = (1.0 - at)*self->P1.x + at*self->P2.x;
+	Q1.y = (1.0 - at)*self->P1.y + at*self->P2.y;
+
+	self->first->P0 = self->P0;
+	self->first->P1.x = (1.0 - at)*self->P0.x + at*self->P1.x;
+	self->first->P1.y = (1.0 - at)*self->P0.y + at*self->P1.y;
+	self->first->P2.x = (1.0 - at)*self->first->P1.x + at*Q1.x;
+	self->first->P2.y = (1.0 - at)*self->first->P1.y + at*Q1.y;
+
+	self->second->P3 = self->P3;
+	self->second->P2.x = (1.0 - at)*self->P2.x + at*self->P3.x;
+	self->second->P2.y = (1.0 - at)*self->P2.y + at*self->P3.y;
+	self->second->P1.x = (1.0 - at)*Q1.x + at*self->second->P2.x;
+	self->second->P1.y = (1.0 - at)*Q1.y + at*self->second->P2.y;
+
+	Q1.x = (1.0 - at)*self->first->P2.x + at*self->second->P1.x;
+	Q1.y = (1.0 - at)*self->first->P2.y + at*self->second->P1.y;
+	self->first->P3 = Q1;
+	self->second->P0 = Q1;
+
+	self->first->start = self->start;
+	self->second->end = self->end;
+	self->first->end = self->second->start = (1.0 - at)*self->start + at*self->end;
+}
+void DaoxBezierSegment_RefineQuadratic( DaoxBezierSegment *self, double maxlen )
+{
 	double D1 = DaoxDistance( self->P0, self->P1 );
 	double D2 = DaoxDistance( self->P1, self->P3 );
 	double D3 = DaoxDistance( self->P0, self->P3 );
@@ -73,25 +133,7 @@ void DaoxBezierSegment_RefineQuadratic( DaoxBezierSegment *self, double maxlen )
 		if( self->second ) self->second->count = 0;
 		return;
 	}
-	if( self->first == NULL ) self->first = DaoxBezierSegment_New();
-	if( self->second == NULL ) self->second = DaoxBezierSegment_New();
-
-	self->first->P0 = self->P0;
-	self->first->P1.x = 0.5 * (self->P0.x + self->P1.x);
-	self->first->P1.y = 0.5 * (self->P0.y + self->P1.y);
-
-	self->second->P3 = self->P3;
-	self->second->P1.x = 0.5 * (self->P1.x + self->P3.x);
-	self->second->P1.y = 0.5 * (self->P1.y + self->P3.y);
-
-	Q1.x = 0.5 * (self->first->P1.x + self->second->P1.x);
-	Q1.y = 0.5 * (self->first->P1.y + self->second->P1.y);
-	self->first->P3 = Q1;
-	self->second->P0 = Q1;
-
-	self->first->start = self->start;
-	self->second->end = self->end;
-	self->first->end = self->second->start = 0.5 * (self->start + self->end);
+	DaoxBezierSegment_DivideQuadratic( self, 0.5 );
 
 	DaoxBezierSegment_RefineQuadratic( self->first, maxlen );
 	DaoxBezierSegment_RefineQuadratic( self->second, maxlen );
@@ -103,7 +145,6 @@ void DaoxBezierSegment_RefineCubic( DaoxBezierSegment *self, double maxlen )
 	double D12 = DaoxDistance( self->P1, self->P2 );
 	double D23 = DaoxDistance( self->P2, self->P3 );
 	double D03 = DaoxDistance( self->P0, self->P3 );
-	DaoxPoint Q1;
 
 	if( D03 < maxlen && ((D01 + D12 + D23 - D03) < 0.005*D03 || D03 < 0.001) ){
 		self->count = 1;
@@ -111,32 +152,7 @@ void DaoxBezierSegment_RefineCubic( DaoxBezierSegment *self, double maxlen )
 		if( self->second ) self->second->count = 0;
 		return;
 	}
-	if( self->first == NULL ) self->first = DaoxBezierSegment_New();
-	if( self->second == NULL ) self->second = DaoxBezierSegment_New();
-
-	Q1.x = 0.5 * (self->P1.x + self->P2.x);
-	Q1.y = 0.5 * (self->P1.y + self->P2.y);
-
-	self->first->P0 = self->P0;
-	self->first->P1.x = 0.5 * (self->P0.x + self->P1.x);
-	self->first->P1.y = 0.5 * (self->P0.y + self->P1.y);
-	self->first->P2.x = 0.5 * (self->first->P1.x + Q1.x);
-	self->first->P2.y = 0.5 * (self->first->P1.y + Q1.y);
-
-	self->second->P3 = self->P3;
-	self->second->P2.x = 0.5 * (self->P2.x + self->P3.x);
-	self->second->P2.y = 0.5 * (self->P2.y + self->P3.y);
-	self->second->P1.x = 0.5 * (Q1.x + self->second->P2.x);
-	self->second->P1.y = 0.5 * (Q1.y + self->second->P2.y);
-
-	Q1.x = 0.5 * (self->first->P2.x + self->second->P1.x);
-	Q1.y = 0.5 * (self->first->P2.y + self->second->P1.y);
-	self->first->P3 = Q1;
-	self->second->P0 = Q1;
-
-	self->first->start = self->start;
-	self->second->end = self->end;
-	self->first->end = self->second->start = 0.5 * (self->start + self->end);
+	DaoxBezierSegment_DivideCubic( self, 0.5 );
 
 	DaoxBezierSegment_RefineCubic( self->first, maxlen );
 	DaoxBezierSegment_RefineCubic( self->second, maxlen );
@@ -150,6 +166,19 @@ void DaoxBezierSegment_ExportEndPoints( DaoxBezierSegment *self, DaoxPointArray 
 		DaoxBezierSegment_ExportEndPoints( self->first, points );
 		DaoxBezierSegment_ExportEndPoints( self->second, points );
 	}
+}
+DaoxBezierSegment* DaoxBezierSegment_GetSegment( DaoxBezierSegment *self, double parloc )
+{
+	if( self->count == 1 ){
+		if( self->start <= parloc && parloc <= self->end ) return self;
+	}else if( self->count ){
+		if( self->first->end >= parloc ){
+			return DaoxBezierSegment_GetSegment( self->first, parloc );
+		}else if( self->second->start <= parloc ){
+			return DaoxBezierSegment_GetSegment( self->second, parloc );
+		}
+	}
+	return NULL;
 }
 
 
@@ -525,6 +554,12 @@ DaoxLine DaoxLineJunctionMajor( DaoxPoint p1, DaoxPoint p2, DaoxPoint p3, double
 }
 
 
+#define DELTA  0.1
+
+static void DaoxPointArray_PushArcPoint( DaoxPointArray *self, double CX, double CY, double R, double A )
+{
+	DaoxPointArray_PushXY( self, CX + R * cos( A ), CY + R * sin( A ) );
+}
 
 int DaoxPointArray_SegmentArc( DaoxPointArray *self, DaoxPoint start, DaoxPoint end, DaoxPoint center, int clockwise )
 {
@@ -533,23 +568,19 @@ int DaoxPointArray_SegmentArc( DaoxPointArray *self, DaoxPoint start, DaoxPoint 
 	double R = DaoxDistance( start, center ) + 1E-9;
 	double C = 2.0 * M_PI * R;
 	double dA, A1, A2, A12 = 0.0;
-	double AA = 0.0, ddA = 0.25 / R;
-	int i, M, K = C / 8;
+	double AA = 0.0, ddA = DELTA / R;
+	int i, k, M, K = C / 8;
 
 	if( K < 32 ){
 		K = 32;
 	}else if( K > 256 ){
 		K = 256;
 	}
-	//K = 512;
-	//K = 16;
 	dA = 2.0 * M_PI / K;
 	A1 = acos( (start.x - center.x) / R );
 	A2 = acos( (end.x - center.x) / R );
 	if( start.y < center.y ) A1 = 2 * M_PI - A1;
 	if( end.y < center.y ) A2 = 2 * M_PI - A2;
-
-	printf( "%15f %15f %15f;  %15f %15f\n", R, A1, A2, end.x, center.x );
 
 	M = self->count;
 	DaoxPointArray_Push( self, start );
@@ -558,30 +589,41 @@ int DaoxPointArray_SegmentArc( DaoxPointArray *self, DaoxPoint start, DaoxPoint 
 		if( A12 > 2*M_PI ) A12 -= 2*M_PI;
 		K = 1 + (int)(A12 / dA);
 		dA = A12 / K;
-		/* Add smaller line segments at the start: */
-		for(A1-=ddA; AA<dA && AA<5*ddA; A1-=ddA, A12-=ddA, AA+=ddA){
-			DaoxPointArray_PushXY( self, CX + R * cos( A1 ), CY + R * sin( A1 ) );
+
+		/* Add minor line segments at the start: */
+		for(i=1; i<=3; ++i){
+			k = (i*(i+1)) / 2;
+			if( dA > (2*k+i)*ddA ) DaoxPointArray_PushArcPoint( self, CX, CY, R, A1 - k*ddA );
 		}
-		for(; A12>dA+5*ddA; A1-=dA, A12-=dA){
-			DaoxPointArray_PushXY( self, CX + R * cos( A1 ), CY + R * sin( A1 ) );
-		}
-		/* Add smaller line segments at the end: */
-		for(; A12>ddA; A1-=ddA, A12-=ddA){
-			DaoxPointArray_PushXY( self, CX + R * cos( A1 ), CY + R * sin( A1 ) );
+
+		for(i=1; i<K; ++i) DaoxPointArray_PushArcPoint( self, CX, CY, R, A1 - i*dA );
+		A1 -= K * dA;
+
+		/* Add minor line segments at the end: */
+		for(i=3; i>=1; --i){
+			k = (i*(i+1)) / 2;
+			if( dA > (2*k+i)*ddA ) DaoxPointArray_PushArcPoint( self, CX, CY, R, A1 + k*ddA );
 		}
 	}else{
 		A12 = 2*M_PI + A2 - A1;
 		if( A12 > 2*M_PI ) A12 -= 2*M_PI;
 		K = 1 + (int)(A12 / dA);
 		dA = A12 / K;
-		for(A1+=ddA; AA<dA && AA<5*ddA; A1+=ddA, A12-=ddA, AA+=ddA){
-			DaoxPointArray_PushXY( self, CX + R * cos( A1 ), CY + R * sin( A1 ) );
+		if( 15.0*ddA >= dA ) ddA = dA / 15.0;
+
+		/* Add minor line segments at the start: */
+		for(i=1; i<=3; ++i){
+			k = (i*(i+1)) / 2;
+			if( dA > (2*k+i)*ddA ) DaoxPointArray_PushArcPoint( self, CX, CY, R, A1 + k*ddA );
 		}
-		for(; A12>dA+5*ddA; A1+=dA, A12-=dA){
-			DaoxPointArray_PushXY( self, CX + R * cos( A1 ), CY + R * sin( A1 ) );
-		}
-		for(; A12>ddA; A1+=ddA, A12-=ddA, AA+=ddA){
-			DaoxPointArray_PushXY( self, CX + R * cos( A1 ), CY + R * sin( A1 ) );
+
+		for(i=1; i<K; ++i) DaoxPointArray_PushArcPoint( self, CX, CY, R, A1 + i*dA );
+		A1 += K * dA;
+
+		/* Add minor line segments at the end: */
+		for(i=3; i>=1; --i){
+			k = (i*(i+1)) / 2;
+			if( dA > (2*k+i)*ddA ) DaoxPointArray_PushArcPoint( self, CX, CY, R, A1 - k*ddA );
 		}
 	}
 	DaoxPointArray_Push( self, end );
@@ -590,7 +632,6 @@ int DaoxPointArray_SegmentArc( DaoxPointArray *self, DaoxPoint start, DaoxPoint 
 
 void DaoxPolygonArray_MakeJunction( DaoxPolygonArray *self, DaoxQuad prev, DaoxPoint cur, DaoxQuad next, int junction, int strokeWidth )
 {
-	return;
 	DaoxSliceArray *polygons;
 	DaoxLine line;
 	DaoxQuad quad;
@@ -673,16 +714,29 @@ void DaoxPolygonArray_TriangulatePolygon( DaoxPolygonArray *self, DaoxPointArray
 	printf( "triangles: %i\n", self->polygons->count );
 }
 
+static void DaoxPointArray_PushMiddlePoint( DaoxPointArray *self, DaoxPoint P0, DaoxPoint P1, double at )
+{
+	DaoxPoint PM;
+	PM.x = (1.0 - at) * P0.x + at * P1.x;
+	PM.y = (1.0 - at) * P0.y + at * P1.y;
+	DaoxPointArray_Push( self, PM );
+}
+
+/*
+// Minor line segments are added at the start and end of each path segment,
+// to improve the triangulation of intersecting path segments!
+*/
 void DaoxPath_MakePolygons( DaoxPath *self, double width, int junction,
 		DaoxPolygonArray *strokes, DaoxPolygonArray *fills, DaoxPathBuffer *buffer )
 {
 	DaoxTriangulator *triangulator = buffer->triangulator;
 	DaoxPointArray *lines = buffer->points;
 	DaoxByteArray *junctions = buffer->junctions;
-	DaoxBezierSegment *bezier = buffer->bezier;
-	DaoxPoint *points = self->points->points;
-	int bezjt = width < 10 ? DAOX_JUNCTION_FLAT : DAOX_JUNCTION_ROUND;
-	int i, j, K = 0;
+	DaoxBezierSegment *bez1, *bez2, *bezier = buffer->bezier;
+	DaoxPoint P0, P1, PM, *points = self->points->points;
+	int bezjt = width < 100 ? DAOX_JUNCTION_FLAT : DAOX_JUNCTION_ROUND;
+	int i, j, k, K = 0;
+	double mlen, ratio;
 
 	lines->count = 0;
 	junctions->count = 0;
@@ -698,18 +752,45 @@ void DaoxPath_MakePolygons( DaoxPath *self, double width, int junction,
 			DaoxPointArray_Push( lines, points[ K++ ] );
 			DaoxByteArray_Push( junctions, junction );
 		}else if( command == DAOX_PATH_LINE_TO ){
+			P0 = points[K-1];
+			P1 = points[K];
+			mlen = DaoxDistance( P0, P1 );
+			for(j=1; j<=3; ++j){
+				k = (j*(j+1)) / 2;
+				if( mlen > (2*k+j)*DELTA ){
+					DaoxPointArray_PushMiddlePoint( lines, P0, P1, (k*DELTA) / mlen );
+					DaoxByteArray_Push( junctions, DAOX_JUNCTION_NONE );
+				}
+			}
+			for(j=3; j>=1; --j){
+				k = (j*(j+1)) / 2;
+				if( mlen > (2*k+j)*DELTA ){
+					DaoxPointArray_PushMiddlePoint( lines, P0, P1, 1.0 - (k*DELTA) / mlen );
+					DaoxByteArray_Push( junctions, DAOX_JUNCTION_NONE );
+				}
+			}
 			DaoxPointArray_Push( lines, points[ K++ ] );
 			DaoxByteArray_Push( junctions, junction );
 		}else if( command == DAOX_PATH_ARCR_TO || command == DAOX_PATH_ARCL_TO ){
 			int clockwise = command == DAOX_PATH_ARCL_TO;
 			lines->count -= 1;
 			DaoxPointArray_SegmentArc( lines, points[K-1], points[K+1], points[K], clockwise );
-			DaoxByteArray_Resize( junctions, lines->count, DAOX_JUNCTION_ROUND );
+			DaoxByteArray_Resize( junctions, lines->count, bezjt );
 			junctions->bytes[ junctions->count - 1 ] = junction;
 			K += 2;
 		}else if( command == DAOX_PATH_QUAD_TO ){
 			DaoxBezierSegment_SetPoints( bezier, points[K-1], points[K], points[K+1], points[K+1] );
 			DaoxBezierSegment_RefineQuadratic( bezier, 20 );
+			bez1 = DaoxBezierSegment_GetSegment( bezier, 0.0 );
+			bez2 = DaoxBezierSegment_GetSegment( bezier, 1.0 );
+			for(j=0; j<5; ++j){
+				bez1 = DaoxBezierSegment_GetSegment( bez1, 0.0 );
+				bez2 = DaoxBezierSegment_GetSegment( bez2, 1.0 );
+				if( DaoxDistance( bez1->P0, bez1->P3 ) > DELTA )
+					DaoxBezierSegment_DivideQuadratic( bez1, 0.1 );
+				if( DaoxDistance( bez2->P0, bez2->P3 ) > DELTA )
+					DaoxBezierSegment_DivideQuadratic( bez2, 0.9 );
+			}
 			DaoxBezierSegment_ExportEndPoints( bezier, lines );
 			DaoxByteArray_Resize( junctions, lines->count, bezjt );
 			junctions->bytes[ junctions->count - 1 ] = junction;
@@ -717,6 +798,16 @@ void DaoxPath_MakePolygons( DaoxPath *self, double width, int junction,
 		}else if( command == DAOX_PATH_CUBIC_TO ){
 			DaoxBezierSegment_SetPoints( bezier, points[K-1], points[K], points[K+1], points[K+2] );
 			DaoxBezierSegment_RefineCubic( bezier, 20 );
+			bez1 = DaoxBezierSegment_GetSegment( bezier, 0.0 );
+			bez2 = DaoxBezierSegment_GetSegment( bezier, 1.0 );
+			for(j=0; j<5; ++j){
+				bez1 = DaoxBezierSegment_GetSegment( bez1, 0.0 );
+				bez2 = DaoxBezierSegment_GetSegment( bez2, 1.0 );
+				if( DaoxDistance( bez1->P0, bez1->P3 ) > DELTA )
+					DaoxBezierSegment_DivideQuadratic( bez1, 0.1 );
+				if( DaoxDistance( bez2->P0, bez2->P3 ) > DELTA )
+					DaoxBezierSegment_DivideQuadratic( bez2, 0.9 );
+			}
 			DaoxBezierSegment_ExportEndPoints( bezier, lines );
 			DaoxByteArray_Resize( junctions, lines->count, bezjt );
 			junctions->bytes[ junctions->count - 1 ] = junction;

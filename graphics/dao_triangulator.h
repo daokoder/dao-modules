@@ -48,7 +48,6 @@ struct DaoxVertex
 	uint_t  index;    /* index in the original point array; */
 	uint_t  sorting;  /* index in the sorted vertex array; */
 
-	int       winding;    /* winding number; */
 	ushort_t  contour;    /* contour index; */
 	uchar_t   direction;  /* contour direction; */
 	uchar_t   done;

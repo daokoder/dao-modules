@@ -237,9 +237,12 @@ DAO_DLL DaoxBezierSegment* DaoxBezierSegment_New();
 DAO_DLL void DaoxBezierSegment_Delete( DaoxBezierSegment *self );
 
 DAO_DLL void DaoxBezierSegment_SetPoints( DaoxBezierSegment *self, DaoxPoint P0, DaoxPoint P1, DaoxPoint P2, DaoxPoint P3 );
+DAO_DLL void DaoxBezierSegment_DivideQuadratic( DaoxBezierSegment *self, double at );
+DAO_DLL void DaoxBezierSegment_DivideCubic( DaoxBezierSegment *self, double at );
 DAO_DLL void DaoxBezierSegment_RefineQuadratic( DaoxBezierSegment *self, double maxlen );
 DAO_DLL void DaoxBezierSegment_RefineCubic( DaoxBezierSegment *self, double maxlen );
 DAO_DLL void DaoxBezierSegment_ExportEndPoints( DaoxBezierSegment *self, DaoxPointArray *points );
+DAO_DLL DaoxBezierSegment* DaoxBezierSegment_GetSegment( DaoxBezierSegment *self, double parloc );
 
 
 

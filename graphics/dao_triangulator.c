@@ -233,16 +233,17 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 	DArray_Assign( self->worklist, self->vertices );
 	while( self->worklist->size && (++K) < 10*N ){
 		A = (DaoxVertex*) self->worklist->items.pVoid[self->worklist->size-1];
+		if( A->done ){
+			DArray_PopBack( self->worklist );
+			continue;
+		}
 		B = A->next;
 		C = A->prev;
 		PA = points[A->index];
 		PB = points[B->index];
 		PC = points[C->index];
-		if( A->done ){
-			DArray_PopBack( self->worklist );
-			continue;
-		}else if( B->next == C ){ /* already a triangle: */
-			area = DaoxTriangle_Area( PA, PB, PC );
+		area = DaoxTriangle_Area( PA, PB, PC );
+		if( B->next == C ){ /* already a triangle: */
 			if( fabs( area ) > min_area ) DaoxTriangulator_MakeTriangle( self, A );
 			A->next->prev = A->prev;
 			A->prev->next = A->next;
@@ -291,8 +292,7 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 			BC = DaoxTriangle_Area( P, PB, PC );
 			AB = DaoxTriangle_Area( P, PA, PB );
 			CA = DaoxTriangle_Area( P, PC, PA );
-			//if( area < 0.0 ){
-			if( A->direction == DAOX_CLOCKWISE ){
+			if( area < 0.0 ){
 				AB = -AB;
 				BC = -BC;
 				CA = -CA;
@@ -328,7 +328,6 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 		printf( "area: %15f\n", area );
 #endif
 		if( inside == NULL ){
-			area = DaoxTriangle_Area( PA, PB, PC );
 			A->done = 1;
 			//printf( "area: %15f\n", DaoxTriangle_Area( PA, PB, PC ) );
 			if( fabs( area ) > min_area ) DaoxTriangulator_MakeTriangle( self, A );

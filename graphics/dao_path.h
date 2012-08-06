@@ -133,8 +133,6 @@ struct DaoxPathSegment
 
 	DaoxPoint  P1;
 	DaoxPoint  P2;
-	DaoxPoint  C1;
-	DaoxPoint  C2;
 
 	double  left;
 	double  bottom;
