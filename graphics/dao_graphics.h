@@ -43,8 +43,9 @@
 #include "daoValue.h"
 
 #include "dao_geometry.h"
-#include "dao_path.h"
 #include "dao_triangulator.h"
+#include "dao_path.h"
+#include "dao_font.h"
 
 
 enum DaoxGraphicsShapes
@@ -145,6 +146,8 @@ struct DaoxGraphicsScene
 
 	DArray  *items;
 
+	DaoxFont  *font;
+
 	DaoxPathBuffer  buffer;
 
 	DaoxPathGraph  *graph;
@@ -202,6 +205,7 @@ DAO_DLL void DaoxGraphicsItem_UpdatePolygons( DaoxGraphicsItem *self, DaoxGraphi
 DAO_DLL DaoxGraphicsScene* DaoxGraphicsScene_New();
 DAO_DLL void DaoxGraphicsScene_Delete( DaoxGraphicsScene *self );
 
+DAO_DLL void DaoxGraphicsScene_SetFont( DaoxGraphicsScene *self, DaoxFont *font, double size );
 
 DAO_DLL DaoxGraphicsLine* DaoxGraphicsScene_AddLine( DaoxGraphicsScene *self, double x1, double y1, double x2, double y2 );
 
@@ -216,6 +220,8 @@ DAO_DLL DaoxGraphicsPolyLine* DaoxGraphicsScene_AddPolyLine( DaoxGraphicsScene *
 DAO_DLL DaoxGraphicsPolygon* DaoxGraphicsScene_AddPolygon( DaoxGraphicsScene *self );
 
 DAO_DLL DaoxGraphicsPath* DaoxGraphicsScene_AddPath( DaoxGraphicsScene *self );
+
+DAO_DLL DaoxGraphicsText* DaoxGraphicsScene_AddText( DaoxGraphicsScene *self, const wchar_t *text, double x, double y );
 
 
 

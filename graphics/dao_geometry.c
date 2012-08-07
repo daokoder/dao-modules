@@ -405,7 +405,7 @@ void DaoxPath_ArcTo( DaoxPath *self, double x, double y, double degrees, int clo
 	DaoxPointArray_PushXY( self->points, point.x + x, point.y + y );
 	DaoxByteArray_Push( self->commands, DAOX_PATH_ARCR_TO + (clockwise != 0) );
 }
-void DaoxPath_QuadTo( DaoxPath *self, double x, double y, double cx, double cy )
+void DaoxPath_QuadTo( DaoxPath *self, double cx, double cy, double x, double y )
 {
 	DaoxPoint current;
 	assert( self->points->count > 0 );
@@ -414,7 +414,7 @@ void DaoxPath_QuadTo( DaoxPath *self, double x, double y, double cx, double cy )
 	DaoxPointArray_PushXY( self->points, current.x + x, current.y + y );
 	DaoxByteArray_Push( self->commands, DAOX_PATH_QUAD_TO );
 }
-void DaoxPath_CubicTo( DaoxPath *self, double x, double y, double cx, double cy )
+void DaoxPath_CubicTo( DaoxPath *self, double cx, double cy, double x, double y )
 {
 	DaoxPoint control, start;
 	assert( self->commands->count > 0 );
@@ -428,14 +428,14 @@ void DaoxPath_CubicTo( DaoxPath *self, double x, double y, double cx, double cy 
 	DaoxPointArray_PushXY( self->points, start.x + x, start.y + y );
 	DaoxByteArray_Push( self->commands, DAOX_PATH_CUBIC_TO );
 }
-void DaoxPath_CubicTo2( DaoxPath *self, double cx0, double cy0, double x, double y, double cx, double cy )
+void DaoxPath_CubicTo2( DaoxPath *self, double cx1, double cy1, double cx2, double cy2, double x2, double y2 )
 {
 	DaoxPoint point;
 	assert( self->points->count > 0 );
 	point = self->points->points[ self->points->count - 1 ];
-	DaoxPointArray_PushXY( self->points, point.x + cx0, point.y + cy0 );
-	DaoxPointArray_PushXY( self->points, point.x + x + cx, point.y + y + cy );
-	DaoxPointArray_PushXY( self->points, point.x + x, point.y + y );
+	DaoxPointArray_PushXY( self->points, point.x + cx1, point.y + cy1 );
+	DaoxPointArray_PushXY( self->points, point.x + x2 + cx2, point.y + y2 + cy2 );
+	DaoxPointArray_PushXY( self->points, point.x + x2, point.y + y2 );
 	DaoxByteArray_Push( self->commands, DAOX_PATH_CUBIC_TO );
 }
 void DaoxPath_Close( DaoxPath *self )

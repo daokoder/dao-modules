@@ -313,7 +313,7 @@ void DaoxGraphicsPath_UpdatePolygons( DaoxGraphicsPath *self, DaoxGraphicsScene 
 }
 void DaoxGraphicsText_UpdatePolygons( DaoxGraphicsText *self, DaoxGraphicsScene *scene )
 {
-	DaoxGraphicsiItem_ResetPolygons( self );
+	DaoxGraphicsPath_UpdatePolygons( self, scene );
 }
 
 void DaoxGraphicsItem_UpdatePolygons( DaoxGraphicsItem *self, DaoxGraphicsScene *scene )
@@ -361,6 +361,11 @@ void DaoxGraphicsScene_Delete( DaoxGraphicsScene *self )
 	dao_free( self );
 }
 
+void DaoxGraphicsScene_SetFont( DaoxGraphicsScene *self, DaoxFont *font, double size )
+{
+	DaoGC_ShiftRC( (DaoValue*) font, (DaoValue*) self->font );
+	self->font = font;
+}
 
 DaoxGraphicsLine* DaoxGraphicsScene_AddLine( DaoxGraphicsScene *self, double x1, double y1, double x2, double y2 )
 {
@@ -412,6 +417,27 @@ DaoxGraphicsPath* DaoxGraphicsScene_AddPath( DaoxGraphicsScene *self )
 {
 	DaoxGraphicsPath *item = DaoxGraphicsItem_New( DAOX_GS_PATH );
 	DArray_PushBack( self->items, item );
+	return item;
+}
+DaoxGraphicsText* DaoxGraphicsScene_AddText( DaoxGraphicsScene *self, const wchar_t *text, double x, double y )
+{
+	int i;
+	DaoxGlyph *glyph;
+	DaoxGraphicsPath *item;
+	
+	if( self->font == NULL ) return NULL;
+	glyph = DaoxFont_GetGlyph( self->font, text[0] );
+	if( glyph == NULL ) return NULL;
+
+	item = DaoxGraphicsItem_New( DAOX_GS_TEXT );
+	DArray_PushBack( self->items, item );
+	for(i=0; i<glyph->outline->commands->count; ++i){
+		DaoxByteArray_Push( item->path->commands, glyph->outline->commands->bytes[i] );
+	}
+	for(i=0; i<glyph->outline->points->count; ++i){
+		DaoxPoint point = glyph->outline->points->points[i];
+		DaoxPointArray_PushXY( item->path->points, point.x/3.0, point.y/3.0 );
+	}
 	return item;
 }
 
@@ -803,6 +829,20 @@ DaoTypeBase DaoxGraphicsPath_Typer =
 
 
 
+static DaoFuncItem DaoxGraphicsTextMeths[]=
+{
+	{ NULL, NULL }
+};
+
+DaoTypeBase DaoxGraphicsText_Typer =
+{
+	"GraphicsText", NULL, NULL, (DaoFuncItem*) DaoxGraphicsTextMeths,
+	{ & DaoxGraphicsItem_Typer, NULL }, { NULL },
+	(FuncPtrDel)DaoxGraphicsItem_Delete, DaoxGraphicsItem_GetGCFields
+};
+
+
+
 
 static void SCENE_New( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -859,6 +899,21 @@ static void SCENE_AddPath( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxGraphicsPath *item = DaoxGraphicsScene_AddPath( self );
 	DaoProcess_PutValue( proc, (DaoValue*) item );
 }
+static void SCENE_AddText( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
+	DString *text = DaoValue_TryGetString( p[1] );
+	double x = p[2]->xDouble.value;
+	double y = p[3]->xDouble.value;
+	DaoxGraphicsText *item = DaoxGraphicsScene_AddText( self, DString_GetWCS( text ), x, y );
+	DaoProcess_PutValue( proc, (DaoValue*) item );
+}
+static void SCENE_SetFont( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
+	DaoxFont *font = (DaoxFont*) p[1];
+	DaoxGraphicsScene_SetFont( self, font, p[2]->xDouble.value );
+}
 static void SCENE_Test( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
@@ -873,6 +928,8 @@ static void DaoxGraphicsScene_GetGCFields( void *p, DArray *values, DArray *arra
 {
 	daoint i, n;
 	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p;
+	if( self->font ) DArray_Append( values, self->font );
+	if( remove ) self->font = NULL;
 	if( self->items == NULL ) return;
 	DArray_Append( arrays, self->items );
 }
@@ -887,6 +944,8 @@ static DaoFuncItem DaoxGraphicsSceneMeths[]=
 	{ SCENE_AddPolyLine,  "AddPolyLine( self: GraphicsScene ) => GraphicsPolyLine" },
 	{ SCENE_AddPolygon,   "AddPolygon( self: GraphicsScene ) => GraphicsPolygon" },
 	{ SCENE_AddPath,      "AddPath( self: GraphicsScene ) => GraphicsPath" },
+	{ SCENE_AddText,      "AddText( self: GraphicsScene, text : string, x :double, y :double ) => GraphicsText" },
+	{ SCENE_SetFont,      "SetFont( self: GraphicsScene, font : Font, size = 12D )" },
 	{ SCENE_Test,         "Test( self: GraphicsScene ) => GraphicsPath" },
 	{ NULL, NULL }
 };
@@ -902,9 +961,12 @@ DaoTypeBase DaoxGraphicsScene_Typer =
 
 
 DAO_DLL int DaoTriangulator_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
+DAO_DLL int DaoFont_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
 
 DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
+	DaoFont_OnLoad( vmSpace, ns );
+
 	daox_type_graphics_scene = DaoNamespace_WrapType( ns, & DaoxGraphicsScene_Typer, 0 );
 	daox_type_graphics_item = DaoNamespace_WrapType( ns, & DaoxGraphicsItem_Typer, 0 );
 	daox_type_graphics_line = DaoNamespace_WrapType( ns, & DaoxGraphicsLine_Typer, 0 );
@@ -914,7 +976,17 @@ DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	daox_type_graphics_polyline = DaoNamespace_WrapType( ns, & DaoxGraphicsPolyLine_Typer, 0 );
 	daox_type_graphics_polygon = DaoNamespace_WrapType( ns, & DaoxGraphicsPolygon_Typer, 0 );
 	daox_type_graphics_path = DaoNamespace_WrapType( ns, & DaoxGraphicsPath_Typer, 0 );
+	daox_type_graphics_text = DaoNamespace_WrapType( ns, & DaoxGraphicsText_Typer, 0 );
 
 	DaoTriangulator_OnLoad( vmSpace, ns );
+	return 0;
+
+	DaoxFont *font = DaoxFont_New();
+	DaoxFont_Open( font, "fonts/Roboto-Regular.ttf" );
+	//DaoxFont_Open( font, "FreeSans.ttf" );
+	//DaoxFont_Open( font, "wqy-microhei/wqy-microhei.ttc" );
+	printf( "A = %i\n", DaoxFont_FindGlyphIndex( font, L'A' ) );
+	DaoxFont_GetGlyph( font, L'A' );
+	DaoxFont_GetGlyph( font, L'B' );
 	return 0;
 }

@@ -446,6 +446,6 @@ DaoTypeBase DaoxTriangulator_Typer =
 
 DAO_DLL int DaoTriangulator_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	daox_type_triangulator = DaoNamespace_WrapType( ns, & DaoxTriangulator_Typer, 0 );
+	daox_type_triangulator = DaoNamespace_WrapType( ns, & DaoxTriangulator_Typer, 1 );
 	return 0;
 }

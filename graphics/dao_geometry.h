@@ -224,9 +224,9 @@ DAO_DLL void DaoxPath_Reset( DaoxPath *self );
 DAO_DLL void DaoxPath_MoveTo( DaoxPath *self, double x, double y );
 DAO_DLL void DaoxPath_LineTo( DaoxPath *self, double x, double y );
 DAO_DLL void DaoxPath_ArcTo( DaoxPath *self, double x, double y, double degrees, int clockwise );
-DAO_DLL void DaoxPath_QuadTo( DaoxPath *self, double x, double y, double cx, double cy );
-DAO_DLL void DaoxPath_CubicTo( DaoxPath *self, double x, double y, double cx, double cy );
-DAO_DLL void DaoxPath_CubicTo2( DaoxPath *self, double cx0, double cy0, double x, double y, double cx, double cy );
+DAO_DLL void DaoxPath_QuadTo( DaoxPath *self, double cx, double cy, double x, double y );
+DAO_DLL void DaoxPath_CubicTo( DaoxPath *self, double cx, double cy, double x, double y );
+DAO_DLL void DaoxPath_CubicTo2( DaoxPath *self, double cx1, double cy1, double cx2, double cy2, double x2, double y2 );
 DAO_DLL void DaoxPath_Close( DaoxPath *self );
 
 
