@@ -437,7 +437,7 @@ void DaoxPathGraph_BreakEdge( DaoxPathGraph *self, DaoxPathEdge *edge )
 {
 	int i, k = 1;
 	DaoxFloatArray_Sort( & edge->breaks );
-	printf( "breakings: %i\n", edge->breaks.count );
+	//printf( "breakings: %i\n", edge->breaks.count );
 	if( edge->breaks.count ){
 		for(i=1; i<edge->breaks.count; ++i){
 			if( edge->breaks.values[i] != edge->breaks.values[k-1] ){
@@ -448,7 +448,7 @@ void DaoxPathGraph_BreakEdge( DaoxPathGraph *self, DaoxPathEdge *edge )
 	}
 #if 0
 #endif
-	printf( "breakings: %i\n", edge->breaks.count );
+	//printf( "breakings: %i\n", edge->breaks.count );
 	for(i=0; i<edge->breaks.count; ++i) printf( "%3i: %15f\n", i, edge->breaks.values[i] );
 	switch( edge->command ){
 	case DAOX_PATH_LINE_TO : DaoxPathGraph_BreakLine( self, edge ); break;
@@ -519,7 +519,7 @@ void DaoxPathGraph_IntersectEdges( DaoxPathGraph *self )
 	DaoxQuadNode_SearchIntersections( self->quadtree->root );
 	for(i=0, n=self->edges->size; i<n; ++i){
 		DaoxPathEdge *edge = (DaoxPathEdge*) self->edges->items.pVoid[i];
-		printf( "i = %3i: %3i\n", (int)i, edge->breaks.count );
+		//printf( "i = %3i: %3i\n", (int)i, edge->breaks.count );
 		DaoxFloatArray_Sort( & edge->breaks );
 		DaoxPathGraph_BreakEdge( self, edge );
 	}

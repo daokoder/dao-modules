@@ -176,6 +176,8 @@ struct DaoxPathBuffer
 	struct DaoxTriangulator  *triangulator;
 };
 
+DaoxPathBuffer* DaoxPathBuffer_New();
+void DaoxPathBuffer_Delete( DaoxPathBuffer *self );
 
 
 
@@ -197,6 +199,7 @@ DAO_DLL void DaoxPointArray_Clear( DaoxPointArray *self );
 DAO_DLL void DaoxPointArray_Delete( DaoxPointArray *self );
 DAO_DLL void DaoxPointArray_PushXY( DaoxPointArray *self, double x, double y );
 DAO_DLL void DaoxPointArray_Push( DaoxPointArray *self, DaoxPoint point );
+DAO_DLL void DaoxPointArray_PushPoints( DaoxPointArray *self, DaoxPointArray *points );
 
 
 DAO_DLL DaoxSliceArray* DaoxSliceArray_New();
@@ -210,6 +213,7 @@ DAO_DLL void DaoxPolygonArray_Reset( DaoxPolygonArray *self );
 DAO_DLL void DaoxPolygonArray_PushPolygon( DaoxPolygonArray *self );
 DAO_DLL void DaoxPolygonArray_PushPointXY( DaoxPolygonArray *self, double x, double y );
 DAO_DLL void DaoxPolygonArray_PushPoint( DaoxPolygonArray *self, DaoxPoint point );
+DAO_DLL void DaoxPolygonArray_PushPoints( DaoxPolygonArray *self, DaoxPointArray *points );
 DAO_DLL void DaoxPolygonArray_PushTriangle( DaoxPolygonArray *self, DaoxPoint A, DaoxPoint B, DaoxPoint C );
 DAO_DLL void DaoxPolygonArray_PushRect( DaoxPolygonArray *self, DaoxPoint lb, DaoxPoint rt );
 DAO_DLL void DaoxPolygonArray_PushQuad( DaoxPolygonArray *self, DaoxQuad quad );

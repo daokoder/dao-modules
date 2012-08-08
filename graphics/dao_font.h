@@ -31,6 +31,7 @@
 
 #include "daoStdtype.h"
 #include "dao_geometry.h"
+#include "dao_triangulator.h"
 
 
 typedef struct DaoxFont   DaoxFont;
@@ -44,16 +45,24 @@ struct DaoxFont
 	DString  *buffer;
 	uchar_t  *fontData;
 
+	int  fontStart;
+	int  fontHeight;
+
 	int  head;  /* font header table; */
 	int  cmap;  /* character code mapping table; */
 	int  loca;  /* glyph location table; */
 	int  glyf;  /* glyph outline table; */
+	int  hhea;  /* horizontal header table; */
+	int  hmtx;  /* horizontal metrics table; */
 
 	int      enc_map;
 	uchar_t  enc_format;
 	uchar_t  indexToLocFormat;
 
-	DMap *glyphs;
+	DMap  *glyphs;  /* Glyph index to glyph; */
+	DMap  *glyphs2; /* Unicode to glyph; */
+
+	DaoxPathBuffer  *pathBuffer;
 };
 
 static DaoType* daox_type_font = NULL;
@@ -65,7 +74,8 @@ int DaoxFont_Open( DaoxFont *self, const char *file );
 int DaoxFont_FindTable( DaoxFont *self, const char *tag );
 int DaoxFont_FindGlyphIndex( DaoxFont *self, wchar_t ch );
 
-DaoxGlyph* DaoxFont_GetGlyph( DaoxFont *self, wchar_t ch );
+DaoxGlyph* DaoxFont_GetGlyph( DaoxFont *self, int glyph_index );
+DaoxGlyph* DaoxFont_GetCharGlyph( DaoxFont *self, wchar_t ch );
 
 
 typedef struct DaoxGlyphPoint  DaoxGlyphPoint;
@@ -77,7 +87,13 @@ struct DaoxGlyphPoint
 
 struct DaoxGlyph
 {
+	int  advanceWidth;
+	int  leftSideBearing;
+
 	DaoxPath  *outline;
+
+	DaoxPolygonArray  *outlinePolygons;
+	DaoxPolygonArray  *fillingPolygons;
 
 	DaoxGlyphPoint *points;
 };

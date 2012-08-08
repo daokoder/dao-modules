@@ -195,7 +195,7 @@ void DaoxTriangulator_InitContourOrientation( DaoxTriangulator *self )
 {
 	DaoxVertex *vertex, *start;
 	DaoxPoint A, B, C, *points = self->points->points;
-	int i, dir, N = self->vertices->size;
+	int i, dir, count, N = self->vertices->size;
 	double area;
 
 	/* sort vertices by the x coordinates: */
@@ -204,12 +204,19 @@ void DaoxTriangulator_InitContourOrientation( DaoxTriangulator *self )
 	for(i=0; i<N; ++i){
 		start = self->vertices->items.pVoid[i];
 		if( start->direction != 0 ) continue;
-		A = points[start->index];
-		B = points[start->next->index];
-		C = points[start->prev->index];
-		area = DaoxTriangle_Area( A, B, C );
-		if( fabs( area ) < 1E-16 ) continue;
-		dir = area < 0.0 ? DAOX_CLOCKWISE : DAOX_COUNTER_CW;
+		count = 0;
+		vertex = start;
+		do {
+			A = points[vertex->index];
+			B = points[vertex->next->index];
+			C = points[vertex->prev->index];
+			area = DaoxTriangle_Area( A, B, C );
+			if( area > 0.0 ) count += 1;
+			if( area < 0.0 ) count -= 1;
+			vertex = vertex->next;
+		} while( vertex != start );
+
+		dir = count < 0 ? DAOX_CLOCKWISE : DAOX_COUNTER_CW;
 		vertex = start;
 		do {
 			vertex->direction = dir;
@@ -292,6 +299,7 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 			BC = DaoxTriangle_Area( P, PB, PC );
 			AB = DaoxTriangle_Area( P, PA, PB );
 			CA = DaoxTriangle_Area( P, PC, PA );
+			//if( A->direction == DAOX_CLOCKWISE ){
 			if( area < 0.0 ){
 				AB = -AB;
 				BC = -BC;
@@ -312,7 +320,7 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 				// only if is fully inside the triangle:
 				*/
 				//if( V->direction != A->direction && BC == 0.0 ) continue;
-				if( V->direction != A->direction && (BC == 0.0 || AB == 0.0 || CA == 0.0) ) continue;
+				//if( V->direction != A->direction && (BC == 0.0 || AB == 0.0 || CA == 0.0) ) continue;
 				if( BC > dmax ){
 					dmax = BC;
 					inside = V;
@@ -345,7 +353,7 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 				/* update contour: */
 				do {
 					V2->contour = A->contour;
-					//V2->direction = A->direction;
+					V2->direction = A->direction;
 					V2 = V2->next;
 				} while( V2 != inside );
 			}
@@ -388,6 +396,21 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 		}
 	}
 }
+
+void DaoxTriangulator_ExportTriangles( DaoxTriangulator *self, DaoxPolygonArray *polygons )
+{
+	int i;
+	for(i=0; i<self->triangles->size; i+=3){
+		daoint *ids = self->triangles->items.pInt + i;
+		DaoxPoint A = self->points->points[ids[0]];
+		DaoxPoint B = self->points->points[ids[1]];
+		DaoxPoint C = self->points->points[ids[2]];
+		DaoxPolygonArray_PushTriangle( polygons, A, B, C );
+	}
+}
+
+
+
 
 
 static DaoType* daox_type_triangulator = NULL;

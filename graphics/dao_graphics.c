@@ -75,8 +75,6 @@ DaoxGraphicsItem* DaoxGraphicsItem_New( int shape )
 }
 void DaoxGraphicsItem_Delete( DaoxGraphicsItem *self )
 {
-	if( self->text ) DString_Delete( self->text );
-	if( self->font ) DString_Delete( self->font );
 	if( self->children ) DArray_Delete( self->children );
 	DaoxPolygonArray_Delete( self->dashMasks );
 	DaoxPolygonArray_Delete( self->strokePolygons );
@@ -268,12 +266,12 @@ void DaoxGraphicsEllipse_UpdatePolygons( DaoxGraphicsEllipse *self, DaoxGraphics
 	self->path->points->count = 0;
 	for(i=0; i<seg; ++i){
 		double ang = 2.0 * M_PI * i / (double) seg;
-		DaoxPointArray_PushXY( scene->buffer.points, CX + RX * cos( ang ), CY + RY * sin( ang ) );
+		DaoxPointArray_PushXY( scene->buffer->points, CX + RX * cos( ang ), CY + RY * sin( ang ) );
 	}
 	DaoxGraphicsiItem_ResetPolygons( self );
-	DaoxPolygonArray_MakeLines( self->strokePolygons, scene->buffer.points, NULL, self->strokeWidth, DAOX_JUNCTION_FLAT, 1 );
+	DaoxPolygonArray_MakeLines( self->strokePolygons, scene->buffer->points, NULL, self->strokeWidth, DAOX_JUNCTION_FLAT, 1 );
 	if( self->fillColor.alpha < 1E-9 ) return;
-	DaoxPolygonArray_TriangulatePolygon( self->fillPolygons, scene->buffer.points, scene->buffer.triangulator );
+	DaoxPolygonArray_TriangulatePolygon( self->fillPolygons, scene->buffer->points, scene->buffer->triangulator );
 }
 void DaoxGraphicsCircle_UpdatePolygons( DaoxGraphicsCircle *self, DaoxGraphicsScene *scene )
 {
@@ -297,23 +295,23 @@ void DaoxGraphicsPolygon_UpdatePolygons( DaoxGraphicsPolygon *self, DaoxGraphics
 	DaoxGraphicsiItem_ResetPolygons( self );
 	DaoxPolygonArray_MakeLines( self->strokePolygons, self->path->points, NULL, self->strokeWidth, self->junction, 1 );
 	if( self->fillColor.alpha < 1E-9 ) return;
-	DaoxPolygonArray_TriangulatePolygon( self->fillPolygons, self->path->points, scene->buffer.triangulator );
+	DaoxPolygonArray_TriangulatePolygon( self->fillPolygons, self->path->points, scene->buffer->triangulator );
 }
 void DaoxGraphicsPath_UpdatePolygons( DaoxGraphicsPath *self, DaoxGraphicsScene *scene )
 {
 	DaoxPolygonArray *fills = self->fillColor.alpha < 1E-9 ? NULL : self->fillPolygons;
 	DaoxGraphicsiItem_ResetPolygons( self );
+#if 0
 	DaoxPathGraph_Reset( scene->graph );
 	DaoxPathGraph_Import( scene->graph, self->path );
 	DaoxPathGraph_IntersectEdges( scene->graph );
 	DaoxPathGraph_Export( scene->graph, self->path );
-#if 0
 #endif
-	DaoxPath_MakePolygons( self->path, self->strokeWidth, self->junction, self->strokePolygons, fills, & scene->buffer );
+	DaoxPath_MakePolygons( self->path, self->strokeWidth, self->junction, self->strokePolygons, fills, scene->buffer );
 }
 void DaoxGraphicsText_UpdatePolygons( DaoxGraphicsText *self, DaoxGraphicsScene *scene )
 {
-	DaoxGraphicsPath_UpdatePolygons( self, scene );
+	//DaoxGraphicsPath_UpdatePolygons( self, scene );
 }
 
 void DaoxGraphicsItem_UpdatePolygons( DaoxGraphicsItem *self, DaoxGraphicsScene *scene )
@@ -342,10 +340,7 @@ DaoxGraphicsScene* DaoxGraphicsScene_New()
 	DaoxGraphicsScene *self = (DaoxGraphicsScene*) dao_calloc( 1, sizeof(DaoxGraphicsScene) );
 	DaoCdata_InitCommon( (DaoCdata*) self, daox_type_graphics_scene );
 	self->items = DArray_New(D_VALUE);
-	self->buffer.points = DaoxPointArray_New();
-	self->buffer.junctions = DaoxByteArray_New();
-	self->buffer.bezier = DaoxBezierSegment_New();
-	self->buffer.triangulator = DaoxTriangulator_New();
+	self->buffer = DaoxPathBuffer_New();
 	self->graph = DaoxPathGraph_New();
 	return self;
 }
@@ -353,10 +348,7 @@ void DaoxGraphicsScene_Delete( DaoxGraphicsScene *self )
 {
 	DaoCdata_FreeCommon( (DaoCdata*) self );
 	DArray_Delete( self->items );
-	DaoxPointArray_Delete( self->buffer.points );
-	DaoxByteArray_Delete( self->buffer.junctions );
-	DaoxBezierSegment_Delete( self->buffer.bezier );
-	DaoxTriangulator_Delete( self->buffer.triangulator );
+	DaoxPathBuffer_Delete( self->buffer );
 	DaoxPathGraph_Delete( self->graph );
 	dao_free( self );
 }
@@ -421,22 +413,48 @@ DaoxGraphicsPath* DaoxGraphicsScene_AddPath( DaoxGraphicsScene *self )
 }
 DaoxGraphicsText* DaoxGraphicsScene_AddText( DaoxGraphicsScene *self, const wchar_t *text, double x, double y )
 {
-	int i;
+	int i, j, jt = DAOX_JUNCTION_FLAT;
+	double scale;
 	DaoxGlyph *glyph;
 	DaoxGraphicsPath *item;
 	
 	if( self->font == NULL ) return NULL;
-	glyph = DaoxFont_GetGlyph( self->font, text[0] );
-	if( glyph == NULL ) return NULL;
+
+	scale = 100.0 / (double)self->font->fontHeight;
 
 	item = DaoxGraphicsItem_New( DAOX_GS_TEXT );
 	DArray_PushBack( self->items, item );
-	for(i=0; i<glyph->outline->commands->count; ++i){
-		DaoxByteArray_Push( item->path->commands, glyph->outline->commands->bytes[i] );
-	}
-	for(i=0; i<glyph->outline->points->count; ++i){
-		DaoxPoint point = glyph->outline->points->points[i];
-		DaoxPointArray_PushXY( item->path->points, point.x/3.0, point.y/3.0 );
+
+	while( *text ){
+		glyph = DaoxFont_GetCharGlyph( self->font, *text++ );
+		printf( "%3i %2lc %9p\n", *(text-1), *(text-1), glyph );
+		if( glyph == NULL ) break;
+		for(i=0; i<glyph->outlinePolygons->polygons->count; ++i){
+			DaoxSlice polygon = glyph->outlinePolygons->polygons->slices[i];
+			DaoxPointArray points;
+			points.points = glyph->outlinePolygons->points->points + polygon.offset;
+			points.count = polygon.count;
+			DaoxPolygonArray_MakeLines( item->strokePolygons, & points, NULL, 1, jt, 1 );
+		}
+		for(i=0; i<item->strokePolygons->points->count; ++i){
+			DaoxPoint *point = item->strokePolygons->points->points + i;
+			point->x = x + scale * point->x;
+			point->y = y + scale * point->y;
+		}
+		for(i=0; i<glyph->fillingPolygons->polygons->count; ++i){
+			DaoxSlice polygon = glyph->fillingPolygons->polygons->slices[i];
+			DaoxPoint *points = glyph->fillingPolygons->points->points + polygon.offset;
+			DaoxPolygonArray_PushPolygon( item->fillPolygons );
+			for(j=0; j<polygon.count; ++j){
+				DaoxPoint point = points[j];
+				point.x = x + scale * point.x;
+				point.y = y + scale * point.y;
+				DaoxPolygonArray_PushPoint( item->fillPolygons, point );
+			}
+		}
+		x += scale * glyph->advanceWidth;
+		printf( "<<<<<<<<<<<<<<<<<<<<<<<<< text polygons: %i\n", glyph->fillingPolygons->polygons->count );
+		printf( "<<<<<<<<<<<<<<<<<<<<<<<<< text polygons: %i\n", item->fillPolygons->polygons->count );
 	}
 	return item;
 }

@@ -101,7 +101,7 @@ struct DaoxGraphicsItem
 
 	DaoxTransform  transform;     /* [A, B; C, D] */
 
-	double      strokeWidth;     /* stroke width; */
+	double     strokeWidth;     /* stroke width; */
 	DaoxColor  strokeColor;  /* stroke color: RGBA; */
 	DaoxColor  fillColor;    /* filling color: RGBA; */
 
@@ -124,9 +124,6 @@ struct DaoxGraphicsItem
 	DaoxPolygonArray  *strokePolygons;
 	DaoxPolygonArray  *fillPolygons;
 
-	DString  *text;
-	DString  *font;
-
 	DArray  *children;  /* child items; */
 };
 DAO_DLL extern DaoType *daox_type_graphics_item;
@@ -148,9 +145,8 @@ struct DaoxGraphicsScene
 
 	DaoxFont  *font;
 
-	DaoxPathBuffer  buffer;
-
-	DaoxPathGraph  *graph;
+	DaoxPathBuffer  *buffer;
+	DaoxPathGraph   *graph;
 };
 DAO_DLL extern DaoType *daox_type_graphics_scene;
 
