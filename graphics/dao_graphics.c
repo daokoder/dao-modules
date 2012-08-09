@@ -67,7 +67,7 @@ DaoxGraphicsItem* DaoxGraphicsItem_New( int shape )
 	self->transform.C = 1;
 	self->strokeWidth = 1;
 	self->strokeColor.alpha = 1;
-	self->path = DaoxPath_New();
+	self->path = DaoxSimplePath_New();
 	self->dashMasks = DaoxPolygonArray_New();
 	self->strokePolygons = DaoxPolygonArray_New();
 	self->fillPolygons = DaoxPolygonArray_New();
@@ -79,7 +79,7 @@ void DaoxGraphicsItem_Delete( DaoxGraphicsItem *self )
 	DaoxPolygonArray_Delete( self->dashMasks );
 	DaoxPolygonArray_Delete( self->strokePolygons );
 	DaoxPolygonArray_Delete( self->fillPolygons );
-	DaoxPath_Delete( self->path );
+	DaoxSimplePath_Delete( self->path );
 	DaoCdata_FreeCommon( (DaoCdata*) self );
 	dao_free( self );
 }
@@ -161,37 +161,37 @@ void DaoxGraphicsPolygon_Add( DaoxGraphicsPolygon *self, double x, double y )
 void DaoxGraphicsPath_MoveTo( DaoxGraphicsPath *self, double x, double y )
 {
 	assert( self->ctype == daox_type_graphics_path );
-	DaoxPath_MoveTo( self->path, x, y );
+	DaoxSimplePath_MoveTo( self->path, x, y );
 }
 void DaoxGraphicsPath_LineTo( DaoxGraphicsPath *self, double x, double y )
 {
 	assert( self->ctype == daox_type_graphics_path );
-	DaoxPath_LineTo( self->path, x, y );
+	DaoxSimplePath_LineTo( self->path, x, y );
 }
 void DaoxGraphicsPath_ArcTo( DaoxGraphicsPath *self, double x, double y, double degrees, int clockwise )
 {
 	assert( self->ctype == daox_type_graphics_path );
-	DaoxPath_ArcTo( self->path, x, y, degrees, clockwise );
+	DaoxSimplePath_ArcTo( self->path, x, y, degrees, clockwise );
 }
 void DaoxGraphicsPath_QuadTo( DaoxGraphicsPath *self, double x, double y, double cx, double cy )
 {
 	assert( self->ctype == daox_type_graphics_path );
-	DaoxPath_QuadTo( self->path, x, y, cx, cy );
+	DaoxSimplePath_QuadTo( self->path, x, y, cx, cy );
 }
 void DaoxGraphicsPath_CubicTo( DaoxGraphicsPath *self, double x, double y, double cx, double cy )
 {
 	assert( self->ctype == daox_type_graphics_path );
-	DaoxPath_CubicTo( self->path, x, y, cx, cy );
+	DaoxSimplePath_CubicTo( self->path, x, y, cx, cy );
 }
 void DaoxGraphicsPath_CubicTo2( DaoxGraphicsLine *self, double cx0, double cy0, double x, double y, double cx, double cy )
 {
 	assert( self->ctype == daox_type_graphics_path );
-	DaoxPath_CubicTo2( self->path, cx0, cy0, x, y, cx, cy );
+	DaoxSimplePath_CubicTo2( self->path, cx0, cy0, x, y, cx, cy );
 }
 void DaoxGraphicsPath_Close( DaoxGraphicsPath *self )
 {
 	assert( self->ctype == daox_type_graphics_path );
-	DaoxPath_Close( self->path );
+	DaoxSimplePath_Close( self->path );
 }
 
 
@@ -307,7 +307,7 @@ void DaoxGraphicsPath_UpdatePolygons( DaoxGraphicsPath *self, DaoxGraphicsScene 
 	DaoxPathGraph_IntersectEdges( scene->graph );
 	DaoxPathGraph_Export( scene->graph, self->path );
 #endif
-	DaoxPath_MakePolygons( self->path, self->strokeWidth, self->junction, self->strokePolygons, fills, scene->buffer );
+	DaoxSimplePath_MakePolygons( self->path, self->strokeWidth, self->junction, self->strokePolygons, fills, scene->buffer );
 }
 void DaoxGraphicsText_UpdatePolygons( DaoxGraphicsText *self, DaoxGraphicsScene *scene )
 {
@@ -424,6 +424,26 @@ DaoxGraphicsText* DaoxGraphicsScene_AddText( DaoxGraphicsScene *self, const wcha
 
 	item = DaoxGraphicsItem_New( DAOX_GS_TEXT );
 	DArray_PushBack( self->items, item );
+
+	while( *text ){
+		glyph = DaoxFont_GetCharGlyph( self->font, *text++ );
+		printf( "%3i %2lc %9p\n", *(text-1), *(text-1), glyph );
+		if( glyph == NULL ) break;
+		for(i=0; i<glyph->shape->triangles->count; i+=3){
+			DaoxPoint *points = glyph->shape->points->points;
+			int *ids = glyph->shape->triangles->values + i;
+			DaoxPolygonArray_PushPolygon( item->fillPolygons );
+			for(j=0; j<3; ++j){
+				DaoxPoint point = points[ids[j]];
+				point.x = x + scale * point.x;
+				point.y = y + scale * point.y;
+				DaoxPolygonArray_PushPoint( item->fillPolygons, point );
+			}
+		}
+		x += scale * glyph->advanceWidth;
+	}
+#if 0
+#endif
 
 	while( *text ){
 		glyph = DaoxFont_GetCharGlyph( self->font, *text++ );

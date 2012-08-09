@@ -105,7 +105,7 @@ struct DaoxGraphicsItem
 	DaoxColor  strokeColor;  /* stroke color: RGBA; */
 	DaoxColor  fillColor;    /* filling color: RGBA; */
 
-	DaoxPath  *path;  /* path, or points for polylines and polygons; */
+	DaoxSimplePath  *path;  /* path, or points for polylines and polygons; */
 
 	/*
 	// Polygons converted from the stroking and filling areas of the item.

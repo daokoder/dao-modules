@@ -46,7 +46,7 @@ typedef struct DaoxPathGraph   DaoxPathGraph;
 typedef struct DaoxQuadNode    DaoxQuadNode;
 typedef struct DaoxQuadTree    DaoxQuadTree;
 
-typedef struct DaoxPathSegment  DaoxPathSegment;
+typedef struct DaoxPathFragment  DaoxPathFragment;
 typedef struct DaoxBoundingBox  DaoxBoundingBox;
 
 
@@ -108,8 +108,8 @@ void DaoxPathGraph_Delete( DaoxPathGraph *self );
 
 void DaoxPathGraph_Reset( DaoxPathGraph *self );
 
-void DaoxPathGraph_Import( DaoxPathGraph *self, DaoxPath *path );
-void DaoxPathGraph_Export( DaoxPathGraph *self, DaoxPath *path );
+void DaoxPathGraph_Import( DaoxPathGraph *self, DaoxSimplePath *path );
+void DaoxPathGraph_Export( DaoxPathGraph *self, DaoxSimplePath *path );
 
 void DaoxPathGraph_IntersectEdges( DaoxPathGraph *self );
 
@@ -126,7 +126,7 @@ struct DaoxBoundingBox
 
 
 
-struct DaoxPathSegment
+struct DaoxPathFragment
 {
 	int  command;
 	int  index;   /* sub-segment index in the original segment; */
@@ -144,10 +144,10 @@ struct DaoxPathSegment
 
 	DaoxPathEdge  *edge;
 
-	DaoxPathSegment  *next;
+	DaoxPathFragment  *next;
 };
-DaoxPathSegment* DaoxPathSegment_New();
-void DaoxPathSegment_Delete( DaoxPathSegment *self );
+DaoxPathFragment* DaoxPathFragment_New();
+void DaoxPathFragment_Delete( DaoxPathFragment *self );
 
 
 
@@ -164,7 +164,7 @@ struct DaoxQuadNode
 	DaoxQuadNode  *SW;
 	DaoxQuadNode  *SE;
 
-	DaoxPathSegment  *segments;
+	DaoxPathFragment  *segments;
 };
 
 DaoxQuadNode* DaoxQuadNode_New();
@@ -177,7 +177,7 @@ void DaoxQuadNode_Set( DaoxQuadNode *self, int depth, double left, double bottom
 struct DaoxQuadTree
 {
 	DaoxQuadNode  *root;
-	DaoxPathSegment  *segments;
+	DaoxPathFragment  *segments;
 
 	DaoxPointArray     *points;
 	DaoxBezierSegment  *bezier;
@@ -190,7 +190,7 @@ void DaoxQuadTree_Reset( DaoxQuadTree *self );
 void DaoxQuadTree_Set( DaoxQuadTree *self, double left, double bottom, double width );
 void DaoxQuadTree_InsertEdge( DaoxQuadTree *self, DaoxPathEdge *edge );
 
-DaoxPathSegment* DaoxQuadTree_NewPathSegment( DaoxQuadTree *self );
+DaoxPathFragment* DaoxQuadTree_NewPathSegment( DaoxQuadTree *self );
 
 
 #endif

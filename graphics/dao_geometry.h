@@ -32,7 +32,7 @@
 #include "dao.h"
 
 
-enum DaoxPathCommands
+enum DaoxSimplePathCommands
 {
 	DAOX_PATH_MOVE_TO ,
 	DAOX_PATH_LINE_TO ,
@@ -42,7 +42,7 @@ enum DaoxPathCommands
 	DAOX_PATH_CUBIC_TO ,
 	DAOX_PATH_CLOSE ,
 };
-enum DaoxPathJunctions
+enum DaoxSimplePathJunctions
 {
 	DAOX_JUNCTION_NONE ,
 	DAOX_JUNCTION_SHARP ,
@@ -54,7 +54,7 @@ enum DaoxPathJunctions
 typedef struct DaoxPoint             DaoxPoint;
 typedef struct DaoxLine              DaoxLine;
 typedef struct DaoxQuad              DaoxQuad;
-typedef struct DaoxPath              DaoxPath;
+typedef struct DaoxSimplePath              DaoxSimplePath;
 typedef struct DaoxSlice             DaoxSlice;
 typedef struct DaoxTransform         DaoxTransform;
 
@@ -154,7 +154,7 @@ struct DaoxPolygonArray
 };
 
 
-struct DaoxPath
+struct DaoxSimplePath
 {
 	DaoxPointArray  *points;
 	DaoxByteArray   *commands;
@@ -222,16 +222,16 @@ DAO_DLL void DaoxPolygonArray_PushQuad( DaoxPolygonArray *self, DaoxQuad quad );
 
 
 
-DAO_DLL DaoxPath* DaoxPath_New();
-DAO_DLL void DaoxPath_Delete( DaoxPath *self );
-DAO_DLL void DaoxPath_Reset( DaoxPath *self );
-DAO_DLL void DaoxPath_MoveTo( DaoxPath *self, double x, double y );
-DAO_DLL void DaoxPath_LineTo( DaoxPath *self, double x, double y );
-DAO_DLL void DaoxPath_ArcTo( DaoxPath *self, double x, double y, double degrees, int clockwise );
-DAO_DLL void DaoxPath_QuadTo( DaoxPath *self, double cx, double cy, double x, double y );
-DAO_DLL void DaoxPath_CubicTo( DaoxPath *self, double cx, double cy, double x, double y );
-DAO_DLL void DaoxPath_CubicTo2( DaoxPath *self, double cx1, double cy1, double cx2, double cy2, double x2, double y2 );
-DAO_DLL void DaoxPath_Close( DaoxPath *self );
+DAO_DLL DaoxSimplePath* DaoxSimplePath_New();
+DAO_DLL void DaoxSimplePath_Delete( DaoxSimplePath *self );
+DAO_DLL void DaoxSimplePath_Reset( DaoxSimplePath *self );
+DAO_DLL void DaoxSimplePath_MoveTo( DaoxSimplePath *self, double x, double y );
+DAO_DLL void DaoxSimplePath_LineTo( DaoxSimplePath *self, double x, double y );
+DAO_DLL void DaoxSimplePath_ArcTo( DaoxSimplePath *self, double x, double y, double degrees, int clockwise );
+DAO_DLL void DaoxSimplePath_QuadTo( DaoxSimplePath *self, double cx, double cy, double x, double y );
+DAO_DLL void DaoxSimplePath_CubicTo( DaoxSimplePath *self, double cx, double cy, double x, double y );
+DAO_DLL void DaoxSimplePath_CubicTo2( DaoxSimplePath *self, double cx1, double cy1, double cx2, double cy2, double x2, double y2 );
+DAO_DLL void DaoxSimplePath_Close( DaoxSimplePath *self );
 
 
 
@@ -271,7 +271,7 @@ DAO_DLL void DaoxPolygonArray_MakeLines( DaoxPolygonArray *self, DaoxPointArray 
 
 DAO_DLL void DaoxPolygonArray_TriangulatePolygon( DaoxPolygonArray *self, DaoxPointArray *points, struct DaoxTriangulator *triangulator );
 
-DAO_DLL void DaoxPath_MakePolygons( DaoxPath *self, double width, int junction, DaoxPolygonArray *strokes, DaoxPolygonArray *fills, DaoxPathBuffer *buffer );
+DAO_DLL void DaoxSimplePath_MakePolygons( DaoxSimplePath *self, double width, int junction, DaoxPolygonArray *strokes, DaoxPolygonArray *fills, DaoxPathBuffer *buffer );
 
 
 #ifdef __cplusplus

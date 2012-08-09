@@ -365,30 +365,30 @@ void DaoxPolygonArray_PushQuad( DaoxPolygonArray *self, DaoxQuad quad )
 
 
 
-DaoxPath* DaoxPath_New()
+DaoxSimplePath* DaoxSimplePath_New()
 {
-	DaoxPath *self = (DaoxPath*) dao_malloc( sizeof(DaoxPath) );
+	DaoxSimplePath *self = (DaoxSimplePath*) dao_malloc( sizeof(DaoxSimplePath) );
 	self->points = DaoxPointArray_New();
 	self->commands = DaoxByteArray_New();
 	return self;
 }
-void DaoxPath_Delete( DaoxPath *self )
+void DaoxSimplePath_Delete( DaoxSimplePath *self )
 {
 	DaoxPointArray_Delete( self->points );
 	DaoxByteArray_Delete( self->commands );
 	dao_free( self );
 }
-void DaoxPath_Reset( DaoxPath *self )
+void DaoxSimplePath_Reset( DaoxSimplePath *self )
 {
 	self->points->count = 0;
 	self->commands->count = 0;
 }
-void DaoxPath_MoveTo( DaoxPath *self, double x, double y )
+void DaoxSimplePath_MoveTo( DaoxSimplePath *self, double x, double y )
 {
 	DaoxPointArray_PushXY( self->points, x, y );
 	DaoxByteArray_Push( self->commands, DAOX_PATH_MOVE_TO );
 }
-void DaoxPath_LineTo( DaoxPath *self, double x, double y )
+void DaoxSimplePath_LineTo( DaoxSimplePath *self, double x, double y )
 {
 	DaoxPoint point;
 	assert( self->points->count > 0 );
@@ -396,7 +396,7 @@ void DaoxPath_LineTo( DaoxPath *self, double x, double y )
 	DaoxPointArray_PushXY( self->points, point.x + x, point.y + y );
 	DaoxByteArray_Push( self->commands, DAOX_PATH_LINE_TO );
 }
-void DaoxPath_ArcTo( DaoxPath *self, double x, double y, double degrees, int clockwise )
+void DaoxSimplePath_ArcTo( DaoxSimplePath *self, double x, double y, double degrees, int clockwise )
 {
 	DaoxPoint point, center;
 	double t = tan( 0.5 * degrees * M_PI / 180.0 ) + 1E-12;
@@ -420,7 +420,7 @@ void DaoxPath_ArcTo( DaoxPath *self, double x, double y, double degrees, int clo
 	DaoxPointArray_PushXY( self->points, point.x + x, point.y + y );
 	DaoxByteArray_Push( self->commands, DAOX_PATH_ARCR_TO + (clockwise != 0) );
 }
-void DaoxPath_QuadTo( DaoxPath *self, double cx, double cy, double x, double y )
+void DaoxSimplePath_QuadTo( DaoxSimplePath *self, double cx, double cy, double x, double y )
 {
 	DaoxPoint current;
 	assert( self->points->count > 0 );
@@ -429,7 +429,7 @@ void DaoxPath_QuadTo( DaoxPath *self, double cx, double cy, double x, double y )
 	DaoxPointArray_PushXY( self->points, current.x + x, current.y + y );
 	DaoxByteArray_Push( self->commands, DAOX_PATH_QUAD_TO );
 }
-void DaoxPath_CubicTo( DaoxPath *self, double cx, double cy, double x, double y )
+void DaoxSimplePath_CubicTo( DaoxSimplePath *self, double cx, double cy, double x, double y )
 {
 	DaoxPoint control, start;
 	assert( self->commands->count > 0 );
@@ -443,7 +443,7 @@ void DaoxPath_CubicTo( DaoxPath *self, double cx, double cy, double x, double y 
 	DaoxPointArray_PushXY( self->points, start.x + x, start.y + y );
 	DaoxByteArray_Push( self->commands, DAOX_PATH_CUBIC_TO );
 }
-void DaoxPath_CubicTo2( DaoxPath *self, double cx1, double cy1, double cx2, double cy2, double x2, double y2 )
+void DaoxSimplePath_CubicTo2( DaoxSimplePath *self, double cx1, double cy1, double cx2, double cy2, double x2, double y2 )
 {
 	DaoxPoint point;
 	assert( self->points->count > 0 );
@@ -453,7 +453,7 @@ void DaoxPath_CubicTo2( DaoxPath *self, double cx1, double cy1, double cx2, doub
 	DaoxPointArray_PushXY( self->points, point.x + x2, point.y + y2 );
 	DaoxByteArray_Push( self->commands, DAOX_PATH_CUBIC_TO );
 }
-void DaoxPath_Close( DaoxPath *self )
+void DaoxSimplePath_Close( DaoxSimplePath *self )
 {
 	DaoxByteArray_Push( self->commands, DAOX_PATH_CLOSE );
 }
@@ -741,7 +741,7 @@ static void DaoxPointArray_PushMiddlePoint( DaoxPointArray *self, DaoxPoint P0, 
 // Minor line segments are added at the start and end of each path segment,
 // to improve the triangulation of intersecting path segments!
 */
-void DaoxPath_MakePolygons( DaoxPath *self, double width, int junction,
+void DaoxSimplePath_MakePolygons( DaoxSimplePath *self, double width, int junction,
 		DaoxPolygonArray *strokes, DaoxPolygonArray *fills, DaoxPathBuffer *buffer )
 {
 	DaoxTriangulator *triangulator = buffer->triangulator;

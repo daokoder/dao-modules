@@ -232,6 +232,8 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 	double dist, area, ymin, ymax, dmax;
 	double AB, BC, CA, min_area = 1E-9;
 
+	if( self->vertices->size == 0 ) return;
+
 	DaoxTriangulator_InitContourOrientation( self );
 
 	V = (DaoxVertex*) self->vertices->items.pVoid[N-1];

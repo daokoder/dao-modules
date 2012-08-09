@@ -100,6 +100,7 @@ void DaoxFont_ResetGlyphs( DaoxFont *self )
 	DNode *it;
 	for(it=DMap_First(self->glyphs); it; it=DMap_Next(self->glyphs,it)){
 		DaoxGlyph *glyph = (DaoxGlyph*) it->value.pVoid;
+		// TODO: reset glyph shape;
 		glyph->outline->commands->count = 0;
 		glyph->outline->points->count = 0;
 		DaoxPolygonArray_Reset( glyph->outlinePolygons );
@@ -273,6 +274,8 @@ void DaoxFont_ProcessGlyph( DaoxFont *self, DaoxGlyph *glyph )
 	int max = self->fontHeight / 8;
 	int i, j, k, K = 0;
 
+	DaoxPath_Segment( glyph->shape, self->pathBuffer );
+
 	lines->count = 0;
 	DaoxTriangulator_Reset( triangulator );
 	for(i=0; i<glyph->outline->commands->count; ++i){
@@ -362,6 +365,11 @@ int DaoxFont_MakeGlyph2( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
 		n = fabs(tmat[2]) > fabs(tmat[3]) ? fabs(tmat[2]) : fabs(tmat[3]);
 		if( fabs( fabs(tmat[0]) - fabs(tmat[1]) ) < 33.0/65536.0 ) m = m + m;
 		if( fabs( fabs(tmat[2]) - fabs(tmat[3]) ) < 33.0/65536.0 ) n = n + n;
+		tmat[4] *= m;
+		tmat[5] *= n;
+
+		DaoxPath_ImportPath( glyph->shape, subglyph->shape, tmat );
+
 		printf( "%5.3f %5.3f %5.3f %5.3f %5.3f %5.3f\n", tmat[0], tmat[1], tmat[2], tmat[3], tmat[4], tmat[5] );
 		for(i=0; i<subglyph->outline->commands->count; ++i){
 			DaoxByteArray_Push( glyph->outline->commands, subglyph->outline->commands->bytes[i] );
@@ -369,8 +377,8 @@ int DaoxFont_MakeGlyph2( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
 		printf( "points: %i\n", subglyph->outline->points->count );
 		for(i=0; i<subglyph->outline->points->count; ++i){
 			DaoxPoint point = subglyph->outline->points->points[i];
-			double x = tmat[0]*point.x + tmat[2]*point.y + m*tmat[4];
-			double y = tmat[1]*point.x + tmat[3]*point.y + n*tmat[5];
+			double x = tmat[0]*point.x + tmat[2]*point.y + tmat[4];
+			double y = tmat[1]*point.x + tmat[3]*point.y + tmat[5];
 			DaoxPointArray_PushXY( glyph->outline->points, x, y );
 		}
 	}
@@ -477,7 +485,8 @@ int DaoxFont_MakeGlyph( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
 				y0 = (cy0 + y) >> 1;
 			}
 		}
-		DaoxPath_MoveTo( glyph->outline, x0, y0 );
+		DaoxSimplePath_MoveTo( glyph->outline, x0, y0 );
+		DaoxPath_MoveTo( glyph->shape, x0, y0 );
 		xcur = x0;
 		ycur = y0;
 		for(j=start2+1; j<=end; j++){
@@ -486,28 +495,33 @@ int DaoxFont_MakeGlyph( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
 			x = glyph->points[j].x;
 			y = glyph->points[j].y;
 			if( flag & 1 ){ /* on curve point: */
-				DaoxPath_LineTo( glyph->outline, x - xcur, y - ycur );
+				DaoxSimplePath_LineTo( glyph->outline, x - xcur, y - ycur );
+				DaoxPath_LineTo( glyph->shape, x - xcur, y - ycur );
 				xcur = x;
 				ycur = y;
 			}else if( glyph->points[next].flag & 1 ){ /* on curve point: */
 				xnext = glyph->points[next].x;
 				ynext = glyph->points[next].y;
-				DaoxPath_QuadTo( glyph->outline, x - xcur, y - ycur, xnext - xcur, ynext - ycur );
+				DaoxSimplePath_QuadTo( glyph->outline, x - xcur, y - ycur, xnext - xcur, ynext - ycur );
+				DaoxPath_QuadTo( glyph->shape, x - xcur, y - ycur, xnext - xcur, ynext - ycur );
 				xcur = xnext;
 				ycur = ynext;
 				j += 1;
 			}else{ /* off curve point, interpolate on-curve point: */
 				xnext = (x + glyph->points[next].x) >> 1;
 				ynext = (y + glyph->points[next].y) >> 1;
-				DaoxPath_QuadTo( glyph->outline, x - xcur, y - ycur, xnext - xcur, ynext - ycur );
+				DaoxSimplePath_QuadTo( glyph->outline, x - xcur, y - ycur, xnext - xcur, ynext - ycur );
+				DaoxPath_QuadTo( glyph->shape, x - xcur, y - ycur, xnext - xcur, ynext - ycur );
 				xcur = xnext;
 				ycur = ynext;
 			}
 		}
 		if( cx0 >= 0 ){
-			DaoxPath_QuadTo( glyph->outline, cx0 - xcur, cy0 - ycur, x0 - xcur, y0 - ycur );
+			DaoxSimplePath_QuadTo( glyph->outline, cx0 - xcur, cy0 - ycur, x0 - xcur, y0 - ycur );
+			DaoxPath_QuadTo( glyph->shape, cx0 - xcur, cy0 - ycur, x0 - xcur, y0 - ycur );
 		}
-		DaoxPath_Close( glyph->outline );
+		DaoxSimplePath_Close( glyph->outline );
+		DaoxPath_Close( glyph->shape );
 	}
 #if 0
 	for(i=0; i<pointCount; ++i){
@@ -555,14 +569,16 @@ DaoxGlyph* DaoxFont_GetCharGlyph( DaoxFont *self, wchar_t ch )
 DaoxGlyph* DaoxGlyph_New()
 {
 	DaoxGlyph *self = (DaoxGlyph*) calloc(1,sizeof(DaoxGlyph));
-	self->outline = DaoxPath_New();
+	self->shape = DaoxPath_New();
+	self->outline = DaoxSimplePath_New();
 	self->outlinePolygons = DaoxPolygonArray_New();
 	self->fillingPolygons = DaoxPolygonArray_New();
 	return self;
 }
 void DaoxGlyph_Delete( DaoxGlyph *self )
 {
-	DaoxPath_Delete( self->outline );
+	// TODO: free shape;
+	DaoxSimplePath_Delete( self->outline );
 	DaoxPolygonArray_Delete( self->outlinePolygons );
 	DaoxPolygonArray_Delete( self->fillingPolygons );
 	if( self->points ) free( self->points );

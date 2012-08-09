@@ -32,6 +32,7 @@
 #include "daoStdtype.h"
 #include "dao_geometry.h"
 #include "dao_triangulator.h"
+#include "dao_path.h"
 
 
 typedef struct DaoxFont   DaoxFont;
@@ -90,7 +91,9 @@ struct DaoxGlyph
 	int  advanceWidth;
 	int  leftSideBearing;
 
-	DaoxPath  *outline;
+	DaoxPath  *shape;
+
+	DaoxSimplePath  *outline;
 
 	DaoxPolygonArray  *outlinePolygons;
 	DaoxPolygonArray  *fillingPolygons;
