@@ -33,8 +33,8 @@
 // Path regions are determined by winding number.
 */
 
-#ifndef __DAO_PATH_H__
-#define __DAO_PATH_H__
+#ifndef __DAO_PATHCUT_H__
+#define __DAO_PATHCUT_H__
 
 #include "dao_geometry.h"
 

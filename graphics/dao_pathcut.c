@@ -30,7 +30,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "daoStdtype.h"
-#include "dao_path.h"
+#include "dao_pathcut.h"
 
 
 #define DAOX_MAX_TREE_DEPTH  6

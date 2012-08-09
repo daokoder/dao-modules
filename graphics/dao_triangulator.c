@@ -149,9 +149,9 @@ int DaoxTriangulator_CloseContour( DaoxTriangulator *self )
 
 void DaoxTriangulator_MakeTriangle( DaoxTriangulator *self, DaoxVertex *A )
 {
+	DArray_PushBack( self->triangles, (void*)(daoint) A->prev->index );
 	DArray_PushBack( self->triangles, (void*)(daoint) A->index );
 	DArray_PushBack( self->triangles, (void*)(daoint) A->next->index );
-	DArray_PushBack( self->triangles, (void*)(daoint) A->prev->index );
 }
 
 void DaoxTriangulator_QuickSortVertices( DaoxTriangulator *self, DaoxVertex *vertices[], int first, int last )

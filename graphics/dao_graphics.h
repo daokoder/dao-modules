@@ -44,7 +44,7 @@
 
 #include "dao_geometry.h"
 #include "dao_triangulator.h"
-#include "dao_path.h"
+#include "dao_pathcut.h"
 #include "dao_font.h"
 
 

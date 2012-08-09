@@ -12,7 +12,7 @@ ifdef WIN32
   TARGET = $(PROJECT).$(DAO_DLL_EXT)
 endif
 
-OBJECTS = dao_graphics.o dao_geometry.o dao_path.o dao_triangulator.o dao_font.o
+OBJECTS = dao_graphics.o dao_geometry.o dao_pathcut.o dao_triangulator.o dao_font.o
 
 all: $(TARGET)
 
@@ -22,8 +22,8 @@ dao_graphics.o: dao_graphics.c
 dao_geometry.o: dao_geometry.c
 	$(DAO_CC) -c $(DAO_CFLAGS) $(DAO_INCS) dao_geometry.c
 
-dao_path.o: dao_path.c
-	$(DAO_CC) -c $(DAO_CFLAGS) $(DAO_INCS) dao_path.c
+dao_pathcut.o: dao_pathcut.c
+	$(DAO_CC) -c $(DAO_CFLAGS) $(DAO_INCS) dao_pathcut.c
 
 dao_triangulator.o: dao_triangulator.c
 	$(DAO_CC) -c $(DAO_CFLAGS) $(DAO_INCS) dao_triangulator.c
