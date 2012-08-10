@@ -62,6 +62,8 @@ enum DaoxGraphicsShapes
 
 typedef struct DaoxColor             DaoxColor;
 
+typedef struct DaoxGraphicsData      DaoxGraphicsData;
+
 typedef struct DaoxGraphicsScene     DaoxGraphicsScene;
 typedef struct DaoxGraphicsItem      DaoxGraphicsItem;
 
@@ -88,6 +90,33 @@ struct DaoxColor
 
 
 
+/*
+// Polygons converted from the stroking and filling areas of the item.
+//
+// These polygons are potentially overlapping, due to the fact that
+// this frontend needs to be light and efficient, so that it can take
+// the advantage of hardware acceleration.
+//
+// They should be filled using stencil buffer or other techniques to
+// avoid multiple drawing in the overlapping areas.
+//
+// Note: two-point polygons are used to represent rectangles by pairs
+// of points (left,bottom) and (right,top).
+*/
+struct DaoxGraphicsData
+{
+	double  maxlen;
+	double  maxdiff;
+	double  transform[6];
+
+	DaoxPolygonArray  *dashMasks;
+	DaoxPolygonArray  *strokePolygons;
+	DaoxPolygonArray  *fillPolygons;
+};
+
+
+
+
 struct DaoxGraphicsItem
 {
 	DAO_CDATA_COMMON;
@@ -106,23 +135,9 @@ struct DaoxGraphicsItem
 	DaoxColor  fillColor;    /* filling color: RGBA; */
 
 	DaoxSimplePath  *path;  /* path, or points for polylines and polygons; */
+	DaoxPath        *newpath;
 
-	/*
-	// Polygons converted from the stroking and filling areas of the item.
-	//
-	// These polygons are potentially overlapping, due to the fact that
-	// this frontend needs to be light and efficient, so that it can take
-	// the advantage of hardware acceleration.
-	//
-	// They should be filled using stencil buffer or other techniques to
-	// avoid multiple drawing in the overlapping areas.
-	//
-	// Note: two-point polygons are used to represent rectangles by pairs
-	// of points (left,bottom) and (right,top).
-	*/
-	DaoxPolygonArray  *dashMasks;
-	DaoxPolygonArray  *strokePolygons;
-	DaoxPolygonArray  *fillPolygons;
+	DaoxGraphicsData  *gdata;
 
 	DArray  *children;  /* child items; */
 };
@@ -145,6 +160,12 @@ struct DaoxGraphicsScene
 
 	DaoxFont  *font;
 
+	DaoxPath  *circleSmall; 
+	DaoxPath  *circleLarge;
+
+	DaoxPath  *ellipseWide; 
+	DaoxPath  *ellipseNarrow; 
+
 	DaoxPathBuffer  *buffer;
 	DaoxPathGraph   *graph;
 };
@@ -157,6 +178,10 @@ DAO_DLL extern DaoType *daox_type_graphics_scene;
 extern "C"{
 #endif
 
+
+DaoxGraphicsData* DaoxGraphicsData_New();
+void DaoxGraphicsData_Delete( DaoxGraphicsData *self );
+void DaoxGraphicsData_Reset( DaoxGraphicsData *self );
 
 
 DAO_DLL DaoxGraphicsItem* DaoxGraphicsItem_New( int shape );
@@ -184,7 +209,7 @@ DAO_DLL void DaoxGraphicsPolygon_Add( DaoxGraphicsPolygon *self, double x, doubl
 
 DAO_DLL void DaoxGraphicsPath_MoveTo( DaoxGraphicsPath *self, double x, double y );
 DAO_DLL void DaoxGraphicsPath_LineTo( DaoxGraphicsPath *self, double x, double y );
-DAO_DLL void DaoxGraphicsPath_ArcTo( DaoxGraphicsPath *self, double x, double y, double degrees, int clockwise );
+DAO_DLL void DaoxGraphicsPath_ArcTo( DaoxGraphicsPath *self, double x, double y, double degrees );
 DAO_DLL void DaoxGraphicsPath_QuadTo( DaoxGraphicsPath *self, double x, double y, double cx, double cy );
 DAO_DLL void DaoxGraphicsPath_CubicTo( DaoxGraphicsPath *self, double x, double y, double cx, double cy );
 DAO_DLL void DaoxGraphicsPath_CubicTo2( DaoxGraphicsPath *self, double cx0, double cy0, double x, double y, double cx, double cy );

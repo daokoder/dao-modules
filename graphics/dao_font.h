@@ -93,11 +93,6 @@ struct DaoxGlyph
 
 	DaoxPath  *shape;
 
-	DaoxSimplePath  *outline;
-
-	DaoxPolygonArray  *outlinePolygons;
-	DaoxPolygonArray  *fillingPolygons;
-
 	DaoxGlyphPoint *points;
 };
 

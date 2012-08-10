@@ -34,9 +34,12 @@
 #include "dao_triangulator.h"
 
 
+struct DaoxGraphicsData;
+
 typedef struct DaoxPathSegment    DaoxPathSegment;
 typedef struct DaoxPathComponent  DaoxPathComponent;
 typedef struct DaoxPath           DaoxPath;
+
 
 typedef struct DaoxIntArray  DaoxIntArray;
 
@@ -54,14 +57,18 @@ void DaoxIntArray_Push( DaoxIntArray *self, int value );
 
 
 
+
 struct DaoxPathSegment
 {
 	short  bezier;  /* 0: open; 1: linear; 2: quadratic; 3: cubic; */
-	short  convex;  /* locally convex with respect to the closed path; */
+	short  convexness;  /* 0: flat; 1: locally convex; -1: locally concage; */
 	int    count;
 
 	double  start;  /* parametric start location in the original segment; */
 	double  end;    /* parametric   end location in the original segment; */
+
+	double  maxlen;
+	double  maxdiff;
 
 	DaoxPoint  P1; /* start point; */
 	DaoxPoint  P2; /* end point; */
@@ -72,7 +79,7 @@ struct DaoxPathSegment
 	DaoxPathSegment  *second;  /* second subdivided segment; */
 	DaoxPathSegment  *next;    /* next segment in the path; */
 
-	DaoxPath  *path;  /* host path; */
+	DaoxPathComponent  *component;  /* host path component; */
 };
 
 struct DaoxPathComponent
@@ -81,6 +88,9 @@ struct DaoxPathComponent
 
 	DaoxPathSegment  *first;
 	DaoxPathSegment  *last;
+
+	double  maxlen;
+	double  maxdiff;
 
 	struct {
 		DaoxPathSegment  *first;
@@ -104,7 +114,7 @@ struct DaoxPath
 	DaoxIntArray    *triangles;
 };
 
-DaoxPathSegment* DaoxPathSegment_New( DaoxPath *path );
+DaoxPathSegment* DaoxPathSegment_New( DaoxPathComponent *component );
 void DaoxPathSegment_Delete( DaoxPathSegment *self );
 void DaoxPathSegment_SetPoints( DaoxPathSegment *self, DaoxPoint P1, DaoxPoint P2, DaoxPoint C1, DaoxPoint C2 );
 
@@ -114,7 +124,8 @@ void DaoxPath_Delete( DaoxPath *self );
 
 DAO_DLL void DaoxPath_MoveTo( DaoxPath *self, double x, double y );
 DAO_DLL void DaoxPath_LineTo( DaoxPath *self, double x, double y );
-DAO_DLL void DaoxPath_ArcTo( DaoxPath *self, double x, double y, double degrees, int clockwise );
+DAO_DLL void DaoxPath_ArcTo( DaoxPath *self, double x, double y, double degrees );
+DAO_DLL void DaoxPath_ArcTo2( DaoxPath *self, double x, double y, double degrees, double deg2 );
 DAO_DLL void DaoxPath_QuadTo( DaoxPath *self, double cx, double cy, double x, double y );
 DAO_DLL void DaoxPath_CubicTo( DaoxPath *self, double cx, double cy, double x, double y );
 DAO_DLL void DaoxPath_CubicTo2( DaoxPath *self, double cx1, double cy1, double cx2, double cy2, double x2, double y2 );
@@ -122,7 +133,11 @@ DAO_DLL void DaoxPath_Close( DaoxPath *self );
 
 void DaoxPath_ImportPath( DaoxPath *self, DaoxPath *path, double transform[6] );
 
-void DaoxPath_Segment( DaoxPath *self, DaoxPathBuffer *buffer );
+void DaoxPath_Preprocess( DaoxPath *self, DaoxPathBuffer *buffer );
+
+void DaoxPath_Refine( DaoxPath *self, double maxlen, double maxdiff );
+
+void DaoxPath_ExportGraphicsData( DaoxPath *self, struct DaoxGraphicsData *gdata );
 
 
 #endif
