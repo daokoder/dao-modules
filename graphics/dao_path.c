@@ -297,15 +297,15 @@ void DaoxPath_CubicTo( DaoxPath *self, double cx, double cy, double x, double y 
 	DaoxPoint control = self->last->last->C2;
 	DaoxPoint start = self->last->last->P2;
 
-	assert( self->last->last->bezier );
+	assert( self->last->last->bezier >= 2 );
 	control.x = 2.0 * start.x - control.x;
 	control.y = 2.0 * start.y - control.y;
 	segment = DaoxPathComponent_PushSegment( self->last );
 	segment->bezier = 3;
 	segment->P1 = start;
 	segment->C1 = control;
-	segment->C2.x = start.x + cx;
-	segment->C2.y = start.y + cy;
+	segment->C2.x = start.x + x + cx;
+	segment->C2.y = start.y + y + cy;
 	segment->P2.x = start.x + x;
 	segment->P2.y = start.y + y;
 }
@@ -489,7 +489,7 @@ void DaoxPathSegment_RefineQuadratic( DaoxPathSegment *self, double maxlen, doub
 
 	self->maxlen = PP;
 	self->maxdiff = (PC + CP - PP) / PP;
-	if( PP < maxlen && ((PC + CP - PP) < maxdiff*PP || PP < 0.01*maxlen) ){
+	if( PP < maxlen && ((PC + CP - PP) < maxdiff*PP || PP < 0.001*maxlen) ){
 		self->count = 1;
 		if( self->first ) self->first->count = 0;
 		if( self->second ) self->second->count = 0;
@@ -521,7 +521,7 @@ void DaoxPathSegment_RefineCubic( DaoxPathSegment *self, double maxlen, double m
 
 	self->maxlen = PP;
 	self->maxdiff = (PC + CC + CP - PP) / PP;
-	if( PP < maxlen && ((PC + CC + CP - PP) < maxdiff*PP || PP < 0.01*maxlen) ){
+	if( PP < maxlen && ((PC + CC + CP - PP) < maxdiff*PP || PP < 0.001*maxlen) ){
 		self->count = 1;
 		if( self->first ) self->first->count = 0;
 		if( self->second ) self->second->count = 0;
@@ -688,13 +688,6 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxPathBuffer *buffer )
 	DaoxPathSegment *seg;
 	daoint i, count = 0;
 
-#if 0
-	DaoxPath_MoveTo( self, 3000, 1000 );
-	DaoxPath_ArcTo2( self, 0, 4000, 180, 180 );
-	DaoxPath_ArcTo( self, 0, -4000, 180 );
-	DaoxPath_Close( self );
-#endif
-
 	printf( "DaoxPath_Segment 1: %p\n", triangulator );
 	DaoxTriangulator_Reset( triangulator );
 	DaoxPath_Refine( self, 1E16, 0.1 );
@@ -756,70 +749,136 @@ PushTriangle:
 	DArray_Delete( segments );
 }
 
-void DaoxPathSegment_GetRefined( DaoxPathSegment *self, DaoxGraphicsData *gdata )
+
+void DaoxGraphicsData_PushFilling( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C )
 {
+	A = DaoxPoint_Transform( A, self->transform );
+	B = DaoxPoint_Transform( B, self->transform );
+	C = DaoxPoint_Transform( C, self->transform );
+	DaoxPolygonArray_PushTriangle( self->fillPolygons, A, B, C );
+}
+void DaoxGraphicsData_MakeJunction( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C, int junction )
+{
+	DaoxPoint P1 = DaoxPoint_Transform( A, self->transform );
+	DaoxPoint P2 = DaoxPoint_Transform( B, self->transform );
+	DaoxPoint P3 = DaoxPoint_Transform( C, self->transform );
+	DaoxQuad Q1 = DaoxLine2Quad( P1, P2, self->strokeWidth );
+	DaoxQuad Q2 = DaoxLine2Quad( P2, P3, self->strokeWidth );
+	if( DaoxLineQuad_Junction( Q1, Q2, & P3 ) > 0 ){
+		DaoxPolygonArray_PushTriangle( self->strokePolygons, Q1.D, Q2.A, P2 );
+		if( junction == DAOX_JUNCTION_SHARP ){
+			DaoxPolygonArray_PushTriangle( self->strokePolygons, Q1.D, Q2.A, P3 );
+		}
+	}else{
+		DaoxPolygonArray_PushTriangle( self->strokePolygons, Q1.C, Q2.B, P2 );
+		if( junction == DAOX_JUNCTION_SHARP ){
+			DaoxPolygonArray_PushTriangle( self->strokePolygons, Q1.C, Q2.B, P3 );
+		}
+	}
+}
+
+void DaoxPathSegment_GetRefinedStroke( DaoxPathSegment *self, DaoxGraphicsData *gdata )
+{
+	DaoxQuad quad;
+	DaoxPoint P1 = DaoxPoint_Transform( self->P1, gdata->transform );
+	DaoxPoint P2 = DaoxPoint_Transform( self->P2, gdata->transform );
+	DaoxPolygonArray *strokes = gdata->strokePolygons;
+	double width = gdata->strokeWidth;
+
+	if( width < 1E-6 ) return;
+
+	quad = DaoxLine2Quad( P1, P2, width );
+	DaoxPolygonArray_PushQuad( strokes, quad );
+}
+
+typedef struct DaoxPathSegmentPair  DaoxPathSegmentPair;
+struct DaoxPathSegmentPair
+{
+	DaoxPathSegment  *first;
+	DaoxPathSegment  *second;
+};
+
+DaoxPathSegmentPair DaoxPathSegment_GetRefined( DaoxPathSegment *self, DaoxGraphicsData *gdata )
+{
+	DaoxPoint P1, P2, P3;
+	DaoxQuad quad, prev, next;
+	DaoxPathSegmentPair sp1, sp2, segs = {NULL, NULL};
+	DaoxPolygonArray *strokes = gdata->strokePolygons;
 	DaoxPolygonArray *fills = gdata->fillPolygons;
+	double width = gdata->strokeWidth;
 	double maxlen = gdata->maxlen;
 	double maxdiff = gdata->maxdiff;
 
 	if( maxlen < 1E-16 ) maxlen = 10;
 	if( maxdiff < 1E-16 ) maxdiff = 0.001;
 
-	if( self->bezier == 1 || self->convexness == 0 || self->count == 1 ) return;
-	if( self->maxlen <= maxlen && self->maxdiff <= maxdiff ) return;
+	segs.first = segs.second = self;
+
+	if( self->bezier == 1 || self->convexness == 0 || self->count == 1 ){
+		DaoxPathSegment_GetRefinedStroke( self, gdata );
+		return segs;
+	}
+	if( self->maxlen <= maxlen && self->maxdiff <= maxdiff ){
+		DaoxPathSegment_GetRefinedStroke( self, gdata );
+		return segs;
+	}
 	if( self->bezier == 2 ){
-		DaoxPolygonArray_PushPolygon( fills );
 		if( self->convexness > 0 ){
-			DaoxPolygonArray_PushPoint( fills, self->first->P2 );
-			DaoxPolygonArray_PushPoint( fills, self->P1 );
-			DaoxPolygonArray_PushPoint( fills, self->P2 );
+			DaoxGraphicsData_PushFilling( gdata, self->first->P2, self->P1, self->P2 );
 		}else{
-			DaoxPolygonArray_PushPoint( fills, self->C1 );
-			DaoxPolygonArray_PushPoint( fills, self->first->C1 );
-			DaoxPolygonArray_PushPoint( fills, self->second->C1 );
+			DaoxGraphicsData_PushFilling( gdata, self->C1, self->first->C1, self->second->C1 );
 		}
 	}else{
-		DaoxPolygonArray_PushPolygon( fills );
 		if( self->convexness > 0 ){
-			DaoxPolygonArray_PushPoint( fills, self->first->P2 );
-			DaoxPolygonArray_PushPoint( fills, self->P1 );
-			DaoxPolygonArray_PushPoint( fills, self->P2 );
+			DaoxGraphicsData_PushFilling( gdata, self->first->P2, self->P1, self->P2 );
 		}else{
 			double at = (self->first->end - self->start) / (self->end - self->start);
 			DaoxPoint Q;
 			Q.x = (1.0 - at) * self->C1.x + at * self->C2.x;
 			Q.y = (1.0 - at) * self->C1.y + at * self->C2.y;
-			DaoxPolygonArray_PushPoint( fills, self->C1 );
-			DaoxPolygonArray_PushPoint( fills, self->first->C1 );
-			DaoxPolygonArray_PushPoint( fills, Q );
-			DaoxPolygonArray_PushPolygon( fills );
-			DaoxPolygonArray_PushPoint( fills, self->C1 );
-			DaoxPolygonArray_PushPoint( fills, Q );
-			DaoxPolygonArray_PushPoint( fills, self->second->C2 );
-			DaoxPolygonArray_PushPolygon( fills );
-			DaoxPolygonArray_PushPoint( fills, Q );
-			DaoxPolygonArray_PushPoint( fills, self->first->C2 );
-			DaoxPolygonArray_PushPoint( fills, self->second->C1 );
+			DaoxGraphicsData_PushFilling( gdata, self->C1, self->first->C1, Q );
+			DaoxGraphicsData_PushFilling( gdata, self->C1, Q, self->second->C2 );
+			DaoxGraphicsData_PushFilling( gdata, Q, self->first->C2, self->second->C1 );
 		}
 	}
-	DaoxPathSegment_GetRefined( self->first, gdata );
-	DaoxPathSegment_GetRefined( self->second, gdata );
+	sp1 = DaoxPathSegment_GetRefined( self->first, gdata );
+	sp2 = DaoxPathSegment_GetRefined( self->second, gdata );
+	segs.first = sp1.first;
+	segs.second = sp2.second;
+
+	if( width < 1E-6 ) return segs;
+
+	P1 = DaoxPoint_Transform( sp1.second->P1, gdata->transform );
+	P2 = DaoxPoint_Transform( sp1.second->P2, gdata->transform );
+	P3 = DaoxPoint_Transform( sp2.first->P2, gdata->transform );
+	prev = DaoxLine2Quad( P1, P2, width );
+	next = DaoxLine2Quad( P2, P3, width );
+	if( DaoxLineQuad_Junction( prev, next, NULL ) > 0 ){
+		DaoxPolygonArray_PushTriangle( strokes, prev.D, next.A, P2 );
+	}else{
+		DaoxPolygonArray_PushTriangle( strokes, prev.C, next.B, P2 );
+	}
+	return segs;
 }
 void DaoxPath_ExportGraphicsData( DaoxPath *self, DaoxGraphicsData *gdata )
 {
 	DaoxPoint *points;
 	DaoxPathSegment *seg;
 	DaoxPathComponent *com;
+	DaoxPathSegmentPair open, cur, prev = {NULL,NULL};
+	DaoxPolygonArray *strokes = gdata->strokePolygons;
 	DaoxPolygonArray *fills = gdata->fillPolygons;
 	double *transform = gdata->transform;
+	double width = gdata->strokeWidth;
 	double maxlen = gdata->maxlen;
 	double maxdiff = gdata->maxdiff;
 	double A = gdata->transform[0];
 	double B = gdata->transform[1];
 	double C = gdata->transform[2];
 	double D = gdata->transform[3];
+	int strokePointCount = strokes->points->count;
 	int fillPointCount = fills->points->count;
-	int i, j, count;
+	int i, j, count, jt;
 
 	if( maxlen < 1E-16 ) maxlen = 10;
 	if( maxdiff < 1E-16 ) maxdiff = 0.001;
@@ -829,27 +888,34 @@ void DaoxPath_ExportGraphicsData( DaoxPath *self, DaoxGraphicsData *gdata )
 		DaoxPoint *points = self->points->points;
 		int *ids = self->triangles->values + i;
 		DaoxPolygonArray_PushPolygon( fills );
-		for(j=0; j<3; ++j) DaoxPolygonArray_PushPoint( fills, points[ids[j]] );
+		for(j=0; j<3; ++j){
+			DaoxPoint point = DaoxPoint_Transform( points[ids[j]], gdata->transform );
+			DaoxPolygonArray_PushPoint( fills, point );
+		}
 	}
 	for(com=self->first; com; com=com->next){
 		if( com->first->bezier == 0 ) continue;
 		if( com->refined.last == NULL || com->refined.last->next == NULL ) continue;
 		//printf( "component: %p\n", com );
+		prev.first = prev.second = NULL;
 		seg = com->refined.first;
 		do {
 			//printf( "convexness: %15p %15f %i\n", seg, seg->start, seg->convexness );
-			DaoxPathSegment_GetRefined( seg, gdata );
+			cur = DaoxPathSegment_GetRefined( seg, gdata );
+			if( prev.first != NULL && width > 1E-6 ){
+				int userjunction = prev.second->end > 0.8 && cur.first->start < 0.2;
+				jt = userjunction ? gdata->junction : DAOX_JUNCTION_FLAT;
+				if( jt ) DaoxGraphicsData_MakeJunction( gdata, prev.second->P1, prev.second->P2, cur.first->P2, jt );
+			}else if( prev.first == NULL ){
+				open = cur;
+			}
+			prev = cur;
 			seg = seg->next;
 		} while( seg && seg != com->refined.first );
-	}
-	if( fabs( A*D - B*C ) < 1E-16 ) return;
-	
-	points = fills->points->points + fillPointCount;
-	for(i=0,count=fills->points->count-fillPointCount; i<count; ++i){
-		DaoxPoint *point = points + i;
-		double x = point->x;
-		double y = point->y;
-		point->x = transform[0] * x + transform[2] * y + transform[4];
-		point->y = transform[1] * x + transform[3] * y + transform[5];
+
+		if( open.first != NULL && cur.first != NULL && width > 1E-6 ){
+			int userjunction = cur.second->end > 0.8 && open.first->start < 0.2;
+			if( jt ) DaoxGraphicsData_MakeJunction( gdata, cur.second->P1, cur.second->P2, open.first->P2, jt );
+		}
 	}
 }

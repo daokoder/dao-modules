@@ -66,6 +66,19 @@ void DaoxGraphicsData_Reset( DaoxGraphicsData *self )
 	DaoxPolygonArray_Reset( self->strokePolygons );
 	DaoxPolygonArray_Reset( self->fillPolygons );
 }
+void DaoxGraphicsData_Init( DaoxGraphicsData *self, DaoxGraphicsItem *item )
+{
+	self->junction = item->junction;
+	self->strokeWidth = item->strokeWidth;
+	self->transform[0] = 1.0;
+	self->transform[1] = 0.0;
+	self->transform[2] = 0.0;
+	self->transform[3] = 1.0;
+	self->transform[4] = 0.0;
+	self->transform[5] = 0.0;
+	self->maxlen = 10;
+	self->maxdiff = 0.001;
+}
 
 
 
@@ -196,20 +209,20 @@ void DaoxGraphicsPath_ArcTo( DaoxGraphicsPath *self, double x, double y, double 
 	assert( self->ctype == daox_type_graphics_path );
 	DaoxPath_ArcTo( self->newpath, x, y, degrees );
 }
-void DaoxGraphicsPath_QuadTo( DaoxGraphicsPath *self, double x, double y, double cx, double cy )
+void DaoxGraphicsPath_QuadTo( DaoxGraphicsPath *self, double cx, double cy, double x, double y )
 {
 	assert( self->ctype == daox_type_graphics_path );
-	DaoxPath_QuadTo( self->newpath, x, y, cx, cy );
+	DaoxPath_QuadTo( self->newpath, cx, cy, x, y );
 }
-void DaoxGraphicsPath_CubicTo( DaoxGraphicsPath *self, double x, double y, double cx, double cy )
+void DaoxGraphicsPath_CubicTo( DaoxGraphicsPath *self, double cx, double cy, double x, double y )
 {
 	assert( self->ctype == daox_type_graphics_path );
-	DaoxPath_CubicTo( self->newpath, x, y, cx, cy );
+	DaoxPath_CubicTo( self->newpath, cx, cy, x, y );
 }
-void DaoxGraphicsPath_CubicTo2( DaoxGraphicsLine *self, double cx0, double cy0, double x, double y, double cx, double cy )
+void DaoxGraphicsPath_CubicTo2( DaoxGraphicsLine *self, double cx0, double cy0, double cx, double cy, double x, double y )
 {
 	assert( self->ctype == daox_type_graphics_path );
-	DaoxPath_CubicTo2( self->newpath, cx0, cy0, x, y, cx, cy );
+	DaoxPath_CubicTo2( self->newpath, cx0, cy0, cx, cy, x, y );
 }
 void DaoxGraphicsPath_Close( DaoxGraphicsPath *self )
 {
@@ -273,12 +286,14 @@ void DaoxGraphicsEllipse_UpdatePolygons( DaoxGraphicsEllipse *self, DaoxGraphics
 	double RY = self->scale.y;
 	double W = self->strokeWidth;
 
+	self->gdata->junction = DAOX_JUNCTION_FLAT;
+	self->gdata->strokeWidth = W;
 	self->gdata->transform[1] = 0.0;
 	self->gdata->transform[2] = 0.0;
 	self->gdata->transform[4] = CX;
 	self->gdata->transform[5] = CY;
-	self->gdata->maxlen = log(RX + RY + 1.0) / log(2.0);
-	self->gdata->maxdiff = 8.0 / (RX + RY + 1.0);
+	self->gdata->maxlen = 3.5 * log(RX + RY + W + 1.0) / log(2.0);
+	self->gdata->maxdiff = 0.5 / (RX + RY + W + 1.0);
 
 	if( fabs( RX - RY ) < 1E-16 ){
 		if( RX <= 10 ){
@@ -341,7 +356,9 @@ void DaoxGraphicsPolygon_UpdatePolygons( DaoxGraphicsPolygon *self, DaoxGraphics
 {
 	DaoxGraphicsiItem_ResetPolygons( self );
 	DaoxPolygonArray_MakeLines( self->gdata->strokePolygons, self->path->points, NULL, self->strokeWidth, self->junction, 1 );
-	if( self->fillColor.alpha < 1E-9 ) return;
+	printf( "@@@@@@@@@@@@@@@@@@@@@@@@@@@\n" );
+	//if( self->fillColor.alpha < 1E-9 ) return;
+	printf( "@@@@@@@@@@@@@@@@@@@@@@@@@@@\n" );
 	DaoxPolygonArray_TriangulatePolygon( self->gdata->fillPolygons, self->path->points, scene->buffer->triangulator );
 }
 void DaoxGraphicsPath_UpdatePolygons( DaoxGraphicsPath *self, DaoxGraphicsScene *scene )
@@ -356,6 +373,7 @@ void DaoxGraphicsPath_UpdatePolygons( DaoxGraphicsPath *self, DaoxGraphicsScene 
 #endif
 	//DaoxSimplePath_MakePolygons( self->path, self->strokeWidth, self->junction, self->gdata->strokePolygons, fills, scene->buffer );
 	if( self->newpath->first->refined.first == NULL ) DaoxPath_Preprocess( self->newpath, scene->buffer );
+	DaoxGraphicsData_Init( self->gdata, self );
 	DaoxPath_ExportGraphicsData( self->newpath, self->gdata );
 	printf( "<<<<<<<<<<<<<<<<<<<<<<<<< polygons: %i\n", self->gdata->fillPolygons->polygons->count );
 }
@@ -502,14 +520,16 @@ DaoxGraphicsText* DaoxGraphicsScene_AddText( DaoxGraphicsScene *self, const wcha
 
 	size = 100.0;
 	scale = size / (double)self->font->fontHeight;
-	maxlen = 4.0 * self->font->fontHeight / size; 
-	maxdiff = 0.5 / size;
+	maxlen = 8.0 * self->font->fontHeight / size; 
+	maxdiff = 1.0 / size;
 	//maxlen = 1000;
 	//maxdiff = 1.0;
 
 	item = DaoxGraphicsItem_New( DAOX_GS_TEXT );
 	DArray_PushBack( self->items, item );
 
+	item->gdata->strokeWidth = 0;
+	item->gdata->junction = DAOX_JUNCTION_FLAT;
 	item->gdata->maxlen = maxlen;
 	item->gdata->maxdiff = maxdiff;
 	item->gdata->transform[0] = scale;
@@ -859,21 +879,21 @@ static void PATH_ArcTo( DaoProcess *proc, DaoValue *p[], int N )
 static void PATH_QuadTo( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphicsPath *self = (DaoxGraphicsPath*) p[0];
-	double x = p[1]->xDouble.value;
-	double y = p[2]->xDouble.value;
-	double cx = p[3]->xDouble.value;
-	double cy = p[4]->xDouble.value;
-	DaoxGraphicsPath_QuadTo( self, x, y, cx, cy );
+	double cx = p[1]->xDouble.value;
+	double cy = p[2]->xDouble.value;
+	double x = p[3]->xDouble.value;
+	double y = p[4]->xDouble.value;
+	DaoxGraphicsPath_QuadTo( self, cx, cy, x, y );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void PATH_CubicTo( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphicsPath *self = (DaoxGraphicsPath*) p[0];
-	double x = p[1]->xDouble.value;
-	double y = p[2]->xDouble.value;
-	double cx = p[3]->xDouble.value;
-	double cy = p[4]->xDouble.value;
-	DaoxGraphicsPath_CubicTo( self, x, y, cx, cy );
+	double cx = p[1]->xDouble.value;
+	double cy = p[2]->xDouble.value;
+	double x = p[3]->xDouble.value;
+	double y = p[4]->xDouble.value;
+	DaoxGraphicsPath_CubicTo( self, cx, cy, x, y );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void PATH_CubicTo2( DaoProcess *proc, DaoValue *p[], int N )
@@ -881,11 +901,11 @@ static void PATH_CubicTo2( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxGraphicsPath *self = (DaoxGraphicsPath*) p[0];
 	double cx0 = p[1]->xDouble.value;
 	double cy0 = p[2]->xDouble.value;
-	double x = p[3]->xDouble.value;
-	double y = p[4]->xDouble.value;
-	double cx = p[5]->xDouble.value;
-	double cy = p[6]->xDouble.value;
-	DaoxGraphicsPath_CubicTo2( self, cx0, cy0, x, y, cx, cy );
+	double cx = p[3]->xDouble.value;
+	double cy = p[4]->xDouble.value;
+	double x = p[5]->xDouble.value;
+	double y = p[6]->xDouble.value;
+	DaoxGraphicsPath_CubicTo2( self, cx0, cy0, cx, cy, x, y );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void PATH_Close( DaoProcess *proc, DaoValue *p[], int N )
@@ -900,9 +920,9 @@ static DaoFuncItem DaoxGraphicsPathMeths[]=
 	{ PATH_MoveTo,    "MoveTo( self : GraphicsPath, x : double, y : double ) => GraphicsPath" },
 	{ PATH_LineTo,    "LineTo( self : GraphicsPath, x : double, y : double ) => GraphicsPath" },
 	{ PATH_ArcTo,     "ArcTo( self : GraphicsPath, x : double, y : double, degrees : double ) => GraphicsPath" },
-	{ PATH_QuadTo,   "QuadTo( self : GraphicsPath, x : double, y : double, cx : double, cy : double ) => GraphicsPath" },
-	{ PATH_CubicTo,   "CubicTo( self : GraphicsPath, x : double, y : double, cx : double, cy : double ) => GraphicsPath" },
-	{ PATH_CubicTo2,  "CubicTo( self : GraphicsPath, cx0 : double, cy0 : double, x : double, y : double, cx : double, cy : double ) => GraphicsPath" },
+	{ PATH_QuadTo,   "QuadTo( self : GraphicsPath, cx : double, cy : double, x : double, y : double ) => GraphicsPath" },
+	{ PATH_CubicTo,   "CubicTo( self : GraphicsPath, cx : double, cy : double, x : double, y : double ) => GraphicsPath" },
+	{ PATH_CubicTo2,  "CubicTo( self : GraphicsPath, cx0 : double, cy0 : double, cx : double, cy : double, x : double, y : double ) => GraphicsPath" },
 	{ PATH_Close,     "Close( self : GraphicsPath ) => GraphicsPath" },
 	{ POLYGON_SetJunction, 
 		"SetJunction( self : GraphicsPath, junction: enum<none,sharp,flat,round> = $sharp ) => GraphicsPolygon" },

@@ -487,6 +487,13 @@ double DaoxDistance2( DaoxPoint start, DaoxPoint end )
 	double y1 = start.y, y2 = end.y;
 	return (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
 }
+/*
+//        B------------------------C
+//        |                        |
+// line:  start------------------end
+//        |                        |
+//        A------------------------D
+*/
 DaoxQuad DaoxLine2Quad( DaoxPoint start, DaoxPoint end, double width )
 {
 	double x1 = start.x, x2 = end.x;
@@ -567,6 +574,50 @@ DaoxLine DaoxLineJunctionMajor( DaoxPoint p1, DaoxPoint p2, DaoxPoint p3, double
 	DaoxQuad second = DaoxLine2Quad( p2, p3, width );
 	return DaoxQuadJunctionMajor( & first, & second, p2, width );
 }
+
+int DaoxLine_Intersect( DaoxPoint A, DaoxPoint B, DaoxPoint C, DaoxPoint D, double *S, double *T )
+{
+	double BxAx = B.x - A.x;
+	double ByAy = B.y - A.y;
+	double CxAx = C.x - A.x;
+	double CyAy = C.y - A.y;
+	double DxCx = D.x - C.x;
+	double DyCy = D.y - C.y;
+	double K = BxAx * DyCy - ByAy * DxCx;
+
+	if( K == 0.0 ) return 0;
+
+	*S = (CxAx * DyCy - CyAy * DxCx) / K;
+	*T = (CxAx * ByAy - CyAy * BxAx) / K;
+
+	if( *S < 0 || *S > 1.0 ) return 0;
+	if( *T < 0 || *T > 1.0 ) return 0;
+
+	return 1;
+}
+/*
+// Return  1, if the junction should connect first.D and second.A;
+// Return -1, if the junction should connect first.C and second.B;
+// Return 0, otherwise;
+// Output parameter: tip, the tip point for a sharp junction.
+*/
+int DaoxLineQuad_Junction( DaoxQuad first, DaoxQuad second, DaoxPoint *tip )
+{
+	double DAS1 = 0.0, DAS2 = 0.0, BCS1 = 0.0, BCS2 = 0.0;
+	int DA = DaoxLine_Intersect( first.A, first.D, second.A, second.D, & DAS1, & DAS2 );
+	int BC = DaoxLine_Intersect( first.B, first.C, second.B, second.C, & BCS1, & BCS2 );
+	if( tip ){
+		if( DAS1 > 1.0 ){
+			tip->x = (1.0 - DAS1) * first.A.x + DAS1 * first.D.x;
+			tip->y = (1.0 - DAS1) * first.A.y + DAS1 * first.D.y;
+		}else{
+			tip->x = (1.0 - BCS1) * first.B.x + BCS1 * first.C.x;
+			tip->y = (1.0 - BCS1) * first.B.y + BCS1 * first.C.y;
+		}
+	}
+	return (DAS1 > 1.0) ? 1 : -1;
+}
+
 
 
 #define DELTA  0.1

@@ -193,10 +193,10 @@ void DaoxTriangulator_SortVertices( DaoxTriangulator *self )
 }
 void DaoxTriangulator_InitContourOrientation( DaoxTriangulator *self )
 {
-	DaoxVertex *vertex, *start;
+	DaoxVertex *vertex, *start, *vmax = NULL;
 	DaoxPoint A, B, C, *points = self->points->points;
-	int i, dir, count, N = self->vertices->size;
-	double area;
+	int i, dir, N = self->vertices->size;
+	double xmax, ymax;
 
 	/* sort vertices by the x coordinates: */
 	DaoxTriangulator_SortVertices( self );
@@ -204,19 +204,30 @@ void DaoxTriangulator_InitContourOrientation( DaoxTriangulator *self )
 	for(i=0; i<N; ++i){
 		start = self->vertices->items.pVoid[i];
 		if( start->direction != 0 ) continue;
-		count = 0;
-		vertex = start;
+
+		A = points[start->index];
+		xmax = A.x;
+		ymax = A.y;
+		vertex = vmax = start;
 		do {
 			A = points[vertex->index];
-			B = points[vertex->next->index];
-			C = points[vertex->prev->index];
-			area = DaoxTriangle_Area( A, B, C );
-			if( area > 0.0 ) count += 1;
-			if( area < 0.0 ) count -= 1;
+			if( A.x >= xmax ){
+				if( A.x > xmax || A.y > ymax ){
+					xmax = A.x;
+					ymax = A.y;
+					vmax = vertex;
+				}
+			}
 			vertex = vertex->next;
 		} while( vertex != start );
 
-		dir = count < 0 ? DAOX_CLOCKWISE : DAOX_COUNTER_CW;
+		A = points[vmax->index];
+		B = points[vmax->next->index];
+		C = points[vmax->prev->index];
+		dir = DaoxTriangle_Area( A, B, C ) > 0.0 ? DAOX_COUNTER_CW : DAOX_CLOCKWISE;
+
+		printf( "contour = %i  dir = %i\n", (int)vmax->contour, dir );
+
 		vertex = start;
 		do {
 			vertex->direction = dir;
@@ -344,7 +355,7 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 			A->next->prev = A->prev;
 			A->prev->next = A->next;
 			DArray_PopBack( self->worklist );
-			//if( self->triangles->size >= 3*78 ) break;
+			//if( self->triangles->size >= 3*111 ) break;
 		}else{ /* point inside the triangle: */
 			DaoxVertex *A2, *N2;
 			int breaking = inside->contour == A->contour;

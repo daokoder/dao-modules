@@ -105,9 +105,11 @@ struct DaoxColor
 */
 struct DaoxGraphicsData
 {
+	uchar_t  junction;
+	double  strokeWidth;
 	double  maxlen;
 	double  maxdiff;
-	double  transform[6];
+	double  transform[6]; /* for path transformation only; */
 
 	DaoxPolygonArray  *dashMasks;
 	DaoxPolygonArray  *strokePolygons;
@@ -182,6 +184,8 @@ extern "C"{
 DaoxGraphicsData* DaoxGraphicsData_New();
 void DaoxGraphicsData_Delete( DaoxGraphicsData *self );
 void DaoxGraphicsData_Reset( DaoxGraphicsData *self );
+void DaoxGraphicsData_Init( DaoxGraphicsData *self, DaoxGraphicsItem *item );
+
 
 
 DAO_DLL DaoxGraphicsItem* DaoxGraphicsItem_New( int shape );
