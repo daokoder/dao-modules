@@ -374,6 +374,8 @@ void DaoxGraphicsPath_UpdatePolygons( DaoxGraphicsPath *self, DaoxGraphicsScene 
 	//DaoxSimplePath_MakePolygons( self->path, self->strokeWidth, self->junction, self->gdata->strokePolygons, fills, scene->buffer );
 	if( self->newpath->first->refined.first == NULL ) DaoxPath_Preprocess( self->newpath, scene->buffer );
 	DaoxGraphicsData_Init( self->gdata, self );
+	self->gdata->transform[0] = 2.5;
+	self->gdata->transform[3] = 3.0;
 	DaoxPath_ExportGraphicsData( self->newpath, self->gdata );
 	printf( "<<<<<<<<<<<<<<<<<<<<<<<<< polygons: %i\n", self->gdata->fillPolygons->polygons->count );
 }
