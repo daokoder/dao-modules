@@ -48,6 +48,9 @@
 #include "dao_font.h"
 
 
+#define DAOX_ARCS 18
+
+
 enum DaoxGraphicsShapes
 {
 	DAOX_GS_LINE ,
@@ -105,15 +108,22 @@ struct DaoxColor
 */
 struct DaoxGraphicsData
 {
-	uchar_t  junction;
+	uchar_t dash;
+	uchar_t junction;
 	double  strokeWidth;
 	double  maxlen;
 	double  maxdiff;
 	double  transform[6]; /* for path transformation only; */
 
-	DaoxPolygonArray  *dashMasks;
 	DaoxPolygonArray  *strokePolygons;
 	DaoxPolygonArray  *fillPolygons;
+
+	uchar_t  dashState;
+	double   dashLength;
+	double   dashArray[10];
+
+	DaoxGraphicsItem  *item; 
+	DaoxGraphicsScene *scene;
 };
 
 
@@ -162,11 +172,14 @@ struct DaoxGraphicsScene
 
 	DaoxFont  *font;
 
-	DaoxPath  *circleSmall; 
-	DaoxPath  *circleLarge;
+	DaoxPath  *smallCircle; 
+	DaoxPath  *largeCircle;
 
-	DaoxPath  *ellipseWide; 
-	DaoxPath  *ellipseNarrow; 
+	DaoxPath  *wideEllipse; 
+	DaoxPath  *narrowEllipse; 
+
+	DaoxPath  *smallArcs[DAOX_ARCS];
+	DaoxPath  *largeArcs[DAOX_ARCS];
 
 	DaoxPathBuffer  *buffer;
 	DaoxPathGraph   *graph;
@@ -184,7 +197,7 @@ extern "C"{
 DaoxGraphicsData* DaoxGraphicsData_New();
 void DaoxGraphicsData_Delete( DaoxGraphicsData *self );
 void DaoxGraphicsData_Reset( DaoxGraphicsData *self );
-void DaoxGraphicsData_Init( DaoxGraphicsData *self, DaoxGraphicsItem *item );
+void DaoxGraphicsData_Init( DaoxGraphicsData *self, DaoxGraphicsScene *scene, DaoxGraphicsItem *item );
 
 
 

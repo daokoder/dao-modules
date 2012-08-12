@@ -60,8 +60,10 @@ void DaoxIntArray_Push( DaoxIntArray *self, int value );
 
 struct DaoxPathSegment
 {
-	short  bezier;  /* 0: open; 1: linear; 2: quadratic; 3: cubic; */
-	short  convexness;  /* 0: flat; 1: locally convex; -1: locally concave; */
+	char  bezier;  /* 0: open; 1: linear; 2: quadratic; 3: cubic; */
+	char  convexness;  /* 0: flat; 1: locally convex; -1: locally concave; */
+	char  dash;    /* 0: gap; 1: dash; */
+
 	int    count;
 
 	double  start;  /* parametric start location in the original segment; */

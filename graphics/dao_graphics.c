@@ -48,25 +48,22 @@ DaoType *daox_type_graphics_text = NULL;
 DaoxGraphicsData* DaoxGraphicsData_New()
 {
 	DaoxGraphicsData *self = (DaoxGraphicsData*)dao_calloc(1,sizeof(DaoxGraphicsData));
-	self->dashMasks = DaoxPolygonArray_New();
 	self->strokePolygons = DaoxPolygonArray_New();
 	self->fillPolygons = DaoxPolygonArray_New();
 	return self;
 }
 void DaoxGraphicsData_Delete( DaoxGraphicsData *self )
 {
-	DaoxPolygonArray_Delete( self->dashMasks );
 	DaoxPolygonArray_Delete( self->strokePolygons );
 	DaoxPolygonArray_Delete( self->fillPolygons );
 	dao_free( self );
 }
 void DaoxGraphicsData_Reset( DaoxGraphicsData *self )
 {
-	DaoxPolygonArray_Reset( self->dashMasks );
 	DaoxPolygonArray_Reset( self->strokePolygons );
 	DaoxPolygonArray_Reset( self->fillPolygons );
 }
-void DaoxGraphicsData_Init( DaoxGraphicsData *self, DaoxGraphicsItem *item )
+void DaoxGraphicsData_Init( DaoxGraphicsData *self, DaoxGraphicsScene *scene, DaoxGraphicsItem *item )
 {
 	self->junction = item->junction;
 	self->strokeWidth = item->strokeWidth;
@@ -78,6 +75,10 @@ void DaoxGraphicsData_Init( DaoxGraphicsData *self, DaoxGraphicsItem *item )
 	self->transform[5] = 0.0;
 	self->maxlen = 10;
 	self->maxdiff = 0.001;
+	self->dashState = 0;
+	self->dashLength = 0.0;
+	self->item = item;
+	self->scene = scene;
 }
 
 
@@ -301,12 +302,12 @@ void DaoxGraphicsEllipse_UpdatePolygons( DaoxGraphicsEllipse *self, DaoxGraphics
 			self->gdata->transform[0] = scale;
 			self->gdata->transform[3] = scale;
 			self->gdata->maxlen = 1.0;
-			DaoxPath_ExportGraphicsData( scene->circleSmall, self->gdata );
+			DaoxPath_ExportGraphicsData( scene->smallCircle, self->gdata );
 		}else{
 			double scale = RX / 100.0;
 			self->gdata->transform[0] = scale;
 			self->gdata->transform[3] = scale;
-			DaoxPath_ExportGraphicsData( scene->circleLarge, self->gdata );
+			DaoxPath_ExportGraphicsData( scene->largeCircle, self->gdata );
 		}
 		return;
 	}
@@ -314,11 +315,11 @@ void DaoxGraphicsEllipse_UpdatePolygons( DaoxGraphicsEllipse *self, DaoxGraphics
 		if( RX < 3.0 * RY ){
 			self->gdata->transform[0] = RX / 200.0;
 			self->gdata->transform[3] = RY / 100.0;
-			DaoxPath_ExportGraphicsData( scene->ellipseWide, self->gdata );
+			DaoxPath_ExportGraphicsData( scene->wideEllipse, self->gdata );
 		}else{
 			self->gdata->transform[0] = RX / 400.0;
 			self->gdata->transform[3] = RY / 100.0;
-			DaoxPath_ExportGraphicsData( scene->ellipseNarrow, self->gdata );
+			DaoxPath_ExportGraphicsData( scene->narrowEllipse, self->gdata );
 		}
 	}else{
 		self->gdata->transform[0] = 0.0;
@@ -326,11 +327,11 @@ void DaoxGraphicsEllipse_UpdatePolygons( DaoxGraphicsEllipse *self, DaoxGraphics
 		if( RY < 3.0 * RX ){
 			self->gdata->transform[1] = RY / 200.0;
 			self->gdata->transform[2] = RX / 100.0;
-			DaoxPath_ExportGraphicsData( scene->ellipseWide, self->gdata );
+			DaoxPath_ExportGraphicsData( scene->wideEllipse, self->gdata );
 		}else{
 			self->gdata->transform[1] = RY / 400.0;
 			self->gdata->transform[2] = RX / 100.0;
-			DaoxPath_ExportGraphicsData( scene->ellipseNarrow, self->gdata );
+			DaoxPath_ExportGraphicsData( scene->narrowEllipse, self->gdata );
 		}
 	}
 
@@ -373,9 +374,14 @@ void DaoxGraphicsPath_UpdatePolygons( DaoxGraphicsPath *self, DaoxGraphicsScene 
 #endif
 	//DaoxSimplePath_MakePolygons( self->path, self->strokeWidth, self->junction, self->gdata->strokePolygons, fills, scene->buffer );
 	if( self->newpath->first->refined.first == NULL ) DaoxPath_Preprocess( self->newpath, scene->buffer );
-	DaoxGraphicsData_Init( self->gdata, self );
+	DaoxGraphicsData_Init( self->gdata, scene, self );
 	self->gdata->transform[0] = 2.5;
 	self->gdata->transform[3] = 3.0;
+	self->gdata->dashArray[0] = 10;
+	self->gdata->dashArray[1] = 5;
+	self->gdata->dashArray[2] = 11;
+	self->gdata->dashArray[3] = 10;
+	self->gdata->dash = 4;
 	DaoxPath_ExportGraphicsData( self->newpath, self->gdata );
 	printf( "<<<<<<<<<<<<<<<<<<<<<<<<< polygons: %i\n", self->gdata->fillPolygons->polygons->count );
 }
@@ -409,47 +415,72 @@ DaoxGraphicsScene* DaoxGraphicsScene_New()
 {
 	double X2[6] = { 2.0, 0.0, 0.0, 1.0, 0.0, 0.0 };
 	double X4[6] = { 4.0, 0.0, 0.0, 1.0, 0.0, 0.0 };
+	int i;
 
 	DaoxGraphicsScene *self = (DaoxGraphicsScene*) dao_calloc( 1, sizeof(DaoxGraphicsScene) );
 	DaoCdata_InitCommon( (DaoCdata*) self, daox_type_graphics_scene );
 	self->items = DArray_New(D_VALUE);
 	self->buffer = DaoxPathBuffer_New();
 	self->graph = DaoxPathGraph_New();
-	self->circleSmall = DaoxPath_New();
-	self->circleLarge = DaoxPath_New();
-	self->ellipseWide = DaoxPath_New();
-	self->ellipseNarrow = DaoxPath_New();
+	self->smallCircle = DaoxPath_New();
+	self->largeCircle = DaoxPath_New();
+	self->wideEllipse = DaoxPath_New();
+	self->narrowEllipse = DaoxPath_New();
 
 	/* less accurate approximation for small circle: */
-	DaoxPath_MoveTo( self->circleSmall, -10.0, 0 );
-	DaoxPath_ArcTo2( self->circleSmall,  20.0, 0, 180, 180 );
-	DaoxPath_ArcTo2( self->circleSmall, -20.0, 0, 180, 180 );
-	DaoxPath_Close( self->circleSmall );
+	DaoxPath_MoveTo( self->smallCircle, -10.0, 0 );
+	DaoxPath_ArcTo2( self->smallCircle,  20.0, 0, 180, 180 );
+	DaoxPath_ArcTo2( self->smallCircle, -20.0, 0, 180, 180 );
+	DaoxPath_Close( self->smallCircle );
 
-	DaoxPath_MoveTo( self->circleLarge, -100, 0 );
-	DaoxPath_ArcTo( self->circleLarge,  200.0, 0, 180 );
-	DaoxPath_ArcTo( self->circleLarge, -200.0, 0, 180 );
-	DaoxPath_Close( self->circleLarge );
+	DaoxPath_MoveTo( self->largeCircle, -100, 0 );
+	DaoxPath_ArcTo( self->largeCircle,  200.0, 0, 180 );
+	DaoxPath_ArcTo( self->largeCircle, -200.0, 0, 180 );
+	DaoxPath_Close( self->largeCircle );
 
-	DaoxPath_ImportPath( self->ellipseWide, self->circleLarge, X2 );
-	DaoxPath_ImportPath( self->ellipseNarrow, self->circleLarge, X4 );
+	DaoxPath_ImportPath( self->wideEllipse, self->largeCircle, X2 );
+	DaoxPath_ImportPath( self->narrowEllipse, self->largeCircle, X4 );
 
-	DaoxPath_Preprocess( self->circleSmall, self->buffer );
-	DaoxPath_Preprocess( self->circleLarge, self->buffer );
-	DaoxPath_Preprocess( self->ellipseWide, self->buffer );
-	DaoxPath_Preprocess( self->ellipseNarrow, self->buffer );
+	DaoxPath_Preprocess( self->smallCircle, self->buffer );
+	DaoxPath_Preprocess( self->largeCircle, self->buffer );
+	DaoxPath_Preprocess( self->wideEllipse, self->buffer );
+	DaoxPath_Preprocess( self->narrowEllipse, self->buffer );
+
+	for(i=0; i<DAOX_ARCS; i++){
+		double angle2 = (i+1.0) * 180 / (double)DAOX_ARCS;
+		double angle = (i+1.0) * M_PI / (double)DAOX_ARCS;
+		double cosine = cos( 0.5 * angle );
+		double sine = sin( 0.5 * angle );
+		self->smallArcs[i] = DaoxPath_New();
+		self->largeArcs[i] = DaoxPath_New();
+		DaoxPath_MoveTo( self->smallArcs[i], 0.0, 0.0 );
+		DaoxPath_MoveTo( self->largeArcs[i], 0.0, 0.0 );
+		DaoxPath_LineTo( self->smallArcs[i], 10.0*cosine, -10.0*sine );
+		DaoxPath_LineTo( self->largeArcs[i], 100.0*cosine, -100.0*sine );
+		DaoxPath_ArcTo2( self->smallArcs[i], 0.0, 20.0*sine, angle2, 180.0 );
+		DaoxPath_ArcTo( self->largeArcs[i],  0.0, 200.0*sine, angle2 );
+		DaoxPath_Close( self->smallArcs[i] );
+		DaoxPath_Close( self->largeArcs[i] );
+		DaoxPath_Preprocess( self->smallArcs[i], self->buffer );
+		DaoxPath_Preprocess( self->largeArcs[i], self->buffer );
+	}
 	return self;
 }
 void DaoxGraphicsScene_Delete( DaoxGraphicsScene *self )
 {
+	int i;
+	for(i=0; i<DAOX_ARCS; i++){
+		DaoxPath_Delete( self->smallArcs[i] );
+		DaoxPath_Delete( self->largeArcs[i] );
+	}
 	DaoCdata_FreeCommon( (DaoCdata*) self );
 	DArray_Delete( self->items );
 	DaoxPathBuffer_Delete( self->buffer );
 	DaoxPathGraph_Delete( self->graph );
-	DaoxPath_Delete( self->circleSmall );
-	DaoxPath_Delete( self->circleLarge );
-	DaoxPath_Delete( self->ellipseWide );
-	DaoxPath_Delete( self->ellipseNarrow );
+	DaoxPath_Delete( self->smallCircle );
+	DaoxPath_Delete( self->largeCircle );
+	DaoxPath_Delete( self->wideEllipse );
+	DaoxPath_Delete( self->narrowEllipse );
 	dao_free( self );
 }
 
@@ -520,7 +551,7 @@ DaoxGraphicsText* DaoxGraphicsScene_AddText( DaoxGraphicsScene *self, const wcha
 	
 	if( self->font == NULL ) return NULL;
 
-	size = 100.0;
+	size = 2000.0;
 	scale = size / (double)self->font->fontHeight;
 	maxlen = 8.0 * self->font->fontHeight / size; 
 	maxdiff = 1.0 / size;
@@ -530,7 +561,7 @@ DaoxGraphicsText* DaoxGraphicsScene_AddText( DaoxGraphicsScene *self, const wcha
 	item = DaoxGraphicsItem_New( DAOX_GS_TEXT );
 	DArray_PushBack( self->items, item );
 
-	item->gdata->strokeWidth = 0;
+	item->gdata->strokeWidth = 30;
 	item->gdata->junction = DAOX_JUNCTION_FLAT;
 	item->gdata->maxlen = maxlen;
 	item->gdata->maxdiff = maxdiff;
@@ -540,6 +571,10 @@ DaoxGraphicsText* DaoxGraphicsScene_AddText( DaoxGraphicsScene *self, const wcha
 	item->gdata->transform[3] = scale;
 	item->gdata->transform[4] = x;
 	item->gdata->transform[5] = y;
+
+	item->gdata->dashArray[0] = 20;
+	item->gdata->dashArray[1] = 10;
+	item->gdata->dash = 2;
 
 	while( *text ){
 		glyph = DaoxFont_GetCharGlyph( self->font, *text++ );

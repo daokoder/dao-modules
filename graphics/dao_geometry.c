@@ -600,6 +600,8 @@ int DaoxLine_Intersect( DaoxPoint A, DaoxPoint B, DaoxPoint C, DaoxPoint D, doub
 // Return -1, if the junction should connect first.C and second.B;
 // Return 0, otherwise;
 // Output parameter: tip, the tip point for a sharp junction.
+//
+// TODO: in case of parallel.
 */
 int DaoxLineQuad_Junction( DaoxQuad first, DaoxQuad second, DaoxPoint *tip )
 {
