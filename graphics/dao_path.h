@@ -133,7 +133,7 @@ DAO_DLL void DaoxPath_CubicTo( DaoxPath *self, double cx, double cy, double x, d
 DAO_DLL void DaoxPath_CubicTo2( DaoxPath *self, double cx1, double cy1, double cx2, double cy2, double x2, double y2 );
 DAO_DLL void DaoxPath_Close( DaoxPath *self );
 
-void DaoxPath_ImportPath( DaoxPath *self, DaoxPath *path, double transform[6] );
+void DaoxPath_ImportPath( DaoxPath *self, DaoxPath *path, DaoxTransform *transform );
 
 void DaoxPath_Preprocess( DaoxPath *self, DaoxPathBuffer *buffer );
 

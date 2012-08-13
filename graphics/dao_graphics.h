@@ -67,6 +67,8 @@ typedef struct DaoxColor             DaoxColor;
 
 typedef struct DaoxGraphicsData      DaoxGraphicsData;
 
+typedef struct DaoxGraphicsState     DaoxGraphicsState;
+
 typedef struct DaoxGraphicsScene     DaoxGraphicsScene;
 typedef struct DaoxGraphicsItem      DaoxGraphicsItem;
 
@@ -108,24 +110,42 @@ struct DaoxColor
 */
 struct DaoxGraphicsData
 {
-	uchar_t dash;
-	uchar_t junction;
-	double  strokeWidth;
-	double  maxlen;
-	double  maxdiff;
-	double  transform[6]; /* for path transformation only; */
+	uchar_t  junction;
+	uchar_t  dashState;
+	double   dashLength;
+	double   strokeWidth;
+	double   maxlen;
+	double   maxdiff;
+
+	DaoxTransform  *transform;  /* for path only; */
 
 	DaoxPolygonArray  *strokePolygons;
 	DaoxPolygonArray  *fillPolygons;
 
-	uchar_t  dashState;
-	double   dashLength;
-	double   dashArray[10];
-
 	DaoxGraphicsItem  *item; 
-	DaoxGraphicsScene *scene;
 };
 
+
+
+
+struct DaoxGraphicsState
+{
+	DAO_CDATA_COMMON;
+
+	uchar_t dash;
+	uchar_t junction;
+	double  fontSize;
+	double  strokeWidth;
+	double  dashPattern[10];
+
+	DaoxTransform  transform;
+
+	DaoxColor  strokeColor;  /* stroke color: RGBA; */
+	DaoxColor  fillColor;    /* filling color: RGBA; */
+
+	DaoxFont  *font;
+};
+DAO_DLL extern DaoType *daox_type_graphics_state;
 
 
 
@@ -133,23 +153,20 @@ struct DaoxGraphicsItem
 {
 	DAO_CDATA_COMMON;
 
-	uchar_t  shape;     /* shape type; */
-	uchar_t  stroke;    /* stroke type; */
-	uchar_t  junction;  /* junction type; */
+	uchar_t  shape;  /* shape type; */
 
-	DaoxPoint  position;     /* X, Y; */
-	DaoxPoint  scale;        /* scales (width,height; dx,dy; rx,ry etc.); */
+	DaoxPoint  P1;
+	DaoxPoint  P2;
 
-	DaoxTransform  transform;     /* [A, B; C, D] */
+	DString  *text;
 
-	double     strokeWidth;     /* stroke width; */
-	DaoxColor  strokeColor;  /* stroke color: RGBA; */
-	DaoxColor  fillColor;    /* filling color: RGBA; */
+	DaoxGraphicsState  *state;
 
-	DaoxSimplePath  *path;  /* path, or points for polylines and polygons; */
-	DaoxPath        *newpath;
+	DaoxPointArray  *points;
+	DaoxPath        *path;
 
 	DaoxGraphicsData  *gdata;
+	DaoxGraphicsScene *scene;
 
 	DArray  *children;  /* child items; */
 };
@@ -169,8 +186,7 @@ struct DaoxGraphicsScene
 	DAO_CDATA_COMMON;
 
 	DArray  *items;
-
-	DaoxFont  *font;
+	DArray  *states;
 
 	DaoxPath  *smallCircle; 
 	DaoxPath  *largeCircle;
@@ -197,19 +213,18 @@ extern "C"{
 DaoxGraphicsData* DaoxGraphicsData_New();
 void DaoxGraphicsData_Delete( DaoxGraphicsData *self );
 void DaoxGraphicsData_Reset( DaoxGraphicsData *self );
-void DaoxGraphicsData_Init( DaoxGraphicsData *self, DaoxGraphicsScene *scene, DaoxGraphicsItem *item );
+void DaoxGraphicsData_Init( DaoxGraphicsData *self, DaoxGraphicsItem *item );
 
 
 
-DAO_DLL DaoxGraphicsItem* DaoxGraphicsItem_New( int shape );
+DaoxGraphicsState* DaoxGraphicsState_New();
+void DaoxGraphicsState_Delete( DaoxGraphicsState *self );
+void DaoxGraphicsState_Copy( DaoxGraphicsState *self, DaoxGraphicsState *other );
+
+
+
+DAO_DLL DaoxGraphicsItem* DaoxGraphicsItem_New( DaoxGraphicsScene *scene, int shape );
 DAO_DLL void DaoxGraphicsItem_Delete( DaoxGraphicsItem *self );
-
-
-DAO_DLL void DaoxGraphicsItem_SetStrokeWidth( DaoxGraphicsItem *self, double w );
-
-DAO_DLL void DaoxGraphicsItem_SetStrokeColor( DaoxGraphicsItem *self, double r, double g, double b, double a );
-
-DAO_DLL void DaoxGraphicsItem_SetFillColor( DaoxGraphicsItem *self, double r, double g, double b, double a );
 
 
 DAO_DLL void DaoxGraphicsLine_Set( DaoxGraphicsLine *self, double x1, double y1, double x2, double y2 );
@@ -243,7 +258,17 @@ DAO_DLL void DaoxGraphicsItem_UpdatePolygons( DaoxGraphicsItem *self, DaoxGraphi
 DAO_DLL DaoxGraphicsScene* DaoxGraphicsScene_New();
 DAO_DLL void DaoxGraphicsScene_Delete( DaoxGraphicsScene *self );
 
+
+DAO_DLL void DaoxGraphicsScene_PushState( DaoxGraphicsScene *self );
+DAO_DLL void DaoxGraphicsScene_PopState( DaoxGraphicsScene *self );
+
+DAO_DLL void DaoxGraphicsScene_SetStrokeWidth( DaoxGraphicsScene *self, double width );
+DAO_DLL void DaoxGraphicsScene_SetStrokeColor( DaoxGraphicsScene *self, DaoxColor color );
+DAO_DLL void DaoxGraphicsScene_SetFillColor( DaoxGraphicsScene *self, DaoxColor color );
+DAO_DLL void DaoxGraphicsScene_SetDashPattern( DaoxGraphicsScene *self, double pat[], int n );
 DAO_DLL void DaoxGraphicsScene_SetFont( DaoxGraphicsScene *self, DaoxFont *font, double size );
+
+
 
 DAO_DLL DaoxGraphicsLine* DaoxGraphicsScene_AddLine( DaoxGraphicsScene *self, double x1, double y1, double x2, double y2 );
 

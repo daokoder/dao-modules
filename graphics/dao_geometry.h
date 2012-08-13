@@ -84,9 +84,13 @@ struct DaoxQuad
 	DaoxPoint  C;
 	DaoxPoint  D;
 };
+
+
 struct DaoxTransform
 {
-	double  A, B, C, D;
+	double  Axx, Axy;
+	double  Ayx, Ayy;
+	double  Bx, By;
 };
 
 
@@ -197,6 +201,7 @@ DAO_DLL void DaoxByteArray_Resize( DaoxByteArray *self, int count, uchar_t byte 
 DAO_DLL DaoxPointArray* DaoxPointArray_New();
 DAO_DLL void DaoxPointArray_Clear( DaoxPointArray *self );
 DAO_DLL void DaoxPointArray_Delete( DaoxPointArray *self );
+DAO_DLL void DaoxPointArray_Resize( DaoxPointArray *self, int count );
 DAO_DLL void DaoxPointArray_PushXY( DaoxPointArray *self, double x, double y );
 DAO_DLL void DaoxPointArray_Push( DaoxPointArray *self, DaoxPoint point );
 DAO_DLL void DaoxPointArray_PushPoints( DaoxPointArray *self, DaoxPointArray *points );

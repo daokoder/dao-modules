@@ -270,20 +270,20 @@ int DaoxFont_MakeGlyph2( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
 	while( more ){
 		DaoxGlyph *subglyph = DaoxFont_GetGlyph( self, daox_tt_ushort(cpart+2) );
 		ushort_t flags = daox_tt_ushort( cpart );
-		double tmat[6] = { 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 };
+		DaoxTransform tmat = { 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 };
 		double m, n;
 		more = flags & (1<<5);
 		cpart += 4;
 		if( flags & 2 ){ /* ARGS_ARE_XY_VALUES */
 			if( flags & 1 ){ /* ARG_1_AND_2_ARE_WORDS */
-				tmat[4] = daox_tt_short( cpart );
-				tmat[5] = daox_tt_short( cpart+2 );
+				tmat.Bx = daox_tt_short( cpart );
+				tmat.By = daox_tt_short( cpart+2 );
 				cpart += 4;
 			}else{
-				//tmat[4] = (char)*cpart++;
-				//tmat[5] = (char)*cpart++;
-				tmat[4] = *(char*)cpart;
-				tmat[5] = *(char*)(cpart+1);
+				//tmat.Bx = (char)*cpart++;
+				//tmat.By = (char)*cpart++;
+				tmat.Bx = *(char*)cpart;
+				tmat.By = *(char*)(cpart+1);
 				cpart += 2;
 			}
 		}else{
@@ -292,29 +292,29 @@ int DaoxFont_MakeGlyph2( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
 		}
 		if( flags & (1<<3) ){ /* WE_HAVE_A_SCALE */
 			printf( "here: %i\n", daox_tt_short( cpart ) );
-			tmat[0] = tmat[3] = daox_tt_short( cpart ) / 16384.0f;
+			tmat.Axx = tmat.Ayy = daox_tt_short( cpart ) / 16384.0f;
 			cpart += 2;
 		}else if( flags & (1<<6) ){ /* WE_HAVE_AN_X_AND_Y_SCALE */
-			tmat[0] = daox_tt_short( cpart+0 ) / 16384.0f;
-			tmat[3] = daox_tt_short( cpart+2 ) / 16384.0f;
+			tmat.Axx = daox_tt_short( cpart+0 ) / 16384.0f;
+			tmat.Ayy = daox_tt_short( cpart+2 ) / 16384.0f;
 			cpart += 4;
 		}else if( flags & (1<<7) ){ /* WE_HAVE_A_TWO_BY_TWO */
-			tmat[0] = daox_tt_short( cpart+0 ) / 16384.0f;
-			tmat[1] = daox_tt_short( cpart+2 ) / 16384.0f;
-			tmat[2] = daox_tt_short( cpart+4 ) / 16384.0f;
-			tmat[3] = daox_tt_short( cpart+6 ) / 16384.0f;
+			tmat.Axx = daox_tt_short( cpart+0 ) / 16384.0f;
+			tmat.Ayx = daox_tt_short( cpart+2 ) / 16384.0f;
+			tmat.Axy = daox_tt_short( cpart+4 ) / 16384.0f;
+			tmat.Ayy = daox_tt_short( cpart+6 ) / 16384.0f;
 			cpart += 8;
 		}
-		m = fabs(tmat[0]) > fabs(tmat[1]) ? fabs(tmat[0]) : fabs(tmat[1]);
-		n = fabs(tmat[2]) > fabs(tmat[3]) ? fabs(tmat[2]) : fabs(tmat[3]);
-		if( fabs( fabs(tmat[0]) - fabs(tmat[1]) ) < 33.0/65536.0 ) m = m + m;
-		if( fabs( fabs(tmat[2]) - fabs(tmat[3]) ) < 33.0/65536.0 ) n = n + n;
-		tmat[4] *= m;
-		tmat[5] *= n;
+		m = fabs(tmat.Axx) > fabs(tmat.Ayx) ? fabs(tmat.Axx) : fabs(tmat.Ayx);
+		n = fabs(tmat.Axy) > fabs(tmat.Ayy) ? fabs(tmat.Axy) : fabs(tmat.Ayy);
+		if( fabs( fabs(tmat.Axx) - fabs(tmat.Ayx) ) < 33.0/65536.0 ) m = m + m;
+		if( fabs( fabs(tmat.Axy) - fabs(tmat.Ayy) ) < 33.0/65536.0 ) n = n + n;
+		tmat.Bx *= m;
+		tmat.By *= n;
 
-		DaoxPath_ImportPath( glyph->shape, subglyph->shape, tmat );
+		DaoxPath_ImportPath( glyph->shape, subglyph->shape, & tmat );
 
-		printf( "%5.3f %5.3f %5.3f %5.3f %5.3f %5.3f\n", tmat[0], tmat[1], tmat[2], tmat[3], tmat[4], tmat[5] );
+		printf( "%5.3f %5.3f %5.3f %5.3f %5.3f %5.3f\n", tmat.Axx, tmat.Ayx, tmat.Axy, tmat.Ayy, tmat.Bx, tmat.By );
 	}
 	DaoxPath_Preprocess( glyph->shape, self->pathBuffer );
 	return 1;

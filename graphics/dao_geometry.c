@@ -245,6 +245,14 @@ void DaoxPointArray_Delete( DaoxPointArray *self )
 	DaoxPointArray_Clear( self );
 	dao_free( self );
 }
+void DaoxPointArray_Resize( DaoxPointArray *self, int count )
+{
+	if( self->capacity != count ){
+		self->capacity = count;
+		self->points = (DaoxPoint*) dao_realloc( self->points, self->capacity*sizeof(DaoxPoint) );
+	}
+	self->count = count;
+}
 void DaoxPointArray_PushXY( DaoxPointArray *self, double x, double y )
 {
 	DaoxPoint *point;
