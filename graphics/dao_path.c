@@ -87,9 +87,15 @@ DaoxPathComponent* DaoxPathComponent_New( DaoxPath *path )
 DaoxPathSegment* DaoxPathComponent_PushSegment( DaoxPathComponent *self )
 {
 	DaoxPathSegment *segment = NULL;
+	if( self->last && self->last->bezier == 0 ) return self->last;
 	if( self->cache ){
 		segment = self->cache;
 		self->cache = segment->next;
+		segment->bezier = 0;
+		segment->count = 0;
+		segment->start = 0.0;
+		segment->end = 1.0;
+		segment->maxlen = segment->maxdiff = 1E16;
 	}else{
 		segment = DaoxPathSegment_New( self );
 	}
@@ -104,8 +110,8 @@ DaoxPathSegment* DaoxPathComponent_PushSegment( DaoxPathComponent *self )
 void DaoxPathComponent_Reset( DaoxPathComponent *self )
 {
 	DaoxPathSegment *segment = self->first;
+	self->maxlen = self->maxdiff = 1E16;
 	do {
-		segment->bezier = 0;
 		segment->next = self->cache;
 		self->cache = segment;
 		segment = segment->next;
@@ -153,6 +159,7 @@ void DaoxPath_Delete( DaoxPath *self )
 DaoxPathComponent* DaoxPath_PushComponent( DaoxPath *self )
 {
 	DaoxPathComponent *com = NULL;
+	if( self->last && self->last->first->bezier == 0 ) return self->last;
 	if( self->cache ){
 		com = self->cache;
 		self->cache = com->next;
@@ -719,7 +726,7 @@ void DaoxPath_ImportPath( DaoxPath *self, DaoxPath *path, DaoxTransform *transfo
 void DaoxPath_Refine( DaoxPath *self, double maxlen, double maxdiff )
 {
 	DaoxPathComponent *com;
-	printf( "DaoxPath_Refine: %15f %15f\n", maxlen, maxdiff );
+	printf( "DaoxPath_Refine: %15f %15f %i\n", maxlen, maxdiff, self->first->first->bezier );
 	for(com=self->first; com; com=com->next){
 		if( com->first->bezier == 0 ) continue;
 		printf( "1: maxlen = %15f;  maxdiff = %15f\n", com->maxlen, com->maxdiff );
