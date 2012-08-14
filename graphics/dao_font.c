@@ -87,6 +87,7 @@ void DaoxFont_Delete( DaoxFont *self )
 	for(it=DMap_First(self->glyphs); it; it=DMap_Next(self->glyphs,it)){
 		DaoxGlyph_Delete( (DaoxGlyph*) it->value.pVoid );
 	}
+	if( self->points ) free( self->points );
 	DMap_Delete( self->glyphs );
 	DMap_Delete( self->glyphs2 );
 	DString_Delete( self->buffer );
@@ -355,8 +356,8 @@ int DaoxFont_MakeGlyph( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
 	printf( "numberOfContours = %i\n", numberOfContours );
 	printf( "pointCount = %i\n", pointCount );
 
-	/* load flags and coordinates into the glyph->points: */
-	glyph->points = (DaoxGlyphPoint*) realloc( glyph->points, pointCount*sizeof(DaoxGlyphPoint) );
+	/* load flags and coordinates into the self->points: */
+	self->points = (DaoxGlyphPoint*) realloc( self->points, pointCount*sizeof(DaoxGlyphPoint) );
 
 	for(i=0; i<pointCount; ++i){
 		if( flagCount == 0 ){
@@ -365,11 +366,11 @@ int DaoxFont_MakeGlyph( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
 		}else{
 			flagCount -= 1;
 		}
-		glyph->points[i].flag = flag;
+		self->points[i].flag = flag;
 	}
 	points = flags;
 	for(i=0; i<pointCount; ++i){
-		flag = glyph->points[i].flag;
+		flag = self->points[i].flag;
 		if( flag & 2 ){ /* 1 byte long x-coordinate: */
 			dx = *points++;
 			x += (flag & 16) ? dx : -dx; /* ??? */
@@ -379,10 +380,10 @@ int DaoxFont_MakeGlyph( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
 				points += 2;
 			}
 		}
-		glyph->points[i].x = x;
+		self->points[i].x = x;
 	}
 	for(i=0; i<pointCount; ++i){
-		flag = glyph->points[i].flag;
+		flag = self->points[i].flag;
 		if( flag & 4 ){ /* 1 byte long x-coordinate: */
 			dy = *points++;
 			y += (flag & 32) ? dy : -dy;
@@ -392,7 +393,7 @@ int DaoxFont_MakeGlyph( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
 				points += 2;
 			}
 		}
-		glyph->points[i].y = y;
+		self->points[i].y = y;
 	}
 
 	for(i=0; i<numberOfContours; ++i){
@@ -401,15 +402,15 @@ int DaoxFont_MakeGlyph( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
 		int xcur, ycur, xnext, ynext;
 		int j, x0, y0, start2 = start;
 		int cx0 = -1, cy0 = -1;
-		flag = glyph->points[start].flag;
-		x0 = glyph->points[start].x;
-		y0 = glyph->points[start].y;
+		flag = self->points[start].flag;
+		x0 = self->points[start].x;
+		y0 = self->points[start].y;
 		if( ! (flag & 1) ){ /* off curve point: */
 			cx0 = x0;
 			cy0 = y0;
-			x = glyph->points[start].x;
-			y = glyph->points[start].y;
-			if( glyph->points[start].flag & 1 ){ /* on curve: */
+			x = self->points[start].x;
+			y = self->points[start].y;
+			if( self->points[start].flag & 1 ){ /* on curve: */
 				x0 = x;
 				y0 = y;
 				start2 += 1;
@@ -423,23 +424,23 @@ int DaoxFont_MakeGlyph( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
 		ycur = y0;
 		for(j=start2+1; j<=end; j++){
 			ushort_t next = start + ((j+1-start) % (end - start + 1));
-			flag = glyph->points[j].flag;
-			x = glyph->points[j].x;
-			y = glyph->points[j].y;
+			flag = self->points[j].flag;
+			x = self->points[j].x;
+			y = self->points[j].y;
 			if( flag & 1 ){ /* on curve point: */
 				DaoxPath_LineTo( glyph->shape, x - xcur, y - ycur );
 				xcur = x;
 				ycur = y;
-			}else if( glyph->points[next].flag & 1 ){ /* on curve point: */
-				xnext = glyph->points[next].x;
-				ynext = glyph->points[next].y;
+			}else if( self->points[next].flag & 1 ){ /* on curve point: */
+				xnext = self->points[next].x;
+				ynext = self->points[next].y;
 				DaoxPath_QuadTo( glyph->shape, x - xcur, y - ycur, xnext - xcur, ynext - ycur );
 				xcur = xnext;
 				ycur = ynext;
 				j += 1;
 			}else{ /* off curve point, interpolate on-curve point: */
-				xnext = (x + glyph->points[next].x) >> 1;
-				ynext = (y + glyph->points[next].y) >> 1;
+				xnext = (x + self->points[next].x) >> 1;
+				ynext = (y + self->points[next].y) >> 1;
 				DaoxPath_QuadTo( glyph->shape, x - xcur, y - ycur, xnext - xcur, ynext - ycur );
 				xcur = xnext;
 				ycur = ynext;
@@ -452,14 +453,12 @@ int DaoxFont_MakeGlyph( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
 	}
 #if 0
 	for(i=0; i<pointCount; ++i){
-		flag = glyph->points[i].flag;
-		x = glyph->points[i].x;
-		y = glyph->points[i].y;
+		flag = self->points[i].flag;
+		x = self->points[i].x;
+		y = self->points[i].y;
 		printf( "%3i: %2i %5i %5i\n", i, flag&1, x, y );
 	}
 #endif
-	free( glyph->points );
-	glyph->points = NULL;
 	DaoxPath_Preprocess( glyph->shape, self->pathBuffer );
 	return 1;
 }
@@ -501,8 +500,7 @@ DaoxGlyph* DaoxGlyph_New()
 }
 void DaoxGlyph_Delete( DaoxGlyph *self )
 {
-	// TODO: free shape;
-	if( self->points ) free( self->points );
+	DaoxPath_Delete( self->shape );
 	free( self );
 }
 

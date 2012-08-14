@@ -60,7 +60,6 @@ void DaoxIntArray_Push( DaoxIntArray *self, int value )
 
 
 
-
 DaoxPathSegment* DaoxPathSegment_New( DaoxPathComponent *component )
 {
 	DaoxPathSegment* self = (DaoxPathSegment*) calloc(1,sizeof(DaoxPathSegment));
@@ -70,24 +69,66 @@ DaoxPathSegment* DaoxPathSegment_New( DaoxPathComponent *component )
 	self->maxlen = self->maxdiff = 1E16;
 	return self;
 }
+void DaoxPathSegment_Delete( DaoxPathSegment *self )
+{
+	if( self->first ) DaoxPathSegment_Delete( self->first );
+	if( self->second ) DaoxPathSegment_Delete( self->second );
+	dao_free( self );
+}
 
 DaoxPathComponent* DaoxPathComponent_New( DaoxPath *path )
 {
 	DaoxPathComponent* self = (DaoxPathComponent*) calloc(1,sizeof(DaoxPathComponent));
-	self->path = path;
-	self->maxlen = self->maxdiff = 1E16;
 	self->first = self->last = DaoxPathSegment_New( self );
+	self->maxlen = self->maxdiff = 1E16;
+	self->path = path;
 	return self;
 }
 DaoxPathSegment* DaoxPathComponent_PushSegment( DaoxPathComponent *self )
 {
-	DaoxPathSegment *segment;
-	if( self->first->bezier == 0 ) return self->first;
-	segment = DaoxPathSegment_New( self );
+	DaoxPathSegment *segment = NULL;
+	if( self->cache ){
+		segment = self->cache;
+		self->cache = segment->next;
+	}else{
+		segment = DaoxPathSegment_New( self );
+	}
+	if( self->first == NULL ){
+		self->first = self->last = segment;
+		return segment;
+	}
 	self->last->next = segment;
 	self->last = segment;
 	return segment;
 }
+void DaoxPathComponent_Reset( DaoxPathComponent *self )
+{
+	DaoxPathSegment *segment = self->first;
+	do {
+		segment->bezier = 0;
+		segment->next = self->cache;
+		self->cache = segment;
+		segment = segment->next;
+	} while( segment && segment != self->first );
+	self->first = self->last = NULL;
+	self->refined.first = self->refined.last = NULL;
+	DaoxPathComponent_PushSegment( self );
+}
+void DaoxPathComponent_Delete( DaoxPathComponent *self )
+{
+	DaoxPathComponent_Reset( self );
+	while( self->cache ){
+		DaoxPathSegment *segment = self->cache;
+		self->cache = self->cache->next;
+		DaoxPathSegment_Delete( segment );
+	}
+	dao_free( self );
+}
+
+
+
+
+
 
 DaoxPath* DaoxPath_New()
 {
@@ -99,18 +140,43 @@ DaoxPath* DaoxPath_New()
 }
 void DaoxPath_Delete( DaoxPath *self )
 {
-	// TODO:
+	DaoxPath_Reset( self );
+	while( self->cache ){
+		DaoxPathComponent *com = self->cache;
+		self->cache = self->cache->next;
+		DaoxPathComponent_Delete( com );
+	}
+	DaoxPointArray_Delete( self->points );
+	DaoxIntArray_Delete( self->triangles );
+	free( self );
 }
-
-
 DaoxPathComponent* DaoxPath_PushComponent( DaoxPath *self )
 {
-	DaoxPathComponent *com;
-	if( self->first->first->bezier == 0 ) return self->first;
-	com = DaoxPathComponent_New( self );
+	DaoxPathComponent *com = NULL;
+	if( self->cache ){
+		com = self->cache;
+		self->cache = com->next;
+	}else{
+		com = DaoxPathComponent_New( self );
+	}
+	if( self->first == NULL ){
+		self->first = self->last = com;
+		return com;
+	}
 	self->last->next = com;
 	self->last = com;
 	return com;
+}
+void DaoxPath_Reset( DaoxPath *self )
+{
+	DaoxPathComponent *com;
+	for(com=self->first; com; com=com->next){
+		DaoxPathComponent_Reset( com );
+		com->next = self->cache;
+		self->cache = com;
+	}
+	self->first = self->last = NULL;
+	DaoxPath_PushComponent( self );
 }
 void DaoxPath_MoveTo( DaoxPath *self, double x, double y )
 {
@@ -343,26 +409,6 @@ void DaoxPath_Close( DaoxPath *self )
 
 
 
-
-/*
-// 1. Subdivide path/border segments until all of them are locally convex or concave;
-// 2. Tiny subdivision close to junctions;
-// 3. Make junctions;
-// 4. Store points, and borders:
-//    for locally convex segment, store P1 and P2 as triangulation points,
-//       and the segment as border;
-//    for locally concave segment, store P1,C1 (and C2), P2 as triangulation points,
-//       and store the segement as border;
-// 5. Triangulate the polygon formed by the points from the path segments;
-// 6. Check each triangle with an edge on the border:
-// 7. Store other triangles without edges on borders.
-//
-// Implementation:
-// 1. Subdivide until the length of P1C1,C1C2,C2P2 is only a small percent longer
-//    than P1P2;
-// 2. And subdivide until all the segments are locally convex or concave;
-// 3. And possibly subdivide until no bounding triangle or quad intersects;
-*/
 
 
 void DaoxPathSegment_SetPoints( DaoxPathSegment *self, DaoxPoint P1, DaoxPoint P2, DaoxPoint C1, DaoxPoint C2 )
@@ -636,33 +682,6 @@ void DaoxPathSegment_CheckConvexness( DaoxPathSegment *self, DaoxPoint point )
 	int convexness = DaoxPathSegment_CheckConvexness2( self, point );
 	DaoxPathSegment_SetConvexness( self, convexness );
 }
-/*
-// For locally concave path segment, add smaller triangles that are fully
-// contained in the region enclosed by the path:
-*/
-void DaoxPathSegment_AddInnerTriangles( DaoxPathSegment *self, int start, int end, int p3 )
-{
-	DaoxPath *path = self->component->path;
-	int n = path->points->count;
-	if( self->bezier != 2 && self->bezier != 3 ) return;
-	DaoxPointArray_Push( path->points, self->C1 );
-	DaoxIntArray_Push( path->triangles, start );
-	DaoxIntArray_Push( path->triangles, n );
-	DaoxIntArray_Push( path->triangles, p3 );
-	if( self->bezier == 2 ){
-		DaoxIntArray_Push( path->triangles, n );
-		DaoxIntArray_Push( path->triangles, end );
-		DaoxIntArray_Push( path->triangles, p3 );
-	}else{
-		DaoxPointArray_Push( path->points, self->C2 );
-		DaoxIntArray_Push( path->triangles, n );
-		DaoxIntArray_Push( path->triangles, n+1 );
-		DaoxIntArray_Push( path->triangles, p3 );
-		DaoxIntArray_Push( path->triangles, n+1 );
-		DaoxIntArray_Push( path->triangles, end );
-		DaoxIntArray_Push( path->triangles, p3 );
-	}
-}
 
 DaoxPoint DaoxPoint_Transform( DaoxPoint self, DaoxTransform *transform )
 {
@@ -799,11 +818,16 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxPathBuffer *buffer )
 
 void DaoxGraphicsData_PushFilling( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C )
 {
-	if( self->fillPolygons == NULL ) return;
+	int index = self->points->count;
 	A = DaoxPoint_Transform( A, self->transform );
 	B = DaoxPoint_Transform( B, self->transform );
 	C = DaoxPoint_Transform( C, self->transform );
-	DaoxPolygonArray_PushTriangle( self->fillPolygons, A, B, C );
+	DaoxPointArray_Push( self->points, A );
+	DaoxPointArray_Push( self->points, B );
+	DaoxPointArray_Push( self->points, C );
+	DaoxIntArray_Push( self->fillTriangles, index );
+	DaoxIntArray_Push( self->fillTriangles, index+1 );
+	DaoxIntArray_Push( self->fillTriangles, index+2 );
 }
 void DaoxGraphicsData_MakeJunction( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C, int junction )
 {
@@ -821,24 +845,24 @@ void DaoxGraphicsData_MakeJunction( DaoxGraphicsData *self, DaoxPoint A, DaoxPoi
 
 	if( k > 0 ){
 		if( junction != DAOX_JUNCTION_ROUND ){
-			DaoxPolygonArray_PushTriangle( self->strokePolygons, Q1.D, Q2.A, P2 );
+			DaoxGraphicsData_PushStrokeTriangle( self, Q1.D, Q2.A, P2 );
 		}
 		if( junction == DAOX_JUNCTION_SHARP ){
-			DaoxPolygonArray_PushTriangle( self->strokePolygons, Q1.D, Q2.A, P3 );
+			DaoxGraphicsData_PushStrokeTriangle( self, Q1.D, Q2.A, P3 );
 		}
 	}else{
 		if( junction != DAOX_JUNCTION_ROUND ){
-			DaoxPolygonArray_PushTriangle( self->strokePolygons, Q1.C, Q2.B, P2 );
+			DaoxGraphicsData_PushStrokeTriangle( self, Q1.C, Q2.B, P2 );
 		}
 		if( junction == DAOX_JUNCTION_SHARP ){
-			DaoxPolygonArray_PushTriangle( self->strokePolygons, Q1.C, Q2.B, P3 );
+			DaoxGraphicsData_PushStrokeTriangle( self, Q1.C, Q2.B, P3 );
 		}
 	}
 	if( self->item->state->dash ){
 		if( k > 0 ){
-			DaoxPolygonArray_PushTriangle( self->strokePolygons, P2, Q1.C, Q2.B );
+			DaoxGraphicsData_PushStrokeTriangle( self, P2, Q1.C, Q2.B );
 		}else{
-			DaoxPolygonArray_PushTriangle( self->strokePolygons, P2, Q1.D, Q2.A );
+			DaoxGraphicsData_PushStrokeTriangle( self, P2, Q1.D, Q2.A );
 		}
 
 	}
@@ -853,8 +877,8 @@ void DaoxGraphicsData_MakeJunction( DaoxGraphicsData *self, DaoxPoint A, DaoxPoi
 
 	round.strokeWidth = 0.0;
 	round.junction = DAOX_JUNCTION_FLAT;
-	round.strokePolygons = self->strokePolygons;
-	round.fillPolygons = self->strokePolygons;
+	round.strokeTriangles = self->strokeTriangles;
+	round.fillTriangles = self->strokeTriangles;
 	round.transform = & transform;
 	transform.Axx = scale * cosine;
 	transform.Axy = - scale * sine;
@@ -890,14 +914,13 @@ void DaoxPathSegment_GetRefinedStroke( DaoxPathSegment *self, DaoxGraphicsData *
 	DaoxPoint PM;
 	DaoxPoint P1 = DaoxPoint_Transform( self->P1, gdata->transform );
 	DaoxPoint P2 = DaoxPoint_Transform( self->P2, gdata->transform );
-	DaoxPolygonArray *strokes = gdata->strokePolygons;
 	double at, len, width = gdata->strokeWidth;
 
 	if( width < 1E-6 ) return;
 
 	if( gdata->item->state->dash == 0 ){
 		quad = DaoxLine2Quad( P1, P2, width );
-		DaoxPolygonArray_PushQuad( strokes, quad );
+		DaoxGraphicsData_PushStrokeQuad( gdata, quad );
 		return;
 	}
 	PM = DaoxPoint_Transform( self->C1, gdata->transform );
@@ -906,7 +929,7 @@ void DaoxPathSegment_GetRefinedStroke( DaoxPathSegment *self, DaoxGraphicsData *
 		if( len < gdata->dashLength ){
 			if( (gdata->dashState&1) == 0 ){
 				quad = DaoxLine2Quad( P1, P2, width );
-				DaoxPolygonArray_PushQuad( strokes, quad );
+				DaoxGraphicsData_PushStrokeQuad( gdata, quad );
 			}
 			DaoxGraphicsData_UpdateDashState( gdata, len );
 			return;
@@ -916,7 +939,7 @@ void DaoxPathSegment_GetRefinedStroke( DaoxPathSegment *self, DaoxGraphicsData *
 		PM.y = (1.0 - at) * P1.y + at * P2.y;
 		if( (gdata->dashState&1) == 0 ){
 			quad = DaoxLine2Quad( P1, PM, width );
-			DaoxPolygonArray_PushQuad( strokes, quad );
+			DaoxGraphicsData_PushStrokeQuad( gdata, quad );
 		}
 		len -= gdata->dashLength;
 		DaoxGraphicsData_UpdateDashState( gdata, gdata->dashLength );
@@ -930,8 +953,6 @@ DaoxPathSegmentPair DaoxPathSegment_GetRefined( DaoxPathSegment *self, DaoxGraph
 	DaoxPoint P1, P2, P3;
 	DaoxQuad quad, prev, next;
 	DaoxPathSegmentPair sp1, sp2, segs = {NULL, NULL};
-	DaoxPolygonArray *strokes = gdata->strokePolygons;
-	DaoxPolygonArray *fills = gdata->fillPolygons;
 	double width = gdata->strokeWidth;
 	double maxlen = gdata->maxlen;
 	double maxdiff = gdata->maxdiff;
@@ -983,11 +1004,13 @@ DaoxPathSegmentPair DaoxPathSegment_GetRefined( DaoxPathSegment *self, DaoxGraph
 	prev = DaoxLine2Quad( P1, P2, width );
 	next = DaoxLine2Quad( P2, P3, width );
 	if( DaoxLineQuad_Junction( prev, next, NULL ) > 0 ){
-		DaoxPolygonArray_PushTriangle( strokes, prev.D, next.A, P2 );
-		if( gdata->item->state->dash ) DaoxPolygonArray_PushTriangle( strokes, P2, prev.C, next.B );
+		DaoxGraphicsData_PushStrokeTriangle( gdata, prev.D, next.A, P2 );
+		if( gdata->item->state->dash )
+			DaoxGraphicsData_PushStrokeTriangle( gdata, P2, prev.C, next.B );
 	}else{
-		DaoxPolygonArray_PushTriangle( strokes, prev.C, next.B, P2 );
-		if( gdata->item->state->dash ) DaoxPolygonArray_PushTriangle( strokes, P2, prev.D, next.A );
+		DaoxGraphicsData_PushStrokeTriangle( gdata, prev.C, next.B, P2 );
+		if( gdata->item->state->dash )
+			DaoxGraphicsData_PushStrokeTriangle( gdata, P2, prev.D, next.A );
 	}
 	return segs;
 }
@@ -997,29 +1020,26 @@ void DaoxPath_ExportGraphicsData( DaoxPath *self, DaoxGraphicsData *gdata )
 	DaoxPathSegment *seg;
 	DaoxPathComponent *com;
 	DaoxPathSegmentPair open, cur, prev = {NULL,NULL};
-	DaoxPolygonArray *strokes = gdata->strokePolygons;
-	DaoxPolygonArray *fills = gdata->fillPolygons;
 	DaoxTransform *transform = gdata->transform;
 	double width = gdata->strokeWidth;
 	double maxlen = gdata->maxlen;
 	double maxdiff = gdata->maxdiff;
-	int strokePointCount = strokes->points->count;
-	int fillPointCount = fills->points->count;
 	int i, j, count, jt, jt2;
 
 	if( maxlen < 1E-16 ) maxlen = 10;
 	if( maxdiff < 1E-16 ) maxdiff = 0.001;
 
 	DaoxPath_Refine( self, maxlen, maxdiff );
-	if( fills ){
-		for(i=0; i<self->triangles->count; i+=3){
-			DaoxPoint *points = self->points->points;
-			int *ids = self->triangles->values + i;
-			DaoxPolygonArray_PushPolygon( fills );
-			for(j=0; j<3; ++j){
-				DaoxPoint point = DaoxPoint_Transform( points[ids[j]], gdata->transform );
-				DaoxPolygonArray_PushPoint( fills, point );
-			}
+	if( 1 ){
+		DaoxPoint *points = self->points->points;
+		int *ids = self->triangles->values;
+		int offset = gdata->points->count;
+		for(i=0; i<self->points->count; i++){
+			DaoxPoint point = DaoxPoint_Transform( points[i], gdata->transform );
+			DaoxPointArray_Push( gdata->points, point );
+		}
+		for(i=0; i<self->triangles->count; i++){
+			DaoxIntArray_Push( gdata->fillTriangles, ids[i] + offset );
 		}
 	}
 	if( width < 1E-16 ) return;

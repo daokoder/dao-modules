@@ -491,7 +491,7 @@ void DaoxPathGraph_IntersectEdges( DaoxPathGraph *self )
 		case DAOX_PATH_ARCR_TO :
 			k = edge->command == DAOX_PATH_ARCL_TO;
 			self->quadtree->points->count = 0;
-			DaoxPointArray_SegmentArc( self->quadtree->points, start, end, edge->C1, k );
+			//DaoxPointArray_SegmentArc( self->quadtree->points, start, end, edge->C1, k );
 			for(j=0; j<self->quadtree->points->count; ++j)
 				DaoxBoundingBox_Update( & box, self->quadtree->points->points[j] );
 			break;

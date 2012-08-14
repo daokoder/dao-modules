@@ -38,6 +38,17 @@
 typedef struct DaoxFont   DaoxFont;
 typedef struct DaoxGlyph  DaoxGlyph;
 
+typedef struct DaoxGlyphPoint  DaoxGlyphPoint;
+
+
+struct DaoxGlyphPoint
+{
+	uchar_t flag;
+	short   x, y;
+};
+
+
+
 
 struct DaoxFont
 {
@@ -64,6 +75,7 @@ struct DaoxFont
 	DMap  *glyphs2; /* Unicode to glyph; */
 
 	DaoxPathBuffer  *pathBuffer;
+	DaoxGlyphPoint  *points;
 };
 
 static DaoType* daox_type_font = NULL;
@@ -79,12 +91,6 @@ DaoxGlyph* DaoxFont_GetGlyph( DaoxFont *self, int glyph_index );
 DaoxGlyph* DaoxFont_GetCharGlyph( DaoxFont *self, wchar_t ch );
 
 
-typedef struct DaoxGlyphPoint  DaoxGlyphPoint;
-struct DaoxGlyphPoint
-{
-	uchar_t flag;
-	short   x, y;
-};
 
 struct DaoxGlyph
 {
@@ -92,8 +98,6 @@ struct DaoxGlyph
 	int  leftSideBearing;
 
 	DaoxPath  *shape;
-
-	DaoxGlyphPoint *points;
 };
 
 DaoxGlyph* DaoxGlyph_New();

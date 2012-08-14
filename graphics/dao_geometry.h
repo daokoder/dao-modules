@@ -201,7 +201,7 @@ DAO_DLL void DaoxByteArray_Resize( DaoxByteArray *self, int count, uchar_t byte 
 DAO_DLL DaoxPointArray* DaoxPointArray_New();
 DAO_DLL void DaoxPointArray_Clear( DaoxPointArray *self );
 DAO_DLL void DaoxPointArray_Delete( DaoxPointArray *self );
-DAO_DLL void DaoxPointArray_Resize( DaoxPointArray *self, int count );
+DAO_DLL void DaoxPointArray_Reset( DaoxPointArray *self );
 DAO_DLL void DaoxPointArray_PushXY( DaoxPointArray *self, double x, double y );
 DAO_DLL void DaoxPointArray_Push( DaoxPointArray *self, DaoxPoint point );
 DAO_DLL void DaoxPointArray_PushPoints( DaoxPointArray *self, DaoxPointArray *points );
@@ -273,12 +273,6 @@ DAO_DLL int DaoxLineQuad_Junction( DaoxQuad first, DaoxQuad second, DaoxPoint *t
 
 
 
-
-DAO_DLL void DaoxPolygonArray_MakeLines( DaoxPolygonArray *self, DaoxPointArray *points, DaoxByteArray *junctions, double width, int junction, int close );
-
-DAO_DLL void DaoxPolygonArray_TriangulatePolygon( DaoxPolygonArray *self, DaoxPointArray *points, struct DaoxTriangulator *triangulator );
-
-DAO_DLL void DaoxSimplePath_MakePolygons( DaoxSimplePath *self, double width, int junction, DaoxPolygonArray *strokes, DaoxPolygonArray *fills, DaoxPathBuffer *buffer );
 
 
 #ifdef __cplusplus

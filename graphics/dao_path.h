@@ -66,11 +66,11 @@ struct DaoxPathSegment
 
 	int    count;
 
+	float  maxlen;
+	float  maxdiff;
+
 	double  start;  /* parametric start location in the original segment; */
 	double  end;    /* parametric   end location in the original segment; */
-
-	double  maxlen;
-	double  maxdiff;
 
 	DaoxPoint  P1; /* start point; */
 	DaoxPoint  P2; /* end point; */
@@ -91,8 +91,7 @@ struct DaoxPathComponent
 	DaoxPathSegment  *first;
 	DaoxPathSegment  *last;
 
-	double  maxlen;
-	double  maxdiff;
+	DaoxPathSegment  *cache;
 
 	struct {
 		DaoxPathSegment  *first;
@@ -100,6 +99,9 @@ struct DaoxPathComponent
 	} refined;
 
 	DaoxPathComponent  *next;
+
+	float  maxlen;
+	float  maxdiff;
 };
 
 struct DaoxPath
@@ -107,10 +109,7 @@ struct DaoxPath
 	DaoxPathComponent  *first;
 	DaoxPathComponent  *last;
 
-	DaoxPath  *junctions;
-
-	int     borderCount;
-	double  borderWidth;
+	DaoxPathComponent  *cache;
 
 	DaoxPointArray  *points;
 	DaoxIntArray    *triangles;
@@ -122,6 +121,7 @@ void DaoxPathSegment_SetPoints( DaoxPathSegment *self, DaoxPoint P1, DaoxPoint P
 
 DaoxPath* DaoxPath_New();
 void DaoxPath_Delete( DaoxPath *self );
+void DaoxPath_Reset( DaoxPath *self );
 
 
 DAO_DLL void DaoxPath_MoveTo( DaoxPath *self, double x, double y );

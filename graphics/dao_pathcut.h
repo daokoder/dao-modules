@@ -33,6 +33,9 @@
 // Path regions are determined by winding number.
 */
 
+
+// !!!OBSOLETE!!!
+
 #ifndef __DAO_PATHCUT_H__
 #define __DAO_PATHCUT_H__
 

@@ -31,9 +31,6 @@
 // Currently only for 2D vector graphics.
 //
 // TODO: SVG Tiny backend;
-// TODO: hardware accelerated backend;
-// TODO: rasterization backend? base it on the OpenVG RI?
-// TODO: other library based backend; 
 */
 
 #ifndef __DAO_GRAPHICS_H__
@@ -64,6 +61,7 @@ enum DaoxGraphicsShapes
 };
 
 typedef struct DaoxColor             DaoxColor;
+typedef struct DaoxColorArray        DaoxColorArray;
 
 typedef struct DaoxGraphicsData      DaoxGraphicsData;
 
@@ -86,10 +84,20 @@ typedef  DaoxGraphicsItem  DaoxGraphicsText;
 
 struct DaoxColor
 {
-	double  red;
-	double  green;
-	double  blue;
-	double  alpha;
+	float  red;
+	float  green;
+	float  blue;
+	float  alpha;
+};
+
+
+
+struct DaoxColorArray
+{
+	DaoxColor  *colors;
+
+	int  count;
+	int  capacity;
 };
 
 
@@ -119,8 +127,11 @@ struct DaoxGraphicsData
 
 	DaoxTransform  *transform;  /* for path only; */
 
-	DaoxPolygonArray  *strokePolygons;
-	DaoxPolygonArray  *fillPolygons;
+	DaoxColorArray  *colors;
+	DaoxPointArray  *points;
+
+	DaoxIntArray  *strokeTriangles;
+	DaoxIntArray  *fillTriangles;
 
 	DaoxGraphicsItem  *item; 
 };
@@ -210,10 +221,21 @@ extern "C"{
 #endif
 
 
+
+DaoxColorArray* DaoxColorArray_New();
+void DaoxColorArray_Clear( DaoxColorArray *self );
+void DaoxColorArray_Delete( DaoxColorArray *self );
+void DaoxColorArray_Reset( DaoxColorArray *self );
+void DaoxColorArray_PushRGBA( DaoxColorArray *self, float r, float g, float b, float a );
+void DaoxColorArray_Push( DaoxColorArray *self, DaoxColor color );
+
+
 DaoxGraphicsData* DaoxGraphicsData_New();
 void DaoxGraphicsData_Delete( DaoxGraphicsData *self );
 void DaoxGraphicsData_Reset( DaoxGraphicsData *self );
 void DaoxGraphicsData_Init( DaoxGraphicsData *self, DaoxGraphicsItem *item );
+void DaoxGraphicsData_PushStrokeTriangle( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C );
+void DaoxGraphicsData_PushStrokeQuad( DaoxGraphicsData *self, DaoxQuad quad );
 
 
 
@@ -248,7 +270,7 @@ DAO_DLL void DaoxGraphicsPath_CubicTo2( DaoxGraphicsPath *self, double cx0, doub
 DAO_DLL void DaoxGraphicsPath_Close( DaoxGraphicsPath *self );
 
 
-DAO_DLL void DaoxGraphicsItem_UpdatePolygons( DaoxGraphicsItem *self, DaoxGraphicsScene *scene );
+DAO_DLL int DaoxGraphicsItem_UpdateData( DaoxGraphicsItem *self, DaoxGraphicsScene *scene );
 
 
 

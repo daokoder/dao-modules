@@ -31,6 +31,13 @@
 #include "dao_opengl.h"
 
 
+#define DAOX_VBO_COUNT   3
+
+#define DAOX_VBO_VERTEX  0
+#define DAOX_VBO_STROKE  1
+#define DAOX_VBO_FILL    2
+
+
 void DaoxGraphics_glSetColor( DaoxColor color )
 {
 	glColor4f( color.red, color.green, color.blue, color.alpha );
@@ -81,13 +88,34 @@ void DaoxGraphics_glFillPolygons( DaoxPolygonArray *polygons )
 		}
 	}
 }
+void DaoxGraphics_glFillTriangles( DaoxGraphicsData *gdata, DaoxIntArray *triangles )
+{
+	DaoxPoint *points = gdata->points->points;
+	int i, *ids = triangles->values;
+	glBegin( GL_TRIANGLES );
+	{
+		for(i=0; i<triangles->count; i+=3){
+			glVertex2f( points[ids[i+0]].x, points[ids[i+0]].y );
+			glVertex2f( points[ids[i+1]].x, points[ids[i+1]].y );
+			glVertex2f( points[ids[i+2]].x, points[ids[i+2]].y );
+		}
+	}
+	glEnd();
+}
 void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item )
 {
 	GLdouble matrix[16] = {0};
 	int i, n = item->children ? item->children->size : 0;
 
-	DaoxGraphicsItem_UpdatePolygons( item, item->scene );
+	DaoxGraphicsItem_UpdateData( item, item->scene );
 
+	if( item->gdata->strokeTriangles->count + item->gdata->fillTriangles->count == 0 ) return;
+
+	printf( "strokeTriangles = %6i\n", item->gdata->strokeTriangles->count );
+	printf( "fillTriangles   = %6i\n", item->gdata->fillTriangles->count );
+#if 0
+#endif
+	
 	memset( matrix, 0, 16*sizeof(GLdouble) );
 
 	matrix[0] = item->state->transform.Axx;
@@ -113,9 +141,9 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item )
 		glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
 	}
 #endif
-	if( item->gdata->strokePolygons->polygons->count ){
+	if( item->gdata->strokeTriangles->count ){
 		DaoxGraphics_glSetColor( item->state->strokeColor );
-		DaoxGraphics_glFillPolygons( item->gdata->strokePolygons );
+		DaoxGraphics_glFillTriangles( item->gdata, item->gdata->strokeTriangles );
 	}
 
 #ifdef USE_STENCIL
@@ -124,9 +152,9 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item )
 		glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
 	}
 #endif
-	if( item->gdata->fillPolygons->polygons->count ){
+	if( item->gdata->fillTriangles->count ){
 		DaoxGraphics_glSetColor( item->state->fillColor );
-		DaoxGraphics_glFillPolygons( item->gdata->fillPolygons );
+		DaoxGraphics_glFillTriangles( item->gdata, item->gdata->fillTriangles );
 	}
 #ifdef USE_STENCIL
 	if( item->shape >= DAOX_GS_CIRCLE ) glDisable( GL_STENCIL_TEST );;
