@@ -37,58 +37,6 @@
 
 
 
-DaoxFloatArray* DaoxFloatArray_New()
-{
-}
-void DaoxFloatArray_Delete( DaoxFloatArray *self )
-{
-}
-void DaoxFloatArray_Reset( DaoxFloatArray *self )
-{
-	self->count = 0;
-}
-void DaoxFloatArray_Push( DaoxFloatArray *self, double value )
-{
-	if( self->count >= self->capacity ){
-		self->capacity += 0.2 * self->capacity + 1;
-		self->values = (double*) dao_realloc( self->values, self->capacity * sizeof(double) );
-	}
-	self->values[ self->count ] = value;
-	self->count += 1;
-}
-void DaoxFloatArray_QuickSort( double *values, int first, int last )
-{
-	double pivot, tmp;
-	int lower = first+1, upper = last;
-
-	if( first >= last ) return;
-	tmp = values[first];
-	values[first] = values[ (first+last)/2 ];
-	values[ (first+last)/2 ] = tmp;
-	pivot = values[ first ];
-
-	while( lower <= upper ){
-		while( lower < last && values[lower] < pivot ) lower ++;
-		while( upper > first && pivot < values[upper] ) upper --;
-		if( lower < upper ){
-			tmp = values[lower];
-			values[lower] = values[upper];
-			values[upper] = tmp;
-			upper --;
-		}
-		lower ++;
-	}
-	tmp = values[first];
-	values[first] = values[upper];
-	values[upper] = tmp;
-	if( first+1 < upper ) DaoxFloatArray_QuickSort( values, first, upper-1 );
-	if( upper+1 < last ) DaoxFloatArray_QuickSort( values, upper+1, last );
-}
-void DaoxFloatArray_Sort( DaoxFloatArray *self )
-{
-	if( self->count <= 1 ) return;
-	DaoxFloatArray_QuickSort( self->values, 0, self->count - 1 );
-}
 
 
 DaoxPathNode* DaoxPathNode_New()

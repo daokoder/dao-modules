@@ -63,6 +63,7 @@ typedef struct DaoxSliceArray        DaoxSliceArray;
 typedef struct DaoxPointArray        DaoxPointArray;
 typedef struct DaoxQuadArray         DaoxQuadArray;
 typedef struct DaoxPolygonArray      DaoxPolygonArray;
+typedef struct DaoxFloatArray        DaoxFloatArray;
 
 typedef struct DaoxBezierSegment     DaoxBezierSegment;
 
@@ -165,6 +166,15 @@ struct DaoxSimplePath
 };
 
 
+struct DaoxFloatArray
+{
+	float  *values;
+	int     count;
+	int     capacity;
+};
+
+
+
 
 
 
@@ -196,6 +206,14 @@ DAO_DLL void DaoxByteArray_Clear( DaoxByteArray *self );
 DAO_DLL void DaoxByteArray_Delete( DaoxByteArray *self );
 DAO_DLL void DaoxByteArray_Push( DaoxByteArray *self, uchar_t byte );
 DAO_DLL void DaoxByteArray_Resize( DaoxByteArray *self, int count, uchar_t byte );
+
+
+
+DAO_DLL DaoxFloatArray* DaoxFloatArray_New();
+DAO_DLL void DaoxFloatArray_Delete( DaoxFloatArray *self );
+DAO_DLL void DaoxFloatArray_Reset( DaoxFloatArray *self );
+DAO_DLL void DaoxFloatArray_Push( DaoxFloatArray *self, float value );
+
 
 
 DAO_DLL DaoxPointArray* DaoxPointArray_New();

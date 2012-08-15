@@ -66,8 +66,8 @@ struct DaoxPathSegment
 
 	int    count;
 
-	float  maxlen;
-	float  maxdiff;
+	double  length;  /* length; */
+	double  delta;
 
 	double  start;  /* parametric start location in the original segment; */
 	double  end;    /* parametric   end location in the original segment; */
@@ -102,6 +102,7 @@ struct DaoxPathComponent
 
 	float  maxlen;
 	float  maxdiff;
+	double length;
 };
 
 struct DaoxPath
@@ -113,6 +114,8 @@ struct DaoxPath
 
 	DaoxPointArray  *points;
 	DaoxIntArray    *triangles;
+
+	double  length;
 };
 
 DaoxPathSegment* DaoxPathSegment_New( DaoxPathComponent *component );

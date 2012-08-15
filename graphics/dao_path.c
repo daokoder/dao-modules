@@ -65,8 +65,8 @@ DaoxPathSegment* DaoxPathSegment_New( DaoxPathComponent *component )
 	DaoxPathSegment* self = (DaoxPathSegment*) calloc(1,sizeof(DaoxPathSegment));
 	self->start = 0.0;
 	self->end = 1.0;
+	self->count = 1;
 	self->component = component;
-	self->maxlen = self->maxdiff = 1E16;
 	return self;
 }
 void DaoxPathSegment_Delete( DaoxPathSegment *self )
@@ -92,10 +92,9 @@ DaoxPathSegment* DaoxPathComponent_PushSegment( DaoxPathComponent *self )
 		segment = self->cache;
 		self->cache = segment->next;
 		segment->bezier = 0;
-		segment->count = 0;
+		segment->count = 1;
 		segment->start = 0.0;
 		segment->end = 1.0;
-		segment->maxlen = segment->maxdiff = 1E16;
 	}else{
 		segment = DaoxPathSegment_New( self );
 	}
@@ -427,6 +426,7 @@ void DaoxPathSegment_SetPoints( DaoxPathSegment *self, DaoxPoint P1, DaoxPoint P
 	self->count = 1;
 	self->start = 0.0;
 	self->end = 1.0;
+	self->length = 0.0;
 }
 void DaoxPathSegment_InitSubSegments( DaoxPathSegment *self )
 {
@@ -436,19 +436,21 @@ void DaoxPathSegment_InitSubSegments( DaoxPathSegment *self )
 	self->first->convexness = self->second->convexness = self->convexness;
 	self->first->count = self->second->count = 1;
 	self->count = 2;
+
+	self->first->P1 = self->P1;
+	self->second->P2 = self->P2;
+
+	self->first->start = self->start;
+	self->second->end = self->end;
 }
 void DaoxPathSegment_DivideLinear( DaoxPathSegment *self, double at )
 {
 	DaoxPathSegment_InitSubSegments( self );
 
-	self->first->P1 = self->P1;
 	self->first->P2.x = (1.0 - at)*self->P1.x + at*self->P2.x;
 	self->first->P2.y = (1.0 - at)*self->P1.y + at*self->P2.y;
 	self->second->P1 = self->first->P2;
-	self->second->P2 = self->P2;
 
-	self->first->start = self->start;
-	self->second->end = self->end;
 	self->first->end = self->second->start = (1.0 - at)*self->start + at*self->end;
 }
 void DaoxPathSegment_DivideQuadratic( DaoxPathSegment *self, double at )
@@ -457,11 +459,9 @@ void DaoxPathSegment_DivideQuadratic( DaoxPathSegment *self, double at )
 
 	DaoxPathSegment_InitSubSegments( self );
 
-	self->first->P1 = self->P1;
 	self->first->C1.x = (1.0 - at)*self->P1.x + at*self->C1.x;
 	self->first->C1.y = (1.0 - at)*self->P1.y + at*self->C1.y;
 
-	self->second->P2 = self->P2;
 	self->second->C1.x = (1.0 - at)*self->C1.x + at*self->P2.x;
 	self->second->C1.y = (1.0 - at)*self->C1.y + at*self->P2.y;
 
@@ -470,8 +470,6 @@ void DaoxPathSegment_DivideQuadratic( DaoxPathSegment *self, double at )
 	self->first->P2 = Q1;
 	self->second->P1 = Q1;
 
-	self->first->start = self->start;
-	self->second->end = self->end;
 	self->first->end = self->second->start = (1.0 - at)*self->start + at*self->end;
 }
 void DaoxPathSegment_DivideCubic( DaoxPathSegment *self, double at )
@@ -483,13 +481,11 @@ void DaoxPathSegment_DivideCubic( DaoxPathSegment *self, double at )
 	Q1.x = (1.0 - at)*self->C1.x + at*self->C2.x;
 	Q1.y = (1.0 - at)*self->C1.y + at*self->C2.y;
 
-	self->first->P1 = self->P1;
 	self->first->C1.x = (1.0 - at)*self->P1.x + at*self->C1.x;
 	self->first->C1.y = (1.0 - at)*self->P1.y + at*self->C1.y;
 	self->first->C2.x = (1.0 - at)*self->first->C1.x + at*Q1.x;
 	self->first->C2.y = (1.0 - at)*self->first->C1.y + at*Q1.y;
 
-	self->second->P2 = self->P2;
 	self->second->C2.x = (1.0 - at)*self->C2.x + at*self->P2.x;
 	self->second->C2.y = (1.0 - at)*self->C2.y + at*self->P2.y;
 	self->second->C1.x = (1.0 - at)*Q1.x + at*self->second->C2.x;
@@ -500,8 +496,6 @@ void DaoxPathSegment_DivideCubic( DaoxPathSegment *self, double at )
 	self->first->P2 = Q1;
 	self->second->P1 = Q1;
 
-	self->first->start = self->start;
-	self->second->end = self->end;
 	self->first->end = self->second->start = (1.0 - at)*self->start + at*self->end;
 }
 void DaoxPathSegment_Divide( DaoxPathSegment *self, double at )
@@ -522,14 +516,14 @@ int DaoxPathSegment_TryDivideQuadratic( DaoxPathSegment *self, double maxlen, do
 	double CP = DaoxDistance( self->C1, self->P2 );
 	double PP = DaoxDistance( self->P1, self->P2 );
 
-	self->maxlen = PP;
-	self->maxdiff = (PC + CP - PP) / PP;
-	if( PP < maxlen && ((PC + CP - PP) < maxdiff*PP || PP < 0.001*maxlen) ){
+	self->length = 0.5 * (PC + CP + PP);
+	self->delta = (PC + CP - PP) / PP;
+	if( self->length < maxlen && (self->delta < maxdiff || self->length < 0.001*maxlen) ){
 		self->count = 1;
 		if( self->first ) self->first->count = 0;
 		if( self->second ) self->second->count = 0;
-		if( self->maxlen > self->component->maxlen ) self->component->maxlen = self->maxlen;
-		if( self->maxdiff > self->component->maxdiff ) self->component->maxdiff = self->maxdiff;
+		if( self->length > self->component->maxlen ) self->component->maxlen = self->length;
+		if( self->delta > self->component->maxdiff ) self->component->maxdiff = self->delta;
 		return 0;
 	}
 	DaoxPathSegment_DivideQuadratic( self, PC / (PC + CP) );
@@ -542,18 +536,28 @@ int DaoxPathSegment_TryDivideCubic( DaoxPathSegment *self, double maxlen, double
 	double CP = DaoxDistance( self->C2, self->P2 );
 	double PP = DaoxDistance( self->P1, self->P2 );
 
-	self->maxlen = PP;
-	self->maxdiff = (PC + CC + CP - PP) / PP;
-	if( PP < maxlen && ((PC + CC + CP - PP) < maxdiff*PP || PP < 0.001*maxlen) ){
+	self->length = 0.5 * (PC + CC + CP + PP);
+	self->delta = (PC + CC + CP - PP) / PP;
+	if( self->length < maxlen && (self->delta < maxdiff || self->length < 0.001*maxlen) ){
 		self->count = 1;
 		if( self->first ) self->first->count = 0;
 		if( self->second ) self->second->count = 0;
-		if( self->maxlen > self->component->maxlen ) self->component->maxlen = self->maxlen;
-		if( self->maxdiff > self->component->maxdiff ) self->component->maxdiff = self->maxdiff;
+		if( self->length > self->component->maxlen ) self->component->maxlen = self->length;
+		if( self->delta > self->component->maxdiff ) self->component->maxdiff = self->delta;
 		return 0;
 	}
 	DaoxPathSegment_DivideCubic( self, PC / (PC + CP) );
 	return 1;
+}
+void DaoxPathSegment_RefineLinear( DaoxPathSegment *self, double maxlen, double maxdiff )
+{
+	if( self->count > 1 ){
+		DaoxPathSegment_RefineLinear( self->first, maxlen, maxdiff );
+		DaoxPathSegment_RefineLinear( self->second, maxlen, maxdiff );
+		self->count = self->first->count + self->second->count;
+		return;
+	}
+	self->length = DaoxDistance( self->P1, self->P2 );
 }
 void DaoxPathSegment_RefineQuadratic( DaoxPathSegment *self, double maxlen, double maxdiff )
 {
@@ -561,6 +565,7 @@ void DaoxPathSegment_RefineQuadratic( DaoxPathSegment *self, double maxlen, doub
 		DaoxPathSegment_RefineQuadratic( self->first, maxlen, maxdiff );
 		DaoxPathSegment_RefineQuadratic( self->second, maxlen, maxdiff );
 		self->count = self->first->count + self->second->count;
+		self->length = self->first->length + self->second->length;
 		return;
 	}
 	if( DaoxPathSegment_TryDivideQuadratic( self, maxlen, maxdiff ) == 0 ) return;
@@ -568,6 +573,7 @@ void DaoxPathSegment_RefineQuadratic( DaoxPathSegment *self, double maxlen, doub
 	DaoxPathSegment_RefineQuadratic( self->first, maxlen, maxdiff );
 	DaoxPathSegment_RefineQuadratic( self->second, maxlen, maxdiff );
 	self->count = self->first->count + self->second->count;
+	self->length = self->first->length + self->second->length;
 }
 void DaoxPathSegment_RefineCubic( DaoxPathSegment *self, double maxlen, double maxdiff )
 {
@@ -575,6 +581,7 @@ void DaoxPathSegment_RefineCubic( DaoxPathSegment *self, double maxlen, double m
 		DaoxPathSegment_RefineCubic( self->first, maxlen, maxdiff );
 		DaoxPathSegment_RefineCubic( self->second, maxlen, maxdiff );
 		self->count = self->first->count + self->second->count;
+		self->length = self->first->length + self->second->length;
 		return;
 	}
 	if( DaoxPathSegment_TryDivideCubic( self, maxlen, maxdiff ) == 0 ) return;
@@ -582,12 +589,13 @@ void DaoxPathSegment_RefineCubic( DaoxPathSegment *self, double maxlen, double m
 	DaoxPathSegment_RefineCubic( self->first, maxlen, maxdiff );
 	DaoxPathSegment_RefineCubic( self->second, maxlen, maxdiff );
 	self->count = self->first->count + self->second->count;
+	self->length = self->first->length + self->second->length;
 }
 
 void DaoxPathSegment_Refine( DaoxPathSegment *self, double maxlen, double maxdiff )
 {
 	if( self->bezier == 1 ){
-		self->count = 1;
+		DaoxPathSegment_RefineLinear( self, maxlen, maxdiff );
 	}else if( self->bezier == 2 ){
 		DaoxPathSegment_RefineQuadratic( self, maxlen, maxdiff );
 	}else if( self->bezier == 3 ){
@@ -599,34 +607,14 @@ void DaoxPathComponent_Refine( DaoxPathComponent *self, double maxlen, double ma
 {
 	DaoxPathSegment *first = self->refined.first ? self->refined.first : self->first;
 	DaoxPathSegment *segment = first;
+	self->length = 0.0;
 	do {
 		DaoxPathSegment_Refine( segment, maxlen, maxdiff );
 		if( segment->count == 1 ) DaoxPathSegment_Divide( segment, 0.5 );
+		printf( "%15f\n", segment->length );
+		self->length += segment->length;
 		segment = segment->next;
 	} while( segment && segment != first );
-}
-double DaoxPathSegment_LineLength( DaoxPathSegment *self )
-{
-	if( self->bezier == 1 ){
-		return DaoxDistance( self->P1, self->P2 );
-	}else if( self->bezier == 2 ){
-		return DaoxDistance( self->P1, self->C1 ) + DaoxDistance( self->C1, self->P2 );
-	}else if( self->bezier == 3 ){
-		double len = DaoxDistance( self->P1, self->C1 ) + DaoxDistance( self->C1, self->C2 );
-		return len + DaoxDistance( self->C2, self->P2 );
-	}
-	return 0.0;
-}
-double DaoxPathComponent_LineLength( DaoxPathComponent *self )
-{
-	double len = 0.0;
-	DaoxPathSegment *first = self->first;
-	DaoxPathSegment *segment = first;
-	do {
-		len += DaoxPathSegment_LineLength( segment );
-		segment = segment->next;
-	} while( segment && segment != first );
-	return len;
 }
 double DaoxPathComponent_MaxLineLength( DaoxPathComponent *self )
 {
@@ -634,7 +622,7 @@ double DaoxPathComponent_MaxLineLength( DaoxPathComponent *self )
 	DaoxPathSegment *first = self->first;
 	DaoxPathSegment *segment = first;
 	do {
-		len = DaoxPathSegment_LineLength( segment );
+		len = segment->length;
 		if( len > max ) max = len;
 		segment = segment->next;
 	} while( segment && segment != first );
@@ -642,6 +630,7 @@ double DaoxPathComponent_MaxLineLength( DaoxPathComponent *self )
 }
 void DaoxPathComponent_RetrieveSegment( DaoxPathComponent *self, DaoxPathSegment *segment )
 {
+	printf( "%3i %3i\n", segment->bezier, segment->count );
 	if( segment->count == 1 ){
 		segment->next = NULL;
 		if( self->refined.first == NULL ){
@@ -727,13 +716,16 @@ void DaoxPath_Refine( DaoxPath *self, double maxlen, double maxdiff )
 {
 	DaoxPathComponent *com;
 	printf( "DaoxPath_Refine: %15f %15f %i\n", maxlen, maxdiff, self->first->first->bezier );
+	self->length = 0.0;
 	for(com=self->first; com; com=com->next){
 		if( com->first->bezier == 0 ) continue;
-		printf( "1: maxlen = %15f;  maxdiff = %15f\n", com->maxlen, com->maxdiff );
-		if( maxlen > com->maxlen && maxdiff > com->maxdiff ) continue;
+		if( maxlen > com->maxlen && maxdiff > com->maxdiff ){
+			self->length += com->length;
+			continue;
+		}
 		com->maxlen = com->maxdiff = 0.0;
 		DaoxPathComponent_Refine( com, maxlen, maxdiff );
-		printf( "2: maxlen = %15f;  maxdiff = %15f\n", com->maxlen, com->maxdiff );
+		self->length += com->length;
 	}
 }
 
@@ -749,10 +741,12 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxPathBuffer *buffer )
 
 	printf( "DaoxPath_Segment 1: %p\n", triangulator );
 	DaoxTriangulator_Reset( triangulator );
+	DaoxPath_Refine( self, 1E16, 1 ); /* setup length; */
 	for(com=self->first; com; com=com->next){
 		len = DaoxPathComponent_MaxLineLength( com );
 		if( len > maxlen ) maxlen = len;
 	}
+	printf( "maxlen = %f\n", maxlen );
 	maxlen *= 0.5;
 	DaoxPath_Refine( self, maxlen, maxdiff );
 	for(com=self->first; com; com=com->next){
@@ -823,21 +817,31 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxPathBuffer *buffer )
 }
 
 
+
+
+
+
+
 void DaoxGraphicsData_PushFilling( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C )
 {
-	int index = self->points->count;
+	int index = self->fillPoints->count;
 	A = DaoxPoint_Transform( A, self->transform );
 	B = DaoxPoint_Transform( B, self->transform );
 	C = DaoxPoint_Transform( C, self->transform );
-	DaoxPointArray_Push( self->points, A );
-	DaoxPointArray_Push( self->points, B );
-	DaoxPointArray_Push( self->points, C );
+	DaoxPointArray_Push( self->fillPoints, A );
+	DaoxPointArray_Push( self->fillPoints, B );
+	DaoxPointArray_Push( self->fillPoints, C );
 	DaoxIntArray_Push( self->fillTriangles, index );
 	DaoxIntArray_Push( self->fillTriangles, index+1 );
 	DaoxIntArray_Push( self->fillTriangles, index+2 );
 }
-void DaoxGraphicsData_MakeJunction( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C, int junction )
+void DaoxGraphicsData_PushStrokeColor( DaoxGraphicsData *self, DaoxColor color, int times )
 {
+	while( (times--) > 0 ) DaoxColorArray_Push( self->strokeColors, color );
+}
+void DaoxGraphicsData_MakeJunction( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C, double pos, int junction )
+{
+	DaoxColor color = {0.0};
 	DaoxGraphicsData round = *self;
 	DaoxTransform transform = {0.0,0.0,0.0,0.0,0.0,0.0};
 	DaoxPoint P1 = DaoxPoint_Transform( A, self->transform );
@@ -845,27 +849,36 @@ void DaoxGraphicsData_MakeJunction( DaoxGraphicsData *self, DaoxPoint A, DaoxPoi
 	DaoxPoint P3 = DaoxPoint_Transform( C, self->transform );
 	DaoxQuad Q1 = DaoxLine2Quad( P1, P2, self->strokeWidth );
 	DaoxQuad Q2 = DaoxLine2Quad( P2, P3, self->strokeWidth );
+	DaoxColorGradient *strokeGradient = self->item->state->strokeGradient;
+	int hasGradient = strokeGradient != NULL && strokeGradient->stops->count;
 	double scale, dist, cosine, sine, angle, W2 = 0.5 * self->strokeWidth;
-	int k = DaoxLineQuad_Junction( Q1, Q2, & P3 );
+	int m, k = DaoxLineQuad_Junction( Q1, Q2, & P3 );
 
 	if( self->strokeWidth < 1E-6 ) return;
+
+	if( hasGradient ) color = DaoxColorGradient_InterpolateColor( strokeGradient, pos );
 
 	if( k > 0 ){
 		if( junction != DAOX_JUNCTION_ROUND ){
 			DaoxGraphicsData_PushStrokeTriangle( self, Q1.D, Q2.A, P2 );
+			if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, 3 );
 		}
 		if( junction == DAOX_JUNCTION_SHARP ){
 			DaoxGraphicsData_PushStrokeTriangle( self, Q1.D, Q2.A, P3 );
+			if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, 3 );
 		}
 	}else{
 		if( junction != DAOX_JUNCTION_ROUND ){
 			DaoxGraphicsData_PushStrokeTriangle( self, Q1.C, Q2.B, P2 );
+			if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, 3 );
 		}
 		if( junction == DAOX_JUNCTION_SHARP ){
 			DaoxGraphicsData_PushStrokeTriangle( self, Q1.C, Q2.B, P3 );
+			if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, 3 );
 		}
 	}
 	if( self->item->state->dash ){
+		if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, 3 );
 		if( k > 0 ){
 			DaoxGraphicsData_PushStrokeTriangle( self, P2, Q1.C, Q2.B );
 		}else{
@@ -882,8 +895,11 @@ void DaoxGraphicsData_MakeJunction( DaoxGraphicsData *self, DaoxPoint A, DaoxPoi
 	dist = DaoxDistance( Q1.D, Q2.A );
 	angle = acos( 1.0 - dist*dist / (2.0*W2*W2) );
 
+	m = self->strokePoints->count;
 	round.strokeWidth = 0.0;
 	round.junction = DAOX_JUNCTION_FLAT;
+	round.strokePoints = self->strokePoints;
+	round.fillPoints = self->strokePoints;
 	round.strokeTriangles = self->strokeTriangles;
 	round.fillTriangles = self->strokeTriangles;
 	round.transform = & transform;
@@ -895,6 +911,7 @@ void DaoxGraphicsData_MakeJunction( DaoxGraphicsData *self, DaoxPoint A, DaoxPoi
 	transform.By = P2.y;
 	k = DAOX_ARCS * angle / M_PI;
 	DaoxPath_ExportGraphicsData( self->item->scene->largeArcs[k], & round );
+	if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, self->strokePoints->count - m );
 }
 
 
@@ -915,19 +932,40 @@ void DaoxGraphicsData_UpdateDashState( DaoxGraphicsData *self, double len )
 	}
 }
 
+void DaoxGraphicsData_PushStrokeQuadColors( DaoxGraphicsData *self, double offset, double len )
+{
+	DaoxColorGradient *strokeGradient = self->item->state->strokeGradient;
+	DaoxColor color;
+	double pos;
+	pos = offset / self->currentLength;
+	color = DaoxColorGradient_InterpolateColor( strokeGradient, pos );
+	DaoxGraphicsData_PushStrokeColor( self, color, 2 );
+	pos = (offset + len) / self->currentLength;
+	color = DaoxColorGradient_InterpolateColor( strokeGradient, pos );
+	DaoxGraphicsData_PushStrokeColor( self, color, 2 );
+}
+
 void DaoxPathSegment_GetRefinedStroke( DaoxPathSegment *self, DaoxGraphicsData *gdata )
 {
 	DaoxQuad quad;
 	DaoxPoint PM;
+	DaoxColor color;
 	DaoxPoint P1 = DaoxPoint_Transform( self->P1, gdata->transform );
 	DaoxPoint P2 = DaoxPoint_Transform( self->P2, gdata->transform );
-	double at, len, width = gdata->strokeWidth;
+	DaoxColorGradient *strokeGradient = gdata->item->state->strokeGradient;
+	int hasGradient = strokeGradient != NULL && strokeGradient->stops->count;
+	double at, pos, len, width = gdata->strokeWidth;
+	double offset = gdata->currentOffset;
+
+	gdata->currentOffset += self->length;
 
 	if( width < 1E-6 ) return;
+
 
 	if( gdata->item->state->dash == 0 ){
 		quad = DaoxLine2Quad( P1, P2, width );
 		DaoxGraphicsData_PushStrokeQuad( gdata, quad );
+		if( hasGradient ) DaoxGraphicsData_PushStrokeQuadColors( gdata, offset, self->length );
 		return;
 	}
 	PM = DaoxPoint_Transform( self->C1, gdata->transform );
@@ -937,6 +975,7 @@ void DaoxPathSegment_GetRefinedStroke( DaoxPathSegment *self, DaoxGraphicsData *
 			if( (gdata->dashState&1) == 0 ){
 				quad = DaoxLine2Quad( P1, P2, width );
 				DaoxGraphicsData_PushStrokeQuad( gdata, quad );
+				if( hasGradient ) DaoxGraphicsData_PushStrokeQuadColors( gdata, offset, len );
 			}
 			DaoxGraphicsData_UpdateDashState( gdata, len );
 			return;
@@ -947,8 +986,10 @@ void DaoxPathSegment_GetRefinedStroke( DaoxPathSegment *self, DaoxGraphicsData *
 		if( (gdata->dashState&1) == 0 ){
 			quad = DaoxLine2Quad( P1, PM, width );
 			DaoxGraphicsData_PushStrokeQuad( gdata, quad );
+			if( hasGradient ) DaoxGraphicsData_PushStrokeQuadColors( gdata, offset, gdata->dashLength );
 		}
 		len -= gdata->dashLength;
+		offset += gdata->dashLength;
 		DaoxGraphicsData_UpdateDashState( gdata, gdata->dashLength );
 		P1 = PM;
 	}
@@ -960,10 +1001,12 @@ DaoxPathSegmentPair DaoxPathSegment_GetRefined( DaoxPathSegment *self, DaoxGraph
 	DaoxPoint P1, P2, P3;
 	DaoxQuad quad, prev, next;
 	DaoxPathSegmentPair sp1, sp2, segs = {NULL, NULL};
+	DaoxColorGradient *strokeGradient = gdata->item->state->strokeGradient;
+	int hasGradient = strokeGradient != NULL && strokeGradient->stops->count;
 	double width = gdata->strokeWidth;
 	double maxlen = gdata->maxlen;
 	double maxdiff = gdata->maxdiff;
-	double nojunction = 0;
+	double offset, nojunction = 0;
 
 	if( maxlen < 1E-16 ) maxlen = 10;
 	if( maxdiff < 1E-16 ) maxdiff = 0.001;
@@ -974,7 +1017,7 @@ DaoxPathSegmentPair DaoxPathSegment_GetRefined( DaoxPathSegment *self, DaoxGraph
 		DaoxPathSegment_GetRefinedStroke( self, gdata );
 		return segs;
 	}
-	if( self->maxlen <= maxlen && self->maxdiff <= maxdiff ){
+	if( self->length <= maxlen && self->delta <= maxdiff ){
 		DaoxPathSegment_GetRefinedStroke( self, gdata );
 		return segs;
 	}
@@ -998,6 +1041,7 @@ DaoxPathSegmentPair DaoxPathSegment_GetRefined( DaoxPathSegment *self, DaoxGraph
 		}
 	}
 	sp1 = DaoxPathSegment_GetRefined( self->first, gdata );
+	offset = gdata->currentOffset;
 	if( gdata->item->state->dash && (gdata->dashState & 1) ) nojunction = 1;
 	sp2 = DaoxPathSegment_GetRefined( self->second, gdata );
 	segs.first = sp1.first;
@@ -1012,12 +1056,20 @@ DaoxPathSegmentPair DaoxPathSegment_GetRefined( DaoxPathSegment *self, DaoxGraph
 	next = DaoxLine2Quad( P2, P3, width );
 	if( DaoxLineQuad_Junction( prev, next, NULL ) > 0 ){
 		DaoxGraphicsData_PushStrokeTriangle( gdata, prev.D, next.A, P2 );
-		if( gdata->item->state->dash )
+		if( gdata->item->state->dash ){
 			DaoxGraphicsData_PushStrokeTriangle( gdata, P2, prev.C, next.B );
+		}
 	}else{
 		DaoxGraphicsData_PushStrokeTriangle( gdata, prev.C, next.B, P2 );
-		if( gdata->item->state->dash )
+		if( gdata->item->state->dash ){
 			DaoxGraphicsData_PushStrokeTriangle( gdata, P2, prev.D, next.A );
+		}
+	}
+	if( hasGradient ){
+		int i = gdata->item->state->dash ? 6 : 3;
+		double pos = offset / gdata->currentLength;
+		DaoxColor color = DaoxColorGradient_InterpolateColor( strokeGradient, pos );
+		while( (i--) > 0 ) DaoxColorArray_Push( gdata->strokeColors, color );
 	}
 	return segs;
 }
@@ -1031,19 +1083,23 @@ void DaoxPath_ExportGraphicsData( DaoxPath *self, DaoxGraphicsData *gdata )
 	double width = gdata->strokeWidth;
 	double maxlen = gdata->maxlen;
 	double maxdiff = gdata->maxdiff;
+	double pos;
 	int i, j, count, jt, jt2;
 
 	if( maxlen < 1E-16 ) maxlen = 10;
 	if( maxdiff < 1E-16 ) maxdiff = 0.001;
 
 	DaoxPath_Refine( self, maxlen, maxdiff );
+	gdata->currentLength = self->length;
+	gdata->currentOffset = 0.0;
+	printf( "gdata->currentLength = %15f\n", self->length );
 	if( 1 ){
 		DaoxPoint *points = self->points->points;
 		int *ids = self->triangles->values;
-		int offset = gdata->points->count;
+		int offset = gdata->fillPoints->count;
 		for(i=0; i<self->points->count; i++){
 			DaoxPoint point = DaoxPoint_Transform( points[i], gdata->transform );
-			DaoxPointArray_Push( gdata->points, point );
+			DaoxPointArray_Push( gdata->fillPoints, point );
 		}
 		for(i=0; i<self->triangles->count; i++){
 			DaoxIntArray_Push( gdata->fillTriangles, ids[i] + offset );
@@ -1058,6 +1114,7 @@ void DaoxPath_ExportGraphicsData( DaoxPath *self, DaoxGraphicsData *gdata )
 		gdata->dashLength = gdata->item->state->dashPattern[0];
 		prev.first = prev.second = NULL;
 		seg = com->refined.first;
+		pos = 0.0;
 		do {
 			//printf( "convexness: %15p %15f %i\n", seg, seg->start, seg->convexness );
 			jt2 = gdata->item->state->dash == 0 || (gdata->dashState & 1) == 0;
@@ -1065,10 +1122,11 @@ void DaoxPath_ExportGraphicsData( DaoxPath *self, DaoxGraphicsData *gdata )
 			if( prev.first != NULL && width > 1E-6 ){
 				int userjunction = prev.second->end > 0.8 && cur.first->start < 0.2;
 				jt = userjunction ? gdata->junction : DAOX_JUNCTION_FLAT;
-				if( jt && jt2 ) DaoxGraphicsData_MakeJunction( gdata, prev.second->P1, prev.second->P2, cur.first->P2, jt );
+				if( jt && jt2 ) DaoxGraphicsData_MakeJunction( gdata, prev.second->P1, prev.second->P2, cur.first->P2, pos, jt );
 			}else if( prev.first == NULL ){
 				open = cur;
 			}
+			pos = gdata->currentOffset / gdata->currentLength;
 			prev = cur;
 			seg = seg->next;
 		} while( seg && seg != com->refined.first );
@@ -1077,7 +1135,7 @@ void DaoxPath_ExportGraphicsData( DaoxPath *self, DaoxGraphicsData *gdata )
 			int userjunction = cur.second->end > 0.8 && open.first->start < 0.2;
 			jt2 = gdata->item->state->dash == 0 || (gdata->dashState & 1) == 0;
 			jt = userjunction ? gdata->junction : DAOX_JUNCTION_FLAT;
-			if( jt && jt2 ) DaoxGraphicsData_MakeJunction( gdata, cur.second->P1, cur.second->P2, open.first->P2, jt );
+			if( jt && jt2 ) DaoxGraphicsData_MakeJunction( gdata, cur.second->P1, cur.second->P2, open.first->P2, 1.0, jt );
 		}
 	}
 }

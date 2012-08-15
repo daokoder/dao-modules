@@ -229,6 +229,69 @@ void DaoxByteArray_Resize( DaoxByteArray *self, int count, uchar_t byte )
 
 
 
+
+DaoxFloatArray* DaoxFloatArray_New()
+{
+	DaoxFloatArray *self = (DaoxFloatArray*) dao_calloc(1,sizeof(DaoxFloatArray));
+	return self;
+}
+void DaoxFloatArray_Delete( DaoxFloatArray *self )
+{
+	if( self->values ) dao_free( self->values );
+	dao_free( self );
+}
+void DaoxFloatArray_Reset( DaoxFloatArray *self )
+{
+	self->count = 0;
+}
+void DaoxFloatArray_Push( DaoxFloatArray *self, float value )
+{
+	if( self->count >= self->capacity ){
+		self->capacity += 0.2 * self->capacity + 1;
+		self->values = (float*) dao_realloc( self->values, self->capacity * sizeof(float) );
+	}
+	self->values[ self->count ] = value;
+	self->count += 1;
+}
+void DaoxFloatArray_QuickSort( float *values, int first, int last )
+{
+	float pivot, tmp;
+	int lower = first+1, upper = last;
+
+	if( first >= last ) return;
+	tmp = values[first];
+	values[first] = values[ (first+last)/2 ];
+	values[ (first+last)/2 ] = tmp;
+	pivot = values[ first ];
+
+	while( lower <= upper ){
+		while( lower < last && values[lower] < pivot ) lower ++;
+		while( upper > first && pivot < values[upper] ) upper --;
+		if( lower < upper ){
+			tmp = values[lower];
+			values[lower] = values[upper];
+			values[upper] = tmp;
+			upper --;
+		}
+		lower ++;
+	}
+	tmp = values[first];
+	values[first] = values[upper];
+	values[upper] = tmp;
+	if( first+1 < upper ) DaoxFloatArray_QuickSort( values, first, upper-1 );
+	if( upper+1 < last ) DaoxFloatArray_QuickSort( values, upper+1, last );
+}
+void DaoxFloatArray_Sort( DaoxFloatArray *self )
+{
+	if( self->count <= 1 ) return;
+	DaoxFloatArray_QuickSort( self->values, 0, self->count - 1 );
+}
+
+
+
+
+
+
 DaoxPointArray* DaoxPointArray_New()
 {
 	DaoxPointArray *self = (DaoxPointArray*) dao_calloc( 1, sizeof(DaoxPointArray) );

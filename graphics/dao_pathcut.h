@@ -41,7 +41,6 @@
 
 #include "dao_geometry.h"
 
-typedef struct DaoxFloatArray  DaoxFloatArray;
 
 typedef struct DaoxPathNode    DaoxPathNode;
 typedef struct DaoxPathEdge    DaoxPathEdge;
@@ -52,18 +51,6 @@ typedef struct DaoxQuadTree    DaoxQuadTree;
 typedef struct DaoxPathFragment  DaoxPathFragment;
 typedef struct DaoxBoundingBox  DaoxBoundingBox;
 
-
-struct DaoxFloatArray
-{
-	double  *values;
-	int     count;
-	int     capacity;
-};
-DaoxFloatArray* DaoxFloatArray_New();
-void DaoxFloatArray_Delete( DaoxFloatArray *self );
-void DaoxFloatArray_Reset( DaoxFloatArray *self );
-void DaoxFloatArray_Push( DaoxFloatArray *self, double value );
-void DaoxFloatArray_Sort( DaoxFloatArray *self );
 
 
 struct DaoxPathNode

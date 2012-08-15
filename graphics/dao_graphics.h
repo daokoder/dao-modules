@@ -66,6 +66,7 @@ typedef struct DaoxColorArray        DaoxColorArray;
 typedef struct DaoxGraphicsData      DaoxGraphicsData;
 
 typedef struct DaoxGraphicsState     DaoxGraphicsState;
+typedef struct DaoxColorGradient  DaoxColorGradient;
 
 typedef struct DaoxGraphicsScene     DaoxGraphicsScene;
 typedef struct DaoxGraphicsItem      DaoxGraphicsItem;
@@ -103,6 +104,8 @@ struct DaoxColorArray
 
 
 
+
+
 /*
 // Polygons converted from the stroking and filling areas of the item.
 //
@@ -121,20 +124,52 @@ struct DaoxGraphicsData
 	uchar_t  junction;
 	uchar_t  dashState;
 	double   dashLength;
+	double   currentOffset;
+	double   currentLength;
 	double   strokeWidth;
 	double   maxlen;
 	double   maxdiff;
 
 	DaoxTransform  *transform;  /* for path only; */
 
-	DaoxColorArray  *colors;
-	DaoxPointArray  *points;
+	DaoxColorArray  *strokeColors;
+	DaoxPointArray  *strokePoints;
+	DaoxIntArray    *strokeTriangles;
 
-	DaoxIntArray  *strokeTriangles;
-	DaoxIntArray  *fillTriangles;
+	DaoxColorArray  *fillColors;
+	DaoxPointArray  *fillPoints;
+	DaoxIntArray    *fillTriangles;
 
 	DaoxGraphicsItem  *item; 
 };
+
+
+
+
+enum DaoxGradientTypes
+{
+	DAOX_GRADIENT_BASE ,
+	DAOX_GRADIENT_LINEAR ,
+	DAOX_GRADIENT_RADIAL ,
+	DAOX_GRADIENT_PATH
+};
+
+struct DaoxColorGradient
+{
+	DAO_CDATA_COMMON;
+
+	int  gradient;
+
+	DaoxFloatArray  *stops;
+	DaoxColorArray  *colors;
+
+	DaoxPoint  points[2];
+	double     radius;
+};
+DAO_DLL extern DaoType *daox_type_color_gradient;
+DAO_DLL extern DaoType *daox_type_linear_gradient;
+DAO_DLL extern DaoType *daox_type_radial_gradient;
+DAO_DLL extern DaoType *daox_type_path_gradient;
 
 
 
@@ -153,6 +188,9 @@ struct DaoxGraphicsState
 
 	DaoxColor  strokeColor;  /* stroke color: RGBA; */
 	DaoxColor  fillColor;    /* filling color: RGBA; */
+
+	DaoxColorGradient  *strokeGradient;
+	DaoxColorGradient  *fillGradient;
 
 	DaoxFont  *font;
 };
@@ -228,6 +266,12 @@ void DaoxColorArray_Delete( DaoxColorArray *self );
 void DaoxColorArray_Reset( DaoxColorArray *self );
 void DaoxColorArray_PushRGBA( DaoxColorArray *self, float r, float g, float b, float a );
 void DaoxColorArray_Push( DaoxColorArray *self, DaoxColor color );
+
+
+DaoxColorGradient* DaoxColorGradient_New( int type );
+void DaoxColorGradient_Delete( DaoxColorGradient *self );
+void DaoxColorGradient_Add( DaoxColorGradient *self, float stop, DaoxColor color );
+DaoxColor DaoxColorGradient_InterpolateColor( DaoxColorGradient *self, float at );
 
 
 DaoxGraphicsData* DaoxGraphicsData_New();
