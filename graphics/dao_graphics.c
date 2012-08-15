@@ -307,7 +307,7 @@ DaoTypeBase DaoxPathGradient_Typer =
 
 
 
-DaoxGraphicsData* DaoxGraphicsData_New()
+DaoxGraphicsData* DaoxGraphicsData_New( DaoxGraphicsItem *item )
 {
 	DaoxGraphicsData *self = (DaoxGraphicsData*)dao_calloc(1,sizeof(DaoxGraphicsData));
 	self->strokeColors = DaoxColorArray_New();
@@ -316,6 +316,7 @@ DaoxGraphicsData* DaoxGraphicsData_New()
 	self->fillColors = DaoxColorArray_New();
 	self->fillPoints = DaoxPointArray_New();
 	self->fillTriangles = DaoxIntArray_New();
+	self->item = item;
 	return self;
 }
 void DaoxGraphicsData_Delete( DaoxGraphicsData *self )
@@ -535,7 +536,7 @@ DaoxGraphicsItem* DaoxGraphicsItem_New( DaoxGraphicsScene *scene, int shape )
 	self->scene = scene;
 	self->shape = shape;
 	self->points = DaoxPointArray_New();
-	self->gdata = DaoxGraphicsData_New();
+	self->gdata = DaoxGraphicsData_New( self );
 	self->state = DaoxGraphicsScene_GetOrPushState( scene );
 	if( shape == DAOX_GS_POLYGON || shape == DAOX_GS_PATH ) self->path = DaoxPath_New();
 	if( shape == DAOX_GS_TEXT ) self->text = DString_New(0);

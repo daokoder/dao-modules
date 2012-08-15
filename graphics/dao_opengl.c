@@ -154,7 +154,7 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item )
 	}
 #endif
 	if( gd->strokeTriangles->count ){
-		if( gd->strokeColors->count >= gd->strokePoints->count )
+		if( gd->strokeColors->count < gd->strokePoints->count )
 			DaoxGraphics_glSetColor( item->state->strokeColor );
 		DaoxGraphics_glFillTriangles( gd->strokePoints, gd->strokeTriangles, gd->strokeColors );
 	}
@@ -166,7 +166,7 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item )
 	}
 #endif
 	if( gd->fillTriangles->count ){
-		if( gd->fillColors->count >= gd->fillPoints->count )
+		if( gd->fillColors->count < gd->fillPoints->count )
 			DaoxGraphics_glSetColor( item->state->fillColor );
 		DaoxGraphics_glFillTriangles( gd->fillPoints, gd->fillTriangles, gd->fillColors );
 	}

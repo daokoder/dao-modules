@@ -611,7 +611,6 @@ void DaoxPathComponent_Refine( DaoxPathComponent *self, double maxlen, double ma
 	do {
 		DaoxPathSegment_Refine( segment, maxlen, maxdiff );
 		if( segment->count == 1 ) DaoxPathSegment_Divide( segment, 0.5 );
-		printf( "%15f\n", segment->length );
 		self->length += segment->length;
 		segment = segment->next;
 	} while( segment && segment != first );
@@ -630,7 +629,6 @@ double DaoxPathComponent_MaxLineLength( DaoxPathComponent *self )
 }
 void DaoxPathComponent_RetrieveSegment( DaoxPathComponent *self, DaoxPathSegment *segment )
 {
-	printf( "%3i %3i\n", segment->bezier, segment->count );
 	if( segment->count == 1 ){
 		segment->next = NULL;
 		if( self->refined.first == NULL ){

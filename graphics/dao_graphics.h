@@ -274,7 +274,7 @@ void DaoxColorGradient_Add( DaoxColorGradient *self, float stop, DaoxColor color
 DaoxColor DaoxColorGradient_InterpolateColor( DaoxColorGradient *self, float at );
 
 
-DaoxGraphicsData* DaoxGraphicsData_New();
+DaoxGraphicsData* DaoxGraphicsData_New( DaoxGraphicsItem *item );
 void DaoxGraphicsData_Delete( DaoxGraphicsData *self );
 void DaoxGraphicsData_Reset( DaoxGraphicsData *self );
 void DaoxGraphicsData_Init( DaoxGraphicsData *self, DaoxGraphicsItem *item );
