@@ -305,9 +305,11 @@ DAO_DLL void DaoxGraphicsPolyLine_Add( DaoxGraphicsPolyLine *self, double x1, do
 
 DAO_DLL void DaoxGraphicsPolygon_Add( DaoxGraphicsPolygon *self, double x, double y );
 
+DAO_DLL void DaoxGraphicsPath_SetRelativeMode( DaoxGraphicsPath *self, int relative );
 DAO_DLL void DaoxGraphicsPath_MoveTo( DaoxGraphicsPath *self, double x, double y );
 DAO_DLL void DaoxGraphicsPath_LineTo( DaoxGraphicsPath *self, double x, double y );
 DAO_DLL void DaoxGraphicsPath_ArcTo( DaoxGraphicsPath *self, double x, double y, double degrees );
+DAO_DLL void DaoxGraphicsPath_ArcBy( DaoxGraphicsPath *self, double cx, double cy, double degrees );
 DAO_DLL void DaoxGraphicsPath_QuadTo( DaoxGraphicsPath *self, double x, double y, double cx, double cy );
 DAO_DLL void DaoxGraphicsPath_CubicTo( DaoxGraphicsPath *self, double x, double y, double cx, double cy );
 DAO_DLL void DaoxGraphicsPath_CubicTo2( DaoxGraphicsPath *self, double cx0, double cy0, double x, double y, double cx, double cy );

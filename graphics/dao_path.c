@@ -181,6 +181,7 @@ void DaoxPath_Reset( DaoxPath *self )
 		com->next = self->cache;
 		self->cache = com;
 	}
+	self->cmdRelative = 0;
 	self->first = self->last = NULL;
 	DaoxPath_PushComponent( self );
 }
@@ -211,9 +212,13 @@ void DaoxPath_LineTo( DaoxPath *self, double x, double y )
 		segment = DaoxPathComponent_PushSegment( self->last );
 		segment->P1 = start;
 	}
+	if( self->cmdRelative ){
+		x += start.x;
+		y += start.y;
+	}
 	segment->bezier = 1;
-	segment->P2.x = start.x + x;
-	segment->P2.y = start.y + y;
+	segment->P2.x = x;
+	segment->P2.y = y;
 }
 /*
 // Quoted from: http://en.wikipedia.org/wiki/Bezier_spline
@@ -256,20 +261,24 @@ void DaoxPathSegment_MakeArc( DaoxPathSegment *self, double dx, double dy, doubl
 		angle = atan( dy / fabs( dx ) );
 		if( dx < 0.0 ) angle = M_PI - angle;
 	}
-	sine = R * sin( angle - 0.5 * M_PI );
-	cosine = R * cos( angle - 0.5 * M_PI );
+	if( degree > 0.0 ){
+		sine = R * sin( angle - 0.5 * M_PI );
+		cosine = R * cos( angle - 0.5 * M_PI );
+	}else{
+		sine = R * sin( angle + 0.5 * M_PI );
+		cosine = R * cos( angle + 0.5 * M_PI );
+	}
 	self->C1.x = self->P1.x + CAX2 * cosine - CAY2 * sine;
 	self->C1.y = self->P1.y + CAX2 * sine + CAY2 * cosine;
 	self->C2.x = self->P2.x + CBX2 * cosine - CBY2 * sine;
 	self->C2.y = self->P2.y + CBX2 * sine + CBY2 * cosine;
 }
-void DaoxPath_ArcTo2( DaoxPath *self, double x, double y, double degrees, double deg2 )
+void DaoxPath_ArcBy2( DaoxPath *self, double cx, double cy, double degrees, double deg2 )
 {
 	DaoxPoint point, start, next, end, center; /* A: start; B: end; C: center; */
 	DaoxPathSegment *segment = NULL;
 	double degrees2 = M_PI * degrees / 180.0;
-	double t = tan( 0.5 * degrees2 ) + 1E-12;
-	double dx, dy, R, dA, sine, cosine, dL;
+	double dx, dy, R, dA, sine, cosine, dL, dR;
 	int i, K;
 
 	if( self->last->last->bezier == 0 ){
@@ -280,30 +289,27 @@ void DaoxPath_ArcTo2( DaoxPath *self, double x, double y, double degrees, double
 		segment = DaoxPathComponent_PushSegment( self->last );
 		segment->P1 = start;
 	}
-
-	center.x = 0.5 * x;
-	center.y = 0.5 * y;
-	dx = - center.x;
-	dy = - center.y;
-	if( degrees < 0.0 ){
-		center.x += - dy / t;
-		center.y += + dx / t;
-	}else{
-		center.x += + dy / t;
-		center.y += - dx / t;
+	if( self->cmdRelative == 0 ){
+		cx -= start.x;
+		cy -= start.y;
 	}
-	/* Now "center" has coordinates relative to the start point; */
-	R = sqrt( center.x * center.x + center.y * center.y ); /* distance to the start; */
-	if( degrees < deg2 ){
-		DaoxPathSegment_MakeArc( segment, x, y, R, degrees2 );
+
+	R = sqrt( cx * cx + cy * cy );
+	if( fabs( degrees ) < deg2 ){
+		cosine = cos( degrees2 );
+		sine = sin( degrees2 );
+		dx = - sine * (-cy);
+		dy = cosine * (-cx);
+		DaoxPathSegment_MakeArc( segment, dx, dy, R, degrees2 );
 		return;
 	}
+	center.x = start.x + cx;
+	center.y = start.y + cy;
 
-	/* Now make the coordinates of "center" absolute, and all others relative to "center": */
-	center.x += start.x;
-	center.y += start.y;
-	end.x = start.x + x - center.x;
-	end.y = start.y + y - center.y;
+	printf( "degrees = %15f:  %15f  %15f\n", degrees, start.x, start.y );
+	printf( "degrees = %15f:  %15f  %15f\n", degrees, center.x, center.y );
+
+	/* Make start relative to the center: */
 	start.x -= center.x;
 	start.y -= center.y;
 	point = start;
@@ -320,6 +326,7 @@ void DaoxPath_ArcTo2( DaoxPath *self, double x, double y, double degrees, double
 		segment->start = i * dL;
 		segment->end = (i + 1) * dL;
 		if( i == (K-1) ) segment->end = 1.0;
+		printf( "%3i: %15f\n", i, (i + 1) * dA );
 		sine = sin( (i + 1) * dA );
 		cosine = cos( (i + 1) * dA );
 		next.x = start.x * cosine - start.y * sine;
@@ -328,11 +335,59 @@ void DaoxPath_ArcTo2( DaoxPath *self, double x, double y, double degrees, double
 		point = next;
 		segment = NULL;
 	}
+}
+void DaoxPath_ArcTo2( DaoxPath *self, double x, double y, double degrees, double deg2 )
+{
+	DaoxPoint start;
+	double degrees2 = M_PI * degrees / 180.0;
+	double cx, cy, dx, dy, R, dR, dL;
 
+	if( self->last->last->bezier == 0 ){
+		start = self->last->last->P1;
+	}else{
+		start = self->last->last->P2;
+	}
+	if( self->cmdRelative == 0 ){
+		x -= start.x;
+		y -= start.y;
+	}
+
+	cx = 0.5 * x;
+	cy = 0.5 * y;
+	dx = - cx;
+	dy = - cy;
+	dL = x * x + y * y;
+	R = 0.5 * dL / (1.0 - cos(degrees2) );
+	dR = sqrt( R - 0.25 * dL );
+	R = sqrt( R );
+	dL = 0.5 * sqrt( dL );
+	if( degrees > 180.0 ){
+		cx += - dR * dy / dL;
+		cy += + dR * dx / dL;
+	}else if( degrees < - 180.0 ){
+		cx += + dR * dy / dL;
+		cy += - dR * dx / dL;
+	}else if( degrees > 0.0 ){
+		cx += + dR * dy / dL;
+		cy += - dR * dx / dL;
+	}else{
+		cx += - dR * dy / dL;
+		cy += + dR * dx / dL;
+	}
+	if( self->cmdRelative == 0 ){
+		cx += start.x;
+		cy += start.y;
+	}
+
+	DaoxPath_ArcBy2( self, cx, cy, degrees, deg2 );
 }
 void DaoxPath_ArcTo( DaoxPath *self, double x, double y, double degrees )
 {
 	DaoxPath_ArcTo2( self, x, y, degrees, 30.0 );
+}
+void DaoxPath_ArcBy( DaoxPath *self, double cx, double cy, double degrees )
+{
+	DaoxPath_ArcBy2( self, cx, cy, degrees, 30.0 );
 }
 void DaoxPath_QuadTo( DaoxPath *self, double cx, double cy, double x, double y )
 {
@@ -347,12 +402,18 @@ void DaoxPath_QuadTo( DaoxPath *self, double cx, double cy, double x, double y )
 		segment = DaoxPathComponent_PushSegment( self->last );
 		segment->P1 = start;
 	}
+	if( self->cmdRelative ){
+		cx += start.x;
+		cy += start.y;
+		x += start.x;
+		y += start.y;
+	}
 	segment->bezier = 2;
-	segment->C1.x = start.x + cx;
-	segment->C1.y = start.y + cy;
+	segment->C1.x = cx;
+	segment->C1.y = cy;
+	segment->P2.x = x;
+	segment->P2.y = y;
 	segment->C2 = segment->C1;
-	segment->P2.x = start.x + x;
-	segment->P2.y = start.y + y;
 }
 void DaoxPath_CubicTo( DaoxPath *self, double cx, double cy, double x, double y )
 {
@@ -363,14 +424,20 @@ void DaoxPath_CubicTo( DaoxPath *self, double cx, double cy, double x, double y 
 	assert( self->last->last->bezier >= 2 );
 	control.x = 2.0 * start.x - control.x;
 	control.y = 2.0 * start.y - control.y;
+	if( self->cmdRelative ){
+		cx += start.x + x;
+		cy += start.y + y;
+		x += start.x;
+		y += start.y;
+	}
 	segment = DaoxPathComponent_PushSegment( self->last );
 	segment->bezier = 3;
 	segment->P1 = start;
 	segment->C1 = control;
-	segment->C2.x = start.x + x + cx;
-	segment->C2.y = start.y + y + cy;
-	segment->P2.x = start.x + x;
-	segment->P2.y = start.y + y;
+	segment->C2.x = cx;
+	segment->C2.y = cy;
+	segment->P2.x = x;
+	segment->P2.y = y;
 }
 void DaoxPath_CubicTo2( DaoxPath *self, double cx1, double cy1, double cx2, double cy2, double x2, double y2 )
 {
@@ -385,13 +452,21 @@ void DaoxPath_CubicTo2( DaoxPath *self, double cx1, double cy1, double cx2, doub
 		segment = DaoxPathComponent_PushSegment( self->last );
 		segment->P1 = start;
 	}
+	if( self->cmdRelative ){
+		cx1 += start.x;
+		cy1 += start.y;
+		cx2 += start.x + x2;
+		cy2 += start.y + y2;
+		x2 += start.x;
+		y2 += start.y;
+	}
 	segment->bezier = 3;
-	segment->C1.x = start.x + cx1;
-	segment->C1.y = start.y + cy1;
-	segment->C2.x = start.x + x2 + cx2;
-	segment->C2.y = start.y + y2 + cy2;
-	segment->P2.x = start.x + x2;
-	segment->P2.y = start.y + y2;
+	segment->C1.x = cx1;
+	segment->C1.y = cy1;
+	segment->C2.x = cx2;
+	segment->C2.y = cy2;
+	segment->P2.x = x2;
+	segment->P2.y = y2;
 }
 void DaoxPath_Close( DaoxPath *self )
 {
@@ -1103,7 +1178,6 @@ void DaoxPath_ExportGraphicsData( DaoxPath *self, DaoxGraphicsData *gdata )
 			DaoxIntArray_Push( gdata->fillTriangles, ids[i] + offset );
 		}
 	}
-	if( width < 1E-16 ) return;
 	for(com=self->first; com; com=com->next){
 		if( com->first->bezier == 0 ) continue;
 		if( com->refined.last == NULL || com->refined.last->next == NULL ) continue;

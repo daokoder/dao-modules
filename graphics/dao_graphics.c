@@ -389,6 +389,35 @@ void DaoxIntArray_PushTriangle( DaoxIntArray *triangles, int A, int B, int C )
 	DaoxIntArray_Push( triangles, B );
 	DaoxIntArray_Push( triangles, C );
 }
+
+DaoxPoint DaoxPoint_Mean( DaoxPoint A, DaoxPoint B )
+{
+	DaoxPoint M;
+	M.x = 0.5 * (A.x + B.x);
+	M.y = 0.5 * (A.y + B.y);
+	return M;
+}
+DaoxColor DaoxColor_Mean( DaoxColor A, DaoxColor B )
+{
+	DaoxColor M;
+	M.red = 0.5 * (A.red + B.red);
+	M.green = 0.5 * (A.green + B.green);
+	M.blue = 0.5 * (A.blue + B.blue);
+	M.alpha = 0.5 * (A.alpha + B.alpha);
+	return M;
+}
+float DaoxColor_MaxDiff( DaoxColor A, DaoxColor B, float maxdiff )
+{
+	float red = fabs( A.red - B.red );
+	float green = fabs( A.green - B.green );
+	float blue = fabs( A.blue - B.blue );
+	float alpha = fabs( A.alpha - B.alpha );
+	if( red > maxdiff ) maxdiff = red;
+	if( green > maxdiff ) maxdiff = green;
+	if( blue > maxdiff ) maxdiff = blue;
+	if( green > maxdiff ) maxdiff = green;
+	return maxdiff;
+}
 void DaoxGraphicsData_MakeFillGradient( DaoxGraphicsData *self )
 {
 	DaoxColorGradient *gradient = self->item->state->fillGradient;
@@ -412,8 +441,10 @@ void DaoxGraphicsData_MakeFillGradient( DaoxGraphicsData *self )
 		DaoxPoint PA = points->points[IA];
 		DaoxPoint PB = points->points[IB];
 		DaoxPoint PC = points->points[IC];
-		DaoxPoint PM, PBC;
-		DaoxColor CA, CB, CC;
+		DaoxPoint PmAB, PmBC, PmCA;
+		DaoxColor CA, CB, CC, CmAB, CmBC, CmCA;
+		DaoxColor CtAB, CtBC, CtCA;
+
 		dAB = DaoxDistance( PA, PB );
 		if( dAB > dmax ) dmax = dAB;
 		dBC = DaoxDistance( PB, PC );
@@ -435,7 +466,7 @@ void DaoxGraphicsData_MakeFillGradient( DaoxGraphicsData *self )
 		PA = points->points[IA];
 		PB = points->points[IB];
 		PC = points->points[IC];
-		if( dmax < 1 ){
+		if( dmax < 1.0 ){
 			triangles->values[k] = IA;
 			triangles->values[k+1] = IB;
 			triangles->values[k+2] = IC;
@@ -445,23 +476,25 @@ void DaoxGraphicsData_MakeFillGradient( DaoxGraphicsData *self )
 		CA = colors->colors[IA];
 		CB = colors->colors[IB];
 		CC = colors->colors[IC];
-		PM.x = (PA.x + PB.x + PC.x) / 3.0;
-		PM.y = (PA.y + PB.y + PC.y) / 3.0;
-		mean.red   = (CA.red   + CB.red   + CC.red) / 3.0;
-		mean.green = (CA.green + CB.green + CC.green) / 3.0;
-		mean.blue  = (CA.blue  + CB.blue  + CC.blue) / 3.0;
-		mean.alpha = (CA.alpha + CB.alpha + CC.alpha) / 3.0;
-		correct = DaoxColorGradient_ComputeColor( gradient, PM );
-		diff += fabs(mean.red - correct.red);
-		diff += fabs(mean.green - correct.green);
-		diff += fabs(mean.blue - correct.blue);
-		diff += fabs(mean.alpha - correct.alpha);
-		if( diff > 3E-3 || dmax > 20 ){
+
+		PmAB = DaoxPoint_Mean( PA, PB );
+		PmBC = DaoxPoint_Mean( PB, PC );
+		PmCA = DaoxPoint_Mean( PC, PA );
+		CmAB = DaoxColor_Mean( CA, CB );
+		CmBC = DaoxColor_Mean( CB, CC );
+		CmCA = DaoxColor_Mean( CC, CA );
+
+		CtAB= DaoxColorGradient_ComputeColor( gradient, PmAB );
+		CtBC= DaoxColorGradient_ComputeColor( gradient, PmBC );
+		CtCA= DaoxColorGradient_ComputeColor( gradient, PmCA );
+		diff = DaoxColor_MaxDiff( CmAB, CtAB, diff );
+		diff = DaoxColor_MaxDiff( CmBC, CtBC, diff );
+		diff = DaoxColor_MaxDiff( CmCA, CtCA, diff );
+
+		if( diff > 2E-3 || dmax > (gradient->gradient == DAOX_GRADIENT_LINEAR ? 50 : 20) ){
 			int IBC = points->count;
-			PBC.x = 0.5 * (PB.x + PC.x);
-			PBC.y = 0.5 * (PB.y + PC.y);
-			DaoxPointArray_Push( points, PBC );
-			DaoxColorArray_Push( colors, DaoxColorGradient_ComputeColor( gradient, PBC ) );
+			DaoxPointArray_Push( points, PmBC );
+			DaoxColorArray_Push( colors, CtBC );
 			DaoxIntArray_PushTriangle( triangles, IA, IB, IBC );
 			DaoxIntArray_PushTriangle( triangles, IC, IA, IBC );
 		}else{
@@ -606,6 +639,10 @@ void DaoxGraphicsPolygon_Add( DaoxGraphicsPolygon *self, double x, double y )
 	DaoxPointArray_PushXY( self->points, x, y );
 }
 
+void DaoxGraphicsPath_SetRelativeMode( DaoxGraphicsPath *self, int relative )
+{
+	self->path->cmdRelative = relative;
+}
 void DaoxGraphicsPath_MoveTo( DaoxGraphicsPath *self, double x, double y )
 {
 	assert( self->ctype == daox_type_graphics_path );
@@ -620,6 +657,11 @@ void DaoxGraphicsPath_ArcTo( DaoxGraphicsPath *self, double x, double y, double 
 {
 	assert( self->ctype == daox_type_graphics_path );
 	DaoxPath_ArcTo( self->path, x, y, degrees );
+}
+void DaoxGraphicsPath_ArcBy( DaoxGraphicsPath *self, double cx, double cy, double degrees )
+{
+	assert( self->ctype == daox_type_graphics_path );
+	DaoxPath_ArcBy( self->path, cx, cy, degrees );
 }
 void DaoxGraphicsPath_QuadTo( DaoxGraphicsPath *self, double cx, double cy, double x, double y )
 {
@@ -696,6 +738,7 @@ void DaoxGraphicsEllipse_UpdateData( DaoxGraphicsEllipse *self, DaoxGraphicsScen
 	double RY = self->P2.y;
 	double W = self->state->strokeWidth;
 
+	DaoxGraphicsData_Init( self->gdata, self );
 	self->gdata->junction = DAOX_JUNCTION_FLAT;
 	self->gdata->maxlen = 3.5 * log(RX + RY + W + 1.0) / log(2.0);
 	self->gdata->maxdiff = 0.5 / (RX + RY + W + 1.0);
@@ -713,6 +756,7 @@ void DaoxGraphicsEllipse_UpdateData( DaoxGraphicsEllipse *self, DaoxGraphicsScen
 			transform.Axx = transform.Ayy = RX / 100.0;
 			DaoxPath_ExportGraphicsData( scene->largeCircle, self->gdata );
 		}
+		self->gdata->transform = NULL;
 		return;
 	}
 	if( RX > RY ){
@@ -870,13 +914,13 @@ DaoxGraphicsScene* DaoxGraphicsScene_New()
 
 	/* less accurate approximation for small circle: */
 	DaoxPath_MoveTo( self->smallCircle, -10.0, 0 );
-	DaoxPath_ArcTo2( self->smallCircle,  20.0, 0, 180, 180 );
-	DaoxPath_ArcTo2( self->smallCircle, -20.0, 0, 180, 180 );
+	DaoxPath_ArcTo2( self->smallCircle,  10.0, 0, 180, 180 );
+	DaoxPath_ArcTo2( self->smallCircle, -10.0, 0, 180, 180 );
 	DaoxPath_Close( self->smallCircle );
 
 	DaoxPath_MoveTo( self->largeCircle, -100, 0 );
-	DaoxPath_ArcTo( self->largeCircle,  200.0, 0, 180 );
-	DaoxPath_ArcTo( self->largeCircle, -200.0, 0, 180 );
+	DaoxPath_ArcTo( self->largeCircle,  100.0, 0, 180 );
+	DaoxPath_ArcTo( self->largeCircle, -100.0, 0, 180 );
 	DaoxPath_Close( self->largeCircle );
 
 	DaoxPath_ImportPath( self->wideEllipse, self->largeCircle, & X2 );
@@ -898,8 +942,8 @@ DaoxGraphicsScene* DaoxGraphicsScene_New()
 		DaoxPath_MoveTo( self->largeArcs[i], 0.0, 0.0 );
 		DaoxPath_LineTo( self->smallArcs[i], 10.0*cosine, -10.0*sine );
 		DaoxPath_LineTo( self->largeArcs[i], 100.0*cosine, -100.0*sine );
-		DaoxPath_ArcTo2( self->smallArcs[i], 0.0, 20.0*sine, angle2, 180.0 );
-		DaoxPath_ArcTo( self->largeArcs[i],  0.0, 200.0*sine, angle2 );
+		DaoxPath_ArcTo2( self->smallArcs[i], 10.0*cosine, 10.0*sine, angle2, 180.0 );
+		DaoxPath_ArcTo( self->largeArcs[i],  100.0*cosine, 100.0*sine, angle2 );
 		DaoxPath_Close( self->smallArcs[i] );
 		DaoxPath_Close( self->largeArcs[i] );
 		DaoxPath_Preprocess( self->smallArcs[i], self->buffer );
@@ -1330,6 +1374,15 @@ static void PATH_ArcTo( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxGraphicsPath_ArcTo( self, x, y, d );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
+static void PATH_ArcBy( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsPath *self = (DaoxGraphicsPath*) p[0];
+	double x = p[1]->xDouble.value;
+	double y = p[2]->xDouble.value;
+	double d = p[3]->xDouble.value;
+	DaoxGraphicsPath_ArcBy( self, x, y, d );
+	DaoProcess_PutValue( proc, (DaoValue*) self );
+}
 static void PATH_QuadTo( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphicsPath *self = (DaoxGraphicsPath*) p[0];
@@ -1368,15 +1421,95 @@ static void PATH_Close( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxGraphicsPath_Close( self );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
+
+static void PATH_LineRelTo( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsPath *self = (DaoxGraphicsPath*) p[0];
+	DaoxGraphicsPath_SetRelativeMode( self, 1 );
+	PATH_LineTo( proc, p, N );
+}
+static void PATH_ArcRelTo( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsPath *self = (DaoxGraphicsPath*) p[0];
+	DaoxGraphicsPath_SetRelativeMode( self, 1 );
+	PATH_ArcTo( proc, p, N );
+}
+static void PATH_ArcRelBy( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsPath *self = (DaoxGraphicsPath*) p[0];
+	DaoxGraphicsPath_SetRelativeMode( self, 1 );
+	PATH_ArcBy( proc, p, N );
+}
+static void PATH_QuadRelTo( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsPath *self = (DaoxGraphicsPath*) p[0];
+	DaoxGraphicsPath_SetRelativeMode( self, 1 );
+	PATH_QuadTo( proc, p, N );
+}
+static void PATH_CubicRelTo( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsPath *self = (DaoxGraphicsPath*) p[0];
+	DaoxGraphicsPath_SetRelativeMode( self, 1 );
+	PATH_CubicTo( proc, p, N );
+}
+static void PATH_CubicRelTo2( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsPath *self = (DaoxGraphicsPath*) p[0];
+	DaoxGraphicsPath_SetRelativeMode( self, 1 );
+	PATH_CubicTo2( proc, p, N );
+}
+static void PATH_LineAbsTo( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsPath *self = (DaoxGraphicsPath*) p[0];
+	DaoxGraphicsPath_SetRelativeMode( self, 0 );
+	PATH_LineTo( proc, p, N );
+}
+static void PATH_ArcAbsTo( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsPath *self = (DaoxGraphicsPath*) p[0];
+	DaoxGraphicsPath_SetRelativeMode( self, 0 );
+	PATH_ArcTo( proc, p, N );
+}
+static void PATH_ArcAbsBy( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsPath *self = (DaoxGraphicsPath*) p[0];
+	DaoxGraphicsPath_SetRelativeMode( self, 0 );
+	PATH_ArcBy( proc, p, N );
+}
+static void PATH_QuadAbsTo( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsPath *self = (DaoxGraphicsPath*) p[0];
+	DaoxGraphicsPath_SetRelativeMode( self, 0 );
+	PATH_QuadTo( proc, p, N );
+}
+static void PATH_CubicAbsTo( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsPath *self = (DaoxGraphicsPath*) p[0];
+	DaoxGraphicsPath_SetRelativeMode( self, 0 );
+	PATH_CubicTo( proc, p, N );
+}
+static void PATH_CubicAbsTo2( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsPath *self = (DaoxGraphicsPath*) p[0];
+	DaoxGraphicsPath_SetRelativeMode( self, 0 );
+	PATH_CubicTo2( proc, p, N );
+}
 static DaoFuncItem DaoxGraphicsPathMeths[]=
 {
 	{ PATH_New,       "GraphicsPath()" },
 	{ PATH_MoveTo,    "MoveTo( self : GraphicsPath, x : double, y : double ) => GraphicsPath" },
-	{ PATH_LineTo,    "LineTo( self : GraphicsPath, x : double, y : double ) => GraphicsPath" },
-	{ PATH_ArcTo,     "ArcTo( self : GraphicsPath, x : double, y : double, degrees : double ) => GraphicsPath" },
-	{ PATH_QuadTo,   "QuadTo( self : GraphicsPath, cx : double, cy : double, x : double, y : double ) => GraphicsPath" },
-	{ PATH_CubicTo,   "CubicTo( self : GraphicsPath, cx : double, cy : double, x : double, y : double ) => GraphicsPath" },
-	{ PATH_CubicTo2,  "CubicTo( self : GraphicsPath, cx0 : double, cy0 : double, cx : double, cy : double, x : double, y : double ) => GraphicsPath" },
+	{ PATH_LineRelTo,    "LineTo( self : GraphicsPath, x : double, y : double ) => GraphicsPath" },
+	{ PATH_ArcRelTo,     "ArcTo( self : GraphicsPath, x : double, y : double, degrees : double ) => GraphicsPath" },
+	{ PATH_ArcRelBy,     "ArcBy( self : GraphicsPath, cx : double, cy : double, degrees : double ) => GraphicsPath" },
+	{ PATH_QuadRelTo,   "QuadTo( self : GraphicsPath, cx : double, cy : double, x : double, y : double ) => GraphicsPath" },
+	{ PATH_CubicRelTo,   "CubicTo( self : GraphicsPath, cx : double, cy : double, x : double, y : double ) => GraphicsPath" },
+	{ PATH_CubicRelTo2,  "CubicTo( self : GraphicsPath, cx0 : double, cy0 : double, cx : double, cy : double, x : double, y : double ) => GraphicsPath" },
+	{ PATH_LineAbsTo,    "LineAbsTo( self : GraphicsPath, x : double, y : double ) => GraphicsPath" },
+	{ PATH_ArcAbsTo,     "ArcAbsTo( self : GraphicsPath, x : double, y : double, degrees : double ) => GraphicsPath" },
+	{ PATH_ArcAbsBy,     "ArcAbsBy( self : GraphicsPath, cx : double, cy : double, degrees : double ) => GraphicsPath" },
+	{ PATH_QuadAbsTo,   "QuadAbsTo( self : GraphicsPath, cx : double, cy : double, x : double, y : double ) => GraphicsPath" },
+	{ PATH_CubicAbsTo,   "CubicAbsTo( self : GraphicsPath, cx : double, cy : double, x : double, y : double ) => GraphicsPath" },
+	{ PATH_CubicAbsTo2,  "CubicAbsTo( self : GraphicsPath, cx0 : double, cy0 : double, cx : double, cy : double, x : double, y : double ) => GraphicsPath" },
 	{ PATH_Close,     "Close( self : GraphicsPath ) => GraphicsPath" },
 	{ NULL, NULL }
 };

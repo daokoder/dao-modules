@@ -116,6 +116,8 @@ struct DaoxPath
 	DaoxIntArray    *triangles;
 
 	double  length;
+
+	uchar_t cmdRelative;
 };
 
 DaoxPathSegment* DaoxPathSegment_New( DaoxPathComponent *component );
@@ -131,6 +133,7 @@ DAO_DLL void DaoxPath_MoveTo( DaoxPath *self, double x, double y );
 DAO_DLL void DaoxPath_LineTo( DaoxPath *self, double x, double y );
 DAO_DLL void DaoxPath_ArcTo( DaoxPath *self, double x, double y, double degrees );
 DAO_DLL void DaoxPath_ArcTo2( DaoxPath *self, double x, double y, double degrees, double deg2 );
+DAO_DLL void DaoxPath_ArcBy( DaoxPath *self, double cx, double cy, double degrees );
 DAO_DLL void DaoxPath_QuadTo( DaoxPath *self, double cx, double cy, double x, double y );
 DAO_DLL void DaoxPath_CubicTo( DaoxPath *self, double cx, double cy, double x, double y );
 DAO_DLL void DaoxPath_CubicTo2( DaoxPath *self, double cx1, double cy1, double cx2, double cy2, double x2, double y2 );
