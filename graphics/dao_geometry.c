@@ -38,6 +38,32 @@
 
 
 
+void DaoxTransform_RotateXAxisTo( DaoxTransform *self, double x, double y )
+{
+	double r = sqrt( x*x + y*y );
+	self->Axx =   x / r;
+	self->Axy = - y / r;
+	self->Ayx =   y / r;
+	self->Ayy =   x / r;
+}
+void DaoxTransform_RotateYAxisTo( DaoxTransform *self, double x, double y )
+{
+	double r = sqrt( x*x + y*y );
+	self->Axx =   y / r;
+	self->Axy =   x / r;
+	self->Ayx = - x / r;
+	self->Ayy =   y / r;
+}
+void DaoxTransform_SetScale( DaoxTransform *self, double x, double y )
+{
+	self->Axx *= x;
+	self->Axy *= x;
+	self->Ayx *= y;
+	self->Ayy *= y;
+}
+
+
+
 
 DaoxBezierSegment* DaoxBezierSegment_New()
 {

@@ -129,6 +129,7 @@ void DaoxPath_Delete( DaoxPath *self );
 void DaoxPath_Reset( DaoxPath *self );
 
 
+DAO_DLL void DaoxPath_SetRelativeMode( DaoxPath *self, int relative );
 DAO_DLL void DaoxPath_MoveTo( DaoxPath *self, double x, double y );
 DAO_DLL void DaoxPath_LineTo( DaoxPath *self, double x, double y );
 DAO_DLL void DaoxPath_ArcTo( DaoxPath *self, double x, double y, double degrees );
@@ -146,6 +147,9 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxPathBuffer *buffer );
 void DaoxPath_Refine( DaoxPath *self, double maxlen, double maxdiff );
 
 void DaoxPath_ExportGraphicsData( DaoxPath *self, struct DaoxGraphicsData *gdata );
+
+DaoxPathSegment* DaoxPath_LocateByDistance( DaoxPath *self, double distance, double *p );
+DaoxPathSegment* DaoxPath_LocateByPercentage( DaoxPath *self, double percentage, double *p );
 
 
 #endif

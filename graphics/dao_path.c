@@ -66,6 +66,7 @@ DaoxPathSegment* DaoxPathSegment_New( DaoxPathComponent *component )
 	self->start = 0.0;
 	self->end = 1.0;
 	self->count = 1;
+	self->convexness = 1; /* need for refinement of open path; */
 	self->component = component;
 	return self;
 }
@@ -184,6 +185,10 @@ void DaoxPath_Reset( DaoxPath *self )
 	self->cmdRelative = 0;
 	self->first = self->last = NULL;
 	DaoxPath_PushComponent( self );
+}
+void DaoxPath_SetRelativeMode( DaoxPath *self, int relative )
+{
+	self->cmdRelative = relative;
 }
 void DaoxPath_MoveTo( DaoxPath *self, double x, double y )
 {
@@ -702,6 +707,53 @@ double DaoxPathComponent_MaxLineLength( DaoxPathComponent *self )
 	} while( segment && segment != first );
 	return max;
 }
+
+
+DaoxPathSegment* DaoxPathSegment_LocateByDistance( DaoxPathSegment *self, double distance, double offset, double *p )
+{
+	if( distance < offset || distance > (offset + self->length) ) return NULL;
+	if( p ) *p = (distance - offset) / self->length;
+	if( self->count <= 1 ) return self;
+	if( distance <= (offset + self->first->length) ){
+		return DaoxPathSegment_LocateByDistance( self->first, distance, offset, p );
+	}
+	return DaoxPathSegment_LocateByDistance( self->second, distance, offset + self->first->length, p );
+}
+
+DaoxPathSegment* DaoxPathComponent_LocateByDistance( DaoxPathComponent *self, double distance, double offset, double *p )
+{
+	DaoxPathSegment *first = self->first;
+	DaoxPathSegment *segment = first;
+	do {
+		DaoxPathSegment *seg = DaoxPathSegment_LocateByDistance( segment, distance, offset, p );
+		if( seg ) return seg;
+		offset += segment->length;
+		segment = segment->next;
+	} while( segment && segment != first );
+	return NULL;
+}
+
+DaoxPathSegment* DaoxPath_LocateByDistance( DaoxPath *self, double distance, double *p )
+{
+	double offset = 0.0;
+	DaoxPathSegment *seg;
+	DaoxPathComponent *com;
+	if( distance < 0.0 ) return NULL;
+	for(com=self->first; com; com=com->next){
+		if( com->first->bezier == 0 ) continue;
+		seg = DaoxPathComponent_LocateByDistance( com, distance, offset, p );
+		if( seg ) return seg;
+		offset += com->length;
+	}
+	return NULL;
+}
+DaoxPathSegment* DaoxPath_LocateByPercentage( DaoxPath *self, double percentage, double *p )
+{
+}
+
+
+
+
 void DaoxPathComponent_RetrieveSegment( DaoxPathComponent *self, DaoxPathSegment *segment )
 {
 	if( segment->count == 1 ){
@@ -850,6 +902,7 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxPathBuffer *buffer )
 		if( SA->next == SB ) DaoxPathSegment_CheckConvexness( SA, SC->P1 );
 		if( SB->next == SC ) DaoxPathSegment_CheckConvexness( SB, SA->P1 );
 	}
+#if 0
 	for(com=self->first; com; com=com->next){
 		if( com->first->bezier == 0 ) continue;
 		if( com->refined.last == NULL || com->refined.last->next == NULL ) continue;
@@ -860,6 +913,7 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxPathBuffer *buffer )
 		} while( seg && seg != com->refined.first );
 		DaoxPathComponent_RetrieveRefined( com );
 	}
+#endif
 	DaoxTriangulator_Reset( triangulator );
 	for(com=self->first; com; com=com->next){
 		if( com->first->bezier == 0 ) continue;
@@ -1180,7 +1234,7 @@ void DaoxPath_ExportGraphicsData( DaoxPath *self, DaoxGraphicsData *gdata )
 	}
 	for(com=self->first; com; com=com->next){
 		if( com->first->bezier == 0 ) continue;
-		if( com->refined.last == NULL || com->refined.last->next == NULL ) continue;
+		if( com->refined.last == NULL ) continue;
 		//printf( "component: %p\n", com );
 		gdata->dashState = 0;
 		gdata->dashLength = gdata->item->state->dashPattern[0];

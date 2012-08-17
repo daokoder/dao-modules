@@ -256,9 +256,17 @@ int DaoxFont_FindGlyphIndex( DaoxFont *self, wchar_t ch )
 }
 int DaoxFont_FindGlyphLocation( DaoxFont *self, int glyph_index )
 {
+	int location = 0;
+	int location2 = 0;
 	uchar_t *loca = self->fontData + self->loca;
-	if( self->indexToLocFormat ) return daox_tt_ulong( loca + 4*glyph_index );
-	return daox_tt_ushort( loca + 2*glyph_index ) * 2;
+	if( self->indexToLocFormat ){
+		location = daox_tt_ulong( loca + 4*glyph_index );
+		location2 = daox_tt_ulong( loca + 4*glyph_index + 4 );
+	}else{
+		location = daox_tt_ushort( loca + 2*glyph_index ) * 2;
+		location2 = daox_tt_ushort( loca + 2*glyph_index + 2 ) * 2;
+	}
+	return location == location2 ? -1 : location;
 }
 
 
@@ -268,6 +276,7 @@ int DaoxFont_MakeGlyph2( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
 	uchar_t *glyf = self->fontData + self->glyf + gloc;
 	uchar_t *cpart = glyf + 10;
 	int i, more = 1;
+	if( gloc < 0 ) return 1;
 	while( more ){
 		DaoxGlyph *subglyph = DaoxFont_GetGlyph( self, daox_tt_ushort(cpart+2) );
 		ushort_t flags = daox_tt_ushort( cpart );
@@ -342,6 +351,7 @@ int DaoxFont_MakeGlyph( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
 		glyph->advanceWidth = daox_tt_short( hmtx + 4*(numOfLongHorMetrics - 1) );
 		glyph->leftSideBearing = daox_tt_short( hmtx + 4*numOfLongHorMetrics + 2*(glyph_index - numOfLongHorMetrics) );
 	}
+	if( gloc < 0 ) return 1;
 
 	numberOfContours = daox_tt_short( glyf );
 	if( numberOfContours < 0 ) return DaoxFont_MakeGlyph2( self, glyph_index, glyph );
@@ -396,10 +406,11 @@ int DaoxFont_MakeGlyph( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
 		self->points[i].y = y;
 	}
 
+	DaoxPath_SetRelativeMode( glyph->shape, 0 );
 	for(i=0; i<numberOfContours; ++i){
 		int start = i == 0 ? 0 : 1 + daox_tt_ushort( endPtsOfContours + 2*(i-1) );
 		int end = daox_tt_ushort( endPtsOfContours + 2*i );
-		int xcur, ycur, xnext, ynext;
+		int xnext, ynext;
 		int j, x0, y0, start2 = start;
 		int cx0 = -1, cy0 = -1;
 		flag = self->points[start].flag;
@@ -420,34 +431,26 @@ int DaoxFont_MakeGlyph( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
 			}
 		}
 		DaoxPath_MoveTo( glyph->shape, x0, y0 );
-		xcur = x0;
-		ycur = y0;
 		for(j=start2+1; j<=end; j++){
 			ushort_t next = start + ((j+1-start) % (end - start + 1));
 			flag = self->points[j].flag;
 			x = self->points[j].x;
 			y = self->points[j].y;
 			if( flag & 1 ){ /* on curve point: */
-				DaoxPath_LineTo( glyph->shape, x - xcur, y - ycur );
-				xcur = x;
-				ycur = y;
+				DaoxPath_LineTo( glyph->shape, x, y );
 			}else if( self->points[next].flag & 1 ){ /* on curve point: */
 				xnext = self->points[next].x;
 				ynext = self->points[next].y;
-				DaoxPath_QuadTo( glyph->shape, x - xcur, y - ycur, xnext - xcur, ynext - ycur );
-				xcur = xnext;
-				ycur = ynext;
+				DaoxPath_QuadTo( glyph->shape, x, y, xnext, ynext );
 				j += 1;
 			}else{ /* off curve point, interpolate on-curve point: */
 				xnext = (x + self->points[next].x) >> 1;
 				ynext = (y + self->points[next].y) >> 1;
-				DaoxPath_QuadTo( glyph->shape, x - xcur, y - ycur, xnext - xcur, ynext - ycur );
-				xcur = xnext;
-				ycur = ynext;
+				DaoxPath_QuadTo( glyph->shape, x, y, xnext, ynext );
 			}
 		}
 		if( cx0 >= 0 ){
-			DaoxPath_QuadTo( glyph->shape, cx0 - xcur, cy0 - ycur, x0 - xcur, y0 - ycur );
+			DaoxPath_QuadTo( glyph->shape, cx0, cy0, x0, y0 );
 		}
 		DaoxPath_Close( glyph->shape );
 	}

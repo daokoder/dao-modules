@@ -566,6 +566,7 @@ DaoxGraphicsItem* DaoxGraphicsItem_New( DaoxGraphicsScene *scene, int shape )
 	}
 	assert( ctype != NULL );
 	DaoCdata_InitCommon( (DaoCdata*)self, ctype );
+	self->visible = 1;
 	self->scene = scene;
 	self->shape = shape;
 	self->points = DaoxPointArray_New();
@@ -641,7 +642,7 @@ void DaoxGraphicsPolygon_Add( DaoxGraphicsPolygon *self, double x, double y )
 
 void DaoxGraphicsPath_SetRelativeMode( DaoxGraphicsPath *self, int relative )
 {
-	self->path->cmdRelative = relative;
+	DaoxPath_SetRelativeMode( self->path, relative );
 }
 void DaoxGraphicsPath_MoveTo( DaoxGraphicsPath *self, double x, double y )
 {
@@ -837,7 +838,8 @@ void DaoxGraphicsPath_UpdateData( DaoxGraphicsPath *self, DaoxGraphicsScene *sce
 void DaoxGraphicsText_UpdateData( DaoxGraphicsText *self, DaoxGraphicsScene *scene )
 {
 	int i, j, jt = DAOX_JUNCTION_FLAT;
-	double scale, maxlen, maxdiff;
+	double scale, offset, maxlen, maxdiff;
+	double width = self->state->strokeWidth;
 	double size = self->state->fontSize;
 	wchar_t *text = self->text->wcs;
 	DaoxFont *font = self->state->font;
@@ -861,18 +863,40 @@ void DaoxGraphicsText_UpdateData( DaoxGraphicsText *self, DaoxGraphicsScene *sce
 	transform.Bx = self->P1.x;
 	transform.By = self->P1.y;
 
+	if( self->path ) DaoxPath_Refine( self->path, 8.0/size, 2.0/size );
+
+	offset = self->P1.x;
 	while( *text ){
 		glyph = DaoxFont_GetCharGlyph( font, *text++ );
 		printf( "%3i %2lc %9p\n", *(text-1), *(text-1), glyph );
 		if( glyph == NULL ) break;
+		transform.Bx = offset;
+		if( self->path ){
+			double p = 0.0, adv = 0.5 * (scale * glyph->advanceWidth + width);
+			DaoxPathSegment *seg1 = DaoxPath_LocateByDistance( self->path, offset+adv, &p );
+			DaoxPathSegment *seg2 = DaoxPath_LocateByDistance( self->path, offset, &p );
+			if( seg1 == NULL ) seg1 = seg2;
+			if( seg2 ){
+				double dx = seg1->P2.x - seg1->P1.x;
+				double dy = seg1->P2.y - seg1->P1.y;
+				DaoxTransform_RotateXAxisTo( & transform, dx, dy );
+				DaoxTransform_SetScale( & transform, scale, scale );
+				transform.Bx = (1.0 - p) * seg2->P1.x + p * seg2->P2.x;
+				transform.By = (1.0 - p) * seg2->P1.y + p * seg2->P2.y;
+			}
+		}
 		DaoxPath_ExportGraphicsData( glyph->shape, self->gdata );
-		transform.Bx += scale * glyph->advanceWidth;
+		offset += scale * glyph->advanceWidth + width;
 	}
 	self->gdata->transform = NULL;
 }
 
 int DaoxGraphicsItem_UpdateData( DaoxGraphicsItem *self, DaoxGraphicsScene *scene )
 {
+	if( self->visible == 0 ){
+		DaoxGraphicsiItem_ResetData( self );
+		return 1;
+	}
 	if( self->gdata->strokePoints->count || self->gdata->fillPoints->count ) return 0;
 	switch( self->shape ){
 	case DAOX_GS_LINE     : DaoxGraphicsLine_UpdateData( self, scene );     break;
@@ -1021,7 +1045,6 @@ void DaoxGraphicsScene_SetFont( DaoxGraphicsScene *self, DaoxFont *font, double 
 	DaoGC_ShiftRC( (DaoValue*) font, (DaoValue*) state->font );
 	state->font = font;
 	state->fontSize = size;
-	state->strokeWidth = 0;
 }
 
 
@@ -1079,11 +1102,34 @@ DaoxGraphicsPath* DaoxGraphicsScene_AddPath( DaoxGraphicsScene *self )
 }
 DaoxGraphicsText* DaoxGraphicsScene_AddText( DaoxGraphicsScene *self, const wchar_t *text, double x, double y )
 {
-	DaoxGraphicsPath *item = DaoxGraphicsItem_New( self, DAOX_GS_TEXT );
+	DaoxGraphicsPath *item;
+	DaoxGraphicsState *state;
+	if( self->states->size == 0 ) return NULL;
+	state = DaoxGraphicsScene_GetOrPushState( self );
+	if( state->font == NULL ) return NULL;
+
+	item = DaoxGraphicsItem_New( self, DAOX_GS_TEXT );
 	DArray_PushBack( self->items, item );
 	DString_SetWCS( item->text, text );
 	item->P1.x = x;
 	item->P1.y = y;
+	return item;
+}
+DaoxGraphicsText* DaoxGraphicsScene_AddPathText( DaoxGraphicsScene *self, const wchar_t *text, DaoxPath *path )
+{
+	DaoxGraphicsPath *item;
+	DaoxGraphicsState *state;
+	if( self->states->size == 0 ) return NULL;
+	state = DaoxGraphicsScene_GetOrPushState( self );
+	if( state->font == NULL ) return NULL;
+
+	item = DaoxGraphicsItem_New( self, DAOX_GS_TEXT );
+	DArray_PushBack( self->items, item );
+	DString_SetWCS( item->text, text );
+	if( item->path == NULL ) item->path = DaoxPath_New();
+	DaoxPath_Reset( item->path );
+	DaoxPath_ImportPath( item->path, path, NULL );
+	DaoxPath_Preprocess( item->path, self->buffer );
 	return item;
 }
 
@@ -1094,6 +1140,11 @@ DaoxGraphicsText* DaoxGraphicsScene_AddText( DaoxGraphicsScene *self, const wcha
 
 
 
+static void ITEM_SetVisible( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsItem *self = (DaoxGraphicsItem*) p[0];
+	self->visible = p[1]->xEnum.value;
+}
 static void ITEM_AddChild( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphicsItem *self = (DaoxGraphicsItem*) p[0];
@@ -1113,6 +1164,7 @@ static void DaoxGraphicsItem_GetGCFields( void *p, DArray *values, DArray *array
 
 static DaoFuncItem DaoxGraphicsItemMeths[]=
 {
+	{ ITEM_SetVisible,  "SetVisible( self : GraphicsItem, visible :enum<false,true> )" },
 	{ ITEM_AddChild,  "AddChild( self : GraphicsItem, child : GraphicsItem ) => GraphicsItem" },
 	{ NULL, NULL }
 };
@@ -1601,6 +1653,22 @@ static void SCENE_AddText( DaoProcess *proc, DaoValue *p[], int N )
 	double x = p[2]->xDouble.value;
 	double y = p[3]->xDouble.value;
 	DaoxGraphicsText *item = DaoxGraphicsScene_AddText( self, DString_GetWCS( text ), x, y );
+	if( item == NULL ){
+		DaoProcess_RaiseException( proc, DAO_ERROR, "no font is set" );
+		return;
+	}
+	DaoProcess_PutValue( proc, (DaoValue*) item );
+}
+static void SCENE_AddText2( DaoProcess *proc, DaoValue *p[], int N )
+{
+	wchar_t *text = DaoValue_TryGetWCString( p[1] );
+	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
+	DaoxGraphicsPath *path = (DaoxGraphicsPath*) p[2];
+	DaoxGraphicsText *item = DaoxGraphicsScene_AddPathText( self, text, path->path );
+	if( item == NULL ){
+		DaoProcess_RaiseException( proc, DAO_ERROR, "no font is set" );
+		return;
+	}
 	DaoProcess_PutValue( proc, (DaoValue*) item );
 }
 static void SCENE_PushState( DaoProcess *proc, DaoValue *p[], int N )
@@ -1756,6 +1824,7 @@ static DaoFuncItem DaoxGraphicsSceneMeths[]=
 	{ SCENE_AddPolygon,   "AddPolygon( self: GraphicsScene ) => GraphicsPolygon" },
 	{ SCENE_AddPath,      "AddPath( self: GraphicsScene ) => GraphicsPath" },
 	{ SCENE_AddText,      "AddText( self: GraphicsScene, text : string, x :double, y :double ) => GraphicsText" },
+	{ SCENE_AddText2,     "AddText( self: GraphicsScene, text : string, path :GraphicsPath ) => GraphicsText" },
 	{ SCENE_SetFont,      "SetFont( self: GraphicsScene, font : Font, size = 12D )" },
 	{ SCENE_Test,         "Test( self: GraphicsScene ) => GraphicsPath" },
 	{ NULL, NULL }

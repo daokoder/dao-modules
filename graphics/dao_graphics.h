@@ -203,6 +203,7 @@ struct DaoxGraphicsItem
 	DAO_CDATA_COMMON;
 
 	uchar_t  shape;  /* shape type; */
+	uchar_t  visible;
 
 	DaoxPoint  P1;
 	DaoxPoint  P2;

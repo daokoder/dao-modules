@@ -5,7 +5,29 @@
 
 load graphics;
 
+fontRoboto = Font( 'fonts/Roboto-Bold.ttf' );
+
+
 scene = GraphicsScene();
+
+
+scene.PushState()
+scene.SetFont( fontRoboto, 100 );
+scene.SetStrokeWidth( 5 );
+scene.SetStrokeColor( (0.0,0.0,1.0), 0.9 );
+scene.SetFillColor( (0.0,0.9,0.0), 0.5 );
+
+text = scene.AddText( 'Dao', 300, 650 );
+
+path = scene.AddPath();
+#path.SetVisible( $false );
+
+path.MoveTo( 50, 480 )
+path.ArcTo( 700, 0, 200 )
+
+#scene.SetFont( fontRoboto, 80 );
+text = scene.AddText( 'Programming Language', path );
+scene.PopState();
 
 scene.PushState()
 scene.SetTransform( [1D, 0, 0, 1, 400, 400] );
@@ -19,6 +41,7 @@ grad_O.AddStop( 0.0, (1.0, 1.0, 1.0, 0.9) )
 grad_O.AddStop( 0.1, (0.9, 0.8, 0.9, 0.9) )
 grad_O.AddStop( 0.8, (0.6, 0.0, 0.9, 0.9) )
 grad_O.AddStop( 0.97, (0.5, 0.0, 0.8, 0.9) )
+grad_O.AddStop( 1.0, (1.0, 1.0, 1.0, 0.0) )
 grad_O.SetCenter( 0, 0 );
 grad_O.SetFocus( 0, 0 );
 grad_O.SetRadius( sqrt(5)*unit );
@@ -44,6 +67,7 @@ grad_O.AddStop( 0.0, (1.0, 1.0, 1.0, 0.9) )
 grad_O.AddStop( 0.1, (0.9, 0.8, 0.9, 0.9) )
 grad_O.AddStop( 0.8, (0.9, 0.4, 0.0, 0.9) )
 grad_O.AddStop( 0.97, (0.8, 0.3, 0.0, 0.9) )
+grad_O.AddStop( 1.0, (1.0, 1.0, 1.0, 0.0) )
 grad_O.SetCenter( 0, 0 );
 grad_O.SetFocus( 0, 0 );
 grad_O.SetRadius( sqrt(5)*unit );
@@ -88,8 +112,8 @@ scene.PushState().SetJunction( $flat ).SetStrokeWidth(2)
 .SetStrokeColor( (0.5, 0.0, 0.9), 0.5 );
 
 grad_A = scene.SetRadialGradient();
-grad_A.AddStop( 0.0, (0.9, 0.8, 0.0, 0.7) )
-grad_A.AddStop( 0.3, (0.7, 0.6, 0.0, 0.7) )
+grad_A.AddStop( 0.0, (1.0, 0.9, 0.0, 0.7) )
+grad_A.AddStop( 0.5, (0.8, 0.7, 0.0, 0.7) )
 grad_A.AddStop( 0.95, (0.6, 0.3, 0.9, 0.7) )
 grad_A.AddStop( 1.0, (0.5, 0.3, 0.8, 0.0) )
 grad_A.SetCenter( 0, 0 );

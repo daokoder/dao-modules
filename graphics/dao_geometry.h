@@ -201,6 +201,11 @@ extern "C"{
 #endif
 
 
+DAO_DLL void DaoxTransform_RotateXAxisTo( DaoxTransform *self, double x, double y );
+DAO_DLL void DaoxTransform_RotateYAxisTo( DaoxTransform *self, double x, double y );
+DAO_DLL void DaoxTransform_SetScale( DaoxTransform *self, double x, double y );
+
+
 DAO_DLL DaoxByteArray* DaoxByteArray_New();
 DAO_DLL void DaoxByteArray_Clear( DaoxByteArray *self );
 DAO_DLL void DaoxByteArray_Delete( DaoxByteArray *self );
