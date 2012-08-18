@@ -49,7 +49,6 @@ typedef struct DaoxQuadNode    DaoxQuadNode;
 typedef struct DaoxQuadTree    DaoxQuadTree;
 
 typedef struct DaoxPathFragment  DaoxPathFragment;
-typedef struct DaoxBoundingBox  DaoxBoundingBox;
 
 
 
@@ -104,15 +103,6 @@ void DaoxPathGraph_Export( DaoxPathGraph *self, DaoxSimplePath *path );
 void DaoxPathGraph_IntersectEdges( DaoxPathGraph *self );
 
 
-
-
-struct DaoxBoundingBox
-{
-	double  left;
-	double  bottom;
-	double  right;
-	double  top;
-};
 
 
 

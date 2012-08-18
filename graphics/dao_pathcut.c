@@ -476,19 +476,6 @@ void DaoxPathGraph_IntersectEdges( DaoxPathGraph *self )
 
 
 
-void DaoxBoundingBox_Init( DaoxBoundingBox *self, DaoxPoint point )
-{
-	self->left = self->right = point.x;
-	self->bottom = self->top = point.y;
-}
-void DaoxBoundingBox_Update( DaoxBoundingBox *self, DaoxPoint point )
-{
-	if( point.x < self->left ) self->left = point.x;
-	if( point.x > self->right ) self->right = point.x;
-	if( point.y < self->bottom ) self->bottom = point.y;
-	if( point.y > self->top ) self->top = point.y;
-}
-
 
 DaoxPathFragment* DaoxPathFragment_New()
 {

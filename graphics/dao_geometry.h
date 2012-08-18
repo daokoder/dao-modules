@@ -58,6 +58,8 @@ typedef struct DaoxSimplePath              DaoxSimplePath;
 typedef struct DaoxSlice             DaoxSlice;
 typedef struct DaoxTransform         DaoxTransform;
 
+typedef struct DaoxBoundingBox       DaoxBoundingBox;
+
 typedef struct DaoxByteArray         DaoxByteArray;
 typedef struct DaoxSliceArray        DaoxSliceArray;
 typedef struct DaoxPointArray        DaoxPointArray;
@@ -92,6 +94,15 @@ struct DaoxTransform
 	double  Axx, Axy;
 	double  Ayx, Ayy;
 	double  Bx, By;
+};
+
+
+struct DaoxBoundingBox
+{
+	double  left;
+	double  right;
+	double  bottom;
+	double  top;
 };
 
 

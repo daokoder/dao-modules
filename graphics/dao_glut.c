@@ -39,14 +39,76 @@ static int last_update = 0;
 static int count_reset = 0;
 static int test_fps = 0;
 
+DaoVmSpace *__daoVmSpace = NULL;
+
 DaoxGraphicsScene *daox_current_scene = NULL;
 
+
+DaoRoutine* Dao_Get_Object_Method( DaoCdata *cd, DaoObject **obj, const char *name )
+{
+  DaoRoutine *meth;
+  if( cd == NULL ) return NULL;
+  *obj = DaoCdata_GetObject( cd );
+  if( *obj == NULL ) return NULL;
+  return DaoObject_GetMethod( *obj, name );
+}
+
+void DaoxGraphics_CallMethod( DaoxGraphicsScene *scene, const char *method )
+{
+	DaoObject *obj = NULL;
+	DaoRoutine *rout = Dao_Get_Object_Method( (DaoCdata*)scene, & obj, method );
+	DaoProcess *proc;
+
+	if( rout == NULL || obj == NULL ) return;
+	proc = DaoVmSpace_AcquireProcess( __daoVmSpace );
+
+	rout = DaoRoutine_Resolve( rout, (DaoValue*) obj, NULL, 0 );
+	if( rout == NULL ) goto Finalize;
+	DaoProcess_Call( proc, rout, (DaoValue*) obj, NULL, 0 );
+Finalize:
+	DaoVmSpace_ReleaseProcess( __daoVmSpace, proc );
+}
+
+int DaoxGraphics_CallKeyboardMethod( DaoxGraphicsScene *scene, const char *method, int key, int x, int y )
+{
+	DaoObject *obj = NULL;
+	DaoRoutine *rout = Dao_Get_Object_Method( (DaoCdata*)scene, & obj, method );
+	DaoProcess *proc;
+	DaoValue **params;
+
+	if( rout == NULL || obj == NULL ) return 0;
+	proc = DaoVmSpace_AcquireProcess( __daoVmSpace );
+
+	DaoProcess_NewInteger( proc, (daoint) key );
+	DaoProcess_NewInteger( proc, (daoint) x );
+	DaoProcess_NewInteger( proc, (daoint) y );
+	params = DaoProcess_GetLastValues( proc, 3 );
+	rout = DaoRoutine_Resolve( rout, (DaoValue*) obj, params, 3 );
+	if( rout == NULL ) goto Finalize;
+	DaoProcess_Call( proc, rout, (DaoValue*) obj, params, 3 );
+Finalize:
+	DaoVmSpace_ReleaseProcess( __daoVmSpace, proc );
+	return rout != NULL;
+}
+
+void DaoxGraphics_UpdateScene( DaoxGraphicsScene *scene )
+{
+	DaoxGraphics_CallMethod( scene, "Update" );
+}
+
+void DaoxGraphics_glutIdle(void)
+{
+	if( daox_current_scene ) DaoxGraphics_CallMethod( daox_current_scene, "Idle" );
+}
 void DaoxGraphics_glutDisplay(void)
 {
   int now, interval;
   
-  if( daox_current_scene )
-	  DaoxGraphics_glDrawScene( daox_current_scene, 0, 0, window_width, window_height );
+  if( daox_current_scene ){
+	  DaoxBoundingBox box = daox_current_scene->viewport;
+	  DaoxGraphics_UpdateScene( daox_current_scene );
+	  DaoxGraphics_glDrawScene( daox_current_scene, box.left, box.right, box.bottom, box.top );
+  }
 
   glutSwapBuffers();
 
@@ -65,6 +127,69 @@ void DaoxGraphics_glutDisplay(void)
 	  count_reset = now - 1000;
   }
 }
+
+void DaoxGraphics_glutReshape( int width, int height )
+{
+}
+
+void DaoxGraphics_glutKeyboard( unsigned char key, int x, int y )
+{
+	DaoxBoundingBox box = daox_current_scene->viewport;
+	double width, height, dw, dh;
+	if( daox_current_scene == NULL ) return;
+	if( DaoxGraphics_CallKeyboardMethod( daox_current_scene, "OnKeyboard", key, x, y ) ) return;
+
+	width = box.right - box.left;
+	height = box.top - box.bottom;
+	dw = 0.0;
+	dh = 0.0;
+	if( key == '+' ){
+		dw = width / 6;
+		dh = height / 6;
+	}else if( key == '-' ){
+		dw = - width / 4;
+		dh = - height / 4;
+	}
+	box.left   += dw;
+	box.right  -= dw;
+	box.bottom += dh;
+	box.top    -= dh;
+	DaoxGraphicsScene_SetViewport( daox_current_scene, box.left, box.right, box.bottom, box.top );
+}
+
+void DaoxGraphics_glutSpecialKeyboard( int key, int x, int y )
+{
+	if( daox_current_scene == NULL ) return;
+	DaoxGraphics_CallKeyboardMethod( daox_current_scene, "OnKeyboard", key, x, y );
+}
+
+static int last_x = 0;
+static int last_y = 0;
+
+void DaoxGraphics_glutButton( int button, int state, int x, int y )
+{
+	last_x = x;
+	last_y = y;
+}
+
+void DaoxGraphics_glutDrag( int x, int y )
+{
+	DaoxBoundingBox box = daox_current_scene->viewport;
+	double xscale = (box.right - box.left) / window_width;
+	double yscale = (box.top - box.bottom) / window_height;
+	box.left   -= (x - last_x) * xscale;
+	box.right  -= (x - last_x) * xscale;
+	box.bottom += (y - last_y) * xscale;
+	box.top    += (y - last_y) * xscale;
+	last_x = x;
+	last_y = y;
+	DaoxGraphicsScene_SetViewport( daox_current_scene, box.left, box.right, box.bottom, box.top );
+}
+
+void DaoxGraphics_glutMove( int x, int y )
+{
+}
+
 void DaoxGraphics_glutInit(int width, int height, const char *title)
 {
   int i, argc = 1;
@@ -79,7 +204,14 @@ void DaoxGraphics_glutInit(int width, int height, const char *title)
   glutCreateWindow(title);
   
   glutDisplayFunc(DaoxGraphics_glutDisplay);
+  //glutIdleFunc(DaoxGraphics_glutIdle);
   glutIdleFunc(DaoxGraphics_glutDisplay);
+  glutReshapeFunc(DaoxGraphics_glutReshape);
+  glutKeyboardFunc(DaoxGraphics_glutKeyboard);
+  glutSpecialFunc(DaoxGraphics_glutSpecialKeyboard);
+  glutMouseFunc(DaoxGraphics_glutButton);
+  glutMotionFunc(DaoxGraphics_glutDrag);
+  glutPassiveMotionFunc(DaoxGraphics_glutMove);
   
   glDisable(GL_DEPTH_TEST);
   glEnable(GL_LINE_SMOOTH);
@@ -104,6 +236,10 @@ static void GLUT_Show( DaoProcess *proc, DaoValue *p[], int N )
 {
 	daox_current_scene = (DaoxGraphicsScene*) p[0];
 
+	daox_current_scene->defaultWidth = window_width;
+	daox_current_scene->defaultHeight = window_height;
+	DaoxGraphicsScene_SetViewport( daox_current_scene, 0, window_width, 0, window_height );
+
 	glutMainLoop();
 }
 static DaoFuncItem DaoxGLUTMeths[]=
@@ -116,6 +252,7 @@ static DaoFuncItem DaoxGLUTMeths[]=
 
 DAO_DLL int DaoGLUT_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
+	__daoVmSpace = vmSpace;
 	DaoNamespace_WrapFunctions( ns, DaoxGLUTMeths );
 	return 0;
 }

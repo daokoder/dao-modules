@@ -65,6 +65,22 @@ void DaoxTransform_SetScale( DaoxTransform *self, double x, double y )
 
 
 
+void DaoxBoundingBox_Init( DaoxBoundingBox *self, DaoxPoint point )
+{
+	self->left = self->right = point.x;
+	self->bottom = self->top = point.y;
+}
+void DaoxBoundingBox_Update( DaoxBoundingBox *self, DaoxPoint point )
+{
+	if( point.x < self->left ) self->left = point.x;
+	if( point.x > self->right ) self->right = point.x;
+	if( point.y < self->bottom ) self->bottom = point.y;
+	if( point.y > self->top ) self->top = point.y;
+}
+
+
+
+
 DaoxBezierSegment* DaoxBezierSegment_New()
 {
 	DaoxBezierSegment *self = (DaoxBezierSegment*) dao_calloc( 1, sizeof(DaoxBezierSegment) );

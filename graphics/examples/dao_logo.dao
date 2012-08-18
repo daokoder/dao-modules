@@ -10,27 +10,36 @@ fontRoboto = Font( 'fonts/Roboto-Bold.ttf' );
 
 scene = GraphicsScene();
 
+scene.SetBackground( (1.0,1.0,1.0), 0.0 );
 
 scene.PushState()
 scene.SetFont( fontRoboto, 100 );
-scene.SetStrokeWidth( 5 );
-scene.SetStrokeColor( (0.0,0.0,1.0), 0.9 );
-scene.SetFillColor( (0.0,0.9,0.0), 0.5 );
+scene.SetStrokeWidth( 1 );
+scene.SetStrokeColor( (0.0,0.0,0.5), 0.4 );
+scene.SetFillColor( (0.0,0.0,0.5), 0.9 );
 
-text = scene.AddText( 'Dao', 300, 650 );
+text = scene.AddText( 'Dao', 300, 640 );
+
+scene.PushState()
+scene.SetFont( fontRoboto, 60 );
+scene.SetStrokeWidth( 1 );
+scene.SetStrokeColor( (0.0,0.0,0.5), 0.4 );
+scene.SetFillColor( (0.0,0.0,0.5), 0.9 );
 
 path = scene.AddPath();
-#path.SetVisible( $false );
+path.SetVisible( $false );
 
-path.MoveTo( 50, 480 )
-path.ArcTo( 700, 0, 200 )
+path.MoveTo( 70, 320 )
+path.ArcTo( 650, 0, 135 )
 
 #scene.SetFont( fontRoboto, 80 );
-text = scene.AddText( 'Programming Language', path );
+#text = scene.AddText( 'Programming Language', path );
+text = scene.AddText( 'PROGRAMMING LANGUAGE', path );
+scene.PopState();
 scene.PopState();
 
 scene.PushState()
-scene.SetTransform( [1D, 0, 0, 1, 400, 400] );
+scene.SetTransform( [1.0D, 0, 0, 1.0, 400, 400] );
 
 unit = 100;
 
@@ -76,8 +85,8 @@ path = scene.AddPath();
 
 path.MoveTo( 2*unit, -unit )
 .ArcAbsBy( 0, 0, 180 )
-.ArcAbsTo( 0, 0, - 179 )
-.ArcAbsTo( 2*unit, -unit, 181 )
+.ArcAbsTo( 0, 0, - 180 + 0.1 )
+.ArcAbsTo( 2*unit, -unit, 180 + 0.1 )
 path.Close();
 
 scene.PopState()
@@ -99,7 +108,7 @@ grad_A.SetRadius( sqrt(5)*unit );
 
 path = scene.AddPath();
 path.MoveTo( 2*unit, -unit )
-.ArcBy( -unit-1, 0.5*unit-1, -90 )
+.ArcBy( -unit-0.1, 0.5*unit-0.1, -90 )
 .ArcAbsBy( 0, 0, -320 )
 .ArcAbsTo( 2*unit, -unit, 90 )
 path.Close();
@@ -108,14 +117,14 @@ path.Close();
 
 scene.PopState()
 
-scene.PushState().SetJunction( $flat ).SetStrokeWidth(2)
-.SetStrokeColor( (0.5, 0.0, 0.9), 0.5 );
+scene.PushState().SetJunction( $flat ).SetStrokeWidth(5)
+.SetStrokeColor( (0.8, 0.4, 0.0), 0.9 );
 
 grad_A = scene.SetRadialGradient();
-grad_A.AddStop( 0.0, (1.0, 0.9, 0.0, 0.7) )
+grad_A.AddStop( 0.0, (1.0, 0.9, 0.4, 0.7) )
 grad_A.AddStop( 0.5, (0.8, 0.7, 0.0, 0.7) )
-grad_A.AddStop( 0.95, (0.6, 0.3, 0.9, 0.7) )
-grad_A.AddStop( 1.0, (0.5, 0.3, 0.8, 0.0) )
+grad_A.AddStop( 0.95, (0.9, 0.6, 0.3, 0.7) )
+grad_A.AddStop( 1.0, (0.8, 0.5, 0.3, 0.0) )
 grad_A.SetCenter( 0, 0 );
 grad_A.SetFocus( 0, 0 );
 grad_A.SetRadius( 1.3*unit );

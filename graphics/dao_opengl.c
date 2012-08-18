@@ -180,15 +180,14 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item )
 	}
 	glPopMatrix();
 }
-void DaoxGraphics_glDrawScene( DaoxGraphicsScene *scene, double left, double bottom, double right, double top )
+void DaoxGraphics_glDrawScene( DaoxGraphicsScene *scene, double left, double right, double bottom, double top )
 {
-	double width = right - left;
-	double height = top - bottom;
+	DaoxColor bgcolor = scene->background;
 	int i, n = scene->items->size;
 
 	glMatrixMode (GL_PROJECTION);
 	glLoadIdentity ();
-	glOrtho(0, width, 0, height, 0, 1);
+	glOrtho(left, right, bottom, top, 0, 1);
 	glMatrixMode (GL_MODELVIEW);
 	glLoadIdentity ();
 
@@ -197,7 +196,7 @@ void DaoxGraphics_glDrawScene( DaoxGraphicsScene *scene, double left, double bot
 
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glDisable( GL_LIGHTING );
-	glClearColor( 1.0, 1.0, 1.0, 1.0 );
+	glClearColor( bgcolor.red, bgcolor.green, bgcolor.blue, bgcolor.alpha );
 
 	for(i=0; i<n; i++){
 		DaoxGraphicsItem *it = (DaoxGraphicsItem*) scene->items->items.pVoid[i];

@@ -1148,23 +1148,25 @@ DaoxPathSegmentPair DaoxPathSegment_GetRefined( DaoxPathSegment *self, DaoxGraph
 		DaoxPathSegment_GetRefinedStroke( self, gdata );
 		return segs;
 	}
-	if( self->bezier == 2 ){
-		if( self->convexness > 0 ){
-			DaoxGraphicsData_PushFilling( gdata, self->first->P2, self->P1, self->P2 );
+	if( self->component->last->next == self->component->first ){
+		if( self->bezier == 2 ){
+			if( self->convexness > 0 ){
+				DaoxGraphicsData_PushFilling( gdata, self->first->P2, self->P1, self->P2 );
+			}else{
+				DaoxGraphicsData_PushFilling( gdata, self->C1, self->first->C1, self->second->C1 );
+			}
 		}else{
-			DaoxGraphicsData_PushFilling( gdata, self->C1, self->first->C1, self->second->C1 );
-		}
-	}else{
-		if( self->convexness > 0 ){
-			DaoxGraphicsData_PushFilling( gdata, self->first->P2, self->P1, self->P2 );
-		}else{
-			double at = (self->first->end - self->start) / (self->end - self->start);
-			DaoxPoint Q;
-			Q.x = (1.0 - at) * self->C1.x + at * self->C2.x;
-			Q.y = (1.0 - at) * self->C1.y + at * self->C2.y;
-			DaoxGraphicsData_PushFilling( gdata, self->C1, self->first->C1, Q );
-			DaoxGraphicsData_PushFilling( gdata, self->C2, Q, self->second->C2 );
-			DaoxGraphicsData_PushFilling( gdata, Q, self->first->C2, self->second->C1 );
+			if( self->convexness > 0 ){
+				DaoxGraphicsData_PushFilling( gdata, self->first->P2, self->P1, self->P2 );
+			}else{
+				double at = (self->first->end - self->start) / (self->end - self->start);
+				DaoxPoint Q;
+				Q.x = (1.0 - at) * self->C1.x + at * self->C2.x;
+				Q.y = (1.0 - at) * self->C1.y + at * self->C2.y;
+				DaoxGraphicsData_PushFilling( gdata, self->C1, self->first->C1, Q );
+				DaoxGraphicsData_PushFilling( gdata, self->C2, Q, self->second->C2 );
+				DaoxGraphicsData_PushFilling( gdata, Q, self->first->C2, self->second->C1 );
+			}
 		}
 	}
 	sp1 = DaoxPathSegment_GetRefined( self->first, gdata );
@@ -1207,14 +1209,22 @@ void DaoxPath_ExportGraphicsData( DaoxPath *self, DaoxGraphicsData *gdata )
 	DaoxPathComponent *com;
 	DaoxPathSegmentPair open, cur, prev = {NULL,NULL};
 	DaoxTransform *transform = gdata->transform;
+	DaoxGraphicsScene *scene = gdata->item->scene;
+	DaoxBoundingBox box = scene->viewport;
 	double width = gdata->strokeWidth;
 	double maxlen = gdata->maxlen;
 	double maxdiff = gdata->maxdiff;
-	double pos;
+	double xscale = fabs( box.right - box.left ) / (scene->defaultWidth + 1);
+	double yscale = fabs( box.top - box.bottom ) / (scene->defaultHeight + 1);
+	double pos, scale = 0.5 * (xscale + yscale);
 	int i, j, count, jt, jt2;
 
 	if( maxlen < 1E-16 ) maxlen = 10;
 	if( maxdiff < 1E-16 ) maxdiff = 0.001;
+
+	maxlen *= scale;
+	maxdiff *= scale;
+	gdata->scale = scale;
 
 	DaoxPath_Refine( self, maxlen, maxdiff );
 	gdata->currentLength = self->length;

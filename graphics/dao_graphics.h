@@ -129,6 +129,7 @@ struct DaoxGraphicsData
 	double   strokeWidth;
 	double   maxlen;
 	double   maxdiff;
+	double   scale;
 
 	DaoxTransform  *transform;  /* for path only; */
 
@@ -235,6 +236,13 @@ struct DaoxGraphicsScene
 {
 	DAO_CDATA_COMMON;
 
+	double  defaultWidth;
+	double  defaultHeight;
+
+	DaoxBoundingBox  viewport;
+
+	DaoxColor  background;
+
 	DArray  *items;
 	DArray  *states;
 
@@ -327,6 +335,8 @@ DAO_DLL int DaoxGraphicsItem_UpdateData( DaoxGraphicsItem *self, DaoxGraphicsSce
 DAO_DLL DaoxGraphicsScene* DaoxGraphicsScene_New();
 DAO_DLL void DaoxGraphicsScene_Delete( DaoxGraphicsScene *self );
 
+DAO_DLL void DaoxGraphicsScene_SetViewport( DaoxGraphicsScene *self, double left, double right, double bottom, double top );
+DAO_DLL void DaoxGraphicsScene_SetBackground( DaoxGraphicsScene *self, DaoxColor color );
 
 DAO_DLL void DaoxGraphicsScene_PushState( DaoxGraphicsScene *self );
 DAO_DLL void DaoxGraphicsScene_PopState( DaoxGraphicsScene *self );

@@ -49,6 +49,9 @@ DaoType *daox_type_graphics_text = NULL;
 
 
 
+double DaoxGraphicsScene_Scale( DaoxGraphicsScene *self );
+
+
 
 DaoxColor DaoxColor_Interpolate( DaoxColor C1, DaoxColor C2, float start, float mid, float end )
 {
@@ -425,6 +428,7 @@ void DaoxGraphicsData_MakeFillGradient( DaoxGraphicsData *self )
 	DaoxPointArray *points = self->fillPoints;
 	DaoxIntArray *triangles = self->fillTriangles;
 	DaoxColor mean, correct;
+	double scale = DaoxGraphicsScene_Scale( self->item->scene );
 	int i, k, m, n;
 
 	if( gradient == NULL ) return;
@@ -466,7 +470,7 @@ void DaoxGraphicsData_MakeFillGradient( DaoxGraphicsData *self )
 		PA = points->points[IA];
 		PB = points->points[IB];
 		PC = points->points[IC];
-		if( dmax < 1.0 ){
+		if( dmax < 1.0 * scale ){
 			triangles->values[k] = IA;
 			triangles->values[k+1] = IB;
 			triangles->values[k+2] = IC;
@@ -839,6 +843,7 @@ void DaoxGraphicsText_UpdateData( DaoxGraphicsText *self, DaoxGraphicsScene *sce
 {
 	int i, j, jt = DAOX_JUNCTION_FLAT;
 	double scale, offset, maxlen, maxdiff;
+	double gscale = DaoxGraphicsScene_Scale( scene );
 	double width = self->state->strokeWidth;
 	double size = self->state->fontSize;
 	wchar_t *text = self->text->wcs;
@@ -853,6 +858,9 @@ void DaoxGraphicsText_UpdateData( DaoxGraphicsText *self, DaoxGraphicsScene *sce
 	scale = size / (double)font->fontHeight;
 	maxlen = 8.0 * font->fontHeight / size; 
 	maxdiff = 2.0 / size;
+
+	maxlen *= gscale;
+	maxdiff *= gscale;
 
 	DaoxGraphicsData_Init( self->gdata, self );
 	self->gdata->junction = DAOX_JUNCTION_FLAT;
@@ -893,9 +901,16 @@ void DaoxGraphicsText_UpdateData( DaoxGraphicsText *self, DaoxGraphicsScene *sce
 
 int DaoxGraphicsItem_UpdateData( DaoxGraphicsItem *self, DaoxGraphicsScene *scene )
 {
+	double scale = DaoxGraphicsScene_Scale( scene );
+
 	if( self->visible == 0 ){
 		DaoxGraphicsiItem_ResetData( self );
+		self->gdata->scale = scale;
 		return 1;
+	}
+	if( scale > 2*self->gdata->scale || 2*scale < self->gdata->scale ){
+		printf( "here %15f %15f\n", scale, self->gdata->scale );
+		DaoxGraphicsiItem_ResetData( self );
 	}
 	if( self->gdata->strokePoints->count || self->gdata->fillPoints->count ) return 0;
 	switch( self->shape ){
@@ -909,6 +924,8 @@ int DaoxGraphicsItem_UpdateData( DaoxGraphicsItem *self, DaoxGraphicsScene *scen
 	case DAOX_GS_TEXT     : DaoxGraphicsText_UpdateData( self, scene );     break;
 	}
 	DaoxGraphicsData_MakeFillGradient( self->gdata );
+		printf( "here3 %15f %15f\n", scale, self->gdata->scale );
+	self->gdata->scale = scale;
 	return 1;
 }
 
@@ -995,6 +1012,24 @@ void DaoxGraphicsScene_Delete( DaoxGraphicsScene *self )
 }
 
 
+void DaoxGraphicsScene_SetViewport( DaoxGraphicsScene *self, double left, double right, double bottom, double top )
+{
+	self->viewport.left = left;
+	self->viewport.right = right;
+	self->viewport.bottom = bottom;
+	self->viewport.top = top;
+}
+double DaoxGraphicsScene_Scale( DaoxGraphicsScene *self )
+{
+	DaoxBoundingBox box = self->viewport;
+	double xscale = fabs( box.right - box.left ) / (self->defaultWidth + 1);
+	double yscale = fabs( box.top - box.bottom ) / (self->defaultHeight + 1);
+	return 0.5 * (xscale + yscale);
+}
+void DaoxGraphicsScene_SetBackground( DaoxGraphicsScene *self, DaoxColor color )
+{
+	self->background = color;
+}
 DaoxGraphicsState* DaoxGraphicsScene_GetCurrentState( DaoxGraphicsScene *self )
 {
 	if( self->states->size == 0 ) return NULL;
@@ -1596,6 +1631,34 @@ static void SCENE_New( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxGraphicsScene *self = DaoxGraphicsScene_New();
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
+static void SCENE_SetViewport( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
+	self->viewport.left = p[1]->xDouble.value;
+	self->viewport.right = p[2]->xDouble.value;
+	self->viewport.bottom = p[3]->xDouble.value;
+	self->viewport.top = p[4]->xDouble.value;
+}
+static void SCENE_GetViewport( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
+	DaoProcess_NewDouble( proc, self->viewport.left );
+	DaoProcess_NewDouble( proc, self->viewport.right );
+	DaoProcess_NewDouble( proc, self->viewport.bottom );
+	DaoProcess_NewDouble( proc, self->viewport.top );
+	DaoProcess_PutTuple( proc, -4 );
+}
+static void SCENE_SetBackground( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxColor color;
+	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
+	color.red   = p[1]->xTuple.items[0]->xFloat.value;
+	color.green = p[1]->xTuple.items[1]->xFloat.value;
+	color.blue  = p[1]->xTuple.items[2]->xFloat.value;
+	color.alpha = p[2]->xFloat.value;
+	DaoxGraphicsScene_SetBackground( self, color );
+	DaoProcess_PutValue( proc, (DaoValue*) self );
+}
 static void SCENE_AddLine( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
@@ -1803,6 +1866,10 @@ static void DaoxGraphicsScene_GetGCFields( void *p, DArray *values, DArray *arra
 static DaoFuncItem DaoxGraphicsSceneMeths[]=
 {
 	{ SCENE_New,         "GraphicsScene()" },
+	{ SCENE_SetViewport,   "SetViewport( self: GraphicsScene, left: double, right: double, bottom: double, top: double )" },
+	{ SCENE_GetViewport,   "GetViewport( self: GraphicsScene ) => tuple<left:double,right:double,bottom:double,top:double>" },
+	{ SCENE_SetBackground,  "SetBackground( self : GraphicsScene, color : tuple<red:float,green:float,blue:float>, alpha = 1.0 ) => GraphicsScene" },
+
 	{ SCENE_PushState,   "PushState( self: GraphicsScene ) => GraphicsScene" },
 	{ SCENE_PopState,    "PopState( self: GraphicsScene )" },
 	{ SCENE_SetStrokeWidth,  "SetStrokeWidth( self : GraphicsScene, width = 1.0D ) => GraphicsScene" },
