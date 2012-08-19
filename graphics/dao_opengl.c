@@ -111,15 +111,38 @@ void DaoxGraphics_glFillTriangles( DaoxPointArray *points, DaoxIntArray *triangl
 	}
 	glEnd();
 }
-void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item )
+void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 {
 	DaoxGraphicsData *gd = item->gdata;
+	DaoxGraphicsScene *scene = item->scene;
 	GLdouble matrix[16] = {0};
 	int i, n = item->children ? item->children->size : 0;
 
+	DaoxTransform_Multiply( & transform, item->state->transform );
+
+	if( n == 0 && (item->bounds.right > item->bounds.left + 1E-6) ){
+		DaoxBoundingBox box = item->bounds;
+		DaoxPoint P1 = DaoxTransform_TransformXY( & transform, box.left, box.bottom );
+		DaoxPoint P2 = DaoxTransform_TransformXY( & transform, box.left, box.top );
+		DaoxPoint P3 = DaoxTransform_TransformXY( & transform, box.right, box.top );
+		DaoxPoint P4 = DaoxTransform_TransformXY( & transform, box.right, box.bottom );
+		DaoxBoundingBox_Init( & box, P1 );
+		DaoxBoundingBox_Update( & box, P2 );
+		DaoxBoundingBox_Update( & box, P3 );
+		DaoxBoundingBox_Update( & box, P4 );
+
+		//printf( "%15f %15f %15f %15f\n", box.left, box.right, box.bottom, box.top );
+		if( box.left > scene->viewport.right ) return;
+		if( box.right < scene->viewport.left ) return;
+		if( box.bottom > scene->viewport.top ) return;
+		if( box.top < scene->viewport.bottom ) return;
+	}
+#if 0
+#endif
+
 	DaoxGraphicsItem_UpdateData( item, item->scene );
 
-	if( gd->strokeTriangles->count + gd->fillTriangles->count == 0 ) return;
+	if( gd->strokeTriangles->count + gd->fillTriangles->count == 0 && n == 0 ) return;
 
 #if 0
 	printf( "strokeColors = %6i\n", gd->strokeColors->count );
@@ -137,7 +160,6 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item )
 	matrix[5] = item->state->transform.Ayy;
 	matrix[13] = item->state->transform.By;
 	matrix[15] = 1.0;
-
 
 	glPushMatrix();
 	glMultMatrixd( matrix );
@@ -176,12 +198,13 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item )
 
 	for(i=0; i<n; i++){
 		DaoxGraphicsItem *it = (DaoxGraphicsItem*) item->children->items.pVoid[i];
-		DaoxGraphics_glDrawItem( it );
+		DaoxGraphics_glDrawItem( it, transform );
 	}
 	glPopMatrix();
 }
 void DaoxGraphics_glDrawScene( DaoxGraphicsScene *scene, double left, double right, double bottom, double top )
 {
+	DaoxTransform transform = { 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 };
 	DaoxColor bgcolor = scene->background;
 	int i, n = scene->items->size;
 
@@ -200,6 +223,6 @@ void DaoxGraphics_glDrawScene( DaoxGraphicsScene *scene, double left, double rig
 
 	for(i=0; i<n; i++){
 		DaoxGraphicsItem *it = (DaoxGraphicsItem*) scene->items->items.pVoid[i];
-		DaoxGraphics_glDrawItem( it );
+		DaoxGraphics_glDrawItem( it, transform );
 	}
 }

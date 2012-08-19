@@ -215,6 +215,15 @@ extern "C"{
 DAO_DLL void DaoxTransform_RotateXAxisTo( DaoxTransform *self, double x, double y );
 DAO_DLL void DaoxTransform_RotateYAxisTo( DaoxTransform *self, double x, double y );
 DAO_DLL void DaoxTransform_SetScale( DaoxTransform *self, double x, double y );
+DAO_DLL void DaoxTransform_Multiply( DaoxTransform *self, DaoxTransform other );
+DAO_DLL DaoxPoint DaoxTransform_Transform( DaoxTransform *self, DaoxPoint point );
+DAO_DLL DaoxPoint DaoxTransform_TransformXY( DaoxTransform *self, double x, double y );
+
+
+DAO_DLL void DaoxBoundingBox_Init( DaoxBoundingBox *self, DaoxPoint point );
+DAO_DLL void DaoxBoundingBox_InitXY( DaoxBoundingBox *self, double x, double y );
+DAO_DLL void DaoxBoundingBox_Update( DaoxBoundingBox *self, DaoxPoint point );
+DAO_DLL void DaoxBoundingBox_UpdateXY( DaoxBoundingBox *self, double x, double y );
 
 
 DAO_DLL DaoxByteArray* DaoxByteArray_New();

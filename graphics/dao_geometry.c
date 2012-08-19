@@ -61,21 +61,56 @@ void DaoxTransform_SetScale( DaoxTransform *self, double x, double y )
 	self->Ayx *= y;
 	self->Ayy *= y;
 }
+void DaoxTransform_Multiply( DaoxTransform *self, DaoxTransform other )
+{
+	double Axx = self->Axx * other.Axx + self->Axy * other.Ayx;
+	double Axy = self->Axx * other.Axy + self->Axy * other.Ayy;
+	double Ayx = self->Ayx * other.Axx + self->Ayy * other.Ayx;
+	double Ayy = self->Ayx * other.Axy + self->Ayy * other.Ayy;
+	double Bx = self->Axx * other.Bx + self->Axy * other.By + self->Bx;
+	double By = self->Ayx * other.Bx + self->Ayy * other.By + self->By;
+	self->Axx = Axx;
+	self->Axy = Axy;
+	self->Ayx = Ayx;
+	self->Ayy = Ayy;
+	self->Bx = Bx;
+	self->By = By;
+}
+DaoxPoint DaoxTransform_TransformXY( DaoxTransform *self, double x, double y )
+{
+	DaoxPoint pt;
+	pt.x = self->Axx * x + self->Axy * y + self->Bx;
+	pt.y = self->Ayx * x + self->Ayy * y + self->By;
+	return pt;
+}
+DaoxPoint DaoxTransform_Transform( DaoxTransform *self, DaoxPoint point )
+{
+	return DaoxTransform_TransformXY( self, point.x, point.y );
+}
 
 
 
 
+void DaoxBoundingBox_InitXY( DaoxBoundingBox *self, double x, double y )
+{
+	self->left = self->right = x;
+	self->bottom = self->top = y;
+}
 void DaoxBoundingBox_Init( DaoxBoundingBox *self, DaoxPoint point )
 {
 	self->left = self->right = point.x;
 	self->bottom = self->top = point.y;
 }
+void DaoxBoundingBox_UpdateXY( DaoxBoundingBox *self, double x, double y )
+{
+	if( x < self->left ) self->left = x;
+	if( x > self->right ) self->right = x;
+	if( y < self->bottom ) self->bottom = y;
+	if( y > self->top ) self->top = y;
+}
 void DaoxBoundingBox_Update( DaoxBoundingBox *self, DaoxPoint point )
 {
-	if( point.x < self->left ) self->left = point.x;
-	if( point.x > self->right ) self->right = point.x;
-	if( point.y < self->bottom ) self->bottom = point.y;
-	if( point.y > self->top ) self->top = point.y;
+	DaoxBoundingBox_UpdateXY( self, point.x, point.y );
 }
 
 

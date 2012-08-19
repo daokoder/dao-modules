@@ -577,14 +577,12 @@ DaoxGraphicsItem* DaoxGraphicsItem_New( DaoxGraphicsScene *scene, int shape )
 	self->gdata = DaoxGraphicsData_New( self );
 	self->state = DaoxGraphicsScene_GetOrPushState( scene );
 	if( shape == DAOX_GS_POLYGON || shape == DAOX_GS_PATH ) self->path = DaoxPath_New();
-	if( shape == DAOX_GS_TEXT ) self->text = DString_New(0);
 	return self;
 }
 void DaoxGraphicsItem_Delete( DaoxGraphicsItem *self )
 {
 	if( self->children ) DArray_Delete( self->children );
 	if( self->path ) DaoxPath_Delete( self->path );
-	if( self->text ) DString_Delete( self->text );
 	DaoxGraphicsData_Delete( self->gdata );
 	DaoCdata_FreeCommon( (DaoCdata*) self );
 	dao_free( self );
@@ -846,62 +844,33 @@ void DaoxGraphicsText_UpdateData( DaoxGraphicsText *self, DaoxGraphicsScene *sce
 	double gscale = DaoxGraphicsScene_Scale( scene );
 	double width = self->state->strokeWidth;
 	double size = self->state->fontSize;
-	wchar_t *text = self->text->wcs;
 	DaoxFont *font = self->state->font;
-	DaoxTransform transform = {0.0,0.0,0.0,0.0,0.0,0.0};
 	DaoxGlyph *glyph;
 
 	DaoxGraphicsiItem_ResetData( self );
 
+	if( self->codepoint == 0 ) return;
 	if( font == NULL ) return;
 	
 	scale = size / (double)font->fontHeight;
 	maxlen = 8.0 * font->fontHeight / size; 
 	maxdiff = 2.0 / size;
 
-	maxlen *= gscale;
-	maxdiff *= gscale;
-
 	DaoxGraphicsData_Init( self->gdata, self );
 	self->gdata->junction = DAOX_JUNCTION_FLAT;
 	self->gdata->maxlen = maxlen;
 	self->gdata->maxdiff = maxdiff;
-	self->gdata->transform = & transform;
-	transform.Axx = transform.Ayy = scale;
-	transform.Bx = self->P1.x;
-	transform.By = self->P1.y;
 
-	if( self->path ) DaoxPath_Refine( self->path, 8.0/size, 2.0/size );
+	printf( ">>>>>>>>>> self->codepoint: %lc %p\n", self->codepoint, self->gdata->transform );
 
-	offset = self->P1.x;
-	while( *text ){
-		glyph = DaoxFont_GetCharGlyph( font, *text++ );
-		printf( "%3i %2lc %9p\n", *(text-1), *(text-1), glyph );
-		if( glyph == NULL ) break;
-		transform.Bx = offset;
-		if( self->path ){
-			double p = 0.0, adv = 0.5 * (scale * glyph->advanceWidth + width);
-			DaoxPathSegment *seg1 = DaoxPath_LocateByDistance( self->path, offset+adv, &p );
-			DaoxPathSegment *seg2 = DaoxPath_LocateByDistance( self->path, offset, &p );
-			if( seg1 == NULL ) seg1 = seg2;
-			if( seg2 ){
-				double dx = seg1->P2.x - seg1->P1.x;
-				double dy = seg1->P2.y - seg1->P1.y;
-				DaoxTransform_RotateXAxisTo( & transform, dx, dy );
-				DaoxTransform_SetScale( & transform, scale, scale );
-				transform.Bx = (1.0 - p) * seg2->P1.x + p * seg2->P2.x;
-				transform.By = (1.0 - p) * seg2->P1.y + p * seg2->P2.y;
-			}
-		}
-		DaoxPath_ExportGraphicsData( glyph->shape, self->gdata );
-		offset += scale * glyph->advanceWidth + width;
-	}
-	self->gdata->transform = NULL;
+	glyph = DaoxFont_GetCharGlyph( font, self->codepoint );
+	DaoxPath_ExportGraphicsData( glyph->shape, self->gdata );
 }
 
 int DaoxGraphicsItem_UpdateData( DaoxGraphicsItem *self, DaoxGraphicsScene *scene )
 {
 	double scale = DaoxGraphicsScene_Scale( scene );
+	daoint i;
 
 	if( self->visible == 0 ){
 		DaoxGraphicsiItem_ResetData( self );
@@ -924,8 +893,31 @@ int DaoxGraphicsItem_UpdateData( DaoxGraphicsItem *self, DaoxGraphicsScene *scen
 	case DAOX_GS_TEXT     : DaoxGraphicsText_UpdateData( self, scene );     break;
 	}
 	DaoxGraphicsData_MakeFillGradient( self->gdata );
-		printf( "here3 %15f %15f\n", scale, self->gdata->scale );
 	self->gdata->scale = scale;
+	if( self->gdata->strokePoints->count ){
+		DaoxBoundingBox_Init( & self->bounds, self->gdata->strokePoints->points[0] );
+	}else if( self->gdata->fillPoints->count ){
+		DaoxBoundingBox_Init( & self->bounds, self->gdata->fillPoints->points[0] );
+	}
+	for(i=0; i<self->gdata->strokePoints->count; ++i){
+		DaoxBoundingBox_Update( & self->bounds, self->gdata->strokePoints->points[i] );
+	}
+	for(i=0; i<self->gdata->fillPoints->count; ++i){
+		DaoxBoundingBox_Update( & self->bounds, self->gdata->fillPoints->points[i] );
+	}
+	self->bounds.left   -= 1E-9;
+	self->bounds.right  += 1E-9;
+	self->bounds.bottom -= 1E-9;
+	self->bounds.top    += 1E-9;
+	if( self->children == NULL ) return 1;
+	for(i=0; i<self->children->size; ++i){
+		DaoxGraphicsItem *item = (DaoxGraphicsItem*) self->children->items.pVoid[i];
+		DaoxGraphicsItem_UpdateData( item, scene );
+		if( item->bounds.left < self->bounds.left ) self->bounds.left = item->bounds.left;
+		if( item->bounds.right > self->bounds.right ) self->bounds.right = item->bounds.right;
+		if( item->bounds.bottom < self->bounds.bottom ) self->bounds.bottom = item->bounds.bottom;
+		if( item->bounds.top > self->bounds.top ) self->bounds.top = item->bounds.top;
+	}
 	return 1;
 }
 
@@ -1135,6 +1127,57 @@ DaoxGraphicsPath* DaoxGraphicsScene_AddPath( DaoxGraphicsScene *self )
 	DArray_PushBack( self->items, item );
 	return item;
 }
+void DaoxGraphicsText_AddCharItems( DaoxGraphicsText *self, const wchar_t *text )
+{
+	DaoxGlyph *glyph;
+	DaoxGraphicsText *chitem;
+	DaoxFont *font = self->state->font;
+	DaoxTransform transform = {0.0,0.0,0.0,0.0,0.0,0.0};
+	double width = self->state->strokeWidth;
+	double size = self->state->fontSize;
+	double scale = size / (double)font->fontHeight;
+	double offset;
+
+	transform.Axx = transform.Ayy = scale;
+	transform.Bx = self->P1.x;
+	transform.By = self->P1.y;
+
+	if( self->path ) DaoxPath_Refine( self->path, 8.0/size, 2.0/size );
+
+	offset = self->P1.x;
+	while( *text ){
+		wchar_t ch = *text++;
+		glyph = DaoxFont_GetCharGlyph( font, ch );
+		if( glyph == NULL ) break;
+
+		if( self->children == NULL ) self->children = DArray_New(D_VALUE);
+		DaoxGraphicsScene_PushState( self->scene );
+		chitem = DaoxGraphicsItem_New( self->scene, DAOX_GS_TEXT );
+		DArray_PushBack( self->children, chitem );
+		DaoxGraphicsScene_PopState( self->scene );
+		/* Set codepoint to zero if the glyph is empty: */
+		chitem->codepoint = glyph->shape->triangles->count ? ch : 0;
+
+		transform.Bx = offset;
+		if( self->path ){
+			double p = 0.0, adv = 0.5 * (scale * glyph->advanceWidth + width);
+			DaoxPathSegment *seg1 = DaoxPath_LocateByDistance( self->path, offset+adv, &p );
+			DaoxPathSegment *seg2 = DaoxPath_LocateByDistance( self->path, offset, &p );
+			if( seg1 == NULL ) seg1 = seg2;
+			if( seg2 ){
+				double dx = seg1->P2.x - seg1->P1.x;
+				double dy = seg1->P2.y - seg1->P1.y;
+				DaoxTransform_RotateXAxisTo( & transform, dx, dy );
+				DaoxTransform_SetScale( & transform, scale, scale );
+				transform.Bx = (1.0 - p) * seg2->P1.x + p * seg2->P2.x;
+				transform.By = (1.0 - p) * seg2->P1.y + p * seg2->P2.y;
+			}
+		}
+		chitem->state->transform = transform;
+		offset += scale * glyph->advanceWidth + width;
+		chitem = NULL;
+	}
+}
 DaoxGraphicsText* DaoxGraphicsScene_AddText( DaoxGraphicsScene *self, const wchar_t *text, double x, double y )
 {
 	DaoxGraphicsPath *item;
@@ -1145,9 +1188,9 @@ DaoxGraphicsText* DaoxGraphicsScene_AddText( DaoxGraphicsScene *self, const wcha
 
 	item = DaoxGraphicsItem_New( self, DAOX_GS_TEXT );
 	DArray_PushBack( self->items, item );
-	DString_SetWCS( item->text, text );
 	item->P1.x = x;
 	item->P1.y = y;
+	DaoxGraphicsText_AddCharItems( item, text );
 	return item;
 }
 DaoxGraphicsText* DaoxGraphicsScene_AddPathText( DaoxGraphicsScene *self, const wchar_t *text, DaoxPath *path )
@@ -1160,11 +1203,11 @@ DaoxGraphicsText* DaoxGraphicsScene_AddPathText( DaoxGraphicsScene *self, const 
 
 	item = DaoxGraphicsItem_New( self, DAOX_GS_TEXT );
 	DArray_PushBack( self->items, item );
-	DString_SetWCS( item->text, text );
 	if( item->path == NULL ) item->path = DaoxPath_New();
 	DaoxPath_Reset( item->path );
 	DaoxPath_ImportPath( item->path, path, NULL );
 	DaoxPath_Preprocess( item->path, self->buffer );
+	DaoxGraphicsText_AddCharItems( item, text );
 	return item;
 }
 

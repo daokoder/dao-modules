@@ -151,5 +151,5 @@ path.Close()
 
 scene.PopState()
 
-glutInit( 1000, 800, 'Dao Logo', 10, 0 )
+glutInit( 1000, 800, 'Dao Logo', 30, 0 )
 glutShow( scene )

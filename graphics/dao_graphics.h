@@ -205,11 +205,12 @@ struct DaoxGraphicsItem
 
 	uchar_t  shape;  /* shape type; */
 	uchar_t  visible;
+	wchar_t  codepoint;
+
+	DaoxBoundingBox  bounds;
 
 	DaoxPoint  P1;
 	DaoxPoint  P2;
-
-	DString  *text;
 
 	DaoxGraphicsState  *state;
 
@@ -336,6 +337,7 @@ DAO_DLL DaoxGraphicsScene* DaoxGraphicsScene_New();
 DAO_DLL void DaoxGraphicsScene_Delete( DaoxGraphicsScene *self );
 
 DAO_DLL void DaoxGraphicsScene_SetViewport( DaoxGraphicsScene *self, double left, double right, double bottom, double top );
+DAO_DLL double DaoxGraphicsScene_Scale( DaoxGraphicsScene *self );
 DAO_DLL void DaoxGraphicsScene_SetBackground( DaoxGraphicsScene *self, DaoxColor color );
 
 DAO_DLL void DaoxGraphicsScene_PushState( DaoxGraphicsScene *self );

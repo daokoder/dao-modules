@@ -1211,20 +1211,24 @@ void DaoxPath_ExportGraphicsData( DaoxPath *self, DaoxGraphicsData *gdata )
 	DaoxTransform *transform = gdata->transform;
 	DaoxGraphicsScene *scene = gdata->item->scene;
 	DaoxBoundingBox box = scene->viewport;
+	double scale = DaoxGraphicsScene_Scale( scene );
 	double width = gdata->strokeWidth;
 	double maxlen = gdata->maxlen;
 	double maxdiff = gdata->maxdiff;
-	double xscale = fabs( box.right - box.left ) / (scene->defaultWidth + 1);
-	double yscale = fabs( box.top - box.bottom ) / (scene->defaultHeight + 1);
-	double pos, scale = 0.5 * (xscale + yscale);
+	double pos;
 	int i, j, count, jt, jt2;
 
-	if( maxlen < 1E-16 ) maxlen = 10;
-	if( maxdiff < 1E-16 ) maxdiff = 0.001;
+	printf( "scale: %15f\n", scale );
 
 	maxlen *= scale;
 	maxdiff *= scale;
+
+	if( maxlen < 1E-1 ) maxlen = 0.1;
+	if( maxdiff < 1E-3 ) maxdiff = 0.001;
+
 	gdata->scale = scale;
+	gdata->maxlen = maxlen;
+	gdata->maxdiff = maxdiff;
 
 	DaoxPath_Refine( self, maxlen, maxdiff );
 	gdata->currentLength = self->length;
