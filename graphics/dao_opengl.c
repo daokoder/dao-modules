@@ -111,6 +111,17 @@ void DaoxGraphics_glFillTriangles( DaoxPointArray *points, DaoxIntArray *triangl
 	}
 	glEnd();
 }
+void DaoxGraphics_TransfromMatrix( DaoxTransform transform, GLdouble matrix[16] )
+{
+	memset( matrix, 0, 16*sizeof(GLdouble) );
+	matrix[0] = transform.Axx;
+	matrix[4] = transform.Axy;
+	matrix[12] = transform.Bx;
+	matrix[1] = transform.Ayx;
+	matrix[5] = transform.Ayy;
+	matrix[13] = transform.By;
+	matrix[15] = 1.0;
+}
 void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 {
 	DaoxGraphicsData *gd = item->gdata;
@@ -132,10 +143,10 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 		DaoxBoundingBox_Update( & box, P4 );
 
 		//printf( "%15f %15f %15f %15f\n", box.left, box.right, box.bottom, box.top );
-		if( box.left > scene->viewport.right ) return;
-		if( box.right < scene->viewport.left ) return;
-		if( box.bottom > scene->viewport.top ) return;
-		if( box.top < scene->viewport.bottom ) return;
+		if( box.left > scene->viewport.right + 1 ) return;
+		if( box.right < scene->viewport.left - 1 ) return;
+		if( box.bottom > scene->viewport.top + 1 ) return;
+		if( box.top < scene->viewport.bottom - 1 ) return;
 	}
 #if 0
 #endif
@@ -151,15 +162,7 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 	printf( "fillTriangles   = %6i\n", gd->fillTriangles->count );
 #endif
 	
-	memset( matrix, 0, 16*sizeof(GLdouble) );
-
-	matrix[0] = item->state->transform.Axx;
-	matrix[4] = item->state->transform.Axy;
-	matrix[12] = item->state->transform.Bx;
-	matrix[1] = item->state->transform.Ayx;
-	matrix[5] = item->state->transform.Ayy;
-	matrix[13] = item->state->transform.By;
-	matrix[15] = 1.0;
+	DaoxGraphics_TransfromMatrix( item->state->transform, matrix );
 
 	glPushMatrix();
 	glMultMatrixd( matrix );

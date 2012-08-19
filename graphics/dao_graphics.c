@@ -905,10 +905,6 @@ int DaoxGraphicsItem_UpdateData( DaoxGraphicsItem *self, DaoxGraphicsScene *scen
 	for(i=0; i<self->gdata->fillPoints->count; ++i){
 		DaoxBoundingBox_Update( & self->bounds, self->gdata->fillPoints->points[i] );
 	}
-	self->bounds.left   -= 1E-9;
-	self->bounds.right  += 1E-9;
-	self->bounds.bottom -= 1E-9;
-	self->bounds.top    += 1E-9;
 	if( self->children == NULL ) return 1;
 	for(i=0; i<self->children->size; ++i){
 		DaoxGraphicsItem *item = (DaoxGraphicsItem*) self->children->items.pVoid[i];
@@ -930,9 +926,9 @@ int DaoxGraphicsItem_UpdateData( DaoxGraphicsItem *self, DaoxGraphicsScene *scen
 
 DaoxGraphicsScene* DaoxGraphicsScene_New()
 {
+	int i;
 	DaoxTransform X2 = { 2.0, 0.0, 0.0, 1.0, 0.0, 0.0 };
 	DaoxTransform X4 = { 4.0, 0.0, 0.0, 1.0, 0.0, 0.0 };
-	int i;
 
 	DaoxGraphicsScene *self = (DaoxGraphicsScene*) dao_calloc( 1, sizeof(DaoxGraphicsScene) );
 	DaoCdata_InitCommon( (DaoCdata*) self, daox_type_graphics_scene );

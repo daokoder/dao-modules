@@ -183,6 +183,10 @@ void DaoxGraphics_glutDrag( int x, int y )
 	box.top    += (y - last_y) * xscale;
 	last_x = x;
 	last_y = y;
+	if( box.left > 0.9*window_width ) box.left = 0.9*window_width;
+	if( box.right < 0.1*window_width ) box.right = 0.1*window_width;
+	if( box.bottom > 0.9*window_height ) box.bottom = 0.9*window_height;
+	if( box.top < 0.1*window_height ) box.top = 0.1*window_height;
 	DaoxGraphicsScene_SetViewport( daox_current_scene, box.left, box.right, box.bottom, box.top );
 }
 
