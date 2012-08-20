@@ -357,6 +357,7 @@ void DaoxGraphicsData_Init( DaoxGraphicsData *self, DaoxGraphicsItem *item )
 void DaoxGraphicsData_PushStrokeTriangle( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C )
 {
 	int index = self->strokePoints->count;
+	if( DaoxBounds_CheckTriangle( & self->bounds, A, B, C ) == 0 ) return;
 	DaoxPointArray_Push( self->strokePoints, A );
 	DaoxPointArray_Push( self->strokePoints, B );
 	DaoxPointArray_Push( self->strokePoints, C );
@@ -380,10 +381,12 @@ void DaoxGraphicsData_PushQuad( DaoxPointArray *points, DaoxIntArray *triangles,
 }
 void DaoxGraphicsData_PushStrokeQuad( DaoxGraphicsData *self, DaoxQuad quad )
 {
+	if( DaoxBounds_CheckQuad( & self->bounds, quad ) == 0 ) return;
 	DaoxGraphicsData_PushQuad( self->strokePoints, self->strokeTriangles, quad );
 }
 void DaoxGraphicsData_PushFillQuad( DaoxGraphicsData *self, DaoxQuad quad )
 {
+	if( DaoxBounds_CheckQuad( & self->bounds, quad ) == 0 ) return;
 	DaoxGraphicsData_PushQuad( self->fillPoints, self->fillTriangles, quad );
 }
 void DaoxIntArray_PushTriangle( DaoxIntArray *triangles, int A, int B, int C )
@@ -448,6 +451,8 @@ void DaoxGraphicsData_MakeFillGradient( DaoxGraphicsData *self )
 		DaoxPoint PmAB, PmBC, PmCA;
 		DaoxColor CA, CB, CC, CmAB, CmBC, CmCA;
 		DaoxColor CtAB, CtBC, CtCA;
+
+		if( DaoxBounds_CheckTriangle( & self->bounds, PA, PB, PC ) == 0 ) continue;
 
 		dAB = DaoxDistance( PA, PB );
 		if( dAB > dmax ) dmax = dAB;
@@ -900,15 +905,15 @@ int DaoxGraphicsItem_UpdateData( DaoxGraphicsItem *self, DaoxGraphicsScene *scen
 	DaoxGraphicsData_MakeFillGradient( self->gdata );
 	self->gdata->scale = scale;
 	if( self->gdata->strokePoints->count ){
-		DaoxBoundingBox_Init( & self->bounds, self->gdata->strokePoints->points[0] );
+		DaoxBounds_Init( & self->bounds, self->gdata->strokePoints->points[0] );
 	}else if( self->gdata->fillPoints->count ){
-		DaoxBoundingBox_Init( & self->bounds, self->gdata->fillPoints->points[0] );
+		DaoxBounds_Init( & self->bounds, self->gdata->fillPoints->points[0] );
 	}
 	for(i=0; i<self->gdata->strokePoints->count; ++i){
-		DaoxBoundingBox_Update( & self->bounds, self->gdata->strokePoints->points[i] );
+		DaoxBounds_Update( & self->bounds, self->gdata->strokePoints->points[i] );
 	}
 	for(i=0; i<self->gdata->fillPoints->count; ++i){
-		DaoxBoundingBox_Update( & self->bounds, self->gdata->fillPoints->points[i] );
+		DaoxBounds_Update( & self->bounds, self->gdata->fillPoints->points[i] );
 	}
 	if( self->children == NULL ) return 1;
 	for(i=0; i<self->children->size; ++i){
@@ -1014,7 +1019,7 @@ void DaoxGraphicsScene_SetViewport( DaoxGraphicsScene *self, float left, float r
 }
 float DaoxGraphicsScene_Scale( DaoxGraphicsScene *self )
 {
-	DaoxBoundingBox box = self->viewport;
+	DaoxBounds box = self->viewport;
 	float xscale = fabs( box.right - box.left ) / (self->defaultWidth + 1);
 	float yscale = fabs( box.top - box.bottom ) / (self->defaultHeight + 1);
 	return 0.5 * (xscale + yscale);

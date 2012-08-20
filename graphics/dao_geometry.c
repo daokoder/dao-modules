@@ -87,30 +87,110 @@ DaoxPoint DaoxTransform_Transform( DaoxTransform *self, DaoxPoint point )
 {
 	return DaoxTransform_TransformXY( self, point.x, point.y );
 }
+DaoxTransform DaoxTransform_Inverse( DaoxTransform *self )
+{
+	DaoxTransform inverse;
+	double det = self->Axx * self->Ayy - self->Axy * self->Ayx;
+	inverse.Axx =   self->Ayy / det;
+	inverse.Axy = - self->Axy / det;
+	inverse.Ayx = - self->Ayx / det;
+	inverse.Ayy =   self->Axx / det;
+	inverse.Bx = - inverse.Axx * self->Bx - inverse.Axy * self->By;
+	inverse.By = - inverse.Ayx * self->Bx - inverse.Ayy * self->By;
+	return inverse;
+}
+void DaoxTransform_Print( DaoxTransform *self )
+{
+	printf( "DaoxTransform: %9.3f %9.3f %9.3f %9.3f %9.3f %9.3f\n",
+			self->Axx, self->Axy, self->Ayx, self->Ayy, self->Bx, self->By );
+}
 
 
 
 
-void DaoxBoundingBox_InitXY( DaoxBoundingBox *self, float x, float y )
+void DaoxBounds_AddMargin( DaoxBounds *self, float margin )
+{
+	self->left -= margin;
+	self->bottom -= margin;
+	self->right += margin;
+	self->top += margin;
+}
+void DaoxBounds_InitXY( DaoxBounds *self, float x, float y )
 {
 	self->left = self->right = x;
 	self->bottom = self->top = y;
 }
-void DaoxBoundingBox_Init( DaoxBoundingBox *self, DaoxPoint point )
+void DaoxBounds_Init( DaoxBounds *self, DaoxPoint point )
 {
 	self->left = self->right = point.x;
 	self->bottom = self->top = point.y;
 }
-void DaoxBoundingBox_UpdateXY( DaoxBoundingBox *self, float x, float y )
+void DaoxBounds_UpdateXY( DaoxBounds *self, float x, float y )
 {
 	if( x < self->left ) self->left = x;
 	if( x > self->right ) self->right = x;
 	if( y < self->bottom ) self->bottom = y;
 	if( y > self->top ) self->top = y;
 }
-void DaoxBoundingBox_Update( DaoxBoundingBox *self, DaoxPoint point )
+void DaoxBounds_Update( DaoxBounds *self, DaoxPoint point )
 {
-	DaoxBoundingBox_UpdateXY( self, point.x, point.y );
+	DaoxBounds_UpdateXY( self, point.x, point.y );
+}
+DaoxBounds DaoxBounds_Transform( DaoxBounds *self, DaoxTransform *transform )
+{
+	DaoxBounds box;
+	DaoxPoint P1 = DaoxTransform_TransformXY( transform, self->left, self->bottom );
+	DaoxPoint P2 = DaoxTransform_TransformXY( transform, self->left, self->top );
+	DaoxPoint P3 = DaoxTransform_TransformXY( transform, self->right, self->top );
+	DaoxPoint P4 = DaoxTransform_TransformXY( transform, self->right, self->bottom );
+	DaoxBounds_Init( & box, P1 );
+	DaoxBounds_Update( & box, P2 );
+	DaoxBounds_Update( & box, P3 );
+	DaoxBounds_Update( & box, P4 );
+	return box;
+}
+DaoxBounds DaoxBounds_FromTriangle( DaoxPoint A, DaoxPoint B, DaoxPoint C )
+{
+	DaoxBounds box;
+	DaoxBounds_Init( & box, A );
+	DaoxBounds_Update( & box, B );
+	DaoxBounds_Update( & box, C );
+	return box;
+}
+int DaoxBounds_Contain( DaoxBounds *self, DaoxBounds other )
+{
+	if( other.left < self->left ) return 0;
+	if( other.bottom < self->bottom ) return 0;
+	if( other.right > self->right ) return 0;
+	if( other.top > self->top ) return 0;
+	return 1;
+}
+int DaoxBounds_Intersect( DaoxBounds *self, DaoxBounds other )
+{
+	if( other.left > self->right ) return 0;
+	if( other.bottom > self->top ) return 0;
+	if( other.right < self->left ) return 0;
+	if( other.top < self->bottom ) return 0;
+	return 1;
+}
+int DaoxBounds_CheckTriangle( DaoxBounds *self, DaoxPoint A, DaoxPoint B, DaoxPoint C )
+{
+	DaoxBounds bounds = DaoxBounds_FromTriangle( A, B, C );
+	return DaoxBounds_Intersect( self, bounds );
+}
+int DaoxBounds_CheckQuad( DaoxBounds *self, DaoxQuad quad )
+{
+	DaoxBounds bounds;
+	DaoxBounds_Init( & bounds, quad.A );
+	DaoxBounds_Update( & bounds, quad.B );
+	DaoxBounds_Update( & bounds, quad.C );
+	DaoxBounds_Update( & bounds, quad.D );
+	return DaoxBounds_Intersect( self, bounds );
+}
+void DaoxBounds_Print( DaoxBounds *self )
+{
+	printf( "DaoxBounds: %9.3f %9.3f %9.3f %9.3f\n",
+			self->left, self->right, self->bottom, self->top );
 }
 
 

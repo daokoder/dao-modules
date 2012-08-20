@@ -1210,7 +1210,7 @@ void DaoxPath_ExportGraphicsData( DaoxPath *self, DaoxGraphicsData *gdata )
 	DaoxPathSegmentPair open, cur, prev = {NULL,NULL};
 	DaoxTransform *transform = gdata->transform;
 	DaoxGraphicsScene *scene = gdata->item->scene;
-	DaoxBoundingBox box = scene->viewport;
+	DaoxBounds box = scene->viewport;
 	float scale = DaoxGraphicsScene_Scale( scene );
 	float width = gdata->strokeWidth;
 	float maxlen = gdata->maxlen;

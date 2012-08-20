@@ -124,6 +124,8 @@ void DaoxGraphics_TransfromMatrix( DaoxTransform transform, GLdouble matrix[16] 
 }
 void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 {
+	DaoxBounds bounds;
+	DaoxTransform inverse;
 	DaoxGraphicsData *gd = item->gdata;
 	DaoxGraphicsScene *scene = item->scene;
 	GLdouble matrix[16] = {0};
@@ -132,17 +134,8 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 	DaoxTransform_Multiply( & transform, item->state->transform );
 
 	if( n == 0 && (item->bounds.right > item->bounds.left + 1E-6) ){
-		DaoxBoundingBox box = item->bounds;
-		DaoxPoint P1 = DaoxTransform_TransformXY( & transform, box.left, box.bottom );
-		DaoxPoint P2 = DaoxTransform_TransformXY( & transform, box.left, box.top );
-		DaoxPoint P3 = DaoxTransform_TransformXY( & transform, box.right, box.top );
-		DaoxPoint P4 = DaoxTransform_TransformXY( & transform, box.right, box.bottom );
-		DaoxBoundingBox_Init( & box, P1 );
-		DaoxBoundingBox_Update( & box, P2 );
-		DaoxBoundingBox_Update( & box, P3 );
-		DaoxBoundingBox_Update( & box, P4 );
+		DaoxBounds box = DaoxBounds_Transform( & item->bounds, & transform );
 
-		//printf( "%15f %15f %15f %15f\n", box.left, box.right, box.bottom, box.top );
 		if( box.left > scene->viewport.right + 1 ) return;
 		if( box.right < scene->viewport.left - 1 ) return;
 		if( box.bottom > scene->viewport.top + 1 ) return;
@@ -151,6 +144,14 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 #if 0
 #endif
 
+	inverse = DaoxTransform_Inverse( & transform );
+	bounds = DaoxBounds_Transform( & item->scene->viewport, & inverse );
+	DaoxBounds_AddMargin( & bounds, 1 );
+	if( DaoxBounds_Contain( & gd->bounds, item->bounds ) == 0 ){
+		if( DaoxBounds_Contain( & gd->bounds, bounds ) == 0 )
+			DaoxGraphicsData_Reset( gd );
+	}
+	gd->bounds = bounds;
 	DaoxGraphicsItem_UpdateData( item, item->scene );
 
 	if( gd->strokeTriangles->count + gd->fillTriangles->count == 0 && n == 0 ) return;

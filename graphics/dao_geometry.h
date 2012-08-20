@@ -58,7 +58,7 @@ typedef struct DaoxSimplePath              DaoxSimplePath;
 typedef struct DaoxSlice             DaoxSlice;
 typedef struct DaoxTransform         DaoxTransform;
 
-typedef struct DaoxBoundingBox       DaoxBoundingBox;
+typedef struct DaoxBounds            DaoxBounds;
 
 typedef struct DaoxByteArray         DaoxByteArray;
 typedef struct DaoxSliceArray        DaoxSliceArray;
@@ -97,7 +97,7 @@ struct DaoxTransform
 };
 
 
-struct DaoxBoundingBox
+struct DaoxBounds
 {
 	float  left;
 	float  right;
@@ -218,12 +218,20 @@ DAO_DLL void DaoxTransform_SetScale( DaoxTransform *self, float x, float y );
 DAO_DLL void DaoxTransform_Multiply( DaoxTransform *self, DaoxTransform other );
 DAO_DLL DaoxPoint DaoxTransform_Transform( DaoxTransform *self, DaoxPoint point );
 DAO_DLL DaoxPoint DaoxTransform_TransformXY( DaoxTransform *self, float x, float y );
+DAO_DLL DaoxTransform DaoxTransform_Inverse( DaoxTransform *self );
 
 
-DAO_DLL void DaoxBoundingBox_Init( DaoxBoundingBox *self, DaoxPoint point );
-DAO_DLL void DaoxBoundingBox_InitXY( DaoxBoundingBox *self, float x, float y );
-DAO_DLL void DaoxBoundingBox_Update( DaoxBoundingBox *self, DaoxPoint point );
-DAO_DLL void DaoxBoundingBox_UpdateXY( DaoxBoundingBox *self, float x, float y );
+DAO_DLL void DaoxBounds_AddMargin( DaoxBounds *self, float margin );
+DAO_DLL void DaoxBounds_Init( DaoxBounds *self, DaoxPoint point );
+DAO_DLL void DaoxBounds_InitXY( DaoxBounds *self, float x, float y );
+DAO_DLL void DaoxBounds_Update( DaoxBounds *self, DaoxPoint point );
+DAO_DLL void DaoxBounds_UpdateXY( DaoxBounds *self, float x, float y );
+DAO_DLL DaoxBounds DaoxBounds_Transform( DaoxBounds *self, DaoxTransform *t );
+DAO_DLL DaoxBounds DaoxBounds_FromTriangle( DaoxPoint A, DaoxPoint B, DaoxPoint C );
+DAO_DLL int DaoxBounds_Contain( DaoxBounds *self, DaoxBounds other );
+DAO_DLL int DaoxBounds_Intersect( DaoxBounds *self, DaoxBounds other );
+DAO_DLL int DaoxBounds_CheckTriangle( DaoxBounds *self, DaoxPoint A, DaoxPoint B, DaoxPoint C );
+DAO_DLL int DaoxBounds_CheckQuad( DaoxBounds *self, DaoxQuad quad );
 
 
 DAO_DLL DaoxByteArray* DaoxByteArray_New();

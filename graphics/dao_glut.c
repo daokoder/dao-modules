@@ -105,7 +105,7 @@ void DaoxGraphics_glutDisplay(void)
   int now, interval;
   
   if( daox_current_scene ){
-	  DaoxBoundingBox box = daox_current_scene->viewport;
+	  DaoxBounds box = daox_current_scene->viewport;
 	  DaoxGraphics_UpdateScene( daox_current_scene );
 	  DaoxGraphics_glDrawScene( daox_current_scene, box.left, box.right, box.bottom, box.top );
   }
@@ -134,7 +134,7 @@ void DaoxGraphics_glutReshape( int width, int height )
 
 void DaoxGraphics_glutKeyboard( unsigned char key, int x, int y )
 {
-	DaoxBoundingBox box = daox_current_scene->viewport;
+	DaoxBounds box = daox_current_scene->viewport;
 	float width, height, dw, dh;
 	if( daox_current_scene == NULL ) return;
 	if( DaoxGraphics_CallKeyboardMethod( daox_current_scene, "OnKeyboard", key, x, y ) ) return;
@@ -174,7 +174,7 @@ void DaoxGraphics_glutButton( int button, int state, int x, int y )
 
 void DaoxGraphics_glutDrag( int x, int y )
 {
-	DaoxBoundingBox box = daox_current_scene->viewport;
+	DaoxBounds box = daox_current_scene->viewport;
 	float xscale = (box.right - box.left) / window_width;
 	float yscale = (box.top - box.bottom) / window_height;
 	box.left   -= (x - last_x) * xscale;
@@ -183,10 +183,10 @@ void DaoxGraphics_glutDrag( int x, int y )
 	box.top    += (y - last_y) * xscale;
 	last_x = x;
 	last_y = y;
-	if( box.left > 0.9*window_width ) box.left = 0.9*window_width;
-	if( box.right < 0.1*window_width ) box.right = 0.1*window_width;
-	if( box.bottom > 0.9*window_height ) box.bottom = 0.9*window_height;
-	if( box.top < 0.1*window_height ) box.top = 0.1*window_height;
+	if( box.left > 0.9*window_width ) return;
+	if( box.right < 0.1*window_width ) return;
+	if( box.bottom > 0.9*window_height ) return;
+	if( box.top < 0.1*window_height ) return;
 	DaoxGraphicsScene_SetViewport( daox_current_scene, box.left, box.right, box.bottom, box.top );
 }
 

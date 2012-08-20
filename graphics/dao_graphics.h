@@ -131,6 +131,8 @@ struct DaoxGraphicsData
 	float    maxdiff;
 	float    scale;
 
+	DaoxBounds  bounds;
+
 	DaoxTransform  *transform;  /* for path only; */
 
 	DaoxColorArray  *strokeColors;
@@ -207,7 +209,7 @@ struct DaoxGraphicsItem
 	uchar_t  visible;
 	wchar_t  codepoint;
 
-	DaoxBoundingBox  bounds;
+	DaoxBounds  bounds;
 
 	DaoxGraphicsState  *state;
 
@@ -237,7 +239,7 @@ struct DaoxGraphicsScene
 	float  defaultWidth;
 	float  defaultHeight;
 
-	DaoxBoundingBox  viewport;
+	DaoxBounds  viewport;
 
 	DaoxColor  background;
 

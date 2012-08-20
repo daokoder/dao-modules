@@ -408,30 +408,28 @@ void DaoxPathGraph_BreakEdge( DaoxPathGraph *self, DaoxPathEdge *edge )
 }
 
 
-void DaoxBoundingBox_Init( DaoxBoundingBox *self, DaoxPoint point );
-void DaoxBoundingBox_Update( DaoxBoundingBox *self, DaoxPoint point );
 
 int DaoxPointArray_SegmentArc( DaoxPointArray *self, DaoxPoint P0, DaoxPoint P1, DaoxPoint C, int D );
 
 void DaoxPathGraph_IntersectEdges( DaoxPathGraph *self )
 {
 	DaoxPathNode *node;
-	DaoxBoundingBox box;
+	DaoxBounds box;
 	float left, right, bottom, top, width;
 	daoint i, j, k, n;
 
 	if( self->nodes->size == 0 ) return;
 
 	node = (DaoxPathNode*) self->nodes->items.pVoid[0];
-	DaoxBoundingBox_Init( & box, node->point );
+	DaoxBounds_Init( & box, node->point );
 
 	DaoxQuadTree_Reset( self->quadtree );
 	for(i=0; i<self->edges->size; ++i){
 		DaoxPathEdge *edge = (DaoxPathEdge*) self->edges->items.pVoid[i];
 		DaoxPoint start = edge->first->point;
 		DaoxPoint end = edge->second->point;
-		DaoxBoundingBox_Update( & box, start );
-		DaoxBoundingBox_Update( & box, end );
+		DaoxBounds_Update( & box, start );
+		DaoxBounds_Update( & box, end );
 		switch( edge->command ){
 		case DAOX_PATH_LINE_TO :
 			break;
@@ -441,14 +439,14 @@ void DaoxPathGraph_IntersectEdges( DaoxPathGraph *self )
 			self->quadtree->points->count = 0;
 			//DaoxPointArray_SegmentArc( self->quadtree->points, start, end, edge->C1, k );
 			for(j=0; j<self->quadtree->points->count; ++j)
-				DaoxBoundingBox_Update( & box, self->quadtree->points->points[j] );
+				DaoxBounds_Update( & box, self->quadtree->points->points[j] );
 			break;
 		case DAOX_PATH_QUAD_TO :
-			DaoxBoundingBox_Update( & box, edge->C1 );
+			DaoxBounds_Update( & box, edge->C1 );
 			break;
 		case DAOX_PATH_CUBIC_TO :
-			DaoxBoundingBox_Update( & box, edge->C1 );
-			DaoxBoundingBox_Update( & box, edge->C2 );
+			DaoxBounds_Update( & box, edge->C1 );
+			DaoxBounds_Update( & box, edge->C2 );
 			break;
 		}
 	}
@@ -498,9 +496,9 @@ void DaoxPathFragment_Init( DaoxPathFragment *self, DaoxPathEdge *edge )
 }
 void DaoxPathFragment_ResetBoundingBox( DaoxPathFragment *self )
 {
-	DaoxBoundingBox box;
-	DaoxBoundingBox_Init( & box, self->P1 );
-	DaoxBoundingBox_Update( & box, self->P2 );
+	DaoxBounds box;
+	DaoxBounds_Init( & box, self->P1 );
+	DaoxBounds_Update( & box, self->P2 );
 	self->left = box.left;
 	self->bottom = box.bottom;
 	self->right = box.right;
