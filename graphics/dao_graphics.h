@@ -123,13 +123,13 @@ struct DaoxGraphicsData
 {
 	uchar_t  junction;
 	uchar_t  dashState;
-	double   dashLength;
-	double   currentOffset;
-	double   currentLength;
-	double   strokeWidth;
-	double   maxlen;
-	double   maxdiff;
-	double   scale;
+	float    dashLength;
+	float    currentOffset;
+	float    currentLength;
+	float    strokeWidth;
+	float    maxlen;
+	float    maxdiff;
+	float    scale;
 
 	DaoxTransform  *transform;  /* for path only; */
 
@@ -165,7 +165,7 @@ struct DaoxColorGradient
 	DaoxColorArray  *colors;
 
 	DaoxPoint  points[2];
-	double     radius;
+	float     radius;
 };
 DAO_DLL extern DaoType *daox_type_color_gradient;
 DAO_DLL extern DaoType *daox_type_linear_gradient;
@@ -181,9 +181,9 @@ struct DaoxGraphicsState
 
 	uchar_t dash;
 	uchar_t junction;
-	double  fontSize;
-	double  strokeWidth;
-	double  dashPattern[10];
+	float   fontSize;
+	float   strokeWidth;
+	float   dashPattern[10];
 
 	DaoxTransform  transform;
 
@@ -208,9 +208,6 @@ struct DaoxGraphicsItem
 	wchar_t  codepoint;
 
 	DaoxBoundingBox  bounds;
-
-	DaoxPoint  P1;
-	DaoxPoint  P2;
 
 	DaoxGraphicsState  *state;
 
@@ -237,8 +234,8 @@ struct DaoxGraphicsScene
 {
 	DAO_CDATA_COMMON;
 
-	double  defaultWidth;
-	double  defaultHeight;
+	float  defaultWidth;
+	float  defaultHeight;
 
 	DaoxBoundingBox  viewport;
 
@@ -303,26 +300,26 @@ DAO_DLL DaoxGraphicsItem* DaoxGraphicsItem_New( DaoxGraphicsScene *scene, int sh
 DAO_DLL void DaoxGraphicsItem_Delete( DaoxGraphicsItem *self );
 
 
-DAO_DLL void DaoxGraphicsLine_Set( DaoxGraphicsLine *self, double x1, double y1, double x2, double y2 );
+DAO_DLL void DaoxGraphicsLine_Set( DaoxGraphicsLine *self, float x1, float y1, float x2, float y2 );
 
-DAO_DLL void DaoxGraphicsRect_Set( DaoxGraphicsRect *self, double x1, double y1, double x2, double y2 );
+DAO_DLL void DaoxGraphicsRect_Set( DaoxGraphicsRect *self, float x1, float y1, float x2, float y2 );
 
-DAO_DLL void DaoxGraphicsCircle_Set( DaoxGraphicsCircle *self, double x, double y, double r );
+DAO_DLL void DaoxGraphicsCircle_Set( DaoxGraphicsCircle *self, float x, float y, float r );
 
-DAO_DLL void DaoxGraphicsEllipse_Set( DaoxGraphicsEllipse *self, double x, double y, double rx, double ry );
+DAO_DLL void DaoxGraphicsEllipse_Set( DaoxGraphicsEllipse *self, float x, float y, float rx, float ry );
 
-DAO_DLL void DaoxGraphicsPolyLine_Add( DaoxGraphicsPolyLine *self, double x1, double y1, double x2, double y2 );
+DAO_DLL void DaoxGraphicsPolyLine_Add( DaoxGraphicsPolyLine *self, float x1, float y1, float x2, float y2 );
 
-DAO_DLL void DaoxGraphicsPolygon_Add( DaoxGraphicsPolygon *self, double x, double y );
+DAO_DLL void DaoxGraphicsPolygon_Add( DaoxGraphicsPolygon *self, float x, float y );
 
 DAO_DLL void DaoxGraphicsPath_SetRelativeMode( DaoxGraphicsPath *self, int relative );
-DAO_DLL void DaoxGraphicsPath_MoveTo( DaoxGraphicsPath *self, double x, double y );
-DAO_DLL void DaoxGraphicsPath_LineTo( DaoxGraphicsPath *self, double x, double y );
-DAO_DLL void DaoxGraphicsPath_ArcTo( DaoxGraphicsPath *self, double x, double y, double degrees );
-DAO_DLL void DaoxGraphicsPath_ArcBy( DaoxGraphicsPath *self, double cx, double cy, double degrees );
-DAO_DLL void DaoxGraphicsPath_QuadTo( DaoxGraphicsPath *self, double x, double y, double cx, double cy );
-DAO_DLL void DaoxGraphicsPath_CubicTo( DaoxGraphicsPath *self, double x, double y, double cx, double cy );
-DAO_DLL void DaoxGraphicsPath_CubicTo2( DaoxGraphicsPath *self, double cx0, double cy0, double x, double y, double cx, double cy );
+DAO_DLL void DaoxGraphicsPath_MoveTo( DaoxGraphicsPath *self, float x, float y );
+DAO_DLL void DaoxGraphicsPath_LineTo( DaoxGraphicsPath *self, float x, float y );
+DAO_DLL void DaoxGraphicsPath_ArcTo( DaoxGraphicsPath *self, float x, float y, float degrees );
+DAO_DLL void DaoxGraphicsPath_ArcBy( DaoxGraphicsPath *self, float cx, float cy, float degrees );
+DAO_DLL void DaoxGraphicsPath_QuadTo( DaoxGraphicsPath *self, float x, float y, float cx, float cy );
+DAO_DLL void DaoxGraphicsPath_CubicTo( DaoxGraphicsPath *self, float x, float y, float cx, float cy );
+DAO_DLL void DaoxGraphicsPath_CubicTo2( DaoxGraphicsPath *self, float cx0, float cy0, float x, float y, float cx, float cy );
 DAO_DLL void DaoxGraphicsPath_Close( DaoxGraphicsPath *self );
 
 
@@ -336,28 +333,28 @@ DAO_DLL int DaoxGraphicsItem_UpdateData( DaoxGraphicsItem *self, DaoxGraphicsSce
 DAO_DLL DaoxGraphicsScene* DaoxGraphicsScene_New();
 DAO_DLL void DaoxGraphicsScene_Delete( DaoxGraphicsScene *self );
 
-DAO_DLL void DaoxGraphicsScene_SetViewport( DaoxGraphicsScene *self, double left, double right, double bottom, double top );
-DAO_DLL double DaoxGraphicsScene_Scale( DaoxGraphicsScene *self );
+DAO_DLL void DaoxGraphicsScene_SetViewport( DaoxGraphicsScene *self, float left, float right, float bottom, float top );
+DAO_DLL float DaoxGraphicsScene_Scale( DaoxGraphicsScene *self );
 DAO_DLL void DaoxGraphicsScene_SetBackground( DaoxGraphicsScene *self, DaoxColor color );
 
 DAO_DLL void DaoxGraphicsScene_PushState( DaoxGraphicsScene *self );
 DAO_DLL void DaoxGraphicsScene_PopState( DaoxGraphicsScene *self );
 
-DAO_DLL void DaoxGraphicsScene_SetStrokeWidth( DaoxGraphicsScene *self, double width );
+DAO_DLL void DaoxGraphicsScene_SetStrokeWidth( DaoxGraphicsScene *self, float width );
 DAO_DLL void DaoxGraphicsScene_SetStrokeColor( DaoxGraphicsScene *self, DaoxColor color );
 DAO_DLL void DaoxGraphicsScene_SetFillColor( DaoxGraphicsScene *self, DaoxColor color );
-DAO_DLL void DaoxGraphicsScene_SetDashPattern( DaoxGraphicsScene *self, double pat[], int n );
-DAO_DLL void DaoxGraphicsScene_SetFont( DaoxGraphicsScene *self, DaoxFont *font, double size );
+DAO_DLL void DaoxGraphicsScene_SetDashPattern( DaoxGraphicsScene *self, float pat[], int n );
+DAO_DLL void DaoxGraphicsScene_SetFont( DaoxGraphicsScene *self, DaoxFont *font, float size );
 
 
 
-DAO_DLL DaoxGraphicsLine* DaoxGraphicsScene_AddLine( DaoxGraphicsScene *self, double x1, double y1, double x2, double y2 );
+DAO_DLL DaoxGraphicsLine* DaoxGraphicsScene_AddLine( DaoxGraphicsScene *self, float x1, float y1, float x2, float y2 );
 
-DAO_DLL DaoxGraphicsRect* DaoxGraphicsScene_AddRect( DaoxGraphicsScene *self, double x1, double y1, double x2, double y2 );
+DAO_DLL DaoxGraphicsRect* DaoxGraphicsScene_AddRect( DaoxGraphicsScene *self, float x1, float y1, float x2, float y2 );
 
-DAO_DLL DaoxGraphicsCircle* DaoxGraphicsScene_AddCircle( DaoxGraphicsScene *self, double x, double y, double r );
+DAO_DLL DaoxGraphicsCircle* DaoxGraphicsScene_AddCircle( DaoxGraphicsScene *self, float x, float y, float r );
 
-DAO_DLL DaoxGraphicsEllipse* DaoxGraphicsScene_AddEllipse( DaoxGraphicsScene *self, double x, double y, double rx, double ry );
+DAO_DLL DaoxGraphicsEllipse* DaoxGraphicsScene_AddEllipse( DaoxGraphicsScene *self, float x, float y, float rx, float ry );
 
 DAO_DLL DaoxGraphicsPolyLine* DaoxGraphicsScene_AddPolyLine( DaoxGraphicsScene *self );
 
@@ -365,7 +362,7 @@ DAO_DLL DaoxGraphicsPolygon* DaoxGraphicsScene_AddPolygon( DaoxGraphicsScene *se
 
 DAO_DLL DaoxGraphicsPath* DaoxGraphicsScene_AddPath( DaoxGraphicsScene *self );
 
-DAO_DLL DaoxGraphicsText* DaoxGraphicsScene_AddText( DaoxGraphicsScene *self, const wchar_t *text, double x, double y );
+DAO_DLL DaoxGraphicsText* DaoxGraphicsScene_AddText( DaoxGraphicsScene *self, const wchar_t *text, float x, float y );
 
 
 

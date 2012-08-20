@@ -30,9 +30,9 @@
 #include "dao_opengl.h"
 
 
-static double window_width = 300.0;
-static double window_height = 200.0;
-static double fps_limit = 10.0;
+static float window_width = 300.0;
+static float window_height = 200.0;
+static float fps_limit = 10.0;
 
 static int fps_count = 0;
 static int last_update = 0;
@@ -135,7 +135,7 @@ void DaoxGraphics_glutReshape( int width, int height )
 void DaoxGraphics_glutKeyboard( unsigned char key, int x, int y )
 {
 	DaoxBoundingBox box = daox_current_scene->viewport;
-	double width, height, dw, dh;
+	float width, height, dw, dh;
 	if( daox_current_scene == NULL ) return;
 	if( DaoxGraphics_CallKeyboardMethod( daox_current_scene, "OnKeyboard", key, x, y ) ) return;
 
@@ -175,8 +175,8 @@ void DaoxGraphics_glutButton( int button, int state, int x, int y )
 void DaoxGraphics_glutDrag( int x, int y )
 {
 	DaoxBoundingBox box = daox_current_scene->viewport;
-	double xscale = (box.right - box.left) / window_width;
-	double yscale = (box.top - box.bottom) / window_height;
+	float xscale = (box.right - box.left) / window_width;
+	float yscale = (box.top - box.bottom) / window_height;
 	box.left   -= (x - last_x) * xscale;
 	box.right  -= (x - last_x) * xscale;
 	box.bottom += (y - last_y) * xscale;

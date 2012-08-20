@@ -190,7 +190,7 @@ void DaoxPath_SetRelativeMode( DaoxPath *self, int relative )
 {
 	self->cmdRelative = relative;
 }
-void DaoxPath_MoveTo( DaoxPath *self, double x, double y )
+void DaoxPath_MoveTo( DaoxPath *self, float x, float y )
 {
 	DaoxPathComponent *com;
 	if( self->last->last->bezier == 0 ){
@@ -205,7 +205,7 @@ void DaoxPath_MoveTo( DaoxPath *self, double x, double y )
 	self->last = com;
 }
 /* If MoveTo() is not called, line from (0,0). */
-void DaoxPath_LineTo( DaoxPath *self, double x, double y )
+void DaoxPath_LineTo( DaoxPath *self, float x, float y )
 {
 	DaoxPoint start;
 	DaoxPathSegment *segment = NULL;
@@ -240,20 +240,20 @@ void DaoxPath_LineTo( DaoxPath *self, double x, double y )
 //     CBX =  CAX
 //     CBY = -CAY
 */
-void DaoxPathSegment_MakeArc( DaoxPathSegment *self, double dx, double dy, double R, double degree )
+void DaoxPathSegment_MakeArc( DaoxPathSegment *self, float dx, float dy, float R, float degree )
 {
-	double angle = 0.0;
-	double AX = cos( 0.5 * degree );
-	double AY = - sin( 0.5 * degree );
-	double BX = AX, BY = - AY;
-	double CAX = (4.0 - AX) / 3.0;
-	double CAY = (1.0 - AX)*(3.0 - AX) / (3.0 * AY);
-	double CBX = CAX, CBY = - CAY;
-	double CAX2 = CAX - AX;  /* control point relative to A; */
-	double CAY2 = CAY - AY;
-	double CBX2 = CBX - BX;  /* control point relative to B; */
-	double CBY2 = CBY - BY;
-	double sine, cosine;
+	float angle = 0.0;
+	float AX = cos( 0.5 * degree );
+	float AY = - sin( 0.5 * degree );
+	float BX = AX, BY = - AY;
+	float CAX = (4.0 - AX) / 3.0;
+	float CAY = (1.0 - AX)*(3.0 - AX) / (3.0 * AY);
+	float CBX = CAX, CBY = - CAY;
+	float CAX2 = CAX - AX;  /* control point relative to A; */
+	float CAY2 = CAY - AY;
+	float CBX2 = CBX - BX;  /* control point relative to B; */
+	float CBY2 = CBY - BY;
+	float sine, cosine;
 
 	self->bezier = 3;
 	self->count = 1;
@@ -278,12 +278,12 @@ void DaoxPathSegment_MakeArc( DaoxPathSegment *self, double dx, double dy, doubl
 	self->C2.x = self->P2.x + CBX2 * cosine - CBY2 * sine;
 	self->C2.y = self->P2.y + CBX2 * sine + CBY2 * cosine;
 }
-void DaoxPath_ArcBy2( DaoxPath *self, double cx, double cy, double degrees, double deg2 )
+void DaoxPath_ArcBy2( DaoxPath *self, float cx, float cy, float degrees, float deg2 )
 {
 	DaoxPoint point, start, next, end, center; /* A: start; B: end; C: center; */
 	DaoxPathSegment *segment = NULL;
-	double degrees2 = M_PI * degrees / 180.0;
-	double dx, dy, R, dA, sine, cosine, dL, dR;
+	float degrees2 = M_PI * degrees / 180.0;
+	float dx, dy, R, dA, sine, cosine, dL, dR;
 	int i, K;
 
 	if( self->last->last->bezier == 0 ){
@@ -321,7 +321,7 @@ void DaoxPath_ArcBy2( DaoxPath *self, double cx, double cy, double degrees, doub
 
 	K = 1 + fabs( degrees ) / deg2;
 	dA = degrees2 / K;
-	dL = 1.0 / (double)K;
+	dL = 1.0 / (float)K;
 	for(i=0; i<K; ++i){
 		if( segment == NULL ){
 			segment = DaoxPathComponent_PushSegment( self->last );
@@ -341,11 +341,11 @@ void DaoxPath_ArcBy2( DaoxPath *self, double cx, double cy, double degrees, doub
 		segment = NULL;
 	}
 }
-void DaoxPath_ArcTo2( DaoxPath *self, double x, double y, double degrees, double deg2 )
+void DaoxPath_ArcTo2( DaoxPath *self, float x, float y, float degrees, float deg2 )
 {
 	DaoxPoint start;
-	double degrees2 = M_PI * degrees / 180.0;
-	double cx, cy, dx, dy, R, dR, dL;
+	float degrees2 = M_PI * degrees / 180.0;
+	float cx, cy, dx, dy, R, dR, dL;
 
 	if( self->last->last->bezier == 0 ){
 		start = self->last->last->P1;
@@ -386,15 +386,15 @@ void DaoxPath_ArcTo2( DaoxPath *self, double x, double y, double degrees, double
 
 	DaoxPath_ArcBy2( self, cx, cy, degrees, deg2 );
 }
-void DaoxPath_ArcTo( DaoxPath *self, double x, double y, double degrees )
+void DaoxPath_ArcTo( DaoxPath *self, float x, float y, float degrees )
 {
 	DaoxPath_ArcTo2( self, x, y, degrees, 30.0 );
 }
-void DaoxPath_ArcBy( DaoxPath *self, double cx, double cy, double degrees )
+void DaoxPath_ArcBy( DaoxPath *self, float cx, float cy, float degrees )
 {
 	DaoxPath_ArcBy2( self, cx, cy, degrees, 30.0 );
 }
-void DaoxPath_QuadTo( DaoxPath *self, double cx, double cy, double x, double y )
+void DaoxPath_QuadTo( DaoxPath *self, float cx, float cy, float x, float y )
 {
 	DaoxPathSegment *segment = NULL;
 	DaoxPoint start = {0.0,0.0};
@@ -420,7 +420,7 @@ void DaoxPath_QuadTo( DaoxPath *self, double cx, double cy, double x, double y )
 	segment->P2.y = y;
 	segment->C2 = segment->C1;
 }
-void DaoxPath_CubicTo( DaoxPath *self, double cx, double cy, double x, double y )
+void DaoxPath_CubicTo( DaoxPath *self, float cx, float cy, float x, float y )
 {
 	DaoxPathSegment *segment = NULL;
 	DaoxPoint control = self->last->last->C2;
@@ -444,7 +444,7 @@ void DaoxPath_CubicTo( DaoxPath *self, double cx, double cy, double x, double y 
 	segment->P2.x = x;
 	segment->P2.y = y;
 }
-void DaoxPath_CubicTo2( DaoxPath *self, double cx1, double cy1, double cx2, double cy2, double x2, double y2 )
+void DaoxPath_CubicTo2( DaoxPath *self, float cx1, float cy1, float cx2, float cy2, float x2, float y2 )
 {
 	DaoxPathSegment *segment = NULL;
 	DaoxPoint start = {0.0,0.0};
@@ -523,7 +523,7 @@ void DaoxPathSegment_InitSubSegments( DaoxPathSegment *self )
 	self->first->start = self->start;
 	self->second->end = self->end;
 }
-void DaoxPathSegment_DivideLinear( DaoxPathSegment *self, double at )
+void DaoxPathSegment_DivideLinear( DaoxPathSegment *self, float at )
 {
 	DaoxPathSegment_InitSubSegments( self );
 
@@ -533,7 +533,7 @@ void DaoxPathSegment_DivideLinear( DaoxPathSegment *self, double at )
 
 	self->first->end = self->second->start = (1.0 - at)*self->start + at*self->end;
 }
-void DaoxPathSegment_DivideQuadratic( DaoxPathSegment *self, double at )
+void DaoxPathSegment_DivideQuadratic( DaoxPathSegment *self, float at )
 {
 	DaoxPoint Q1;
 
@@ -552,7 +552,7 @@ void DaoxPathSegment_DivideQuadratic( DaoxPathSegment *self, double at )
 
 	self->first->end = self->second->start = (1.0 - at)*self->start + at*self->end;
 }
-void DaoxPathSegment_DivideCubic( DaoxPathSegment *self, double at )
+void DaoxPathSegment_DivideCubic( DaoxPathSegment *self, float at )
 {
 	DaoxPoint Q1;
 
@@ -578,7 +578,7 @@ void DaoxPathSegment_DivideCubic( DaoxPathSegment *self, double at )
 
 	self->first->end = self->second->start = (1.0 - at)*self->start + at*self->end;
 }
-void DaoxPathSegment_Divide( DaoxPathSegment *self, double at )
+void DaoxPathSegment_Divide( DaoxPathSegment *self, float at )
 {
 	if( self->bezier == 2 ){
 		DaoxPathSegment_DivideQuadratic( self, at );
@@ -590,11 +590,11 @@ void DaoxPathSegment_Divide( DaoxPathSegment *self, double at )
 }
 
 
-int DaoxPathSegment_TryDivideQuadratic( DaoxPathSegment *self, double maxlen, double maxdiff )
+int DaoxPathSegment_TryDivideQuadratic( DaoxPathSegment *self, float maxlen, float maxdiff )
 {
-	double PC = DaoxDistance( self->P1, self->C1 );
-	double CP = DaoxDistance( self->C1, self->P2 );
-	double PP = DaoxDistance( self->P1, self->P2 );
+	float PC = DaoxDistance( self->P1, self->C1 );
+	float CP = DaoxDistance( self->C1, self->P2 );
+	float PP = DaoxDistance( self->P1, self->P2 );
 
 	self->length = 0.5 * (PC + CP + PP);
 	self->delta = (PC + CP - PP) / PP;
@@ -609,12 +609,12 @@ int DaoxPathSegment_TryDivideQuadratic( DaoxPathSegment *self, double maxlen, do
 	DaoxPathSegment_DivideQuadratic( self, PC / (PC + CP) );
 	return 1;
 }
-int DaoxPathSegment_TryDivideCubic( DaoxPathSegment *self, double maxlen, double maxdiff )
+int DaoxPathSegment_TryDivideCubic( DaoxPathSegment *self, float maxlen, float maxdiff )
 {
-	double PC = DaoxDistance( self->P1, self->C1 );
-	double CC = DaoxDistance( self->C1, self->C2 );
-	double CP = DaoxDistance( self->C2, self->P2 );
-	double PP = DaoxDistance( self->P1, self->P2 );
+	float PC = DaoxDistance( self->P1, self->C1 );
+	float CC = DaoxDistance( self->C1, self->C2 );
+	float CP = DaoxDistance( self->C2, self->P2 );
+	float PP = DaoxDistance( self->P1, self->P2 );
 
 	self->length = 0.5 * (PC + CC + CP + PP);
 	self->delta = (PC + CC + CP - PP) / PP;
@@ -629,7 +629,7 @@ int DaoxPathSegment_TryDivideCubic( DaoxPathSegment *self, double maxlen, double
 	DaoxPathSegment_DivideCubic( self, PC / (PC + CP) );
 	return 1;
 }
-void DaoxPathSegment_RefineLinear( DaoxPathSegment *self, double maxlen, double maxdiff )
+void DaoxPathSegment_RefineLinear( DaoxPathSegment *self, float maxlen, float maxdiff )
 {
 	if( self->count > 1 ){
 		DaoxPathSegment_RefineLinear( self->first, maxlen, maxdiff );
@@ -639,7 +639,7 @@ void DaoxPathSegment_RefineLinear( DaoxPathSegment *self, double maxlen, double 
 	}
 	self->length = DaoxDistance( self->P1, self->P2 );
 }
-void DaoxPathSegment_RefineQuadratic( DaoxPathSegment *self, double maxlen, double maxdiff )
+void DaoxPathSegment_RefineQuadratic( DaoxPathSegment *self, float maxlen, float maxdiff )
 {
 	if( self->count > 1 ){
 		DaoxPathSegment_RefineQuadratic( self->first, maxlen, maxdiff );
@@ -655,7 +655,7 @@ void DaoxPathSegment_RefineQuadratic( DaoxPathSegment *self, double maxlen, doub
 	self->count = self->first->count + self->second->count;
 	self->length = self->first->length + self->second->length;
 }
-void DaoxPathSegment_RefineCubic( DaoxPathSegment *self, double maxlen, double maxdiff )
+void DaoxPathSegment_RefineCubic( DaoxPathSegment *self, float maxlen, float maxdiff )
 {
 	if( self->count > 1 ){
 		DaoxPathSegment_RefineCubic( self->first, maxlen, maxdiff );
@@ -672,7 +672,7 @@ void DaoxPathSegment_RefineCubic( DaoxPathSegment *self, double maxlen, double m
 	self->length = self->first->length + self->second->length;
 }
 
-void DaoxPathSegment_Refine( DaoxPathSegment *self, double maxlen, double maxdiff )
+void DaoxPathSegment_Refine( DaoxPathSegment *self, float maxlen, float maxdiff )
 {
 	if( self->bezier == 1 ){
 		DaoxPathSegment_RefineLinear( self, maxlen, maxdiff );
@@ -683,7 +683,7 @@ void DaoxPathSegment_Refine( DaoxPathSegment *self, double maxlen, double maxdif
 	}
 }
 
-void DaoxPathComponent_Refine( DaoxPathComponent *self, double maxlen, double maxdiff )
+void DaoxPathComponent_Refine( DaoxPathComponent *self, float maxlen, float maxdiff )
 {
 	DaoxPathSegment *first = self->refined.first ? self->refined.first : self->first;
 	DaoxPathSegment *segment = first;
@@ -695,9 +695,9 @@ void DaoxPathComponent_Refine( DaoxPathComponent *self, double maxlen, double ma
 		segment = segment->next;
 	} while( segment && segment != first );
 }
-double DaoxPathComponent_MaxLineLength( DaoxPathComponent *self )
+float DaoxPathComponent_MaxLineLength( DaoxPathComponent *self )
 {
-	double len, max = 0.0;
+	float len, max = 0.0;
 	DaoxPathSegment *first = self->first;
 	DaoxPathSegment *segment = first;
 	do {
@@ -709,7 +709,7 @@ double DaoxPathComponent_MaxLineLength( DaoxPathComponent *self )
 }
 
 
-DaoxPathSegment* DaoxPathSegment_LocateByDistance( DaoxPathSegment *self, double distance, double offset, double *p )
+DaoxPathSegment* DaoxPathSegment_LocateByDistance( DaoxPathSegment *self, float distance, float offset, float *p )
 {
 	if( distance < offset || distance > (offset + self->length) ) return NULL;
 	if( p ) *p = (distance - offset) / self->length;
@@ -720,7 +720,7 @@ DaoxPathSegment* DaoxPathSegment_LocateByDistance( DaoxPathSegment *self, double
 	return DaoxPathSegment_LocateByDistance( self->second, distance, offset + self->first->length, p );
 }
 
-DaoxPathSegment* DaoxPathComponent_LocateByDistance( DaoxPathComponent *self, double distance, double offset, double *p )
+DaoxPathSegment* DaoxPathComponent_LocateByDistance( DaoxPathComponent *self, float distance, float offset, float *p )
 {
 	DaoxPathSegment *first = self->first;
 	DaoxPathSegment *segment = first;
@@ -733,9 +733,9 @@ DaoxPathSegment* DaoxPathComponent_LocateByDistance( DaoxPathComponent *self, do
 	return NULL;
 }
 
-DaoxPathSegment* DaoxPath_LocateByDistance( DaoxPath *self, double distance, double *p )
+DaoxPathSegment* DaoxPath_LocateByDistance( DaoxPath *self, float distance, float *p )
 {
-	double offset = 0.0;
+	float offset = 0.0;
 	DaoxPathSegment *seg;
 	DaoxPathComponent *com;
 	if( distance < 0.0 ) return NULL;
@@ -747,7 +747,7 @@ DaoxPathSegment* DaoxPath_LocateByDistance( DaoxPath *self, double distance, dou
 	}
 	return NULL;
 }
-DaoxPathSegment* DaoxPath_LocateByPercentage( DaoxPath *self, double percentage, double *p )
+DaoxPathSegment* DaoxPath_LocateByPercentage( DaoxPath *self, float percentage, float *p )
 {
 }
 
@@ -781,7 +781,7 @@ void DaoxPathComponent_RetrieveRefined( DaoxPathComponent *self )
 }
 int DaoxPathSegment_CheckConvexness2( DaoxPathSegment *self, DaoxPoint point )
 {
-	double area1, area2, epsilon = 0.0;
+	float area1, area2, epsilon = 0.0;
 	if( self->bezier == 1 ) return 0;
 	area1 = DaoxTriangle_Area( self->P1, self->P2, point );
 	area2 = DaoxTriangle_Area( self->P1, self->P2, self->C1 );
@@ -837,7 +837,7 @@ void DaoxPath_ImportPath( DaoxPath *self, DaoxPath *path, DaoxTransform *transfo
 	}
 }
 
-void DaoxPath_Refine( DaoxPath *self, double maxlen, double maxdiff )
+void DaoxPath_Refine( DaoxPath *self, float maxlen, float maxdiff )
 {
 	DaoxPathComponent *com;
 	printf( "DaoxPath_Refine: %15f %15f %i\n", maxlen, maxdiff, self->first->first->bezier );
@@ -861,8 +861,8 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxPathBuffer *buffer )
 	DaoxPathComponent *com;
 	DaoxPathSegment *seg;
 	daoint i, count = 0;
-	double len, maxlen = 0.0;
-	double maxdiff = 0.1;
+	float len, maxlen = 0.0;
+	float maxdiff = 0.1;
 
 	printf( "DaoxPath_Segment 1: %p\n", triangulator );
 	DaoxTriangulator_Reset( triangulator );
@@ -966,7 +966,7 @@ void DaoxGraphicsData_PushStrokeColor( DaoxGraphicsData *self, DaoxColor color, 
 {
 	while( (times--) > 0 ) DaoxColorArray_Push( self->strokeColors, color );
 }
-void DaoxGraphicsData_MakeJunction( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C, double pos, int junction )
+void DaoxGraphicsData_MakeJunction( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C, float pos, int junction )
 {
 	DaoxColor color = {0.0};
 	DaoxGraphicsData round = *self;
@@ -978,7 +978,7 @@ void DaoxGraphicsData_MakeJunction( DaoxGraphicsData *self, DaoxPoint A, DaoxPoi
 	DaoxQuad Q2 = DaoxLine2Quad( P2, P3, self->strokeWidth );
 	DaoxColorGradient *strokeGradient = self->item->state->strokeGradient;
 	int hasGradient = strokeGradient != NULL && strokeGradient->stops->count;
-	double scale, dist, cosine, sine, angle, W2 = 0.5 * self->strokeWidth;
+	float scale, dist, cosine, sine, angle, W2 = 0.5 * self->strokeWidth;
 	int m, k = DaoxLineQuad_Junction( Q1, Q2, & P3 );
 
 	if( self->strokeWidth < 1E-6 ) return;
@@ -1049,7 +1049,7 @@ struct DaoxPathSegmentPair
 	DaoxPathSegment  *second;
 };
 
-void DaoxGraphicsData_UpdateDashState( DaoxGraphicsData *self, double len )
+void DaoxGraphicsData_UpdateDashState( DaoxGraphicsData *self, float len )
 {
 	if( self->item->state->dash == 0 ) return;
 	self->dashLength -= len;
@@ -1059,11 +1059,11 @@ void DaoxGraphicsData_UpdateDashState( DaoxGraphicsData *self, double len )
 	}
 }
 
-void DaoxGraphicsData_PushStrokeQuadColors( DaoxGraphicsData *self, double offset, double len )
+void DaoxGraphicsData_PushStrokeQuadColors( DaoxGraphicsData *self, float offset, float len )
 {
 	DaoxColorGradient *strokeGradient = self->item->state->strokeGradient;
 	DaoxColor color;
-	double pos;
+	float pos;
 	pos = offset / self->currentLength;
 	color = DaoxColorGradient_InterpolateColor( strokeGradient, pos );
 	DaoxGraphicsData_PushStrokeColor( self, color, 2 );
@@ -1081,8 +1081,8 @@ void DaoxPathSegment_GetRefinedStroke( DaoxPathSegment *self, DaoxGraphicsData *
 	DaoxPoint P2 = DaoxPoint_Transform( self->P2, gdata->transform );
 	DaoxColorGradient *strokeGradient = gdata->item->state->strokeGradient;
 	int hasGradient = strokeGradient != NULL && strokeGradient->stops->count;
-	double at, pos, len, width = gdata->strokeWidth;
-	double offset = gdata->currentOffset;
+	float at, pos, len, width = gdata->strokeWidth;
+	float offset = gdata->currentOffset;
 
 	gdata->currentOffset += self->length;
 
@@ -1130,10 +1130,10 @@ DaoxPathSegmentPair DaoxPathSegment_GetRefined( DaoxPathSegment *self, DaoxGraph
 	DaoxPathSegmentPair sp1, sp2, segs = {NULL, NULL};
 	DaoxColorGradient *strokeGradient = gdata->item->state->strokeGradient;
 	int hasGradient = strokeGradient != NULL && strokeGradient->stops->count;
-	double width = gdata->strokeWidth;
-	double maxlen = gdata->maxlen;
-	double maxdiff = gdata->maxdiff;
-	double offset, nojunction = 0;
+	float width = gdata->strokeWidth;
+	float maxlen = gdata->maxlen;
+	float maxdiff = gdata->maxdiff;
+	float offset, nojunction = 0;
 
 	if( maxlen < 1E-16 ) maxlen = 10;
 	if( maxdiff < 1E-16 ) maxdiff = 0.001;
@@ -1159,7 +1159,7 @@ DaoxPathSegmentPair DaoxPathSegment_GetRefined( DaoxPathSegment *self, DaoxGraph
 			if( self->convexness > 0 ){
 				DaoxGraphicsData_PushFilling( gdata, self->first->P2, self->P1, self->P2 );
 			}else{
-				double at = (self->first->end - self->start) / (self->end - self->start);
+				float at = (self->first->end - self->start) / (self->end - self->start);
 				DaoxPoint Q;
 				Q.x = (1.0 - at) * self->C1.x + at * self->C2.x;
 				Q.y = (1.0 - at) * self->C1.y + at * self->C2.y;
@@ -1196,7 +1196,7 @@ DaoxPathSegmentPair DaoxPathSegment_GetRefined( DaoxPathSegment *self, DaoxGraph
 	}
 	if( hasGradient ){
 		int i = gdata->item->state->dash ? 6 : 3;
-		double pos = offset / gdata->currentLength;
+		float pos = offset / gdata->currentLength;
 		DaoxColor color = DaoxColorGradient_InterpolateColor( strokeGradient, pos );
 		while( (i--) > 0 ) DaoxColorArray_Push( gdata->strokeColors, color );
 	}
@@ -1211,11 +1211,11 @@ void DaoxPath_ExportGraphicsData( DaoxPath *self, DaoxGraphicsData *gdata )
 	DaoxTransform *transform = gdata->transform;
 	DaoxGraphicsScene *scene = gdata->item->scene;
 	DaoxBoundingBox box = scene->viewport;
-	double scale = DaoxGraphicsScene_Scale( scene );
-	double width = gdata->strokeWidth;
-	double maxlen = gdata->maxlen;
-	double maxdiff = gdata->maxdiff;
-	double pos;
+	float scale = DaoxGraphicsScene_Scale( scene );
+	float width = gdata->strokeWidth;
+	float maxlen = gdata->maxlen;
+	float maxdiff = gdata->maxdiff;
+	float pos;
 	int i, j, count, jt, jt2;
 
 	printf( "scale: %15f\n", scale );

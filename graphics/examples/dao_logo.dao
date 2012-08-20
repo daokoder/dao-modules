@@ -39,7 +39,7 @@ scene.PopState();
 scene.PopState();
 
 scene.PushState()
-scene.SetTransform( [1.0D, 0, 0, 1.0, 400, 400] );
+scene.SetTransform( [1.0, 0, 0, 1.0, 400, 400] );
 
 unit = 100;
 

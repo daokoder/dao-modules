@@ -100,7 +100,7 @@ static DaoxVertex* DaoxTriangulator_GetVertex( DaoxTriangulator *self, daoint in
 	return vertex;
 }
 
-void DaoxTriangulator_PushPoint( DaoxTriangulator *self, double x, double y )
+void DaoxTriangulator_PushPoint( DaoxTriangulator *self, float x, float y )
 {
 	DaoxVertex *prev = NULL, *vertex = DaoxTriangulator_GetVertex( self, self->points->count );
 	if( self->vertices->size ){
@@ -196,7 +196,7 @@ void DaoxTriangulator_InitContourOrientation( DaoxTriangulator *self )
 	DaoxVertex *vertex, *start, *vmax = NULL;
 	DaoxPoint A, B, C, *points = self->points->points;
 	int i, dir, N = self->vertices->size;
-	double xmax, ymax;
+	float xmax, ymax;
 
 	/* sort vertices by the x coordinates: */
 	DaoxTriangulator_SortVertices( self );
@@ -240,8 +240,8 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 	DaoxVertex *V, *A, *B, *C, *inside;
 	DaoxPoint PA, PB, PC, P, *points = self->points->points;
 	int i, imin, imax, contours, K = 0, N = self->vertices->size;
-	double dist, area, ymin, ymax, dmax;
-	double AB, BC, CA, min_area = 1E-9;
+	float dist, area, ymin, ymax, dmax;
+	float AB, BC, CA, min_area = 1E-9;
 
 	if( self->vertices->size == 0 ) return;
 
@@ -436,7 +436,7 @@ static void TRIA_New( DaoProcess *proc, DaoValue *p[], int N )
 static void TRIA_Push( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxTriangulator *self = (DaoxTriangulator*) DaoValue_TryCastCdata( p[0], daox_type_triangulator );
-	DaoxTriangulator_PushPoint( self, p[1]->xDouble.value, p[2]->xDouble.value );
+	DaoxTriangulator_PushPoint( self, p[1]->xFloat.value, p[2]->xFloat.value );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void TRIA_Close( DaoProcess *proc, DaoValue *p[], int N )
@@ -466,7 +466,7 @@ static void TRIA_Get( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem DaoxTriangulatorMeths[]=
 {
 	{ TRIA_New,     "Triangulator()" },
-	{ TRIA_Push,    "PushPoint( self : Triangulator, x : double, y : double ) => Triangulator" },
+	{ TRIA_Push,    "PushPoint( self : Triangulator, x : float, y : float ) => Triangulator" },
 	{ TRIA_Close,   "CloseContour( self : Triangulator ) => Triangulator" },
 	{ TRIA_Triangulate,   "Triangulate( self : Triangulator ) => int" },
 	{ TRIA_Get,           "[]( self : Triangulator, index : int ) => tuple<int,int,int>" },

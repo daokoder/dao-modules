@@ -66,11 +66,11 @@ struct DaoxPathSegment
 
 	int    count;
 
-	double  length;  /* length; */
-	double  delta;
+	float  length;  /* length; */
+	float  delta;
 
-	double  start;  /* parametric start location in the original segment; */
-	double  end;    /* parametric   end location in the original segment; */
+	float  start;  /* parametric start location in the original segment; */
+	float  end;    /* parametric   end location in the original segment; */
 
 	DaoxPoint  P1; /* start point; */
 	DaoxPoint  P2; /* end point; */
@@ -102,7 +102,7 @@ struct DaoxPathComponent
 
 	float  maxlen;
 	float  maxdiff;
-	double length;
+	float length;
 };
 
 struct DaoxPath
@@ -115,7 +115,7 @@ struct DaoxPath
 	DaoxPointArray  *points;
 	DaoxIntArray    *triangles;
 
-	double  length;
+	float  length;
 
 	uchar_t cmdRelative;
 };
@@ -130,26 +130,26 @@ void DaoxPath_Reset( DaoxPath *self );
 
 
 DAO_DLL void DaoxPath_SetRelativeMode( DaoxPath *self, int relative );
-DAO_DLL void DaoxPath_MoveTo( DaoxPath *self, double x, double y );
-DAO_DLL void DaoxPath_LineTo( DaoxPath *self, double x, double y );
-DAO_DLL void DaoxPath_ArcTo( DaoxPath *self, double x, double y, double degrees );
-DAO_DLL void DaoxPath_ArcTo2( DaoxPath *self, double x, double y, double degrees, double deg2 );
-DAO_DLL void DaoxPath_ArcBy( DaoxPath *self, double cx, double cy, double degrees );
-DAO_DLL void DaoxPath_QuadTo( DaoxPath *self, double cx, double cy, double x, double y );
-DAO_DLL void DaoxPath_CubicTo( DaoxPath *self, double cx, double cy, double x, double y );
-DAO_DLL void DaoxPath_CubicTo2( DaoxPath *self, double cx1, double cy1, double cx2, double cy2, double x2, double y2 );
+DAO_DLL void DaoxPath_MoveTo( DaoxPath *self, float x, float y );
+DAO_DLL void DaoxPath_LineTo( DaoxPath *self, float x, float y );
+DAO_DLL void DaoxPath_ArcTo( DaoxPath *self, float x, float y, float degrees );
+DAO_DLL void DaoxPath_ArcTo2( DaoxPath *self, float x, float y, float degrees, float deg2 );
+DAO_DLL void DaoxPath_ArcBy( DaoxPath *self, float cx, float cy, float degrees );
+DAO_DLL void DaoxPath_QuadTo( DaoxPath *self, float cx, float cy, float x, float y );
+DAO_DLL void DaoxPath_CubicTo( DaoxPath *self, float cx, float cy, float x, float y );
+DAO_DLL void DaoxPath_CubicTo2( DaoxPath *self, float cx1, float cy1, float cx2, float cy2, float x2, float y2 );
 DAO_DLL void DaoxPath_Close( DaoxPath *self );
 
 void DaoxPath_ImportPath( DaoxPath *self, DaoxPath *path, DaoxTransform *transform );
 
 void DaoxPath_Preprocess( DaoxPath *self, DaoxPathBuffer *buffer );
 
-void DaoxPath_Refine( DaoxPath *self, double maxlen, double maxdiff );
+void DaoxPath_Refine( DaoxPath *self, float maxlen, float maxdiff );
 
 void DaoxPath_ExportGraphicsData( DaoxPath *self, struct DaoxGraphicsData *gdata );
 
-DaoxPathSegment* DaoxPath_LocateByDistance( DaoxPath *self, double distance, double *p );
-DaoxPathSegment* DaoxPath_LocateByPercentage( DaoxPath *self, double percentage, double *p );
+DaoxPathSegment* DaoxPath_LocateByDistance( DaoxPath *self, float distance, float *p );
+DaoxPathSegment* DaoxPath_LocateByPercentage( DaoxPath *self, float percentage, float *p );
 
 
 #endif

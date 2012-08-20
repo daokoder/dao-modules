@@ -72,8 +72,8 @@ typedef struct DaoxBezierSegment     DaoxBezierSegment;
 
 struct DaoxPoint
 {
-	double x;
-	double y;
+	float x;
+	float y;
 };
 struct DaoxLine
 {
@@ -91,18 +91,18 @@ struct DaoxQuad
 
 struct DaoxTransform
 {
-	double  Axx, Axy;
-	double  Ayx, Ayy;
-	double  Bx, By;
+	float  Axx, Axy;
+	float  Ayx, Ayy;
+	float  Bx, By;
 };
 
 
 struct DaoxBoundingBox
 {
-	double  left;
-	double  right;
-	double  bottom;
-	double  top;
+	float  left;
+	float  right;
+	float  bottom;
+	float  top;
 };
 
 
@@ -111,8 +111,8 @@ struct DaoxBezierSegment
 {
 	unsigned int  count; /* count > 0: if this segment and its children are used; */
 
-	double  start;  /* parametric start location in the original segment; */
-	double  end;    /* parametric   end location in the original segment; */
+	float  start;  /* parametric start location in the original segment; */
+	float  end;    /* parametric   end location in the original segment; */
 
 	DaoxPoint  P0;
 	DaoxPoint  P1;
@@ -212,18 +212,18 @@ extern "C"{
 #endif
 
 
-DAO_DLL void DaoxTransform_RotateXAxisTo( DaoxTransform *self, double x, double y );
-DAO_DLL void DaoxTransform_RotateYAxisTo( DaoxTransform *self, double x, double y );
-DAO_DLL void DaoxTransform_SetScale( DaoxTransform *self, double x, double y );
+DAO_DLL void DaoxTransform_RotateXAxisTo( DaoxTransform *self, float x, float y );
+DAO_DLL void DaoxTransform_RotateYAxisTo( DaoxTransform *self, float x, float y );
+DAO_DLL void DaoxTransform_SetScale( DaoxTransform *self, float x, float y );
 DAO_DLL void DaoxTransform_Multiply( DaoxTransform *self, DaoxTransform other );
 DAO_DLL DaoxPoint DaoxTransform_Transform( DaoxTransform *self, DaoxPoint point );
-DAO_DLL DaoxPoint DaoxTransform_TransformXY( DaoxTransform *self, double x, double y );
+DAO_DLL DaoxPoint DaoxTransform_TransformXY( DaoxTransform *self, float x, float y );
 
 
 DAO_DLL void DaoxBoundingBox_Init( DaoxBoundingBox *self, DaoxPoint point );
-DAO_DLL void DaoxBoundingBox_InitXY( DaoxBoundingBox *self, double x, double y );
+DAO_DLL void DaoxBoundingBox_InitXY( DaoxBoundingBox *self, float x, float y );
 DAO_DLL void DaoxBoundingBox_Update( DaoxBoundingBox *self, DaoxPoint point );
-DAO_DLL void DaoxBoundingBox_UpdateXY( DaoxBoundingBox *self, double x, double y );
+DAO_DLL void DaoxBoundingBox_UpdateXY( DaoxBoundingBox *self, float x, float y );
 
 
 DAO_DLL DaoxByteArray* DaoxByteArray_New();
@@ -245,7 +245,8 @@ DAO_DLL DaoxPointArray* DaoxPointArray_New();
 DAO_DLL void DaoxPointArray_Clear( DaoxPointArray *self );
 DAO_DLL void DaoxPointArray_Delete( DaoxPointArray *self );
 DAO_DLL void DaoxPointArray_Reset( DaoxPointArray *self );
-DAO_DLL void DaoxPointArray_PushXY( DaoxPointArray *self, double x, double y );
+DAO_DLL void DaoxPointArray_Resize( DaoxPointArray *self, int count );
+DAO_DLL void DaoxPointArray_PushXY( DaoxPointArray *self, float x, float y );
 DAO_DLL void DaoxPointArray_Push( DaoxPointArray *self, DaoxPoint point );
 DAO_DLL void DaoxPointArray_PushPoints( DaoxPointArray *self, DaoxPointArray *points );
 
@@ -259,7 +260,7 @@ DAO_DLL DaoxPolygonArray* DaoxPolygonArray_New();
 DAO_DLL void DaoxPolygonArray_Delete( DaoxPolygonArray *self );
 DAO_DLL void DaoxPolygonArray_Reset( DaoxPolygonArray *self );
 DAO_DLL void DaoxPolygonArray_PushPolygon( DaoxPolygonArray *self );
-DAO_DLL void DaoxPolygonArray_PushPointXY( DaoxPolygonArray *self, double x, double y );
+DAO_DLL void DaoxPolygonArray_PushPointXY( DaoxPolygonArray *self, float x, float y );
 DAO_DLL void DaoxPolygonArray_PushPoint( DaoxPolygonArray *self, DaoxPoint point );
 DAO_DLL void DaoxPolygonArray_PushPoints( DaoxPolygonArray *self, DaoxPointArray *points );
 DAO_DLL void DaoxPolygonArray_PushTriangle( DaoxPolygonArray *self, DaoxPoint A, DaoxPoint B, DaoxPoint C );
@@ -273,12 +274,12 @@ DAO_DLL void DaoxPolygonArray_PushQuad( DaoxPolygonArray *self, DaoxQuad quad );
 DAO_DLL DaoxSimplePath* DaoxSimplePath_New();
 DAO_DLL void DaoxSimplePath_Delete( DaoxSimplePath *self );
 DAO_DLL void DaoxSimplePath_Reset( DaoxSimplePath *self );
-DAO_DLL void DaoxSimplePath_MoveTo( DaoxSimplePath *self, double x, double y );
-DAO_DLL void DaoxSimplePath_LineTo( DaoxSimplePath *self, double x, double y );
-DAO_DLL void DaoxSimplePath_ArcTo( DaoxSimplePath *self, double x, double y, double degrees, int clockwise );
-DAO_DLL void DaoxSimplePath_QuadTo( DaoxSimplePath *self, double cx, double cy, double x, double y );
-DAO_DLL void DaoxSimplePath_CubicTo( DaoxSimplePath *self, double cx, double cy, double x, double y );
-DAO_DLL void DaoxSimplePath_CubicTo2( DaoxSimplePath *self, double cx1, double cy1, double cx2, double cy2, double x2, double y2 );
+DAO_DLL void DaoxSimplePath_MoveTo( DaoxSimplePath *self, float x, float y );
+DAO_DLL void DaoxSimplePath_LineTo( DaoxSimplePath *self, float x, float y );
+DAO_DLL void DaoxSimplePath_ArcTo( DaoxSimplePath *self, float x, float y, float degrees, int clockwise );
+DAO_DLL void DaoxSimplePath_QuadTo( DaoxSimplePath *self, float cx, float cy, float x, float y );
+DAO_DLL void DaoxSimplePath_CubicTo( DaoxSimplePath *self, float cx, float cy, float x, float y );
+DAO_DLL void DaoxSimplePath_CubicTo2( DaoxSimplePath *self, float cx1, float cy1, float cx2, float cy2, float x2, float y2 );
 DAO_DLL void DaoxSimplePath_Close( DaoxSimplePath *self );
 
 
@@ -289,29 +290,29 @@ DAO_DLL DaoxBezierSegment* DaoxBezierSegment_New();
 DAO_DLL void DaoxBezierSegment_Delete( DaoxBezierSegment *self );
 
 DAO_DLL void DaoxBezierSegment_SetPoints( DaoxBezierSegment *self, DaoxPoint P0, DaoxPoint P1, DaoxPoint P2, DaoxPoint P3 );
-DAO_DLL void DaoxBezierSegment_DivideQuadratic( DaoxBezierSegment *self, double at );
-DAO_DLL void DaoxBezierSegment_DivideCubic( DaoxBezierSegment *self, double at );
-DAO_DLL void DaoxBezierSegment_RefineQuadratic( DaoxBezierSegment *self, double maxlen );
-DAO_DLL void DaoxBezierSegment_RefineCubic( DaoxBezierSegment *self, double maxlen );
+DAO_DLL void DaoxBezierSegment_DivideQuadratic( DaoxBezierSegment *self, float at );
+DAO_DLL void DaoxBezierSegment_DivideCubic( DaoxBezierSegment *self, float at );
+DAO_DLL void DaoxBezierSegment_RefineQuadratic( DaoxBezierSegment *self, float maxlen );
+DAO_DLL void DaoxBezierSegment_RefineCubic( DaoxBezierSegment *self, float maxlen );
 DAO_DLL void DaoxBezierSegment_ExportEndPoints( DaoxBezierSegment *self, DaoxPointArray *points );
-DAO_DLL DaoxBezierSegment* DaoxBezierSegment_GetSegment( DaoxBezierSegment *self, double parloc );
+DAO_DLL DaoxBezierSegment* DaoxBezierSegment_GetSegment( DaoxBezierSegment *self, float parloc );
 
 
 
 
 /* Utility functions: */
 
-DAO_DLL DaoxQuad DaoxQuad_FromRect( double left, double bottom, double right, double top );
+DAO_DLL DaoxQuad DaoxQuad_FromRect( float left, float bottom, float right, float top );
 
-DAO_DLL double DaoxDistance( DaoxPoint start, DaoxPoint end );
-DAO_DLL double DaoxDistance2( DaoxPoint start, DaoxPoint end );
-DAO_DLL double DaoxTriangle_Area( DaoxPoint A, DaoxPoint B, DaoxPoint C );
-DAO_DLL DaoxQuad DaoxLine2Quad( DaoxPoint start, DaoxPoint end, double width );
-DAO_DLL DaoxQuad DaoxLineJunctionMinor( DaoxPoint p1, DaoxPoint p2, DaoxPoint p3, double width );
+DAO_DLL float DaoxDistance( DaoxPoint start, DaoxPoint end );
+DAO_DLL float DaoxDistance2( DaoxPoint start, DaoxPoint end );
+DAO_DLL float DaoxTriangle_Area( DaoxPoint A, DaoxPoint B, DaoxPoint C );
+DAO_DLL DaoxQuad DaoxLine2Quad( DaoxPoint start, DaoxPoint end, float width );
+DAO_DLL DaoxQuad DaoxLineJunctionMinor( DaoxPoint p1, DaoxPoint p2, DaoxPoint p3, float width );
 DAO_DLL DaoxQuad DaoxQuadJunctionMinor( DaoxQuad *first, DaoxQuad *second );
-DAO_DLL DaoxLine DaoxLineJunctionMajor( DaoxPoint p1, DaoxPoint p2, DaoxPoint p3, double width );
-DAO_DLL DaoxLine DaoxQuadJunctionMajor( DaoxQuad *first, DaoxQuad *second, DaoxPoint c, double width );
-DAO_DLL int DaoxLine_Intersect( DaoxPoint A, DaoxPoint B, DaoxPoint C, DaoxPoint D, double *S, double *T );
+DAO_DLL DaoxLine DaoxLineJunctionMajor( DaoxPoint p1, DaoxPoint p2, DaoxPoint p3, float width );
+DAO_DLL DaoxLine DaoxQuadJunctionMajor( DaoxQuad *first, DaoxQuad *second, DaoxPoint c, float width );
+DAO_DLL int DaoxLine_Intersect( DaoxPoint A, DaoxPoint B, DaoxPoint C, DaoxPoint D, float *S, float *T );
 DAO_DLL int DaoxLineQuad_Junction( DaoxQuad first, DaoxQuad second, DaoxPoint *tip );
 
 
