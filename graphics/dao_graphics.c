@@ -354,16 +354,17 @@ void DaoxGraphicsData_Init( DaoxGraphicsData *self, DaoxGraphicsItem *item )
 	self->strokeWidth = item->state->strokeWidth;
 	self->item = item;
 }
-void DaoxGraphicsData_PushStrokeTriangle( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C )
+int DaoxGraphicsData_PushStrokeTriangle( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C )
 {
 	int index = self->strokePoints->count;
-	if( DaoxBounds_CheckTriangle( & self->bounds, A, B, C ) == 0 ) return;
+	if( DaoxBounds_CheckTriangle( & self->bounds, A, B, C ) == 0 ) return 0;
 	DaoxPointArray_Push( self->strokePoints, A );
 	DaoxPointArray_Push( self->strokePoints, B );
 	DaoxPointArray_Push( self->strokePoints, C );
 	DaoxIntArray_Push( self->strokeTriangles, index );
 	DaoxIntArray_Push( self->strokeTriangles, index+1 );
 	DaoxIntArray_Push( self->strokeTriangles, index+2 );
+	return 3;
 }
 void DaoxGraphicsData_PushQuad( DaoxPointArray *points, DaoxIntArray *triangles, DaoxQuad quad )
 {
@@ -379,10 +380,11 @@ void DaoxGraphicsData_PushQuad( DaoxPointArray *points, DaoxIntArray *triangles,
 	DaoxIntArray_Push( triangles, index+3 );
 	DaoxIntArray_Push( triangles, index );
 }
-void DaoxGraphicsData_PushStrokeQuad( DaoxGraphicsData *self, DaoxQuad quad )
+int DaoxGraphicsData_PushStrokeQuad( DaoxGraphicsData *self, DaoxQuad quad )
 {
-	if( DaoxBounds_CheckQuad( & self->bounds, quad ) == 0 ) return;
+	if( DaoxBounds_CheckQuad( & self->bounds, quad ) == 0 ) return 0;
 	DaoxGraphicsData_PushQuad( self->strokePoints, self->strokeTriangles, quad );
+	return 4;
 }
 void DaoxGraphicsData_PushFillQuad( DaoxGraphicsData *self, DaoxQuad quad )
 {
@@ -431,10 +433,11 @@ void DaoxGraphicsData_MakeFillGradient( DaoxGraphicsData *self )
 	DaoxPointArray *points = self->fillPoints;
 	DaoxIntArray *triangles = self->fillTriangles;
 	DaoxColor mean, correct;
-	float scale = DaoxGraphicsScene_Scale( self->item->scene );
+	float maxdist, scale = DaoxGraphicsScene_Scale( self->item->scene );
 	int i, k, m, n;
 
 	if( gradient == NULL ) return;
+	maxdist = (gradient->gradient == DAOX_GRADIENT_LINEAR ? 50 : 30);
 	for(i=colors->count,n=points->count; i<n; ++i){
 		DaoxColor C = DaoxColorGradient_ComputeColor( gradient, points->points[i] );
 		DaoxColorArray_Push( colors, C );
@@ -475,13 +478,8 @@ void DaoxGraphicsData_MakeFillGradient( DaoxGraphicsData *self )
 		PA = points->points[IA];
 		PB = points->points[IB];
 		PC = points->points[IC];
-		if( dmax < 2.0 * scale ){
-			triangles->values[k] = IA;
-			triangles->values[k+1] = IB;
-			triangles->values[k+2] = IC;
-			k += 3;
-			continue;
-		}
+		if( dmax < 1.0 * scale ) goto NoSubdivision;
+
 		CA = colors->colors[IA];
 		CB = colors->colors[IB];
 		CC = colors->colors[IC];
@@ -500,18 +498,21 @@ void DaoxGraphicsData_MakeFillGradient( DaoxGraphicsData *self )
 		diff = DaoxColor_MaxDiff( CmBC, CtBC, diff );
 		diff = DaoxColor_MaxDiff( CmCA, CtCA, diff );
 
-		if( diff > 2E-3 || dmax > (gradient->gradient == DAOX_GRADIENT_LINEAR ? 50 : 20) ){
+		if( dmax * diff < 0.1 * scale && dmax < 2*maxdist ) goto NoSubdivision;
+
+		if( diff > 2E-3 || dmax > maxdist ){
 			int IBC = points->count;
 			DaoxPointArray_Push( points, PmBC );
 			DaoxColorArray_Push( colors, CtBC );
 			DaoxIntArray_PushTriangle( triangles, IA, IB, IBC );
 			DaoxIntArray_PushTriangle( triangles, IC, IA, IBC );
-		}else{
-			triangles->values[k] = IA;
-			triangles->values[k+1] = IB;
-			triangles->values[k+2] = IC;
-			k += 3;
+			continue;
 		}
+NoSubdivision:
+		triangles->values[k] = IA;
+		triangles->values[k+1] = IB;
+		triangles->values[k+2] = IC;
+		k += 3;
 	}
 	triangles->count = k;
 	printf( "after: %i\n", triangles->count );
@@ -633,7 +634,7 @@ void DaoxGraphicsEllipse_Set( DaoxGraphicsEllipse *self, float x, float y, float
 	self->points->points[0].x = x;
 	self->points->points[0].y = y;
 	self->points->points[1].x = rx;
-	self->points->points[1].y = rx;
+	self->points->points[1].y = ry;
 }
 
 
@@ -1113,7 +1114,7 @@ DaoxGraphicsEllipse* DaoxGraphicsScene_AddEllipse( DaoxGraphicsScene *self, floa
 	return item;
 }
 
-DaoxGraphicsPolyLine* DaoxGraphicsScene_AddPolyLine( DaoxGraphicsScene *self )
+DaoxGraphicsPolyLine* DaoxGraphicsScene_AddPolyline( DaoxGraphicsScene *self )
 {
 	DaoxGraphicsPolyLine *item = DaoxGraphicsItem_New( self, DAOX_GS_POLYLINE );
 	DArray_PushBack( self->items, item );
@@ -1738,10 +1739,10 @@ static void SCENE_AddEllipse( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxGraphicsEllipse *item = DaoxGraphicsScene_AddEllipse( self, x, y, rx, ry );
 	DaoProcess_PutValue( proc, (DaoValue*) item );
 }
-static void SCENE_AddPolyLine( DaoProcess *proc, DaoValue *p[], int N )
+static void SCENE_AddPolyline( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
-	DaoxGraphicsPolyLine *item = DaoxGraphicsScene_AddPolyLine( self );
+	DaoxGraphicsPolyLine *item = DaoxGraphicsScene_AddPolyline( self );
 	DaoProcess_PutValue( proc, (DaoValue*) item );
 }
 static void SCENE_AddPolygon( DaoProcess *proc, DaoValue *p[], int N )
@@ -1934,7 +1935,7 @@ static DaoFuncItem DaoxGraphicsSceneMeths[]=
 	{ SCENE_AddRect,   "AddRect( self: GraphicsScene, x1: float, y1: float, x2: float, y2: float ) => GraphicsRect" },
 	{ SCENE_AddCircle,    "AddCircle( self: GraphicsScene, x: float, y: float, r: float ) => GraphicsCircle" },
 	{ SCENE_AddEllipse,   "AddEllipse( self: GraphicsScene, x: float, y: float, rx: float, ry: float ) => GraphicsEllipse" },
-	{ SCENE_AddPolyLine,  "AddPolyLine( self: GraphicsScene ) => GraphicsPolyLine" },
+	{ SCENE_AddPolyline,  "AddPolyline( self: GraphicsScene ) => GraphicsPolyLine" },
 	{ SCENE_AddPolygon,   "AddPolygon( self: GraphicsScene ) => GraphicsPolygon" },
 	{ SCENE_AddPath,      "AddPath( self: GraphicsScene ) => GraphicsPath" },
 	{ SCENE_AddText,      "AddText( self: GraphicsScene, text : string, x :float, y :float ) => GraphicsText" },

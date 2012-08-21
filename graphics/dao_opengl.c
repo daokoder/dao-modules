@@ -146,7 +146,9 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 
 	inverse = DaoxTransform_Inverse( & transform );
 	bounds = DaoxBounds_Transform( & item->scene->viewport, & inverse );
-	DaoxBounds_AddMargin( & bounds, 1 );
+	DaoxBounds_AddMargin( & bounds, 0.1 * (bounds.right - bounds.left) );
+	DaoxBounds_AddMargin( & bounds, item->state->strokeWidth + 1 );
+	//DaoxBounds_Print( & bounds );
 	if( DaoxBounds_Contain( & gd->bounds, item->bounds ) == 0 ){
 		if( DaoxBounds_Contain( & gd->bounds, bounds ) == 0 )
 			DaoxGraphicsData_Reset( gd );

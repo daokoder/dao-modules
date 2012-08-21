@@ -287,8 +287,8 @@ DaoxGraphicsData* DaoxGraphicsData_New( DaoxGraphicsItem *item );
 void DaoxGraphicsData_Delete( DaoxGraphicsData *self );
 void DaoxGraphicsData_Reset( DaoxGraphicsData *self );
 void DaoxGraphicsData_Init( DaoxGraphicsData *self, DaoxGraphicsItem *item );
-void DaoxGraphicsData_PushStrokeTriangle( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C );
-void DaoxGraphicsData_PushStrokeQuad( DaoxGraphicsData *self, DaoxQuad quad );
+int DaoxGraphicsData_PushStrokeTriangle( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C );
+int DaoxGraphicsData_PushStrokeQuad( DaoxGraphicsData *self, DaoxQuad quad );
 
 
 
