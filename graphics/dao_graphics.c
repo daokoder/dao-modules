@@ -829,7 +829,7 @@ void DaoxGraphicsPolygon_UpdateData( DaoxGraphicsPolygon *self, DaoxGraphicsScen
 			point = points[i];
 		}
 		DaoxPath_Close( self->path );
-		DaoxPath_Preprocess( self->path, scene->buffer );
+		DaoxPath_Preprocess( self->path, scene->triangulator );
 	}
 	DaoxGraphicsData_Init( self->gdata, self );
 	DaoxPath_ExportGraphicsData( self->path, self->gdata );
@@ -838,14 +838,8 @@ void DaoxGraphicsPolygon_UpdateData( DaoxGraphicsPolygon *self, DaoxGraphicsScen
 void DaoxGraphicsPath_UpdateData( DaoxGraphicsPath *self, DaoxGraphicsScene *scene )
 {
 	DaoxGraphicsiItem_ResetData( self );
-#if 0
-	DaoxPathGraph_Reset( scene->graph );
-	DaoxPathGraph_Import( scene->graph, self->path );
-	DaoxPathGraph_IntersectEdges( scene->graph );
-	DaoxPathGraph_Export( scene->graph, self->path );
-#endif
 	if( self->path->first->refined.first == NULL )
-		DaoxPath_Preprocess( self->path, scene->buffer );
+		DaoxPath_Preprocess( self->path, scene->triangulator );
 	DaoxGraphicsData_Init( self->gdata, self );
 	DaoxPath_ExportGraphicsData( self->path, self->gdata );
 }
@@ -946,14 +940,13 @@ DaoxGraphicsScene* DaoxGraphicsScene_New()
 	DaoCdata_InitCommon( (DaoCdata*) self, daox_type_graphics_scene );
 	self->items = DArray_New(D_VALUE);
 	self->states = DArray_New(D_VALUE);
-	self->buffer = DaoxPathBuffer_New();
-	self->graph = DaoxPathGraph_New();
 	self->smallCircle = DaoxPath_New();
 	self->largeCircle = DaoxPath_New();
 	self->wideEllipse = DaoxPath_New();
 	self->narrowEllipse = DaoxPath_New();
 	self->transform = X2;
 	self->transform.Axx = 1.0;
+	self->triangulator = DaoxTriangulator_New();
 
 	/* less accurate approximation for small circle: */
 	DaoxPath_MoveTo( self->smallCircle, -10.0, 0 );
@@ -969,10 +962,10 @@ DaoxGraphicsScene* DaoxGraphicsScene_New()
 	DaoxPath_ImportPath( self->wideEllipse, self->largeCircle, & X2 );
 	DaoxPath_ImportPath( self->narrowEllipse, self->largeCircle, & X4 );
 
-	DaoxPath_Preprocess( self->smallCircle, self->buffer );
-	DaoxPath_Preprocess( self->largeCircle, self->buffer );
-	DaoxPath_Preprocess( self->wideEllipse, self->buffer );
-	DaoxPath_Preprocess( self->narrowEllipse, self->buffer );
+	DaoxPath_Preprocess( self->smallCircle, self->triangulator );
+	DaoxPath_Preprocess( self->largeCircle, self->triangulator );
+	DaoxPath_Preprocess( self->wideEllipse, self->triangulator );
+	DaoxPath_Preprocess( self->narrowEllipse, self->triangulator );
 
 	for(i=0; i<DAOX_ARCS; i++){
 		float angle2 = (i+1.0) * 180 / (float)DAOX_ARCS;
@@ -989,8 +982,8 @@ DaoxGraphicsScene* DaoxGraphicsScene_New()
 		DaoxPath_ArcTo( self->largeArcs[i],  100.0*cosine, 100.0*sine, angle2 );
 		DaoxPath_Close( self->smallArcs[i] );
 		DaoxPath_Close( self->largeArcs[i] );
-		DaoxPath_Preprocess( self->smallArcs[i], self->buffer );
-		DaoxPath_Preprocess( self->largeArcs[i], self->buffer );
+		DaoxPath_Preprocess( self->smallArcs[i], self->triangulator );
+		DaoxPath_Preprocess( self->largeArcs[i], self->triangulator );
 	}
 	return self;
 }
@@ -1004,12 +997,11 @@ void DaoxGraphicsScene_Delete( DaoxGraphicsScene *self )
 	DaoCdata_FreeCommon( (DaoCdata*) self );
 	DArray_Delete( self->items );
 	DArray_Delete( self->states );
-	DaoxPathBuffer_Delete( self->buffer );
-	DaoxPathGraph_Delete( self->graph );
 	DaoxPath_Delete( self->smallCircle );
 	DaoxPath_Delete( self->largeCircle );
 	DaoxPath_Delete( self->wideEllipse );
 	DaoxPath_Delete( self->narrowEllipse );
+	DaoxTriangulator_Delete( self->triangulator );
 	dao_free( self );
 }
 
@@ -1214,7 +1206,7 @@ DaoxGraphicsText* DaoxGraphicsScene_AddPathText( DaoxGraphicsScene *self, const 
 	if( item->path == NULL ) item->path = DaoxPath_New();
 	DaoxPath_Reset( item->path );
 	DaoxPath_ImportPath( item->path, path, NULL );
-	DaoxPath_Preprocess( item->path, self->buffer );
+	DaoxPath_Preprocess( item->path, self->triangulator );
 	DaoxGraphicsText_AddCharItems( item, text, 0, 0 );
 	return item;
 }

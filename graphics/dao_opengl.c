@@ -43,51 +43,6 @@ void DaoxGraphics_glSetColor( DaoxColor color )
 	glColor4f( color.red, color.green, color.blue, color.alpha );
 }
 
-void DaoxGraphics_glFillRect( DaoxPoint lb, DaoxPoint rt )
-{
-	glBegin( GL_QUADS );
-	{
-		glVertex2f( lb.x, lb.y );
-		glVertex2f( rt.x, lb.y );
-		glVertex2f( rt.x, rt.y );
-		glVertex2f( lb.x, rt.y );
-	}
-	glEnd();
-}
-void DaoxGraphics_glFillTriangle( DaoxPoint A, DaoxPoint B, DaoxPoint C )
-{
-	glBegin( GL_TRIANGLES );
-	{
-		glVertex2f( A.x, A.y );
-		glVertex2f( B.x, B.y );
-		glVertex2f( C.x, C.y );
-	}
-	glEnd();
-}
-void DaoxGraphics_glFillQuad( DaoxPoint *points, int count )
-{
-	int i;
-	glBegin( GL_QUADS );
-	{
-		for(i=0; i<count; ++i) glVertex2f( points[i].x, points[i].y );
-	}
-	glEnd();
-}
-void DaoxGraphics_glFillPolygons( DaoxPolygonArray *polygons )
-{
-	int i;
-	for(i=0; i<polygons->polygons->count; ++i){
-		DaoxSlice polygon = polygons->polygons->slices[i];
-		DaoxPoint *points = polygons->points->points + polygon.offset;
-		if( polygon.count == 2 ){
-			DaoxGraphics_glFillRect( points[0], points[1] );
-		}else if( polygon.count == 3 ){
-			DaoxGraphics_glFillTriangle( points[0], points[1], points[2] );
-		}else if( polygon.count == 4 ){
-			DaoxGraphics_glFillQuad( points, polygon.count );
-		}
-	}
-}
 void DaoxGraphics_glFillTriangles( DaoxPointArray *points, DaoxIntArray *triangles, DaoxColorArray *colors )
 {
 	DaoxColor *cls = colors && colors->count ? colors->colors : NULL;

@@ -93,6 +93,5 @@ DAO_DLL void DaoxTriangulator_PushPoint( DaoxTriangulator *self, float x, float 
 DAO_DLL int  DaoxTriangulator_CloseContour( DaoxTriangulator *self );
 
 DAO_DLL void DaoxTriangulator_Triangulate( DaoxTriangulator *self );
-DAO_DLL void DaoxTriangulator_ExportTriangles( DaoxTriangulator *self, DaoxPolygonArray *polygons );
 
 #endif

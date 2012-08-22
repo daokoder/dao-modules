@@ -78,7 +78,7 @@ DaoxFont* DaoxFont_New()
 	self->buffer = DString_New(0);
 	self->glyphs = DMap_New(0,0);
 	self->glyphs2 = DMap_New(0,0);
-	self->pathBuffer = DaoxPathBuffer_New();
+	self->triangulator = DaoxTriangulator_New();
 	return self;
 }
 void DaoxFont_Delete( DaoxFont *self )
@@ -91,7 +91,7 @@ void DaoxFont_Delete( DaoxFont *self )
 	DMap_Delete( self->glyphs );
 	DMap_Delete( self->glyphs2 );
 	DString_Delete( self->buffer );
-	DaoxPathBuffer_Delete( self->pathBuffer );
+	DaoxTriangulator_Delete( self->triangulator );
 	DaoCdata_FreeCommon( (DaoCdata*) self );
 	dao_free( self );
 }
@@ -326,7 +326,7 @@ int DaoxFont_MakeGlyph2( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
 
 		printf( "%5.3f %5.3f %5.3f %5.3f %5.3f %5.3f\n", tmat.Axx, tmat.Ayx, tmat.Axy, tmat.Ayy, tmat.Bx, tmat.By );
 	}
-	DaoxPath_Preprocess( glyph->shape, self->pathBuffer );
+	DaoxPath_Preprocess( glyph->shape, self->triangulator );
 	return 1;
 }
 int DaoxFont_MakeGlyph( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
@@ -462,7 +462,7 @@ int DaoxFont_MakeGlyph( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
 		printf( "%3i: %2i %5i %5i\n", i, flag&1, x, y );
 	}
 #endif
-	DaoxPath_Preprocess( glyph->shape, self->pathBuffer );
+	DaoxPath_Preprocess( glyph->shape, self->triangulator );
 	return 1;
 }
 

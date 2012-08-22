@@ -41,7 +41,6 @@
 
 #include "dao_geometry.h"
 #include "dao_triangulator.h"
-#include "dao_pathcut.h"
 #include "dao_font.h"
 
 
@@ -257,8 +256,7 @@ struct DaoxGraphicsScene
 	DaoxPath  *smallArcs[DAOX_ARCS];
 	DaoxPath  *largeArcs[DAOX_ARCS];
 
-	DaoxPathBuffer  *buffer;
-	DaoxPathGraph   *graph;
+	DaoxTriangulator  *triangulator;
 };
 DAO_DLL extern DaoType *daox_type_graphics_scene;
 

@@ -74,8 +74,8 @@ struct DaoxFont
 	DMap  *glyphs;  /* Glyph index to glyph; */
 	DMap  *glyphs2; /* Unicode to glyph; */
 
-	DaoxPathBuffer  *pathBuffer;
 	DaoxGlyphPoint  *points;
+	DaoxTriangulator  *triangulator;
 };
 
 static DaoType* daox_type_font = NULL;

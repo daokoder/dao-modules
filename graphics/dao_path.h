@@ -142,7 +142,7 @@ DAO_DLL void DaoxPath_Close( DaoxPath *self );
 
 void DaoxPath_ImportPath( DaoxPath *self, DaoxPath *path, DaoxTransform *transform );
 
-void DaoxPath_Preprocess( DaoxPath *self, DaoxPathBuffer *buffer );
+void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator );
 
 void DaoxPath_Refine( DaoxPath *self, float maxlen, float maxdiff );
 

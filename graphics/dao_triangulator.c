@@ -410,17 +410,6 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 	}
 }
 
-void DaoxTriangulator_ExportTriangles( DaoxTriangulator *self, DaoxPolygonArray *polygons )
-{
-	int i;
-	for(i=0; i<self->triangles->size; i+=3){
-		daoint *ids = self->triangles->items.pInt + i;
-		DaoxPoint A = self->points->points[ids[0]];
-		DaoxPoint B = self->points->points[ids[1]];
-		DaoxPoint C = self->points->points[ids[2]];
-		DaoxPolygonArray_PushTriangle( polygons, A, B, C );
-	}
-}
 
 
 

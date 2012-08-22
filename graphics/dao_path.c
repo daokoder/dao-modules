@@ -855,10 +855,9 @@ void DaoxPath_Refine( DaoxPath *self, float maxlen, float maxdiff )
 	}
 }
 
-void DaoxPath_Preprocess( DaoxPath *self, DaoxPathBuffer *buffer )
+void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 {
 	DArray *segments = DArray_New(0);
-	DaoxTriangulator *triangulator = buffer->triangulator;
 	DaoxPathComponent *com;
 	DaoxPathSegment *seg;
 	daoint i, count = 0;
