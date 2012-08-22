@@ -241,6 +241,8 @@ struct DaoxGraphicsScene
 
 	DaoxBounds  viewport;
 
+	DaoxTransform  transform;
+
 	DaoxColor  background;
 
 	DArray  *items;

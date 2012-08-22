@@ -18,7 +18,7 @@ scene.SetStrokeWidth( 1 );
 scene.SetStrokeColor( (0.0,0.0,0.5), 0.4 );
 scene.SetFillColor( (0.0,0.0,0.5), 0.9 );
 
-text = scene.AddText( 'Dao', 300, 640 );
+text = scene.AddText( 'Dao', -100, 250 );
 
 scene.PushState()
 scene.SetFont( fontRoboto, 60 );
@@ -29,7 +29,7 @@ scene.SetFillColor( (0.0,0.0,0.5), 0.9 );
 path = scene.AddPath();
 path.SetVisible( $false );
 
-path.MoveTo( 70, 320 )
+path.MoveTo( -330, -90 )
 path.ArcTo( 650, 0, 135 )
 
 #scene.SetFont( fontRoboto, 80 );
@@ -37,9 +37,10 @@ path.ArcTo( 650, 0, 135 )
 text = scene.AddText( 'PROGRAMMING LANGUAGE', path );
 scene.PopState();
 scene.PopState();
+#{
+#}
 
 scene.PushState()
-scene.SetTransform( [1.0, 0, 0, 1.0, 400, 400] );
 
 unit = 100;
 
@@ -151,5 +152,5 @@ path.Close()
 
 scene.PopState()
 
-glutInit( 1000, 800, 'Dao Logo', 10, 0 )
+glutInit( 1000, 800, 'Dao Logo', 30, 0 )
 glutShow( scene )

@@ -146,7 +146,7 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 
 	inverse = DaoxTransform_Inverse( & transform );
 	bounds = DaoxBounds_Transform( & item->scene->viewport, & inverse );
-	DaoxBounds_AddMargin( & bounds, 0.1 * (bounds.right - bounds.left) );
+	//DaoxBounds_AddMargin( & bounds, 0.1 * (bounds.right - bounds.left) );
 	DaoxBounds_AddMargin( & bounds, item->state->strokeWidth + 1 );
 	//DaoxBounds_Print( & bounds );
 	if( DaoxBounds_Contain( & gd->bounds, item->bounds ) == 0 ){
@@ -210,8 +210,8 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 }
 void DaoxGraphics_glDrawScene( DaoxGraphicsScene *scene, double left, double right, double bottom, double top )
 {
-	DaoxTransform transform = { 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 };
 	DaoxColor bgcolor = scene->background;
+	GLdouble matrix[16] = {0};
 	int i, n = scene->items->size;
 
 	glMatrixMode (GL_PROJECTION);
@@ -227,8 +227,14 @@ void DaoxGraphics_glDrawScene( DaoxGraphicsScene *scene, double left, double rig
 	glDisable( GL_LIGHTING );
 	glClearColor( bgcolor.red, bgcolor.green, bgcolor.blue, bgcolor.alpha );
 
+	DaoxGraphics_TransfromMatrix( scene->transform, matrix );
+
+	glPushMatrix();
+	glMultMatrixd( matrix );
+
 	for(i=0; i<n; i++){
 		DaoxGraphicsItem *it = (DaoxGraphicsItem*) scene->items->items.pVoid[i];
-		DaoxGraphics_glDrawItem( it, transform );
+		DaoxGraphics_glDrawItem( it, scene->transform );
 	}
+	glPopMatrix();
 }

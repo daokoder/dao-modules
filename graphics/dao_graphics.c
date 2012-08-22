@@ -873,8 +873,6 @@ void DaoxGraphicsText_UpdateData( DaoxGraphicsText *self, DaoxGraphicsScene *sce
 	self->gdata->maxlen = maxlen;
 	self->gdata->maxdiff = maxdiff;
 
-	printf( ">>>>>>>>>> self->codepoint: %lc %p\n", self->codepoint, self->gdata->transform );
-
 	glyph = DaoxFont_GetCharGlyph( font, self->codepoint );
 	DaoxPath_ExportGraphicsData( glyph->shape, self->gdata );
 }
@@ -905,6 +903,9 @@ int DaoxGraphicsItem_UpdateData( DaoxGraphicsItem *self, DaoxGraphicsScene *scen
 	}
 	DaoxGraphicsData_MakeFillGradient( self->gdata );
 	self->gdata->scale = scale;
+	
+	/* TODO better handling: */
+	if( self->bounds.right > self->bounds.left + 1 ) return 1;
 	if( self->gdata->strokePoints->count ){
 		DaoxBounds_Init( & self->bounds, self->gdata->strokePoints->points[0] );
 	}else if( self->gdata->fillPoints->count ){
@@ -951,6 +952,8 @@ DaoxGraphicsScene* DaoxGraphicsScene_New()
 	self->largeCircle = DaoxPath_New();
 	self->wideEllipse = DaoxPath_New();
 	self->narrowEllipse = DaoxPath_New();
+	self->transform = X2;
+	self->transform.Axx = 1.0;
 
 	/* less accurate approximation for small circle: */
 	DaoxPath_MoveTo( self->smallCircle, -10.0, 0 );

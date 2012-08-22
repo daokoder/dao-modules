@@ -767,7 +767,7 @@ float DaoxTriangle_AngleCosine( DaoxPoint C, DaoxPoint A, DaoxPoint B )
 	float CA = DaoxDistance2( C, A );
 	float CB = DaoxDistance2( C, B );
 	float AB = DaoxDistance2( A, B );
-	return (CA + CB - AB) / (2.0 * sqrt(CA + CB) );
+	return (CA + CB - AB) / (2.0 * sqrt(CA * CB) );
 }
 DaoxQuad DaoxQuadJunctionMinor( DaoxQuad *first, DaoxQuad *second )
 {

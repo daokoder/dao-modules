@@ -26,6 +26,7 @@
 */
 
 #include <glut.h>
+#include <math.h>
 #include <stdio.h>
 #include "dao_opengl.h"
 
@@ -132,21 +133,18 @@ void DaoxGraphics_glutReshape( int width, int height )
 {
 }
 
-void DaoxGraphics_glutKeyboard( unsigned char key, int x, int y )
+void DaoxGraphics_Zoom( int zoomin )
 {
 	DaoxBounds box = daox_current_scene->viewport;
 	float width, height, dw, dh;
-	if( daox_current_scene == NULL ) return;
-	if( DaoxGraphics_CallKeyboardMethod( daox_current_scene, "OnKeyboard", key, x, y ) ) return;
-
 	width = box.right - box.left;
 	height = box.top - box.bottom;
 	dw = 0.0;
 	dh = 0.0;
-	if( key == '+' ){
+	if( zoomin ){
 		dw = width / 6;
 		dh = height / 6;
-	}else if( key == '-' ){
+	}else{
 		dw = - width / 4;
 		dh = - height / 4;
 	}
@@ -156,6 +154,17 @@ void DaoxGraphics_glutKeyboard( unsigned char key, int x, int y )
 	box.top    -= dh;
 	DaoxGraphicsScene_SetViewport( daox_current_scene, box.left, box.right, box.bottom, box.top );
 }
+void DaoxGraphics_glutKeyboard( unsigned char key, int x, int y )
+{
+	if( daox_current_scene == NULL ) return;
+	if( DaoxGraphics_CallKeyboardMethod( daox_current_scene, "OnKeyboard", key, x, y ) ) return;
+
+	if( key == '+' ){
+		DaoxGraphics_Zoom( 1 );
+	}else if( key == '-' ){
+		DaoxGraphics_Zoom( 0 );
+	}
+}
 
 void DaoxGraphics_glutSpecialKeyboard( int key, int x, int y )
 {
@@ -163,16 +172,57 @@ void DaoxGraphics_glutSpecialKeyboard( int key, int x, int y )
 	DaoxGraphics_CallKeyboardMethod( daox_current_scene, "OnKeyboard", key, x, y );
 }
 
+enum ActionType
+{
+	ROTATION ,
+	MOVING
+};
+
 static int last_x = 0;
 static int last_y = 0;
+static int action_type = ROTATION;
 
 void DaoxGraphics_glutButton( int button, int state, int x, int y )
 {
 	last_x = x;
 	last_y = y;
+	action_type = button == GLUT_LEFT_BUTTON ? ROTATION : MOVING;
 }
 
-void DaoxGraphics_glutDrag( int x, int y )
+void DaoxGraphics_Rotate( int x, int y )
+{
+	DaoxTransform rotate = {1.0,0.0,0.0,1.0,0.0,0.0};
+	DaoxBounds box = daox_current_scene->viewport;
+	DaoxPoint start, end, center = {0.0,0.0};
+	double W2 = 0.5 * window_width;
+	double H2 = 0.5 * window_height;
+	double area, cosine, sine;
+
+	start.x = last_x - W2;
+	start.y = last_y - H2;
+	end.x = x - W2;
+	end.y = y - H2;
+
+	area = DaoxTriangle_Area( center, start, end );
+	cosine = DaoxTriangle_AngleCosine( center, start, end );
+	sine = sqrt( 1.0 - cosine * cosine );
+
+
+	rotate.Axx = rotate.Ayy = cosine;
+	if( area < 0.0 ){
+		rotate.Axy = - sine;
+		rotate.Ayx =   sine;
+	}else{
+		rotate.Axy =   sine;
+		rotate.Ayx = - sine;
+	}
+	DaoxTransform_Multiply( & daox_current_scene->transform, rotate );
+
+Done:
+	last_x = x;
+	last_y = y;
+}
+void DaoxGraphics_Move( int x, int y )
 {
 	DaoxBounds box = daox_current_scene->viewport;
 	float xscale = (box.right - box.left) / window_width;
@@ -188,6 +238,14 @@ void DaoxGraphics_glutDrag( int x, int y )
 	if( box.bottom > 0.9*window_height ) return;
 	if( box.top < 0.1*window_height ) return;
 	DaoxGraphicsScene_SetViewport( daox_current_scene, box.left, box.right, box.bottom, box.top );
+}
+void DaoxGraphics_glutDrag( int x, int y )
+{
+	if( action_type == ROTATION ){
+		DaoxGraphics_Rotate( x, y );
+	}else{
+		DaoxGraphics_Move( x, y );
+	}
 }
 
 void DaoxGraphics_glutMove( int x, int y )
@@ -242,7 +300,8 @@ static void GLUT_Show( DaoProcess *proc, DaoValue *p[], int N )
 
 	daox_current_scene->defaultWidth = window_width;
 	daox_current_scene->defaultHeight = window_height;
-	DaoxGraphicsScene_SetViewport( daox_current_scene, 0, window_width, 0, window_height );
+	DaoxGraphicsScene_SetViewport( daox_current_scene,
+			-window_width/2, window_width/2, -window_height/2, window_height/2 );
 
 	glutMainLoop();
 }
