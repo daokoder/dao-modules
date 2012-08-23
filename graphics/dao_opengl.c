@@ -38,6 +38,9 @@
 #define DAOX_VBO_FILL    2
 
 
+#define USE_STENCIL
+
+
 void DaoxGraphics_glSetColor( DaoxColor color )
 {
 	glColor4f( color.red, color.green, color.blue, color.alpha );
@@ -125,12 +128,8 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 	glPushMatrix();
 	glMultMatrixd( matrix );
 
-#define USE_STENCIL
-
 #ifdef USE_STENCIL
 	if( item->shape >= DAOX_GS_CIRCLE ){
-		glClearStencil(0);
-		glClear(GL_STENCIL_BUFFER_BIT);
 		glEnable( GL_STENCIL_TEST );
 		glStencilFunc( GL_NOTEQUAL, 0x01, 0x01);
 		glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
@@ -154,7 +153,18 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 		DaoxGraphics_glFillTriangles( gd->fillPoints, gd->fillTriangles, gd->fillColors );
 	}
 #ifdef USE_STENCIL
-	if( item->shape >= DAOX_GS_CIRCLE ) glDisable( GL_STENCIL_TEST );;
+	if( item->shape >= DAOX_GS_CIRCLE ){
+		glStencilFunc( GL_ALWAYS, 0x0, 0x01);
+		glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
+		glColor4f( 0.0, 0.0, 0.0, 0.0 );
+		if( gd->strokeTriangles->count ){
+			DaoxGraphics_glFillTriangles( gd->strokePoints, gd->strokeTriangles, NULL );
+		}
+		if( gd->fillTriangles->count ){
+			DaoxGraphics_glFillTriangles( gd->fillPoints, gd->fillTriangles, NULL );
+		}
+		glDisable( GL_STENCIL_TEST );;
+	}
 #endif
 
 	for(i=0; i<n; i++){
@@ -186,6 +196,11 @@ void DaoxGraphics_glDrawScene( DaoxGraphicsScene *scene, double left, double rig
 
 	glPushMatrix();
 	glMultMatrixd( matrix );
+
+#ifdef USE_STENCIL
+	glClearStencil(0);
+	glClear(GL_STENCIL_BUFFER_BIT);
+#endif
 
 	for(i=0; i<n; i++){
 		DaoxGraphicsItem *it = (DaoxGraphicsItem*) scene->items->items.pVoid[i];
