@@ -597,8 +597,8 @@ int DaoxPathSegment_TryDivideQuadratic( DaoxPathSegment *self, float maxlen, flo
 	float PP = DaoxDistance( self->P1, self->P2 );
 
 	self->length = 0.5 * (PC + CP + PP);
-	self->delta = (PC + CP - PP) / PP;
-	if( self->length < maxlen && (self->delta < maxdiff || self->length < 0.001*maxlen) ){
+	self->delta = (PC + CP - PP) / (PP + 1E-16);
+	if( self->length < maxlen && (self->delta < maxdiff || self->length*self->delta < 1) ){
 		self->count = 1;
 		if( self->first ) self->first->count = 0;
 		if( self->second ) self->second->count = 0;
@@ -606,7 +606,7 @@ int DaoxPathSegment_TryDivideQuadratic( DaoxPathSegment *self, float maxlen, flo
 		if( self->delta > self->component->maxdiff ) self->component->maxdiff = self->delta;
 		return 0;
 	}
-	DaoxPathSegment_DivideQuadratic( self, PC / (PC + CP) );
+	DaoxPathSegment_DivideQuadratic( self, 0.25 + 0.5 * PC / (PC + CP) );
 	return 1;
 }
 int DaoxPathSegment_TryDivideCubic( DaoxPathSegment *self, float maxlen, float maxdiff )
@@ -617,8 +617,8 @@ int DaoxPathSegment_TryDivideCubic( DaoxPathSegment *self, float maxlen, float m
 	float PP = DaoxDistance( self->P1, self->P2 );
 
 	self->length = 0.5 * (PC + CC + CP + PP);
-	self->delta = (PC + CC + CP - PP) / PP;
-	if( self->length < maxlen && (self->delta < maxdiff || self->length < 0.001*maxlen) ){
+	self->delta = (PC + CC + CP - PP) / (PP + 1E-16);
+	if( self->length < maxlen && (self->delta < maxdiff || self->length*self->delta < 1) ){
 		self->count = 1;
 		if( self->first ) self->first->count = 0;
 		if( self->second ) self->second->count = 0;
@@ -626,7 +626,7 @@ int DaoxPathSegment_TryDivideCubic( DaoxPathSegment *self, float maxlen, float m
 		if( self->delta > self->component->maxdiff ) self->component->maxdiff = self->delta;
 		return 0;
 	}
-	DaoxPathSegment_DivideCubic( self, PC / (PC + CP) );
+	DaoxPathSegment_DivideCubic( self, 0.25 + 0.5 * PC / (PC + CP) );
 	return 1;
 }
 void DaoxPathSegment_RefineLinear( DaoxPathSegment *self, float maxlen, float maxdiff )
@@ -756,6 +756,45 @@ DaoxPathSegment* DaoxPath_LocateByPercentage( DaoxPath *self, float percentage, 
 }
 
 
+int DaoxPathSegment_MayIntersect( DaoxPathSegment *self, DaoxPathSegment *other )
+{
+	float S, T;
+	if( self->bezier == 0 || other->bezier == 0 ) return 0;
+	if( DaoxLine_Intersect( self->P1, self->P2, other->P1, other->P2, &S, &T ) ) return 1;
+	if( self->bezier == 2 ) self->C2 = self->C1;
+	if( other->bezier == 2 ) other->C2 = other->C1;
+	if( self->bezier >= 2 ){
+		if( DaoxLine_Intersect( self->P1, self->C1, other->P1, other->P2, &S, &T ) ) return 1;
+		if( DaoxLine_Intersect( self->C2, self->P2, other->P1, other->P2, &S, &T ) ) return 1;
+	}
+	if( self->bezier >= 3 ){
+		if( DaoxLine_Intersect( self->C1, self->C2, other->P1, other->P2, &S, &T ) ) return 1;
+	}
+	if( other->bezier >= 2 ){
+		if( DaoxLine_Intersect( self->P1, self->P2, other->P1, other->C1, &S, &T ) ) return 1;
+		if( DaoxLine_Intersect( self->P1, self->P2, other->C2, other->P2, &S, &T ) ) return 1;
+	}
+	if( other->bezier >= 3 ){
+		if( DaoxLine_Intersect( self->P1, self->P2, other->C1, other->C2, &S, &T ) ) return 1;
+	}
+	if( self->bezier == 1 || other->bezier == 1 ) return 0;
+	if( DaoxLine_Intersect( self->P1, self->C1, other->P1, other->C1, &S, &T ) ) return 1;
+	if( DaoxLine_Intersect( self->P1, self->C1, other->C2, other->P2, &S, &T ) ) return 1;
+	if( DaoxLine_Intersect( self->C2, self->P2, other->P1, other->C1, &S, &T ) ) return 1;
+	if( DaoxLine_Intersect( self->C2, self->P2, other->C2, other->P2, &S, &T ) ) return 1;
+	if( self->bezier == 2 && other->bezier == 2 ) return 0;
+	if( self->bezier >= 3 ){
+		if( DaoxLine_Intersect( self->C1, self->C2, other->P1, other->C1, &S, &T ) ) return 1;
+		if( DaoxLine_Intersect( self->C1, self->C2, other->C2, other->P2, &S, &T ) ) return 1;
+	}
+	if( other->bezier >= 3 ){
+		if( DaoxLine_Intersect( self->P1, self->C1, other->C1, other->C2, &S, &T ) ) return 1;
+		if( DaoxLine_Intersect( self->C2, self->P2, other->C1, other->C2, &S, &T ) ) return 1;
+	}
+	if( DaoxLine_Intersect( self->C1, self->C2, other->C1, other->C2, &S, &T ) ) return 1;
+	return 0;
+}
+
 
 
 void DaoxPathComponent_RetrieveSegment( DaoxPathComponent *self, DaoxPathSegment *segment )
@@ -860,11 +899,13 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 	DArray *segments = DArray_New(0);
 	DaoxPathComponent *com;
 	DaoxPathSegment *seg;
-	daoint i, count = 0;
+	daoint i, j, count = 0;
 	float len, maxlen = 0.0;
 	float maxdiff = 0.1;
 
-	printf( "DaoxPath_Segment 1: %p\n", triangulator );
+	if( self->first->first->bezier == 0 ) return;
+
+	printf( "\nDaoxPath_Segment 1: %p\n", triangulator );
 	DaoxTriangulator_Reset( triangulator );
 	DaoxPath_Refine( self, 1E16, 1 ); /* setup length; */
 	for(com=self->first; com; com=com->next){
@@ -873,10 +914,32 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 	}
 	printf( "maxlen = %f\n", maxlen );
 	maxlen *= 0.5;
+	if( maxlen < 1E-1 ) maxlen = 0.1;
 	DaoxPath_Refine( self, maxlen, maxdiff );
 	for(com=self->first; com; com=com->next){
 		if( com->first->bezier == 0 ) continue;
-		// TODO: refine for junctions;
+		DaoxPathComponent_RetrieveRefined( com );
+		if( com->refined.last == NULL || com->refined.last->next == NULL ) continue;
+		seg = com->refined.first;
+		do {
+			DArray_PushBack( segments, seg );
+			seg = seg->next;
+		} while( seg && seg != com->refined.first );
+	}
+	for(i=0; i<segments->size; ++i){
+		DaoxPathSegment *S1 = (DaoxPathSegment*) segments->items.pVoid[i];
+		if( S1->length < 0.01 || S1->delta < 0.0001 ) continue;
+		for(j=i+1; j<segments->size; ++j){
+			DaoxPathSegment *S2 = (DaoxPathSegment*) segments->items.pVoid[j];
+			if( S2->length < 0.01 || S2->delta < 0.0001 ) continue;
+			if( DaoxPathSegment_MayIntersect( S1, S2 ) ){
+				DaoxPathSegment_Divide( S1, 0.5 );
+			}
+		}
+	}
+	segments->size = 0;
+	for(com=self->first; com; com=com->next){
+		if( com->first->bezier == 0 ) continue;
 		DaoxPathComponent_RetrieveRefined( com );
 		if( com->refined.last == NULL || com->refined.last->next == NULL ) continue;
 		seg = com->refined.first;
@@ -1237,6 +1300,8 @@ void DaoxPath_ExportGraphicsData( DaoxPath *self, DaoxGraphicsData *gdata )
 	float maxdiff = gdata->maxdiff;
 	float pos;
 	int i, j, count, jt, jt2;
+
+	if( self->first->first->bezier == 0 ) return;
 
 	printf( "scale: %15f\n", scale );
 
