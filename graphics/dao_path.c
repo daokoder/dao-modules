@@ -589,6 +589,25 @@ void DaoxPathSegment_Divide( DaoxPathSegment *self, float at )
 	}
 }
 
+void DaoxPathSegment_ComputeLengthAndDelta( DaoxPathSegment *self )
+{
+	float PP = DaoxDistance( self->P1, self->P2 );
+	if( self->bezier >= 2 ){
+		float PC = DaoxDistance( self->P1, self->C1 );
+		float CP = DaoxDistance( self->bezier == 2 ? self->C1 : self->C2, self->P2 );
+		if( self->bezier >= 3 ){
+			float CC = DaoxDistance( self->C1, self->C2 );
+			self->length = 0.5 * (PC + CC + CP + PP);
+			self->delta = (PC + CC + CP - PP) / (PP + 1E-16);
+		}else{
+			self->length = 0.5 * (PC + CP + PP);
+			self->delta = (PC + CP - PP) / (PP + 1E-16);
+		}
+	}else{
+		self->length = PP;
+		self->delta = 0.0;
+	}
+}
 
 int DaoxPathSegment_TryDivideQuadratic( DaoxPathSegment *self, float maxlen, float maxdiff )
 {
@@ -756,43 +775,36 @@ DaoxPathSegment* DaoxPath_LocateByPercentage( DaoxPath *self, float percentage, 
 }
 
 
+DaoxBounds DaoxPathSegment_GetBounds( DaoxPathSegment *self )
+{
+	DaoxBounds bounds;
+	DaoxBounds_Init( & bounds, self->P1 );
+	DaoxBounds_Update( & bounds, self->P2 );
+	if( self->bezier >= 2 ) DaoxBounds_Update( & bounds, self->C1 );
+	if( self->bezier >= 3 ) DaoxBounds_Update( & bounds, self->C2 );
+	return bounds;
+}
 int DaoxPathSegment_MayIntersect( DaoxPathSegment *self, DaoxPathSegment *other )
 {
-	float S, T;
+	DaoxBounds B1 = DaoxPathSegment_GetBounds( self );
+	DaoxBounds B2 = DaoxPathSegment_GetBounds( other );
 	if( self->bezier == 0 || other->bezier == 0 ) return 0;
-	if( DaoxLine_Intersect( self->P1, self->P2, other->P1, other->P2, &S, &T ) ) return 1;
-	if( self->bezier == 2 ) self->C2 = self->C1;
-	if( other->bezier == 2 ) other->C2 = other->C1;
-	if( self->bezier >= 2 ){
-		if( DaoxLine_Intersect( self->P1, self->C1, other->P1, other->P2, &S, &T ) ) return 1;
-		if( DaoxLine_Intersect( self->C2, self->P2, other->P1, other->P2, &S, &T ) ) return 1;
+	if( B1.left > B2.right || B1.right < B2.left ) return 0;
+	if( B1.bottom > B2.top || B1.top < B2.bottom ) return 0;
+	
+	/* Check for adjacent segements: */
+	if( self->end == other->start && DaoxDistance( self->P2, other->P1 ) == 0.0 ){
+		DaoxBounds_Init( & B1, self->P1 );
+		if( self->bezier >= 2 ) DaoxBounds_Update( & B1, self->C1 );
+		if( self->bezier >= 3 ) DaoxBounds_Update( & B1, self->C2 );
+	}else if( self->start == other->end && DaoxDistance( self->P1, other->P2 ) == 0.0 ){
+		DaoxBounds_Init( & B1, self->P2 );
+		if( self->bezier >= 2 ) DaoxBounds_Update( & B1, self->C1 );
+		if( self->bezier >= 3 ) DaoxBounds_Update( & B1, self->C2 );
 	}
-	if( self->bezier >= 3 ){
-		if( DaoxLine_Intersect( self->C1, self->C2, other->P1, other->P2, &S, &T ) ) return 1;
-	}
-	if( other->bezier >= 2 ){
-		if( DaoxLine_Intersect( self->P1, self->P2, other->P1, other->C1, &S, &T ) ) return 1;
-		if( DaoxLine_Intersect( self->P1, self->P2, other->C2, other->P2, &S, &T ) ) return 1;
-	}
-	if( other->bezier >= 3 ){
-		if( DaoxLine_Intersect( self->P1, self->P2, other->C1, other->C2, &S, &T ) ) return 1;
-	}
-	if( self->bezier == 1 || other->bezier == 1 ) return 0;
-	if( DaoxLine_Intersect( self->P1, self->C1, other->P1, other->C1, &S, &T ) ) return 1;
-	if( DaoxLine_Intersect( self->P1, self->C1, other->C2, other->P2, &S, &T ) ) return 1;
-	if( DaoxLine_Intersect( self->C2, self->P2, other->P1, other->C1, &S, &T ) ) return 1;
-	if( DaoxLine_Intersect( self->C2, self->P2, other->C2, other->P2, &S, &T ) ) return 1;
-	if( self->bezier == 2 && other->bezier == 2 ) return 0;
-	if( self->bezier >= 3 ){
-		if( DaoxLine_Intersect( self->C1, self->C2, other->P1, other->C1, &S, &T ) ) return 1;
-		if( DaoxLine_Intersect( self->C1, self->C2, other->C2, other->P2, &S, &T ) ) return 1;
-	}
-	if( other->bezier >= 3 ){
-		if( DaoxLine_Intersect( self->P1, self->C1, other->C1, other->C2, &S, &T ) ) return 1;
-		if( DaoxLine_Intersect( self->C2, self->P2, other->C1, other->C2, &S, &T ) ) return 1;
-	}
-	if( DaoxLine_Intersect( self->C1, self->C2, other->C1, other->C2, &S, &T ) ) return 1;
-	return 0;
+	if( B1.left > B2.right || B1.right < B2.left ) return 0;
+	if( B1.bottom > B2.top || B1.top < B2.bottom ) return 0;
+	return 1;
 }
 
 
@@ -928,14 +940,29 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 	}
 	for(i=0; i<segments->size; ++i){
 		DaoxPathSegment *S1 = (DaoxPathSegment*) segments->items.pVoid[i];
-		if( S1->length < 0.01 || S1->delta < 0.0001 ) continue;
+		if( S1 == NULL ) continue;
+		if( S1->length < 0.1 || S1->delta < 0.001 ) continue;
 		for(j=i+1; j<segments->size; ++j){
 			DaoxPathSegment *S2 = (DaoxPathSegment*) segments->items.pVoid[j];
-			if( S2->length < 0.01 || S2->delta < 0.0001 ) continue;
+			if( S2 == NULL ) continue;
+			if( S2->length < 0.1 || S2->delta < 0.001 ) continue;
 			if( DaoxPathSegment_MayIntersect( S1, S2 ) ){
 				DaoxPathSegment_Divide( S1, 0.5 );
+				DaoxPathSegment_Divide( S2, 0.5 );
+				DaoxPathSegment_ComputeLengthAndDelta( S1->first );
+				DaoxPathSegment_ComputeLengthAndDelta( S2->first );
+				DaoxPathSegment_ComputeLengthAndDelta( S1->second );
+				DaoxPathSegment_ComputeLengthAndDelta( S2->second );
+				DArray_Append( segments, S1->first );
+				DArray_Append( segments, S1->second );
+				DArray_Append( segments, S2->first );
+				DArray_Append( segments, S2->second );
+				segments->items.pVoid[i] = NULL;
+				segments->items.pVoid[j] = NULL;
+				break;
 			}
 		}
+		if( segments->items.pVoid[i] == NULL ) continue;
 	}
 	segments->size = 0;
 	for(com=self->first; com; com=com->next){
@@ -965,18 +992,6 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 		if( SA->next == SB ) DaoxPathSegment_CheckConvexness( SA, SC->P1 );
 		if( SB->next == SC ) DaoxPathSegment_CheckConvexness( SB, SA->P1 );
 	}
-#if 0
-	for(com=self->first; com; com=com->next){
-		if( com->first->bezier == 0 ) continue;
-		if( com->refined.last == NULL || com->refined.last->next == NULL ) continue;
-		seg = com->refined.first;
-		do {
-			DaoxPathSegment_Refine( seg, 0.25*maxlen, 0.25*maxdiff );
-			seg = seg->next;
-		} while( seg && seg != com->refined.first );
-		DaoxPathComponent_RetrieveRefined( com );
-	}
-#endif
 	DaoxTriangulator_Reset( triangulator );
 	for(com=self->first; com; com=com->next){
 		if( com->first->bezier == 0 ) continue;
@@ -984,7 +999,7 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 		seg = com->refined.first;
 		do {
 			DaoxTriangulator_PushPoint( triangulator, seg->P1.x, seg->P1.y );
-			if( seg->convexness <= 0 && seg->bezier >= 2 ){
+			if( seg->convexness < 0 && seg->bezier >= 2 ){
 				/* Push control points for locally concave bezier curves: */
 				DaoxTriangulator_PushPoint( triangulator, seg->C1.x, seg->C1.y );
 				if( seg->bezier == 3 ){
@@ -1224,7 +1239,7 @@ DaoxPathSegmentPair DaoxPathSegment_GetRefined( DaoxPathSegment *self, DaoxGraph
 		return segs;
 	}
 
-	if( self->bezier == 1 || self->convexness == 0 || self->count == 1 ){
+	if( self->bezier == 1 || self->count == 1 ){
 		DaoxPathSegment_GetRefinedStroke( self, gdata );
 		return segs;
 	}
@@ -1232,15 +1247,19 @@ DaoxPathSegmentPair DaoxPathSegment_GetRefined( DaoxPathSegment *self, DaoxGraph
 		DaoxPathSegment_GetRefinedStroke( self, gdata );
 		return segs;
 	}
+	if( self->length * gdata->scale < 0.1 ){
+		DaoxPathSegment_GetRefinedStroke( self, gdata );
+		return segs;
+	}
 	if( self->component->last->next == self->component->first ){
 		if( self->bezier == 2 ){
-			if( self->convexness > 0 ){
+			if( self->convexness >= 0 ){
 				DaoxGraphicsData_PushFilling( gdata, self->first->P2, self->P1, self->P2 );
 			}else{
 				DaoxGraphicsData_PushFilling( gdata, self->C1, self->first->C1, self->second->C1 );
 			}
 		}else{
-			if( self->convexness > 0 ){
+			if( self->convexness >= 0 ){
 				DaoxGraphicsData_PushFilling( gdata, self->first->P2, self->P1, self->P2 );
 			}else{
 				float at = (self->first->end - self->start) / (self->end - self->start);
@@ -1372,4 +1391,6 @@ void DaoxPath_ExportGraphicsData( DaoxPath *self, DaoxGraphicsData *gdata )
 			if( jt && jt2 ) DaoxGraphicsData_MakeJunction( gdata, cur.second->P1, cur.second->P2, open.first->P2, 1.0, jt );
 		}
 	}
+	printf( "strokeTriangles = %6i\n", gdata->strokeTriangles->count );
+	printf( "fillTriangles   = %6i\n", gdata->fillTriangles->count );
 }

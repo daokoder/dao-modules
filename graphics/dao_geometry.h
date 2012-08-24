@@ -171,6 +171,7 @@ DAO_DLL float DaoxDistance( DaoxPoint start, DaoxPoint end );
 DAO_DLL float DaoxDistance2( DaoxPoint start, DaoxPoint end );
 DAO_DLL float DaoxTriangle_Area( DaoxPoint A, DaoxPoint B, DaoxPoint C );
 DAO_DLL float DaoxTriangle_AngleCosine( DaoxPoint C, DaoxPoint A, DaoxPoint B );
+DAO_DLL int DaoxTriangle_Contain( DaoxPoint C, DaoxPoint A, DaoxPoint B, DaoxPoint P );
 DAO_DLL DaoxQuad DaoxLine2Quad( DaoxPoint start, DaoxPoint end, float width );
 DAO_DLL int DaoxLine_Intersect( DaoxPoint A, DaoxPoint B, DaoxPoint C, DaoxPoint D, float *S, float *T );
 DAO_DLL int DaoxLineQuad_Junction( DaoxQuad first, DaoxQuad second, DaoxPoint *tip );

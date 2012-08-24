@@ -31,6 +31,13 @@
 // Currently only for 2D vector graphics.
 //
 // TODO: SVG Tiny backend;
+//
+// TODO:
+// 1. line/rect dash stroke;
+// 2. multiple line, rect and ellipse in one item;
+// 3. type for color and transformation matrix?
+// 4. text on path, alignment direction (x-axis, y-axis, -x-axis, -y-axis, arbitrary angle);
+// 5. ...
 */
 
 #ifndef __DAO_GRAPHICS_H__

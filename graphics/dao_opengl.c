@@ -41,31 +41,40 @@
 #define USE_STENCIL
 
 
-void DaoxGraphics_glSetColor( DaoxColor color )
+void DaoxGraphics_glSetColor( DaoxColor color, double alpha )
 {
-	glColor4f( color.red, color.green, color.blue, color.alpha );
+	glColor4f( color.red, color.green, color.blue, color.alpha * alpha );
 }
 
+void DaoxGraphics_glTriangle( DaoxPoint *pts, DaoxColor *cls, int i, int j, int k, double alpha )
+{
+	if( cls ) glColor4f( cls[i].red, cls[i].green, cls[i].blue, cls[i].alpha * alpha );
+	glVertex2f( pts[i].x, pts[i].y );
+	if( cls ) glColor4f( cls[j].red, cls[j].green, cls[j].blue, cls[j].alpha * alpha );
+	glVertex2f( pts[j].x, pts[j].y );
+	if( cls ) glColor4f( cls[k].red, cls[k].green, cls[k].blue, cls[k].alpha * alpha );
+	glVertex2f( pts[k].x, pts[k].y );
+}
+void DaoxGraphics_glDrawTriangles( DaoxPointArray *points, DaoxIntArray *triangles, DaoxColorArray *colors, double alpha )
+{
+	DaoxColor *cls = colors && colors->count ? colors->colors : NULL;
+	DaoxPoint *pts = points->points;
+	int i, *ids = triangles->values;
+	for(i=0; i<triangles->count; i+=3){
+		glBegin( GL_LINE_LOOP );
+		DaoxGraphics_glTriangle( pts, cls, ids[i+0], ids[i+1], ids[i+2], alpha );
+		glEnd();
+	}
+}
 void DaoxGraphics_glFillTriangles( DaoxPointArray *points, DaoxIntArray *triangles, DaoxColorArray *colors )
 {
 	DaoxColor *cls = colors && colors->count ? colors->colors : NULL;
 	DaoxPoint *pts = points->points;
-	int i, k1, k2, k3, *ids = triangles->values;
+	int i, *ids = triangles->values;
+	//DaoxGraphics_glDrawTriangles( points, triangles, colors, 1.0 ); return;
 	glBegin( GL_TRIANGLES );
-	{
-		for(i=0; i<triangles->count; i+=3){
-			k1 = ids[i+0];
-			k2 = ids[i+1];
-			k3 = ids[i+2];
-			//glBegin( GL_LINE_LOOP );
-			if( cls ) glColor4f( cls[k1].red, cls[k1].green, cls[k1].blue, cls[k1].alpha );
-			glVertex2f( pts[k1].x, pts[k1].y );
-			if( cls ) glColor4f( cls[k2].red, cls[k2].green, cls[k2].blue, cls[k2].alpha );
-			glVertex2f( pts[k2].x, pts[k2].y );
-			if( cls ) glColor4f( cls[k3].red, cls[k3].green, cls[k3].blue, cls[k3].alpha );
-			glVertex2f( pts[k3].x, pts[k3].y );
-			//glEnd();
-		}
+	for(i=0; i<triangles->count; i+=3){
+		DaoxGraphics_glTriangle( pts, cls, ids[i+0], ids[i+1], ids[i+2], 1.0 );
 	}
 	glEnd();
 }
@@ -87,7 +96,11 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 	DaoxGraphicsData *gd = item->gdata;
 	DaoxGraphicsScene *scene = item->scene;
 	GLdouble matrix[16] = {0};
-	int i, n = item->children ? item->children->size : 0;
+	double scale = DaoxGraphicsScene_Scale( scene );
+	double stroke = item->state->strokeWidth / (scale + 1E-16);
+	int n = item->children ? item->children->size : 0;
+	int k = stroke >= 1.0;
+	int i;
 
 	DaoxTransform_Multiply( & transform, item->state->transform );
 
@@ -135,9 +148,9 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 		glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
 	}
 #endif
-	if( gd->strokeTriangles->count ){
+	if( gd->strokeTriangles->count && k ){
 		if( gd->strokeColors->count < gd->strokePoints->count )
-			DaoxGraphics_glSetColor( item->state->strokeColor );
+			DaoxGraphics_glSetColor( item->state->strokeColor, 1.0 );
 		DaoxGraphics_glFillTriangles( gd->strokePoints, gd->strokeTriangles, gd->strokeColors );
 	}
 
@@ -149,19 +162,27 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 #endif
 	if( gd->fillTriangles->count ){
 		if( gd->fillColors->count < gd->fillPoints->count )
-			DaoxGraphics_glSetColor( item->state->fillColor );
+			DaoxGraphics_glSetColor( item->state->fillColor, 1.0 );
 		DaoxGraphics_glFillTriangles( gd->fillPoints, gd->fillTriangles, gd->fillColors );
+	}
+	if( gd->strokeTriangles->count && k == 0 ){
+		if( gd->strokeColors->count < gd->strokePoints->count )
+			DaoxGraphics_glSetColor( item->state->strokeColor, stroke );
+		DaoxGraphics_glDrawTriangles( gd->strokePoints, gd->strokeTriangles, gd->strokeColors, stroke );
 	}
 #ifdef USE_STENCIL
 	if( item->shape >= DAOX_GS_CIRCLE ){
 		glStencilFunc( GL_ALWAYS, 0x0, 0x01);
 		glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
 		glColor4f( 0.0, 0.0, 0.0, 0.0 );
-		if( gd->strokeTriangles->count ){
+		if( gd->strokeTriangles->count && k ){
 			DaoxGraphics_glFillTriangles( gd->strokePoints, gd->strokeTriangles, NULL );
 		}
 		if( gd->fillTriangles->count ){
 			DaoxGraphics_glFillTriangles( gd->fillPoints, gd->fillTriangles, NULL );
+		}
+		if( gd->strokeTriangles->count && k == 0 ){
+			DaoxGraphics_glDrawTriangles( gd->strokePoints, gd->strokeTriangles, gd->strokeColors, stroke );
 		}
 		glDisable( GL_STENCIL_TEST );;
 	}

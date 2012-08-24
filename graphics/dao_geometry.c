@@ -398,6 +398,13 @@ float DaoxTriangle_AngleCosine( DaoxPoint C, DaoxPoint A, DaoxPoint B )
 	float AB = DaoxDistance2( A, B );
 	return (CA + CB - AB) / (2.0 * sqrt(CA * CB) );
 }
+int DaoxTriangle_Contain( DaoxPoint A, DaoxPoint B, DaoxPoint C, DaoxPoint P )
+{
+	int AB = 2*(DaoxTriangle_Area( P, A, B ) >= 0.0) - 1;
+	int BC = 2*(DaoxTriangle_Area( P, B, C ) >= 0.0) - 1;
+	int CA = 2*(DaoxTriangle_Area( P, C, A ) >= 0.0) - 1;
+	return (AB*BC > 0) && (BC*CA > 0) && (CA*AB > 0);
+}
 
 int DaoxLine_Intersect( DaoxPoint A, DaoxPoint B, DaoxPoint C, DaoxPoint D, float *S, float *T )
 {
