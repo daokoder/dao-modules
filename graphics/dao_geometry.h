@@ -118,6 +118,7 @@ extern "C"{
 #endif
 
 
+DAO_DLL void DaoxTransform_Set( DaoxTransform *self, float *mat, int n );
 DAO_DLL void DaoxTransform_RotateXAxisTo( DaoxTransform *self, float x, float y );
 DAO_DLL void DaoxTransform_RotateYAxisTo( DaoxTransform *self, float x, float y );
 DAO_DLL void DaoxTransform_SetScale( DaoxTransform *self, float x, float y );

@@ -212,21 +212,38 @@ DaoxColor DaoxColorGradient_ComputeColor( DaoxColorGradient *self, DaoxPoint poi
 }
 
 
+void DaoxColor_FromDaoValues( DaoxColor *self, DaoValue *values[] )
+{
+	self->red = values[0]->xFloat.value;
+	self->green = values[1]->xFloat.value;
+	self->blue = values[2]->xFloat.value;
+	self->alpha = values[3]->xFloat.value;
+}
+
 static void GRAD_AddStop( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxColorGradient *self = (DaoxColorGradient*) p[0];
 	DaoxColor color = {0.0,0.0,0.0,0.0};
-	DaoValue **tvalues = p[2]->xTuple.items;
-	color.red = tvalues[0]->xFloat.value;
-	color.green = tvalues[1]->xFloat.value;
-	color.blue = tvalues[2]->xFloat.value;
-	color.alpha = tvalues[3]->xFloat.value;
+	DaoxColor_FromDaoValues( & color, p[2]->xTuple.items );
 	DaoxColorGradient_Add( self, p[1]->xFloat.value, color );
+}
+static void GRAD_AddStops( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxColorGradient *self = (DaoxColorGradient*) p[0];
+	DaoList *stops = (DaoList*) p[1];
+	int i, n = DaoList_Size( stops );
+	for(i=0; i<n; ++i){
+		DaoTuple *item = (DaoTuple*) DaoList_GetItem( stops, i );
+		DaoxColor color = {0.0,0.0,0.0,0.0};
+		DaoxColor_FromDaoValues( & color, item->items[1]->xTuple.items );
+		DaoxColorGradient_Add( self, item->items[0]->xFloat.value, color );
+	}
 }
 
 static DaoFuncItem DaoxColorGradientMeths[]=
 {
-	{ GRAD_AddStop,  "AddStop( self : ColorGradient, at : float, color :tuple<red:float,green:float,blue:float,alpha:float> ) => ColorGradient" },
+	{ GRAD_AddStop,  "AddStop( self : ColorGradient, at: float, color: Color ) => ColorGradient" },
+	{ GRAD_AddStops,  "AddStops( self : ColorGradient, stops: list<tuple<at:float,color:Color>> ) => ColorGradient" },
 	{ NULL, NULL }
 };
 
@@ -555,6 +572,18 @@ void DaoxGraphicsState_Copy( DaoxGraphicsState *self, DaoxGraphicsState *other )
 	self->fillColor = other->fillColor;
 	memcpy( self->dashPattern, other->dashPattern, other->dash*sizeof(float) );
 }
+void DaoxGraphicsState_SetDashPattern( DaoxGraphicsState *self, float pat[], int n )
+{
+	if( n > 10 ) n = 10;
+	self->dash = n;
+	memcpy( self->dashPattern, pat, n*sizeof(float) );
+}
+void DaoxGraphicsState_SetFont( DaoxGraphicsState *self, DaoxFont *font, float size )
+{
+	DaoGC_ShiftRC( (DaoValue*) font, (DaoValue*) self->font );
+	self->font = font;
+	self->fontSize = size;
+}
 
 DaoxGraphicsState* DaoxGraphicsScene_GetOrPushState( DaoxGraphicsScene *self );
 
@@ -639,11 +668,10 @@ void DaoxGraphicsEllipse_Set( DaoxGraphicsEllipse *self, float x, float y, float
 
 
 
-void DaoxGraphicsPolyLine_Add( DaoxGraphicsPolyLine *self, float x1, float y1, float x2, float y2 )
+void DaoxGraphicsPolyline_Add( DaoxGraphicsPolyline *self, float x, float y )
 {
 	assert( self->ctype == daox_type_graphics_polyline );
-	DaoxPointArray_PushXY( self->points, x1, y1 );
-	DaoxPointArray_PushXY( self->points, x2, y2 );
+	DaoxPointArray_PushXY( self->points, x, y );
 }
 
 void DaoxGraphicsPolygon_Add( DaoxGraphicsPolygon *self, float x, float y )
@@ -802,16 +830,24 @@ void DaoxGraphicsCircle_UpdateData( DaoxGraphicsCircle *self, DaoxGraphicsScene 
 {
 	DaoxGraphicsEllipse_UpdateData( self, scene );
 }
-void DaoxGraphicsPolyLine_UpdateData( DaoxGraphicsPolyLine *self, DaoxGraphicsScene *scene )
+void DaoxGraphicsData_MakeJunction( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C, float pos, int junction );
+void DaoxGraphicsPolyline_UpdateData( DaoxGraphicsPolyline *self, DaoxGraphicsScene *scene )
 {
-	int i;
-	DaoxGraphicsiItem_ResetData( self );
+	float pos = 0;
+	int i, jt = self->state->junction;
 
-	for(i=0; i<self->points->count; i+=2){
-		DaoxPoint start = self->points->points[i];
-		DaoxPoint end = self->points->points[i+1];
+	DaoxGraphicsiItem_ResetData( self );
+	DaoxGraphicsData_Init( self->gdata, self );
+	for(i=1; i<self->points->count; ++i){
+		DaoxPoint start = self->points->points[i-1];
+		DaoxPoint end = self->points->points[i];
 		DaoxQuad quad = DaoxLine2Quad( start, end, self->state->strokeWidth );
 		DaoxGraphicsData_PushStrokeQuad( self->gdata, quad );
+		if( i >= 2 ){
+			DaoxPoint prev = self->points->points[i-2];
+			DaoxGraphicsData_MakeJunction( self->gdata, prev, start, end, pos, jt );
+		}
+		pos += DaoxDistance( start, end );
 	}
 }
 void DaoxGraphicsPolygon_UpdateData( DaoxGraphicsPolygon *self, DaoxGraphicsScene *scene )
@@ -890,7 +926,7 @@ int DaoxGraphicsItem_UpdateData( DaoxGraphicsItem *self, DaoxGraphicsScene *scen
 	case DAOX_GS_RECT     : DaoxGraphicsRect_UpdateData( self, scene );     break;
 	case DAOX_GS_CIRCLE   : DaoxGraphicsCircle_UpdateData( self, scene );   break;
 	case DAOX_GS_ELLIPSE  : DaoxGraphicsEllipse_UpdateData( self, scene );  break;
-	case DAOX_GS_POLYLINE : DaoxGraphicsPolyLine_UpdateData( self, scene ); break;
+	case DAOX_GS_POLYLINE : DaoxGraphicsPolyline_UpdateData( self, scene ); break;
 	case DAOX_GS_POLYGON  : DaoxGraphicsPolygon_UpdateData( self, scene );  break;
 	case DAOX_GS_PATH     : DaoxGraphicsPath_UpdateData( self, scene );     break;
 	case DAOX_GS_TEXT     : DaoxGraphicsText_UpdateData( self, scene );     break;
@@ -1034,12 +1070,13 @@ DaoxGraphicsState* DaoxGraphicsScene_GetOrPushState( DaoxGraphicsScene *self )
 	if( self->states->size == 0 ) DaoxGraphicsScene_PushState( self );
 	return DaoxGraphicsScene_GetCurrentState( self );
 }
-void DaoxGraphicsScene_PushState( DaoxGraphicsScene *self )
+DaoxGraphicsState* DaoxGraphicsScene_PushState( DaoxGraphicsScene *self )
 {
 	DaoxGraphicsState *prev = DaoxGraphicsScene_GetCurrentState( self );
 	DaoxGraphicsState *state = DaoxGraphicsState_New();
 	if( prev ) DaoxGraphicsState_Copy( state, prev );
 	DArray_PushBack( self->states, state );
+	return state;
 }
 void DaoxGraphicsScene_PopState( DaoxGraphicsScene *self )
 {
@@ -1109,9 +1146,9 @@ DaoxGraphicsEllipse* DaoxGraphicsScene_AddEllipse( DaoxGraphicsScene *self, floa
 	return item;
 }
 
-DaoxGraphicsPolyLine* DaoxGraphicsScene_AddPolyline( DaoxGraphicsScene *self )
+DaoxGraphicsPolyline* DaoxGraphicsScene_AddPolyline( DaoxGraphicsScene *self )
 {
-	DaoxGraphicsPolyLine *item = DaoxGraphicsItem_New( self, DAOX_GS_POLYLINE );
+	DaoxGraphicsPolyline *item = DaoxGraphicsItem_New( self, DAOX_GS_POLYLINE );
 	DArray_PushBack( self->items, item );
 	return item;
 }
@@ -1223,14 +1260,6 @@ static void ITEM_SetVisible( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxGraphicsItem *self = (DaoxGraphicsItem*) p[0];
 	self->visible = p[1]->xEnum.value;
 }
-static void ITEM_AddChild( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxGraphicsItem *self = (DaoxGraphicsItem*) p[0];
-	DaoxGraphicsItem *child = (DaoxGraphicsItem*) p[1];
-	if( self->children == NULL ) self->children = DArray_New(D_VALUE);
-	DArray_PushBack( self->children, child );
-	DaoProcess_PutValue( proc, (DaoValue*) self );
-}
 
 static void DaoxGraphicsItem_GetGCFields( void *p, DArray *values, DArray *arrays, DArray *maps, int remove )
 {
@@ -1243,7 +1272,6 @@ static void DaoxGraphicsItem_GetGCFields( void *p, DArray *values, DArray *array
 static DaoFuncItem DaoxGraphicsItemMeths[]=
 {
 	{ ITEM_SetVisible,  "SetVisible( self : GraphicsItem, visible :enum<false,true> )" },
-	{ ITEM_AddChild,  "AddChild( self : GraphicsItem, child : GraphicsItem ) => GraphicsItem" },
 	{ NULL, NULL }
 };
 
@@ -1264,12 +1292,6 @@ static void LINE_SetData( DaoxGraphicsLine *self, DaoValue *p[] )
 	float y2 = p[3]->xFloat.value;
 	DaoxGraphicsLine_Set( self, x1, y1, x2, y2 );
 }
-static void LINE_New( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxGraphicsLine *self = DaoxGraphicsItem_New( NULL, DAOX_GS_LINE );
-	DaoProcess_PutValue( proc, (DaoValue*) self );
-	LINE_SetData( self, p );
-}
 static void LINE_Set( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphicsLine *self = (DaoxGraphicsLine*) p[0];
@@ -1278,7 +1300,6 @@ static void LINE_Set( DaoProcess *proc, DaoValue *p[], int N )
 }
 static DaoFuncItem DaoxGraphicsLineMeths[]=
 {
-	{ LINE_New,     "GraphicsLine( x1 = 0.0, y1 = 0.0, x2 = 1.0, y2 = 1.0 )" },
 	{ LINE_Set,     "Set( self : GraphicsLine, x1 = 0.0, y1 = 0.0, x2 = 1.0, y2 = 1.0 ) => GraphicsLine" },
 	{ NULL, NULL }
 };
@@ -1302,12 +1323,6 @@ static void RECT_SetData( DaoxGraphicsRect *self, DaoValue *p[] )
 	float y2 = p[3]->xFloat.value;
 	DaoxGraphicsRect_Set( self, x1, y1, x2, y2 );
 }
-static void RECT_New( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxGraphicsRect *self = DaoxGraphicsItem_New( NULL, DAOX_GS_RECT );
-	DaoProcess_PutValue( proc, (DaoValue*) self );
-	RECT_SetData( self, p );
-}
 static void RECT_Set( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphicsRect *self = (DaoxGraphicsRect*) p[0];
@@ -1316,7 +1331,6 @@ static void RECT_Set( DaoProcess *proc, DaoValue *p[], int N )
 }
 static DaoFuncItem DaoxGraphicsRectMeths[]=
 {
-	{ RECT_New,     "GraphicsRect( x1 = 0.0, y1 = 0.0, x2 = 1.0, y2 = 1.0 )" },
 	{ RECT_Set,     "Set( self : GraphicsRect, x1 = 0.0, y1 = 0.0, x2 = 1.0, y2 = 1.0 ) => GraphicsRect" },
 	{ NULL, NULL }
 };
@@ -1340,12 +1354,6 @@ static void CIRCLE_SetData( DaoxGraphicsCircle *self, DaoValue *p[] )
 	float r = p[2]->xFloat.value;
 	DaoxGraphicsCircle_Set( self, x, y, r );
 }
-static void CIRCLE_New( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxGraphicsCircle *self = DaoxGraphicsItem_New( NULL, DAOX_GS_CIRCLE );
-	DaoProcess_PutValue( proc, (DaoValue*) self );
-	CIRCLE_SetData( self, p );
-}
 static void CIRCLE_Set( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphicsCircle *self = (DaoxGraphicsCircle*) p[0];
@@ -1354,7 +1362,6 @@ static void CIRCLE_Set( DaoProcess *proc, DaoValue *p[], int N )
 }
 static DaoFuncItem DaoxGraphicsCircleMeths[]=
 {
-	{ CIRCLE_New,     "GraphicsCircle( cx = 0.0, cy = 0.0, r = 1.0 )" },
 	{ CIRCLE_Set,     "Set( self : GraphicsCircle, cx = 0.0, cy = 0.0, r = 1.0 ) => GraphicsCircle" },
 	{ NULL, NULL }
 };
@@ -1379,12 +1386,6 @@ static void ELLIPSE_SetData( DaoxGraphicsEllipse *self, DaoValue *p[] )
 	float y2 = p[3]->xFloat.value;
 	DaoxGraphicsEllipse_Set( self, x1, y1, x2, y2 );
 }
-static void ELLIPSE_New( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxGraphicsEllipse *self = DaoxGraphicsItem_New( NULL, DAOX_GS_ELLIPSE );
-	DaoProcess_PutValue( proc, (DaoValue*) self );
-	ELLIPSE_SetData( self, p );
-}
 static void ELLIPSE_Set( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphicsEllipse *self = (DaoxGraphicsEllipse*) p[0];
@@ -1393,7 +1394,6 @@ static void ELLIPSE_Set( DaoProcess *proc, DaoValue *p[], int N )
 }
 static DaoFuncItem DaoxGraphicsEllipseMeths[]=
 {
-	{ ELLIPSE_New,  "GraphicsEllipse( cx = 0.0, cy = 0.0, rx = 1.0, ry = 1.0 )" },
 	{ ELLIPSE_Set,  "Set( self : GraphicsEllipse, cx = 0.0, cy = 0.0, rx = 1.0, ry = 1.0 ) => GraphicsEllipse" },
 	{ NULL, NULL }
 };
@@ -1409,31 +1409,23 @@ DaoTypeBase DaoxGraphicsEllipse_Typer =
 
 
 
-static void POLYLINE_New( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxGraphicsPolyLine *self = DaoxGraphicsItem_New( NULL, DAOX_GS_POLYLINE );
-	DaoProcess_PutValue( proc, (DaoValue*) self );
-}
 static void POLYLINE_Add( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxGraphicsPolyLine *self = (DaoxGraphicsPolyLine*) p[0];
-	float x1 = p[1]->xFloat.value;
-	float y1 = p[2]->xFloat.value;
-	float x2 = p[3]->xFloat.value;
-	float y2 = p[4]->xFloat.value;
-	DaoxGraphicsPolyLine_Add( self, x1, y1, x2, y2 );
+	DaoxGraphicsPolyline *self = (DaoxGraphicsPolyline*) p[0];
+	float x = p[1]->xFloat.value;
+	float y = p[2]->xFloat.value;
+	DaoxGraphicsPolyline_Add( self, x, y );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
-static DaoFuncItem DaoxGraphicsPolyLineMeths[]=
+static DaoFuncItem DaoxGraphicsPolylineMeths[]=
 {
-	{ POLYLINE_New,   "GraphicsPolyLine()" },
-	{ POLYLINE_Add,   "Add( self : GraphicsPolyLine, x1 = 0.0, y1 = 0.0, x2 = 1.0, y2 = 1.0 ) => GraphicsPolyLine" },
+	{ POLYLINE_Add,  "Add( self : GraphicsPolyline, x: float, y: float ) => GraphicsPolyline" },
 	{ NULL, NULL }
 };
 
-DaoTypeBase DaoxGraphicsPolyLine_Typer =
+DaoTypeBase DaoxGraphicsPolyline_Typer =
 {
-	"GraphicsPolyLine", NULL, NULL, (DaoFuncItem*) DaoxGraphicsPolyLineMeths,
+	"GraphicsPolyline", NULL, NULL, (DaoFuncItem*) DaoxGraphicsPolylineMeths,
 	{ & DaoxGraphicsItem_Typer, NULL }, { NULL },
 	(FuncPtrDel)DaoxGraphicsItem_Delete, DaoxGraphicsItem_GetGCFields
 };
@@ -1442,11 +1434,6 @@ DaoTypeBase DaoxGraphicsPolyLine_Typer =
 
 
 
-static void POLYGON_New( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxGraphicsPolygon *self = DaoxGraphicsItem_New( NULL, DAOX_GS_POLYGON );
-	DaoProcess_PutValue( proc, (DaoValue*) self );
-}
 static void POLYGON_Add( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphicsPolygon *self = (DaoxGraphicsPolygon*) p[0];
@@ -1457,7 +1444,6 @@ static void POLYGON_Add( DaoProcess *proc, DaoValue *p[], int N )
 }
 static DaoFuncItem DaoxGraphicsPolygonMeths[]=
 {
-	{ POLYGON_New,   "GraphicsPolygon()" },
 	{ POLYGON_Add,   "Add( self : GraphicsPolygon, x : float, y : float ) => GraphicsPolygon" },
 	{ NULL, NULL }
 };
@@ -1474,11 +1460,6 @@ DaoTypeBase DaoxGraphicsPolygon_Typer =
 
 
 
-static void PATH_New( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxGraphicsPath *self = DaoxGraphicsItem_New( NULL, DAOX_GS_PATH );
-	DaoProcess_PutValue( proc, (DaoValue*) self );
-}
 static void PATH_MoveTo( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphicsPath *self = (DaoxGraphicsPath*) p[0];
@@ -1626,20 +1607,32 @@ static void PATH_CubicAbsTo2( DaoProcess *proc, DaoValue *p[], int N )
 }
 static DaoFuncItem DaoxGraphicsPathMeths[]=
 {
-	{ PATH_New,       "GraphicsPath()" },
 	{ PATH_MoveTo,    "MoveTo( self : GraphicsPath, x : float, y : float ) => GraphicsPath" },
+
 	{ PATH_LineRelTo,    "LineTo( self : GraphicsPath, x : float, y : float ) => GraphicsPath" },
+
 	{ PATH_ArcRelTo,     "ArcTo( self : GraphicsPath, x : float, y : float, degrees : float ) => GraphicsPath" },
+
 	{ PATH_ArcRelBy,     "ArcBy( self : GraphicsPath, cx : float, cy : float, degrees : float ) => GraphicsPath" },
+
 	{ PATH_QuadRelTo,   "QuadTo( self : GraphicsPath, cx : float, cy : float, x : float, y : float ) => GraphicsPath" },
+
 	{ PATH_CubicRelTo,   "CubicTo( self : GraphicsPath, cx : float, cy : float, x : float, y : float ) => GraphicsPath" },
+
 	{ PATH_CubicRelTo2,  "CubicTo( self : GraphicsPath, cx0 : float, cy0 : float, cx : float, cy : float, x : float, y : float ) => GraphicsPath" },
+
 	{ PATH_LineAbsTo,    "LineAbsTo( self : GraphicsPath, x : float, y : float ) => GraphicsPath" },
+
 	{ PATH_ArcAbsTo,     "ArcAbsTo( self : GraphicsPath, x : float, y : float, degrees : float ) => GraphicsPath" },
+
 	{ PATH_ArcAbsBy,     "ArcAbsBy( self : GraphicsPath, cx : float, cy : float, degrees : float ) => GraphicsPath" },
+
 	{ PATH_QuadAbsTo,   "QuadAbsTo( self : GraphicsPath, cx : float, cy : float, x : float, y : float ) => GraphicsPath" },
+
 	{ PATH_CubicAbsTo,   "CubicAbsTo( self : GraphicsPath, cx : float, cy : float, x : float, y : float ) => GraphicsPath" },
+
 	{ PATH_CubicAbsTo2,  "CubicAbsTo( self : GraphicsPath, cx0 : float, cy0 : float, cx : float, cy : float, x : float, y : float ) => GraphicsPath" },
+
 	{ PATH_Close,     "Close( self : GraphicsPath ) => GraphicsPath" },
 	{ NULL, NULL }
 };
@@ -1695,10 +1688,10 @@ static void SCENE_SetBackground( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxColor color;
 	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
-	color.red   = p[1]->xTuple.items[0]->xFloat.value;
-	color.green = p[1]->xTuple.items[1]->xFloat.value;
-	color.blue  = p[1]->xTuple.items[2]->xFloat.value;
-	color.alpha = p[2]->xFloat.value;
+	color.red   = p[1]->xFloat.value;
+	color.green = p[2]->xFloat.value;
+	color.blue  = p[3]->xFloat.value;
+	color.alpha = p[4]->xFloat.value;
 	DaoxGraphicsScene_SetBackground( self, color );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
@@ -1737,7 +1730,11 @@ static void SCENE_AddEllipse( DaoProcess *proc, DaoValue *p[], int N )
 static void SCENE_AddPolyline( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
-	DaoxGraphicsPolyLine *item = DaoxGraphicsScene_AddPolyline( self );
+	DaoxGraphicsPolyline *item = DaoxGraphicsScene_AddPolyline( self );
+	float x1 = p[1]->xFloat.value, y1 = p[2]->xFloat.value;
+	float x2 = p[3]->xFloat.value, y2 = p[4]->xFloat.value;
+	DaoxGraphicsPolyline_Add( item, x1, y1 );
+	DaoxGraphicsPolyline_Add( item, x2, y2 );
 	DaoProcess_PutValue( proc, (DaoValue*) item );
 }
 static void SCENE_AddPolygon( DaoProcess *proc, DaoValue *p[], int N )
@@ -1780,113 +1777,116 @@ static void SCENE_AddText2( DaoProcess *proc, DaoValue *p[], int N )
 static void SCENE_PushState( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
-	DaoxGraphicsScene_PushState( self );
-	DaoProcess_PutValue( proc, (DaoValue*) self );
+	DaoxGraphicsState *state = DaoxGraphicsScene_PushState( self );
+	DaoProcess_PutValue( proc, (DaoValue*) state );
 }
 static void SCENE_PopState( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
 	DaoxGraphicsScene_PopState( self );
 }
-static void SCENE_SetStrokeWidth( DaoProcess *proc, DaoValue *p[], int N )
+
+
+
+static void STATE_SetStrokeWidth( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
-	DaoxGraphicsScene_SetStrokeWidth( self, p[1]->xFloat.value );
+	DaoxGraphicsState *self = (DaoxGraphicsState*) p[0];
+	self->strokeWidth = p[1]->xFloat.value;
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
-static void SCENE_SetStrokeColor( DaoProcess *proc, DaoValue *p[], int N )
+static void STATE_SetStrokeColor( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxColor color;
-	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
-	color.red   = p[1]->xTuple.items[0]->xFloat.value;
-	color.green = p[1]->xTuple.items[1]->xFloat.value;
-	color.blue  = p[1]->xTuple.items[2]->xFloat.value;
-	color.alpha = p[2]->xFloat.value;
-	DaoxGraphicsScene_SetStrokeColor( self, color );
+	DaoxGraphicsState *self = (DaoxGraphicsState*) p[0];
+	self->strokeColor.red   = p[1]->xFloat.value;
+	self->strokeColor.green = p[2]->xFloat.value;
+	self->strokeColor.blue  = p[3]->xFloat.value;
+	self->strokeColor.alpha = p[4]->xFloat.value;
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
-static void SCENE_SetFillColor( DaoProcess *proc, DaoValue *p[], int N )
+static void STATE_SetFillColor( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxColor color;
-	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
-	color.red   = p[1]->xTuple.items[0]->xFloat.value;
-	color.green = p[1]->xTuple.items[1]->xFloat.value;
-	color.blue  = p[1]->xTuple.items[2]->xFloat.value;
-	color.alpha = p[2]->xFloat.value;
-	DaoxGraphicsScene_SetFillColor( self, color );
+	DaoxGraphicsState *self = (DaoxGraphicsState*) p[0];
+	self->fillColor.red   = p[1]->xFloat.value;
+	self->fillColor.green = p[2]->xFloat.value;
+	self->fillColor.blue  = p[3]->xFloat.value;
+	self->fillColor.alpha = p[4]->xFloat.value;
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
-static void SCENE_SetJunction( DaoProcess *proc, DaoValue *p[], int N )
+static void STATE_SetJunction( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
-	DaoxGraphicsState *state = DaoxGraphicsScene_GetOrPushState( self );
-	state->junction = p[1]->xEnum.value;
+	DaoxGraphicsState *self = (DaoxGraphicsState*) p[0];
+	self->junction = p[1]->xEnum.value;
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
-static void SCENE_SetDash( DaoProcess *proc, DaoValue *p[], int N )
+static void STATE_SetDash( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
+	DaoxGraphicsState *self = (DaoxGraphicsState*) p[0];
 	DaoArray *array = (DaoArray*) p[1];
-	DaoxGraphicsScene_SetDashPattern( self, array->data.f, array->size );
+	DaoxGraphicsState_SetDashPattern( self, array->data.f, array->size );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
-static void SCENE_SetTransform( DaoProcess *proc, DaoValue *p[], int N )
+static void STATE_SetTransform( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
-	DaoxGraphicsState *state = DaoxGraphicsScene_GetOrPushState( self );
+	DaoxGraphicsState *self = (DaoxGraphicsState*) p[0];
 	DaoArray *array = (DaoArray*) p[1];
 	daoint n = array->size;
 	if( n != 4 && n != 6 ){
 		DaoProcess_RaiseException( proc, DAO_ERROR_PARAM, "need matrix with 4 or 6 elements" );
 		return;
 	}
-	state->transform.Axx = array->data.f[0];
-	state->transform.Ayx = array->data.f[1];
-	state->transform.Axy = array->data.f[2];
-	state->transform.Ayy = array->data.f[3];
-	if( n == 6 ){
-		state->transform.Bx = array->data.f[4];
-		state->transform.By = array->data.f[5];
-	}
+	DaoxTransform_Set( & self->transform, array->data.f, n );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
-static void SCENE_SetStrokeGradient( DaoProcess *proc, DaoValue *p[], int N )
+static void STATE_MulTransform( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
-	DaoxGraphicsState *state = DaoxGraphicsScene_GetOrPushState( self );
-	if( state->strokeGradient == NULL ){
-		state->strokeGradient = DaoxColorGradient_New( DAOX_GRADIENT_BASE );
-		DaoGC_IncRC( (DaoValue*) state->strokeGradient );
+	DaoxTransform transform;
+	DaoxGraphicsState *self = (DaoxGraphicsState*) p[0];
+	DaoArray *array = (DaoArray*) p[1];
+	daoint n = array->size;
+	if( n != 4 && n != 6 ){
+		DaoProcess_RaiseException( proc, DAO_ERROR_PARAM, "need matrix with 4 or 6 elements" );
+		return;
 	}
-	DaoProcess_PutValue( proc, (DaoValue*) state->strokeGradient );
+	DaoxTransform_Set( & transform, array->data.f, n );
+	DaoxTransform_Multiply( & self->transform, transform );
+	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
-static void SCENE_SetFillGradient( DaoProcess *proc, DaoValue *p[], int N, int type )
+static void STATE_SetStrokeGradient( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
-	DaoxGraphicsState *state = DaoxGraphicsScene_GetOrPushState( self );
-	if( state->fillGradient == NULL ){
-		state->fillGradient = DaoxColorGradient_New( type );
-		DaoGC_IncRC( (DaoValue*) state->fillGradient );
+	DaoxGraphicsState *self = (DaoxGraphicsState*) p[0];
+	if( self->strokeGradient == NULL ){
+		self->strokeGradient = DaoxColorGradient_New( DAOX_GRADIENT_BASE );
+		DaoGC_IncRC( (DaoValue*) self->strokeGradient );
 	}
-	DaoProcess_PutValue( proc, (DaoValue*) state->fillGradient );
+	DaoProcess_PutValue( proc, (DaoValue*) self->strokeGradient );
 }
-static void SCENE_SetLinearGradient( DaoProcess *proc, DaoValue *p[], int N )
+static void STATE_SetFillGradient( DaoProcess *proc, DaoValue *p[], int N, int type )
 {
-	SCENE_SetFillGradient( proc, p, N, DAOX_GRADIENT_LINEAR );
+	DaoxGraphicsState *self = (DaoxGraphicsState*) p[0];
+	if( self->fillGradient == NULL ){
+		self->fillGradient = DaoxColorGradient_New( type );
+		DaoGC_IncRC( (DaoValue*) self->fillGradient );
+	}
+	DaoProcess_PutValue( proc, (DaoValue*) self->fillGradient );
 }
-static void SCENE_SetRadialGradient( DaoProcess *proc, DaoValue *p[], int N )
+static void STATE_SetLinearGradient( DaoProcess *proc, DaoValue *p[], int N )
 {
-	SCENE_SetFillGradient( proc, p, N, DAOX_GRADIENT_RADIAL );
+	STATE_SetFillGradient( proc, p, N, DAOX_GRADIENT_LINEAR );
 }
-static void SCENE_SetPathGradient( DaoProcess *proc, DaoValue *p[], int N )
+static void STATE_SetRadialGradient( DaoProcess *proc, DaoValue *p[], int N )
 {
-	SCENE_SetFillGradient( proc, p, N, DAOX_GRADIENT_PATH );
+	STATE_SetFillGradient( proc, p, N, DAOX_GRADIENT_RADIAL );
 }
-static void SCENE_SetFont( DaoProcess *proc, DaoValue *p[], int N )
+static void STATE_SetPathGradient( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
+	STATE_SetFillGradient( proc, p, N, DAOX_GRADIENT_PATH );
+}
+static void STATE_SetFont( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsState *self = (DaoxGraphicsState*) p[0];
 	DaoxFont *font = (DaoxFont*) p[1];
-	DaoxGraphicsScene_SetFont( self, font, p[2]->xFloat.value );
+	DaoxGraphicsState_SetFont( self, font, p[2]->xFloat.value );
+	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void SCENE_Test( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1909,33 +1909,35 @@ static void DaoxGraphicsScene_GetGCFields( void *p, DArray *values, DArray *arra
 static DaoFuncItem DaoxGraphicsSceneMeths[]=
 {
 	{ SCENE_New,         "GraphicsScene()" },
-	{ SCENE_SetViewport,   "SetViewport( self: GraphicsScene, left: float, right: float, bottom: float, top: float )" },
-	{ SCENE_GetViewport,   "GetViewport( self: GraphicsScene ) => tuple<left:float,right:float,bottom:float,top:float>" },
-	{ SCENE_SetBackground,  "SetBackground( self : GraphicsScene, color : tuple<red:float,green:float,blue:float>, alpha = 1.0 ) => GraphicsScene" },
 
-	{ SCENE_PushState,   "PushState( self: GraphicsScene ) => GraphicsScene" },
+	{ SCENE_SetViewport,   "SetViewport( self: GraphicsScene, left: float, right: float, bottom: float, top: float )" },
+
+	{ SCENE_GetViewport,   "GetViewport( self: GraphicsScene ) => tuple<left:float,right:float,bottom:float,top:float>" },
+
+	{ SCENE_SetBackground,  "SetBackground( self : GraphicsScene, red: float, green: float, blue: float, alpha = 1.0 ) => GraphicsScene" },
+
+	{ SCENE_PushState,   "PushState( self: GraphicsScene ) => GraphicsState" },
+
 	{ SCENE_PopState,    "PopState( self: GraphicsScene )" },
-	{ SCENE_SetStrokeWidth,  "SetStrokeWidth( self : GraphicsScene, width = 1.0 ) => GraphicsScene" },
-	{ SCENE_SetStrokeColor,  "SetStrokeColor( self : GraphicsScene, color : tuple<red:float,green:float,blue:float>, alpha = 1.0 ) => GraphicsScene" },
-	{ SCENE_SetFillColor,  "SetFillColor( self : GraphicsScene, color : tuple<red:float,green:float,blue:float>, alpha = 1.0 ) => GraphicsScene" },
-	{ SCENE_SetJunction, "SetJunction( self : GraphicsScene, junction: enum<none,sharp,flat,round> = $sharp ) => GraphicsScene" },
-	{ SCENE_SetDash, "SetDashPattern( self : GraphicsScene, pattern = [3.0,2.0] ) => GraphicsScene" },
-	{ SCENE_SetTransform, "SetTransform( self : GraphicsScene, transform : array<float> ) => GraphicsScene" },
-	{ SCENE_SetStrokeGradient, "SetStrokeGradient( self : GraphicsScene ) => ColorGradient" },
-	{ SCENE_SetLinearGradient, "SetLinearGradient( self : GraphicsScene ) => LinearGradient" },
-	{ SCENE_SetRadialGradient, "SetRadialGradient( self : GraphicsScene ) => RadialGradient" },
-	//{ SCENE_SetPathGradient,   "SetPathGradient( self : GraphicsScene ) => PathGradient" },
 
 	{ SCENE_AddLine,   "AddLine( self: GraphicsScene, x1: float, y1: float, x2: float, y2: float ) => GraphicsLine" },
+
 	{ SCENE_AddRect,   "AddRect( self: GraphicsScene, x1: float, y1: float, x2: float, y2: float ) => GraphicsRect" },
+
 	{ SCENE_AddCircle,    "AddCircle( self: GraphicsScene, x: float, y: float, r: float ) => GraphicsCircle" },
+
 	{ SCENE_AddEllipse,   "AddEllipse( self: GraphicsScene, x: float, y: float, rx: float, ry: float ) => GraphicsEllipse" },
-	{ SCENE_AddPolyline,  "AddPolyline( self: GraphicsScene ) => GraphicsPolyLine" },
+
+	{ SCENE_AddPolyline,  "AddPolyline( self: GraphicsScene, x1: float, y1: float, x2: float, y2: float ) => GraphicsPolyline" },
+
 	{ SCENE_AddPolygon,   "AddPolygon( self: GraphicsScene ) => GraphicsPolygon" },
+
 	{ SCENE_AddPath,      "AddPath( self: GraphicsScene ) => GraphicsPath" },
+
 	{ SCENE_AddText,      "AddText( self: GraphicsScene, text : string, x :float, y :float ) => GraphicsText" },
+
 	{ SCENE_AddText2,     "AddText( self: GraphicsScene, text : string, path :GraphicsPath ) => GraphicsText" },
-	{ SCENE_SetFont,      "SetFont( self: GraphicsScene, font : Font, size = 12.0 )" },
+
 	{ SCENE_Test,         "Test( self: GraphicsScene )" },
 	{ NULL, NULL }
 };
@@ -1946,9 +1948,38 @@ DaoTypeBase DaoxGraphicsScene_Typer =
 	(FuncPtrDel)DaoxGraphicsScene_Delete, DaoxGraphicsScene_GetGCFields
 };
 
+
+static DaoFuncItem DaoxGraphicsStateMeths[]=
+{
+	{ STATE_SetStrokeWidth,  "SetStrokeWidth( self : GraphicsState, width = 1.0 ) => GraphicsState" },
+
+	{ STATE_SetStrokeColor,  "SetStrokeColor( self : GraphicsState, red: float, green: float, blue: float, alpha = 1.0 ) => GraphicsState" },
+
+	{ STATE_SetFillColor,  "SetFillColor( self : GraphicsState, red: float, green: float, blue: float, alpha = 1.0 ) => GraphicsState" },
+
+	{ STATE_SetJunction, "SetJunction( self : GraphicsState, junction: enum<none,sharp,flat,round> = $sharp ) => GraphicsState" },
+
+	{ STATE_SetDash, "SetDashPattern( self : GraphicsState, pattern = [3.0,2.0] ) => GraphicsState" },
+
+	{ STATE_SetTransform, "SetTransform( self : GraphicsState, transform : array<float> ) => GraphicsState" },
+	{ STATE_MulTransform, "MulTransform( self : GraphicsState, transform : array<float> ) => GraphicsState" },
+
+	{ STATE_SetStrokeGradient, "SetStrokeGradient( self : GraphicsState ) => ColorGradient" },
+
+	{ STATE_SetLinearGradient, "SetLinearGradient( self : GraphicsState ) => LinearGradient" },
+
+	{ STATE_SetRadialGradient, "SetRadialGradient( self : GraphicsState ) => RadialGradient" },
+
+	//{ STATE_SetPathGradient,   "SetPathGradient( self : GraphicsState ) => PathGradient" },
+
+	{ STATE_SetFont,      "SetFont( self: GraphicsState, font : Font, size = 12.0 ) => GraphicsState" },
+	{ NULL, NULL }
+};
+
+
 DaoTypeBase DaoxGraphicsState_Typer =
 {
-	"GraphicsState", NULL, NULL, NULL, {0}, {0},
+	"GraphicsState", NULL, NULL, (DaoFuncItem*) DaoxGraphicsStateMeths, {0}, {0},
 	(FuncPtrDel)DaoxGraphicsState_Delete, NULL 
 };
 
@@ -1964,6 +1995,8 @@ DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoFont_OnLoad( vmSpace, ns );
 
+	DaoNamespace_TypeDefine( ns, "tuple<red:float,green:float,blue:float,alpha:float>", "Color" );
+
 	daox_type_color_gradient = DaoNamespace_WrapType( ns, & DaoxColorGradient_Typer, 0 );
 	daox_type_linear_gradient = DaoNamespace_WrapType( ns, & DaoxLinearGradient_Typer, 0 );
 	daox_type_radial_gradient = DaoNamespace_WrapType( ns, & DaoxRadialGradient_Typer, 0 );
@@ -1976,7 +2009,7 @@ DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	daox_type_graphics_rect = DaoNamespace_WrapType( ns, & DaoxGraphicsRect_Typer, 0 );
 	daox_type_graphics_circle = DaoNamespace_WrapType( ns, & DaoxGraphicsCircle_Typer, 0 );
 	daox_type_graphics_ellipse = DaoNamespace_WrapType( ns, & DaoxGraphicsEllipse_Typer, 0 );
-	daox_type_graphics_polyline = DaoNamespace_WrapType( ns, & DaoxGraphicsPolyLine_Typer, 0 );
+	daox_type_graphics_polyline = DaoNamespace_WrapType( ns, & DaoxGraphicsPolyline_Typer, 0 );
 	daox_type_graphics_polygon = DaoNamespace_WrapType( ns, & DaoxGraphicsPolygon_Typer, 0 );
 	daox_type_graphics_path = DaoNamespace_WrapType( ns, & DaoxGraphicsPath_Typer, 0 );
 	daox_type_graphics_text = DaoNamespace_WrapType( ns, & DaoxGraphicsText_Typer, 0 );

@@ -10,21 +10,21 @@ fontRoboto = Font( 'fonts/Roboto-Bold.ttf' );
 
 scene = GraphicsScene();
 
-scene.SetBackground( (1.0,1.0,1.0), 0.0 );
+scene.SetBackground( 1.0, 1.0, 1.0, 0.0 );
 
-scene.PushState()
-scene.SetFont( fontRoboto, 100 );
-scene.SetStrokeWidth( 0.5 );
-scene.SetStrokeColor( (0.0,0.0,0.5), 0.9 );
-scene.SetFillColor( (0.0,0.0,0.5), 0.9 );
+state = scene.PushState()
+state.SetFont( fontRoboto, 100 );
+state.SetStrokeWidth( 0.5 );
+state.SetStrokeColor( 0.0, 0.0, 0.5, 0.9 );
+state.SetFillColor( 0.0, 0.0, 0.5, 0.9 );
 
 text = scene.AddText( 'Dao', -100, 250 );
 
-scene.PushState()
-scene.SetFont( fontRoboto, 60 );
-scene.SetStrokeWidth( 0.5 );
-scene.SetStrokeColor( (0.0,0.0,0.5), 0.9 );
-scene.SetFillColor( (0.0,0.0,0.5), 0.9 );
+state = scene.PushState()
+state.SetFont( fontRoboto, 60 );
+state.SetStrokeWidth( 0.5 );
+state.SetStrokeColor( 0.0, 0.0, 0.5, 0.9 );
+state.SetFillColor( 0.0, 0.0, 0.5, 0.9 );
 
 path = scene.AddPath();
 path.SetVisible( $false );
@@ -44,9 +44,9 @@ scene.PushState()
 
 unit = 100;
 
-scene.PushState().SetJunction( $flat ).SetStrokeWidth(0)
+state = scene.PushState().SetJunction( $flat ).SetStrokeWidth(0)
 
-grad_O = scene.SetRadialGradient();
+grad_O = state.SetRadialGradient();
 grad_O.AddStop( 0.0, (1.0, 1.0, 1.0, 0.9) )
 grad_O.AddStop( 0.1, (0.9, 0.8, 0.9, 0.9) )
 grad_O.AddStop( 0.8, (0.6, 0.0, 0.9, 0.9) )
@@ -70,9 +70,9 @@ path.Close();
 scene.PopState()
 
 
-scene.PushState().SetJunction( $flat ).SetStrokeWidth(0)
+state = scene.PushState().SetJunction( $flat ).SetStrokeWidth(0)
 
-grad_O = scene.SetRadialGradient();
+grad_O = state.SetRadialGradient();
 grad_O.AddStop( 0.0, (1.0, 1.0, 1.0, 0.9) )
 grad_O.AddStop( 0.1, (0.9, 0.8, 0.9, 0.9) )
 grad_O.AddStop( 0.8, (0.9, 0.4, 0.0, 0.9) )
@@ -92,9 +92,9 @@ path.Close();
 
 scene.PopState()
 
-scene.PushState().SetJunction( $flat ).SetStrokeWidth(0)
+state = scene.PushState().SetJunction( $flat ).SetStrokeWidth(0)
 
-grad_A = scene.SetRadialGradient();
+grad_A = state.SetRadialGradient();
 grad_A.AddStop( 0.0, (0.6, 0.7, 0.6, 0.1) )
 grad_A.AddStop( 0.3, (0.5, 0.6, 0.5, 0.4) )
 grad_A.AddStop( 0.5, (0.2, 0.9, 0.2, 0.7) )
@@ -118,10 +118,10 @@ path.Close();
 
 scene.PopState()
 
-scene.PushState().SetJunction( $flat ).SetStrokeWidth(5)
-.SetStrokeColor( (0.8, 0.4, 0.0), 0.9 );
+state = scene.PushState().SetJunction( $flat ).SetStrokeWidth(5)
+.SetStrokeColor( 0.8, 0.4, 0.0, 0.9 );
 
-grad_A = scene.SetRadialGradient();
+grad_A = state.SetRadialGradient();
 grad_A.AddStop( 0.0, (1.0, 0.9, 0.4, 0.7) )
 grad_A.AddStop( 0.5, (0.8, 0.7, 0.0, 0.7) )
 grad_A.AddStop( 0.95, (0.9, 0.6, 0.3, 0.7) )

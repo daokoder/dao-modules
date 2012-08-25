@@ -38,6 +38,18 @@
 
 
 
+void DaoxTransform_Set( DaoxTransform *self, float *mat, int n )
+{
+	if( n != 4 && n != 6 ) return;
+	self->Axx = mat[0];
+	self->Ayx = mat[1];
+	self->Axy = mat[2];
+	self->Ayy = mat[3];
+	if( n == 6 ){
+		self->Bx = mat[4];
+		self->By = mat[5];
+	}
+}
 void DaoxTransform_RotateXAxisTo( DaoxTransform *self, float x, float y )
 {
 	float r = sqrt( x*x + y*y );

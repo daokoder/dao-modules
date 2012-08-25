@@ -37,7 +37,7 @@
 // 2. multiple line, rect and ellipse in one item;
 // 3. type for color and transformation matrix?
 // 4. text on path, alignment direction (x-axis, y-axis, -x-axis, -y-axis, arbitrary angle);
-// 5. ...
+// 5. line cap
 */
 
 #ifndef __DAO_GRAPHICS_H__
@@ -82,7 +82,7 @@ typedef  DaoxGraphicsItem  DaoxGraphicsLine;
 typedef  DaoxGraphicsItem  DaoxGraphicsRect;
 typedef  DaoxGraphicsItem  DaoxGraphicsCircle;
 typedef  DaoxGraphicsItem  DaoxGraphicsEllipse;
-typedef  DaoxGraphicsItem  DaoxGraphicsPolyLine;
+typedef  DaoxGraphicsItem  DaoxGraphicsPolyline;
 typedef  DaoxGraphicsItem  DaoxGraphicsPolygon;
 typedef  DaoxGraphicsItem  DaoxGraphicsPath;
 typedef  DaoxGraphicsItem  DaoxGraphicsText;
@@ -317,7 +317,7 @@ DAO_DLL void DaoxGraphicsCircle_Set( DaoxGraphicsCircle *self, float x, float y,
 
 DAO_DLL void DaoxGraphicsEllipse_Set( DaoxGraphicsEllipse *self, float x, float y, float rx, float ry );
 
-DAO_DLL void DaoxGraphicsPolyLine_Add( DaoxGraphicsPolyLine *self, float x1, float y1, float x2, float y2 );
+DAO_DLL void DaoxGraphicsPolyline_Add( DaoxGraphicsPolyline *self, float x, float y );
 
 DAO_DLL void DaoxGraphicsPolygon_Add( DaoxGraphicsPolygon *self, float x, float y );
 
@@ -346,7 +346,7 @@ DAO_DLL void DaoxGraphicsScene_SetViewport( DaoxGraphicsScene *self, float left,
 DAO_DLL float DaoxGraphicsScene_Scale( DaoxGraphicsScene *self );
 DAO_DLL void DaoxGraphicsScene_SetBackground( DaoxGraphicsScene *self, DaoxColor color );
 
-DAO_DLL void DaoxGraphicsScene_PushState( DaoxGraphicsScene *self );
+DAO_DLL DaoxGraphicsState* DaoxGraphicsScene_PushState( DaoxGraphicsScene *self );
 DAO_DLL void DaoxGraphicsScene_PopState( DaoxGraphicsScene *self );
 
 DAO_DLL void DaoxGraphicsScene_SetStrokeWidth( DaoxGraphicsScene *self, float width );
@@ -365,7 +365,7 @@ DAO_DLL DaoxGraphicsCircle* DaoxGraphicsScene_AddCircle( DaoxGraphicsScene *self
 
 DAO_DLL DaoxGraphicsEllipse* DaoxGraphicsScene_AddEllipse( DaoxGraphicsScene *self, float x, float y, float rx, float ry );
 
-DAO_DLL DaoxGraphicsPolyLine* DaoxGraphicsScene_AddPolyLine( DaoxGraphicsScene *self );
+DAO_DLL DaoxGraphicsPolyline* DaoxGraphicsScene_AddPolyline( DaoxGraphicsScene *self );
 
 DAO_DLL DaoxGraphicsPolygon* DaoxGraphicsScene_AddPolygon( DaoxGraphicsScene *self );
 
