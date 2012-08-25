@@ -1936,7 +1936,7 @@ static DaoFuncItem DaoxGraphicsSceneMeths[]=
 	{ SCENE_AddText,      "AddText( self: GraphicsScene, text : string, x :float, y :float ) => GraphicsText" },
 	{ SCENE_AddText2,     "AddText( self: GraphicsScene, text : string, path :GraphicsPath ) => GraphicsText" },
 	{ SCENE_SetFont,      "SetFont( self: GraphicsScene, font : Font, size = 12.0 )" },
-	{ SCENE_Test,         "Test( self: GraphicsScene ) => GraphicsPath" },
+	{ SCENE_Test,         "Test( self: GraphicsScene )" },
 	{ NULL, NULL }
 };
 

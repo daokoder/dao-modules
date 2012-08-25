@@ -14,16 +14,16 @@ scene.SetBackground( (1.0,1.0,1.0), 0.0 );
 
 scene.PushState()
 scene.SetFont( fontRoboto, 100 );
-scene.SetStrokeWidth( 1 );
-scene.SetStrokeColor( (0.0,0.0,0.5), 0.4 );
+scene.SetStrokeWidth( 0.5 );
+scene.SetStrokeColor( (0.0,0.0,0.5), 0.9 );
 scene.SetFillColor( (0.0,0.0,0.5), 0.9 );
 
 text = scene.AddText( 'Dao', -100, 250 );
 
 scene.PushState()
 scene.SetFont( fontRoboto, 60 );
-scene.SetStrokeWidth( 1 );
-scene.SetStrokeColor( (0.0,0.0,0.5), 0.4 );
+scene.SetStrokeWidth( 0.5 );
+scene.SetStrokeColor( (0.0,0.0,0.5), 0.9 );
 scene.SetFillColor( (0.0,0.0,0.5), 0.9 );
 
 path = scene.AddPath();

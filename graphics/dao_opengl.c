@@ -100,6 +100,7 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 	double stroke = item->state->strokeWidth / (scale + 1E-16);
 	int n = item->children ? item->children->size : 0;
 	int k = stroke >= 1.0;
+	int m = stroke >= 1E-3;
 	int i;
 
 	DaoxTransform_Multiply( & transform, item->state->transform );
@@ -148,7 +149,7 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 		glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
 	}
 #endif
-	if( gd->strokeTriangles->count && k ){
+	if( gd->strokeTriangles->count && m && k ){
 		if( gd->strokeColors->count < gd->strokePoints->count )
 			DaoxGraphics_glSetColor( item->state->strokeColor, 1.0 );
 		DaoxGraphics_glFillTriangles( gd->strokePoints, gd->strokeTriangles, gd->strokeColors );
@@ -165,7 +166,7 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 			DaoxGraphics_glSetColor( item->state->fillColor, 1.0 );
 		DaoxGraphics_glFillTriangles( gd->fillPoints, gd->fillTriangles, gd->fillColors );
 	}
-	if( gd->strokeTriangles->count && k == 0 ){
+	if( gd->strokeTriangles->count && m && k == 0 ){
 		if( gd->strokeColors->count < gd->strokePoints->count )
 			DaoxGraphics_glSetColor( item->state->strokeColor, stroke );
 		DaoxGraphics_glDrawTriangles( gd->strokePoints, gd->strokeTriangles, gd->strokeColors, stroke );
@@ -175,13 +176,13 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 		glStencilFunc( GL_ALWAYS, 0x0, 0x01);
 		glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
 		glColor4f( 0.0, 0.0, 0.0, 0.0 );
-		if( gd->strokeTriangles->count && k ){
+		if( gd->strokeTriangles->count && m && k ){
 			DaoxGraphics_glFillTriangles( gd->strokePoints, gd->strokeTriangles, NULL );
 		}
 		if( gd->fillTriangles->count ){
 			DaoxGraphics_glFillTriangles( gd->fillPoints, gd->fillTriangles, NULL );
 		}
-		if( gd->strokeTriangles->count && k == 0 ){
+		if( gd->strokeTriangles->count && m && k == 0 ){
 			DaoxGraphics_glDrawTriangles( gd->strokePoints, gd->strokeTriangles, gd->strokeColors, stroke );
 		}
 		glDisable( GL_STENCIL_TEST );;

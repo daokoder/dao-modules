@@ -39,9 +39,12 @@ routine LoadTiger( scene : GraphicsScene )
 	}
 }
 
-scene = GraphicsScene();
-scene.SetBackground( (1.0,1.0,1.0), 0.0 );
-scene.SetTransform( [-1.0, 0, 0, -1.0, 100, 100] );
-LoadTiger( scene );
-glutInit( 1000, 800, 'Dao Logo', 300, 1 )
-glutShow( scene )
+routine main( fps_limit = 30, compute_fps = 0 )
+{
+	scene = GraphicsScene();
+	scene.SetBackground( (1.0,1.0,1.0), 0.0 );
+	scene.SetTransform( [-1.0, 0, 0, -1.0, 100, 100] );
+	LoadTiger( scene );
+	glutInit( 1000, 800, 'Dao Logo', fps_limit, compute_fps )
+	glutShow( scene )
+}

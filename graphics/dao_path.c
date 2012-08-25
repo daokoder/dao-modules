@@ -625,7 +625,8 @@ int DaoxPathSegment_TryDivideQuadratic( DaoxPathSegment *self, float maxlen, flo
 		if( self->delta > self->component->maxdiff ) self->component->maxdiff = self->delta;
 		return 0;
 	}
-	DaoxPathSegment_DivideQuadratic( self, 0.25 + 0.5 * PC / (PC + CP) );
+	/* Interpolate between 0.5 and PC/(PC+CP), in case that PC/(PC+CP) become 0 or 1: */
+	DaoxPathSegment_DivideQuadratic( self, 0.1 * 0.5 + 0.9 * PC / (PC + CP) );
 	return 1;
 }
 int DaoxPathSegment_TryDivideCubic( DaoxPathSegment *self, float maxlen, float maxdiff )
@@ -645,7 +646,8 @@ int DaoxPathSegment_TryDivideCubic( DaoxPathSegment *self, float maxlen, float m
 		if( self->delta > self->component->maxdiff ) self->component->maxdiff = self->delta;
 		return 0;
 	}
-	DaoxPathSegment_DivideCubic( self, 0.25 + 0.5 * PC / (PC + CP) );
+	/* Interpolate between 0.5 and PC/(PC+CP), in case that PC/(PC+CP) become 0 or 1: */
+	DaoxPathSegment_DivideCubic( self, 0.1 * 0.5 + 0.9 * PC / (PC + CP) );
 	return 1;
 }
 void DaoxPathSegment_RefineLinear( DaoxPathSegment *self, float maxlen, float maxdiff )
@@ -938,17 +940,24 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 			seg = seg->next;
 		} while( seg && seg != com->refined.first );
 	}
+	printf( "Before intersection refinement: %i\n", (int)segments->size );
 	for(i=0; i<segments->size; ++i){
 		DaoxPathSegment *S1 = (DaoxPathSegment*) segments->items.pVoid[i];
 		if( S1 == NULL ) continue;
-		if( S1->length < 0.1 || S1->delta < 0.001 ) continue;
+		/* Do not use S1->delta here, line segments always have delta equal to 0: */
+		if( S1->length < 1.0 ) continue;
 		for(j=i+1; j<segments->size; ++j){
 			DaoxPathSegment *S2 = (DaoxPathSegment*) segments->items.pVoid[j];
 			if( S2 == NULL ) continue;
-			if( S2->length < 0.1 || S2->delta < 0.001 ) continue;
+			if( S2->length < 1.0 ) continue;
 			if( DaoxPathSegment_MayIntersect( S1, S2 ) ){
-				DaoxPathSegment_Divide( S1, 0.5 );
-				DaoxPathSegment_Divide( S2, 0.5 );
+				float S, T, R1 = 0.5, R2 = 0.5;
+				if( DaoxLine_Intersect( S1->P1, S1->P2, S2->P1, S2->P2, &S, &T ) ){
+					R1 = 0.1*R1 + 0.9*S;
+					R2 = 0.1*R2 + 0.9*T;
+				}
+				DaoxPathSegment_Divide( S1, R1 );
+				DaoxPathSegment_Divide( S2, R2 );
 				DaoxPathSegment_ComputeLengthAndDelta( S1->first );
 				DaoxPathSegment_ComputeLengthAndDelta( S2->first );
 				DaoxPathSegment_ComputeLengthAndDelta( S1->second );
@@ -964,6 +973,7 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 		}
 		if( segments->items.pVoid[i] == NULL ) continue;
 	}
+	printf( "After intersection refinement: %i\n", (int)segments->size );
 	segments->size = 0;
 	for(com=self->first; com; com=com->next){
 		if( com->first->bezier == 0 ) continue;
@@ -1247,7 +1257,7 @@ DaoxPathSegmentPair DaoxPathSegment_GetRefined( DaoxPathSegment *self, DaoxGraph
 		DaoxPathSegment_GetRefinedStroke( self, gdata );
 		return segs;
 	}
-	if( self->length * gdata->scale < 0.1 ){
+	if( self->length < gdata->scale ){
 		DaoxPathSegment_GetRefinedStroke( self, gdata );
 		return segs;
 	}
