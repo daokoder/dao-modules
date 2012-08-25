@@ -1,5 +1,4 @@
 
-load sys;
 load graphics;
 load test_tiger_paths;
 

@@ -17,7 +17,7 @@ ifeq ($(UNAME), Linux)
   DAO_LFLAGS += -fPIC -shared -Wl,-soname,lib$(PROJECT).so
   GL_INC += -I/usr/include/GL
   DAO_LFLAGS += -lGL -lGLU
-  DAO_LFLAGS += -lGLUT
+  DAO_LFLAGS += -lglut
 endif
 
 ifeq ($(UNAME), Darwin)
