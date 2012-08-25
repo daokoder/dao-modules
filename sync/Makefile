@@ -1,4 +1,4 @@
-PROJECT = sync
+PROJECT = dao_sync
 
 include ../../Makefile.common
 

@@ -8,6 +8,7 @@ all:
 	-cd os && $(MAKE)
 	-cd stream && $(MAKE)
 	-cd sync && $(MAKE)
+	-cd graphics && $(MAKE)
 #	-cd DaoCXX && $(MAKE)
 #	-cd DaoJIT && $(MAKE)
 
@@ -18,6 +19,7 @@ clean:
 	-cd os && $(MAKE) clean
 	-cd stream && $(MAKE) clean
 	-cd sync && $(MAKE) clean
+	-cd graphics && $(MAKE) clean
 #	-cd DaoCXX && $(MAKE) clean
 #	-cd DaoJIT && $(MAKE) clean
 
@@ -36,6 +38,7 @@ install:
 	-$(COPY) stream/clprint.$(DAO_DLL_EXT) $(DAO_MOD_DIR)/stream
 	-$(COPY) stream/buffer.$(DAO_DLL_EXT) $(DAO_MOD_DIR)/stream
 	-$(COPY) sync/libsync.$(DAO_DLL_EXT) $(DAO_MOD_DIR)
+	-$(COPY) graphics/libdao_graphics.$(DAO_DLL_EXT) $(DAO_MOD_DIR)
 	-$(COPY) web/cgi.$(DAO_DLL_EXT) $(DAO_MOD_DIR)/web
 	-$(COPY) web/json.$(DAO_DLL_EXT) $(DAO_MOD_DIR)/web
 	-$(COPY) os/fs.$(DAO_DLL_EXT) $(DAO_MOD_DIR)/os
