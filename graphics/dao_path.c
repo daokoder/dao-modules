@@ -331,7 +331,6 @@ void DaoxPath_ArcBy2( DaoxPath *self, float cx, float cy, float degrees, float d
 		segment->start = i * dL;
 		segment->end = (i + 1) * dL;
 		if( i == (K-1) ) segment->end = 1.0;
-		printf( "%3i: %15f\n", i, (i + 1) * dA );
 		sine = sin( (i + 1) * dA );
 		cosine = cos( (i + 1) * dA );
 		next.x = start.x * cosine - start.y * sine;
@@ -527,54 +526,33 @@ void DaoxPathSegment_DivideLinear( DaoxPathSegment *self, float at )
 {
 	DaoxPathSegment_InitSubSegments( self );
 
-	self->first->P2.x = (1.0 - at)*self->P1.x + at*self->P2.x;
-	self->first->P2.y = (1.0 - at)*self->P1.y + at*self->P2.y;
-	self->second->P1 = self->first->P2;
-
+	self->first->P2 = self->second->P1 = DaoxPoint_Interpolate( self->P1, self->P2, at );
 	self->first->end = self->second->start = (1.0 - at)*self->start + at*self->end;
 }
 void DaoxPathSegment_DivideQuadratic( DaoxPathSegment *self, float at )
 {
-	DaoxPoint Q1;
-
 	DaoxPathSegment_InitSubSegments( self );
-
-	self->first->C1.x = (1.0 - at)*self->P1.x + at*self->C1.x;
-	self->first->C1.y = (1.0 - at)*self->P1.y + at*self->C1.y;
-
-	self->second->C1.x = (1.0 - at)*self->C1.x + at*self->P2.x;
-	self->second->C1.y = (1.0 - at)*self->C1.y + at*self->P2.y;
-
-	Q1.x = (1.0 - at)*self->first->C1.x + at*self->second->C1.x;
-	Q1.y = (1.0 - at)*self->first->C1.y + at*self->second->C1.y;
-	self->first->P2 = Q1;
-	self->second->P1 = Q1;
+	self->first->C1 = DaoxPoint_Interpolate( self->P1, self->C1, at );
+	self->second->C1 = DaoxPoint_Interpolate( self->C1, self->P2, at );
+	self->first->P2 = DaoxPoint_Interpolate( self->first->C1, self->second->C1, at );
+	self->second->P1 = self->first->P2;
 
 	self->first->end = self->second->start = (1.0 - at)*self->start + at*self->end;
 }
 void DaoxPathSegment_DivideCubic( DaoxPathSegment *self, float at )
 {
-	DaoxPoint Q1;
+	DaoxPoint Q1 = DaoxPoint_Interpolate( self->C1, self->C2, at );
 
 	DaoxPathSegment_InitSubSegments( self );
 
-	Q1.x = (1.0 - at)*self->C1.x + at*self->C2.x;
-	Q1.y = (1.0 - at)*self->C1.y + at*self->C2.y;
+	self->first->C1 = DaoxPoint_Interpolate( self->P1, self->C1, at );
+	self->first->C2 = DaoxPoint_Interpolate( self->first->C1, Q1, at );
 
-	self->first->C1.x = (1.0 - at)*self->P1.x + at*self->C1.x;
-	self->first->C1.y = (1.0 - at)*self->P1.y + at*self->C1.y;
-	self->first->C2.x = (1.0 - at)*self->first->C1.x + at*Q1.x;
-	self->first->C2.y = (1.0 - at)*self->first->C1.y + at*Q1.y;
+	self->second->C2 = DaoxPoint_Interpolate( self->C2, self->P2, at );
+	self->second->C1 = DaoxPoint_Interpolate( Q1, self->second->C2, at );
 
-	self->second->C2.x = (1.0 - at)*self->C2.x + at*self->P2.x;
-	self->second->C2.y = (1.0 - at)*self->C2.y + at*self->P2.y;
-	self->second->C1.x = (1.0 - at)*Q1.x + at*self->second->C2.x;
-	self->second->C1.y = (1.0 - at)*Q1.y + at*self->second->C2.y;
-
-	Q1.x = (1.0 - at)*self->first->C2.x + at*self->second->C1.x;
-	Q1.y = (1.0 - at)*self->first->C2.y + at*self->second->C1.y;
-	self->first->P2 = Q1;
-	self->second->P1 = Q1;
+	self->first->P2 = DaoxPoint_Interpolate( self->first->C2, self->second->C1, at );
+	self->second->P1 = self->first->P2;
 
 	self->first->end = self->second->start = (1.0 - at)*self->start + at*self->end;
 }
@@ -967,6 +945,8 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 		}
 		if( segments->items.pVoid[i] == NULL ) continue;
 	}
+#if 0
+#endif
 	printf( "After intersection refinement: %i\n", (int)segments->size );
 	segments->size = 0;
 	for(com=self->first; com; com=com->next){
@@ -1064,31 +1044,6 @@ void DaoxPathSegment_GetRefinedStroke( DaoxPathSegment *self, DaoxGraphicsData *
 		return;
 	}
 	DaoxGraphicsData_MakeDashStroke( gdata, P1, P2, offset );
-	return;
-	len = DaoxDistance( P1, P2 );
-	while( len > 0.0 ){
-		if( len < gdata->dashLength ){
-			if( (gdata->dashState&1) == 0 ){
-				quad = DaoxLine2Quad( P1, P2, width );
-				m = DaoxGraphicsData_PushStrokeQuad( gdata, quad );
-				if( hasGradient && m ) DaoxGraphicsData_PushStrokeQuadColors( gdata, offset, len );
-			}
-			DaoxGraphicsData_UpdateDashState( gdata, len );
-			return;
-		}
-		at = gdata->dashLength / len;
-		PM.x = (1.0 - at) * P1.x + at * P2.x;
-		PM.y = (1.0 - at) * P1.y + at * P2.y;
-		if( (gdata->dashState&1) == 0 ){
-			quad = DaoxLine2Quad( P1, PM, width );
-			m = DaoxGraphicsData_PushStrokeQuad( gdata, quad );
-			if( hasGradient && m ) DaoxGraphicsData_PushStrokeQuadColors( gdata, offset, gdata->dashLength );
-		}
-		len -= gdata->dashLength;
-		offset += gdata->dashLength;
-		DaoxGraphicsData_UpdateDashState( gdata, gdata->dashLength );
-		P1 = PM;
-	}
 }
 
 
@@ -1176,14 +1131,14 @@ DaoxPathSegmentPair DaoxPathSegment_GetRefined( DaoxPathSegment *self, DaoxGraph
 	prev = DaoxLine2Quad( P1, P2, width );
 	next = DaoxLine2Quad( P2, P3, width );
 	if( DaoxLineQuad_Junction( prev, next, NULL ) > 0 ){
-		m += DaoxGraphicsData_PushStrokeTriangle( gdata, prev.D, next.A, P2 );
+		m += DaoxGraphicsData_PushStrokeTriangle( gdata, prev.B, next.A, P2 );
 		if( gdata->item->state->dash ){
-			m += DaoxGraphicsData_PushStrokeTriangle( gdata, P2, prev.C, next.B );
+			m += DaoxGraphicsData_PushStrokeTriangle( gdata, P2, prev.C, next.D );
 		}
 	}else{
-		m += DaoxGraphicsData_PushStrokeTriangle( gdata, prev.C, next.B, P2 );
+		m += DaoxGraphicsData_PushStrokeTriangle( gdata, prev.C, next.D, P2 );
 		if( gdata->item->state->dash ){
-			m += DaoxGraphicsData_PushStrokeTriangle( gdata, P2, prev.D, next.A );
+			m += DaoxGraphicsData_PushStrokeTriangle( gdata, P2, prev.B, next.A );
 		}
 	}
 	if( hasGradient ){
@@ -1224,7 +1179,7 @@ void DaoxPath_ExportGraphicsData( DaoxPath *self, DaoxGraphicsData *gdata )
 	gdata->maxdiff = maxdiff;
 
 	DaoxPath_Refine( self, maxlen, maxdiff );
-	gdata->currentLength = self->length;
+	if( gdata->currentLength < 0.0 ) gdata->currentLength = self->length;
 	printf( "gdata->currentLength = %15f\n", self->length );
 	if( 1 ){
 		DaoxPoint *points = self->points->points;

@@ -263,8 +263,8 @@ struct DaoxGraphicsScene
 	DaoxPath  *wideEllipse; 
 	DaoxPath  *narrowEllipse; 
 
-	DaoxPath  *smallArcs[DAOX_ARCS];
-	DaoxPath  *largeArcs[DAOX_ARCS];
+	DaoxPath  *smallArcs[DAOX_ARCS+1];
+	DaoxPath  *largeArcs[DAOX_ARCS+1];
 
 	DaoxTriangulator  *triangulator;
 };

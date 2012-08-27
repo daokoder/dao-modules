@@ -168,7 +168,14 @@ DAO_DLL void DaoxPointArray_PushPoints( DaoxPointArray *self, DaoxPointArray *po
 
 /* Utility functions: */
 
+DAO_DLL DaoxPoint DaoxPoint_FromXY( float x, float y );
+DAO_DLL DaoxPoint DaoxPoint_Interpolate( DaoxPoint A, DaoxPoint B, float t );
+
 DAO_DLL DaoxQuad DaoxQuad_FromRect( float left, float bottom, float right, float top );
+DAO_DLL DaoxQuad DaoxQuad_FromRectBottomFirst( float left, float bottom, float right, float top );
+DAO_DLL DaoxQuad DaoxQuad_FromRectRightFirst( float left, float bottom, float right, float top );
+DAO_DLL DaoxQuad DaoxQuad_FromRectTopFirst( float left, float bottom, float right, float top );
+DAO_DLL DaoxQuad DaoxQuad_FromRectLeftFirst( float left, float bottom, float right, float top );
 
 DAO_DLL float DaoxDistance( DaoxPoint start, DaoxPoint end );
 DAO_DLL float DaoxDistance2( DaoxPoint start, DaoxPoint end );
