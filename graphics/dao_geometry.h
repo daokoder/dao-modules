@@ -127,6 +127,8 @@ DAO_DLL DaoxPoint DaoxTransform_Transform( DaoxTransform *self, DaoxPoint point 
 DAO_DLL DaoxPoint DaoxTransform_TransformXY( DaoxTransform *self, float x, float y );
 DAO_DLL DaoxTransform DaoxTransform_Inverse( DaoxTransform *self );
 
+DAO_DLL DaoxPoint DaoxPoint_Transform( DaoxPoint self, DaoxTransform *transform );
+
 
 DAO_DLL void DaoxBounds_AddMargin( DaoxBounds *self, float margin );
 DAO_DLL void DaoxBounds_Init( DaoxBounds *self, DaoxPoint point );

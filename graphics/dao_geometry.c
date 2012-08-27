@@ -118,6 +118,14 @@ void DaoxTransform_Print( DaoxTransform *self )
 }
 
 
+DaoxPoint DaoxPoint_Transform( DaoxPoint self, DaoxTransform *transform )
+{
+	if( transform == NULL ) return self;
+	return DaoxTransform_Transform( transform, self );
+}
+
+
+
 
 
 void DaoxBounds_AddMargin( DaoxBounds *self, float margin )

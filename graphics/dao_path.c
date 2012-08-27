@@ -861,12 +861,6 @@ void DaoxPathSegment_CheckConvexness( DaoxPathSegment *self, DaoxPoint point )
 	DaoxPathSegment_SetConvexness( self, convexness );
 }
 
-DaoxPoint DaoxPoint_Transform( DaoxPoint self, DaoxTransform *transform )
-{
-	if( transform == NULL ) return self;
-	return DaoxTransform_Transform( transform, self );
-}
-
 void DaoxPath_ImportPath( DaoxPath *self, DaoxPath *path, DaoxTransform *transform )
 {
 	DaoxPathComponent *com, *com2;
@@ -1037,97 +1031,6 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 
 
 
-void DaoxGraphicsData_PushFilling( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C )
-{
-	int index = self->fillPoints->count;
-	A = DaoxPoint_Transform( A, self->transform );
-	B = DaoxPoint_Transform( B, self->transform );
-	C = DaoxPoint_Transform( C, self->transform );
-	if( DaoxBounds_CheckTriangle( & self->bounds, A, B, C ) == 0 ) return;
-	DaoxPointArray_Push( self->fillPoints, A );
-	DaoxPointArray_Push( self->fillPoints, B );
-	DaoxPointArray_Push( self->fillPoints, C );
-	DaoxIntArray_Push( self->fillTriangles, index );
-	DaoxIntArray_Push( self->fillTriangles, index+1 );
-	DaoxIntArray_Push( self->fillTriangles, index+2 );
-}
-void DaoxGraphicsData_PushStrokeColor( DaoxGraphicsData *self, DaoxColor color, int times )
-{
-	while( (times--) > 0 ) DaoxColorArray_Push( self->strokeColors, color );
-}
-void DaoxGraphicsData_MakeJunction( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C, float pos, int junction )
-{
-	DaoxColor color = {0.0};
-	DaoxGraphicsData round = *self;
-	DaoxTransform transform = {0.0,0.0,0.0,0.0,0.0,0.0};
-	DaoxPoint P1 = DaoxPoint_Transform( A, self->transform );
-	DaoxPoint P2 = DaoxPoint_Transform( B, self->transform );
-	DaoxPoint P3 = DaoxPoint_Transform( C, self->transform );
-	DaoxQuad Q1 = DaoxLine2Quad( P1, P2, self->strokeWidth );
-	DaoxQuad Q2 = DaoxLine2Quad( P2, P3, self->strokeWidth );
-	DaoxColorGradient *strokeGradient = self->item->state->strokeGradient;
-	int hasGradient = strokeGradient != NULL && strokeGradient->stops->count;
-	float scale, dist, cosine, sine, angle, W2 = 0.5 * self->strokeWidth;
-	int m = 0, k = DaoxLineQuad_Junction( Q1, Q2, & P3 );
-
-	if( self->strokeWidth < 1E-6 ) return;
-
-	if( hasGradient ) color = DaoxColorGradient_InterpolateColor( strokeGradient, pos );
-
-	if( k > 0 ){
-		if( junction != DAOX_JUNCTION_ROUND ){
-			m = DaoxGraphicsData_PushStrokeTriangle( self, Q1.D, Q2.A, P2 );
-			if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, m );
-		}
-		if( junction == DAOX_JUNCTION_SHARP ){
-			m = DaoxGraphicsData_PushStrokeTriangle( self, Q1.D, Q2.A, P3 );
-			if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, m );
-		}
-	}else{
-		if( junction != DAOX_JUNCTION_ROUND ){
-			m = DaoxGraphicsData_PushStrokeTriangle( self, Q1.C, Q2.B, P2 );
-			if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, m );
-		}
-		if( junction == DAOX_JUNCTION_SHARP ){
-			m = DaoxGraphicsData_PushStrokeTriangle( self, Q1.C, Q2.B, P3 );
-			if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, m );
-		}
-	}
-	if( self->item->state->dash ){
-		if( k > 0 ){
-			m = DaoxGraphicsData_PushStrokeTriangle( self, P2, Q1.C, Q2.B );
-		}else{
-			m = DaoxGraphicsData_PushStrokeTriangle( self, P2, Q1.D, Q2.A );
-		}
-		if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, m );
-	}
-	if( junction != DAOX_JUNCTION_ROUND ) return;
-
-	scale = 0.5 * self->strokeWidth / 100.0;
-	dist = DaoxDistance( P2, P3 );
-	cosine = (P3.x - P2.x) / dist;
-	sine = (P3.y - P2.y) / dist;
-	dist = DaoxDistance( Q1.D, Q2.A );
-	angle = acos( 1.0 - dist*dist / (2.0*W2*W2) );
-
-	m = self->strokePoints->count;
-	round.strokeWidth = 0.0;
-	round.junction = DAOX_JUNCTION_FLAT;
-	round.strokePoints = self->strokePoints;
-	round.fillPoints = self->strokePoints;
-	round.strokeTriangles = self->strokeTriangles;
-	round.fillTriangles = self->strokeTriangles;
-	round.transform = & transform;
-	transform.Axx = scale * cosine;
-	transform.Axy = - scale * sine;
-	transform.Ayx = + scale * sine;
-	transform.Ayy = scale * cosine;
-	transform.Bx = P2.x;
-	transform.By = P2.y;
-	k = DAOX_ARCS * angle / M_PI;
-	DaoxPath_ExportGraphicsData( self->item->scene->largeArcs[k], & round );
-	if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, self->strokePoints->count - m );
-}
 
 
 typedef struct DaoxPathSegmentPair  DaoxPathSegmentPair;
@@ -1137,37 +1040,6 @@ struct DaoxPathSegmentPair
 	DaoxPathSegment  *second;
 };
 
-void DaoxGraphicsData_UpdateDashState2( DaoxGraphicsData *self, float len )
-{
-	if( self->item->state->dash == 0 ) return;
-	self->dashLength -= len;
-	if( self->dashLength <= 1E-16 ){
-		self->dashState = (self->dashState + 1) % self->item->state->dash;
-		self->dashLength = self->item->state->dashPattern[ self->dashState ];
-	}
-}
-void DaoxGraphicsData_UpdateDashState( DaoxGraphicsData *self, float len )
-{
-	if( self->item->state->dash == 0 ) return;
-	while( len >= self->dashLength ){
-		len -= self->dashLength;
-		DaoxGraphicsData_UpdateDashState2( self, self->dashLength );
-	}
-	if( len > 0.0 ) DaoxGraphicsData_UpdateDashState2( self, len );
-}
-
-void DaoxGraphicsData_PushStrokeQuadColors( DaoxGraphicsData *self, float offset, float len )
-{
-	DaoxColorGradient *strokeGradient = self->item->state->strokeGradient;
-	DaoxColor color;
-	float pos;
-	pos = offset / self->currentLength;
-	color = DaoxColorGradient_InterpolateColor( strokeGradient, pos );
-	DaoxGraphicsData_PushStrokeColor( self, color, 2 );
-	pos = (offset + len) / self->currentLength;
-	color = DaoxColorGradient_InterpolateColor( strokeGradient, pos );
-	DaoxGraphicsData_PushStrokeColor( self, color, 2 );
-}
 
 void DaoxPathSegment_GetRefinedStroke( DaoxPathSegment *self, DaoxGraphicsData *gdata )
 {
@@ -1191,7 +1063,8 @@ void DaoxPathSegment_GetRefinedStroke( DaoxPathSegment *self, DaoxGraphicsData *
 		if( hasGradient && m ) DaoxGraphicsData_PushStrokeQuadColors( gdata, offset, self->length );
 		return;
 	}
-	PM = DaoxPoint_Transform( self->C1, gdata->transform );
+	DaoxGraphicsData_MakeDashStroke( gdata, P1, P2, offset );
+	return;
 	len = DaoxDistance( P1, P2 );
 	while( len > 0.0 ){
 		if( len < gdata->dashLength ){
@@ -1227,6 +1100,7 @@ DaoxPathSegmentPair DaoxPathSegment_GetRefined( DaoxPathSegment *self, DaoxGraph
 	DaoxPathSegmentPair sp1, sp2, segs = {NULL, NULL};
 	DaoxColorGradient *strokeGradient = gdata->item->state->strokeGradient;
 	int m = 0, hasGradient = strokeGradient != NULL && strokeGradient->stops->count;
+	int finer = self->start < 1E-16 || self->end > (1.0-1E-16);
 	float width = gdata->strokeWidth;
 	float maxlen = gdata->maxlen;
 	float maxdiff = gdata->maxdiff;
@@ -1249,15 +1123,20 @@ DaoxPathSegmentPair DaoxPathSegment_GetRefined( DaoxPathSegment *self, DaoxGraph
 		return segs;
 	}
 
+	if( finer && self->count == 1 && self->delta > 1E-6 ){
+		DaoxPathSegment_Divide( self, (self->start < 0.5) ? 0.01 : 0.99 );
+		DaoxPathSegment_ComputeLengthAndDelta( self );
+	}
+
 	if( self->bezier == 1 || self->count == 1 ){
 		DaoxPathSegment_GetRefinedStroke( self, gdata );
 		return segs;
 	}
-	if( self->length <= maxlen && self->delta <= maxdiff ){
+	if( finer == 0 && self->length <= maxlen && self->delta <= maxdiff ){
 		DaoxPathSegment_GetRefinedStroke( self, gdata );
 		return segs;
 	}
-	if( self->length < gdata->scale ){
+	if( finer == 0 && self->length < gdata->scale ){
 		DaoxPathSegment_GetRefinedStroke( self, gdata );
 		return segs;
 	}
@@ -1346,7 +1225,6 @@ void DaoxPath_ExportGraphicsData( DaoxPath *self, DaoxGraphicsData *gdata )
 
 	DaoxPath_Refine( self, maxlen, maxdiff );
 	gdata->currentLength = self->length;
-	gdata->currentOffset = 0.0;
 	printf( "gdata->currentLength = %15f\n", self->length );
 	if( 1 ){
 		DaoxPoint *points = self->points->points;
@@ -1373,8 +1251,10 @@ void DaoxPath_ExportGraphicsData( DaoxPath *self, DaoxGraphicsData *gdata )
 		if( com->first->bezier == 0 ) continue;
 		if( com->refined.last == NULL ) continue;
 		//printf( "component: %p\n", com );
-		gdata->dashState = 0;
-		gdata->dashLength = gdata->item->state->dashPattern[0];
+		if( com != self->first ){ /* Reset dash state for different contour? */
+			gdata->dashState = 0;
+			gdata->dashLength = gdata->item->state->dashPattern[0];
+		}
 		prev.first = prev.second = NULL;
 		seg = com->refined.first;
 		pos = 0.0;
@@ -1394,6 +1274,7 @@ void DaoxPath_ExportGraphicsData( DaoxPath *self, DaoxGraphicsData *gdata )
 			seg = seg->next;
 		} while( seg && seg != com->refined.first );
 
+		if( com->refined.last->next == NULL ) continue;
 		if( open.first != NULL && cur.first != NULL && width > 1E-6 ){
 			int userjunction = cur.second->end > 0.8 && open.first->start < 0.2;
 			jt2 = gdata->item->state->dash == 0 || (gdata->dashState & 1) == 0;

@@ -33,11 +33,10 @@
 // TODO: SVG Tiny backend;
 //
 // TODO:
-// 1. line/rect dash stroke;
-// 2. multiple line, rect and ellipse in one item;
-// 3. type for color and transformation matrix?
-// 4. text on path, alignment direction (x-axis, y-axis, -x-axis, -y-axis, arbitrary angle);
-// 5. line cap
+// * multiple line, rect and ellipse in one item;
+// * type for color and transformation matrix?
+// * text on path, alignment direction (x-axis, y-axis, -x-axis, -y-axis, arbitrary angle);
+// * line cap
 */
 
 #ifndef __DAO_GRAPHICS_H__
@@ -213,6 +212,7 @@ struct DaoxGraphicsItem
 
 	uchar_t  shape;  /* shape type; */
 	uchar_t  visible;
+	uchar_t  roundCorner; /* for rect; */
 	wchar_t  codepoint;
 
 	DaoxBounds  bounds;
@@ -254,6 +254,9 @@ struct DaoxGraphicsScene
 	DArray  *items;
 	DArray  *states;
 
+	DaoxPath  *quarterArc; 
+	DaoxPath  *quarterCircle; 
+
 	DaoxPath  *smallCircle; 
 	DaoxPath  *largeCircle;
 
@@ -294,8 +297,13 @@ DaoxGraphicsData* DaoxGraphicsData_New( DaoxGraphicsItem *item );
 void DaoxGraphicsData_Delete( DaoxGraphicsData *self );
 void DaoxGraphicsData_Reset( DaoxGraphicsData *self );
 void DaoxGraphicsData_Init( DaoxGraphicsData *self, DaoxGraphicsItem *item );
+void DaoxGraphicsData_UpdateDashState( DaoxGraphicsData *self, float len );
+void DaoxGraphicsData_PushStrokeQuadColors( DaoxGraphicsData *self, float offset, float len );
 int DaoxGraphicsData_PushStrokeTriangle( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C );
 int DaoxGraphicsData_PushStrokeQuad( DaoxGraphicsData *self, DaoxQuad quad );
+void DaoxGraphicsData_PushFilling( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C );
+void DaoxGraphicsData_MakeJunction( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C, float pos, int junction );
+void DaoxGraphicsData_MakeDashStroke( DaoxGraphicsData *self, DaoxPoint P1, DaoxPoint P2, float offset );
 
 
 
@@ -311,7 +319,7 @@ DAO_DLL void DaoxGraphicsItem_Delete( DaoxGraphicsItem *self );
 
 DAO_DLL void DaoxGraphicsLine_Set( DaoxGraphicsLine *self, float x1, float y1, float x2, float y2 );
 
-DAO_DLL void DaoxGraphicsRect_Set( DaoxGraphicsRect *self, float x1, float y1, float x2, float y2 );
+DAO_DLL void DaoxGraphicsRect_Set( DaoxGraphicsRect *self, float x1, float y1, float x2, float y2, float rx, float ry );
 
 DAO_DLL void DaoxGraphicsCircle_Set( DaoxGraphicsCircle *self, float x, float y, float r );
 
@@ -359,7 +367,7 @@ DAO_DLL void DaoxGraphicsScene_SetFont( DaoxGraphicsScene *self, DaoxFont *font,
 
 DAO_DLL DaoxGraphicsLine* DaoxGraphicsScene_AddLine( DaoxGraphicsScene *self, float x1, float y1, float x2, float y2 );
 
-DAO_DLL DaoxGraphicsRect* DaoxGraphicsScene_AddRect( DaoxGraphicsScene *self, float x1, float y1, float x2, float y2 );
+DAO_DLL DaoxGraphicsRect* DaoxGraphicsScene_AddRect( DaoxGraphicsScene *self, float x1, float y1, float x2, float y2, float rx, float ry );
 
 DAO_DLL DaoxGraphicsCircle* DaoxGraphicsScene_AddCircle( DaoxGraphicsScene *self, float x, float y, float r );
 

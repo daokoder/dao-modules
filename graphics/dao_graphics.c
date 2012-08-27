@@ -364,12 +364,48 @@ void DaoxGraphicsData_Init( DaoxGraphicsData *self, DaoxGraphicsItem *item )
 	self->maxlen = 10;
 	self->maxdiff = 0.001;
 	self->dashState = 0;
-	self->dashLength = 0.0;
+	self->dashLength = item->state->dashPattern[0];
 	self->currentOffset = 0.0;
 	self->currentLength = 0.0;
 	self->junction = item->state->junction;
 	self->strokeWidth = item->state->strokeWidth;
 	self->item = item;
+	DaoxGraphicsData_Reset( self );
+}
+void DaoxGraphicsData_UpdateDashState2( DaoxGraphicsData *self, float len )
+{
+	if( self->item->state->dash == 0 ) return;
+	self->dashLength -= len;
+	if( self->dashLength <= 1E-16 ){
+		self->dashState = (self->dashState + 1) % self->item->state->dash;
+		self->dashLength = self->item->state->dashPattern[ self->dashState ];
+	}
+}
+void DaoxGraphicsData_UpdateDashState( DaoxGraphicsData *self, float len )
+{
+	if( self->item->state->dash == 0 ) return;
+	while( len >= self->dashLength ){
+		len -= self->dashLength;
+		DaoxGraphicsData_UpdateDashState2( self, self->dashLength );
+	}
+	if( len > 0.0 ) DaoxGraphicsData_UpdateDashState2( self, len );
+}
+
+void DaoxGraphicsData_PushStrokeColor( DaoxGraphicsData *self, DaoxColor color, int times )
+{
+	while( (times--) > 0 ) DaoxColorArray_Push( self->strokeColors, color );
+}
+void DaoxGraphicsData_PushStrokeQuadColors( DaoxGraphicsData *self, float offset, float len )
+{
+	DaoxColorGradient *strokeGradient = self->item->state->strokeGradient;
+	DaoxColor color;
+	float pos;
+	pos = offset / self->currentLength;
+	color = DaoxColorGradient_InterpolateColor( strokeGradient, pos );
+	DaoxGraphicsData_PushStrokeColor( self, color, 2 );
+	pos = (offset + len) / self->currentLength;
+	color = DaoxColorGradient_InterpolateColor( strokeGradient, pos );
+	DaoxGraphicsData_PushStrokeColor( self, color, 2 );
 }
 int DaoxGraphicsData_PushStrokeTriangle( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C )
 {
@@ -408,6 +444,310 @@ void DaoxGraphicsData_PushFillQuad( DaoxGraphicsData *self, DaoxQuad quad )
 	if( DaoxBounds_CheckQuad( & self->bounds, quad ) == 0 ) return;
 	DaoxGraphicsData_PushQuad( self->fillPoints, self->fillTriangles, quad );
 }
+void DaoxGraphicsData_PushFilling( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C )
+{
+	int index = self->fillPoints->count;
+	A = DaoxPoint_Transform( A, self->transform );
+	B = DaoxPoint_Transform( B, self->transform );
+	C = DaoxPoint_Transform( C, self->transform );
+	if( DaoxBounds_CheckTriangle( & self->bounds, A, B, C ) == 0 ) return;
+	DaoxPointArray_Push( self->fillPoints, A );
+	DaoxPointArray_Push( self->fillPoints, B );
+	DaoxPointArray_Push( self->fillPoints, C );
+	DaoxIntArray_Push( self->fillTriangles, index );
+	DaoxIntArray_Push( self->fillTriangles, index+1 );
+	DaoxIntArray_Push( self->fillTriangles, index+2 );
+}
+void DaoxGraphicsData_MakeJunction( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C, float pos, int junction )
+{
+	DaoxColor color = {0.0};
+	DaoxGraphicsData round = *self;
+	DaoxTransform transform = {0.0,0.0,0.0,0.0,0.0,0.0};
+	DaoxPoint P1 = DaoxPoint_Transform( A, self->transform );
+	DaoxPoint P2 = DaoxPoint_Transform( B, self->transform );
+	DaoxPoint P3 = DaoxPoint_Transform( C, self->transform );
+	DaoxQuad Q1 = DaoxLine2Quad( P1, P2, self->strokeWidth );
+	DaoxQuad Q2 = DaoxLine2Quad( P2, P3, self->strokeWidth );
+	DaoxColorGradient *strokeGradient = self->item->state->strokeGradient;
+	int hasGradient = strokeGradient != NULL && strokeGradient->stops->count;
+	float scale, dist, cosine, sine, angle, W2 = 0.5 * self->strokeWidth;
+	int m = 0, k = DaoxLineQuad_Junction( Q1, Q2, & P3 );
+
+	if( self->strokeWidth < 1E-6 ) return;
+
+	if( hasGradient ) color = DaoxColorGradient_InterpolateColor( strokeGradient, pos );
+
+	if( k > 0 ){
+		if( junction != DAOX_JUNCTION_ROUND ){
+			m = DaoxGraphicsData_PushStrokeTriangle( self, Q1.D, Q2.A, P2 );
+			if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, m );
+		}
+		if( junction == DAOX_JUNCTION_SHARP ){
+			m = DaoxGraphicsData_PushStrokeTriangle( self, Q1.D, Q2.A, P3 );
+			if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, m );
+		}
+	}else{
+		if( junction != DAOX_JUNCTION_ROUND ){
+			m = DaoxGraphicsData_PushStrokeTriangle( self, Q1.C, Q2.B, P2 );
+			if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, m );
+		}
+		if( junction == DAOX_JUNCTION_SHARP ){
+			m = DaoxGraphicsData_PushStrokeTriangle( self, Q1.C, Q2.B, P3 );
+			if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, m );
+		}
+	}
+	if( self->item->state->dash ){
+		if( k > 0 ){
+			m = DaoxGraphicsData_PushStrokeTriangle( self, P2, Q1.C, Q2.B );
+		}else{
+			m = DaoxGraphicsData_PushStrokeTriangle( self, P2, Q1.D, Q2.A );
+		}
+		if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, m );
+	}
+	if( junction != DAOX_JUNCTION_ROUND ) return;
+
+	scale = 0.5 * self->strokeWidth / 100.0;
+	dist = DaoxDistance( P2, P3 );
+	cosine = (P3.x - P2.x) / dist;
+	sine = (P3.y - P2.y) / dist;
+	dist = DaoxDistance( Q1.D, Q2.A );
+	angle = acos( 1.0 - dist*dist / (2.0*W2*W2) );
+
+	m = self->strokePoints->count;
+	round.strokeWidth = 0.0;
+	round.junction = DAOX_JUNCTION_FLAT;
+	round.strokePoints = self->strokePoints;
+	round.fillPoints = self->strokePoints;
+	round.strokeTriangles = self->strokeTriangles;
+	round.fillTriangles = self->strokeTriangles;
+	round.transform = & transform;
+	transform.Axx = scale * cosine;
+	transform.Axy = - scale * sine;
+	transform.Ayx = + scale * sine;
+	transform.Ayy = scale * cosine;
+	transform.Bx = P2.x;
+	transform.By = P2.y;
+	k = DAOX_ARCS * angle / M_PI;
+	DaoxPath_ExportGraphicsData( self->item->scene->largeArcs[k], & round );
+	if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, self->strokePoints->count - m );
+}
+void DaoxGraphicsData_MakeDashStroke( DaoxGraphicsData *self, DaoxPoint P1, DaoxPoint P2, float offset )
+{
+	DaoxPoint PM;
+	DaoxQuad quad;
+	DaoxColorGradient *strokeGradient = self->item->state->strokeGradient;
+	int m, hasGradient = strokeGradient != NULL && strokeGradient->stops->count;
+	float at, pos, width = self->strokeWidth;
+	float len = DaoxDistance( P1, P2 );
+	while( len > 0.0 ){
+		if( len < self->dashLength ){
+			if( (self->dashState&1) == 0 ){
+				quad = DaoxLine2Quad( P1, P2, width );
+				m = DaoxGraphicsData_PushStrokeQuad( self, quad );
+				if( hasGradient && m ) DaoxGraphicsData_PushStrokeQuadColors( self, offset, len );
+			}
+			DaoxGraphicsData_UpdateDashState( self, len );
+			return;
+		}
+		at = self->dashLength / len;
+		PM.x = (1.0 - at) * P1.x + at * P2.x;
+		PM.y = (1.0 - at) * P1.y + at * P2.y;
+		if( (self->dashState&1) == 0 ){
+			quad = DaoxLine2Quad( P1, PM, width );
+			m = DaoxGraphicsData_PushStrokeQuad( self, quad );
+			if( hasGradient && m ) DaoxGraphicsData_PushStrokeQuadColors( self, offset, self->dashLength );
+		}
+		len -= self->dashLength;
+		offset += self->dashLength;
+		DaoxGraphicsData_UpdateDashState( self, self->dashLength );
+		P1 = PM;
+	}
+}
+void DaoxGraphicsData_MakeLine( DaoxGraphicsData *self, DaoxPoint P1, DaoxPoint P2, float offset )
+{
+	if( self->item->state->dash ){
+		DaoxGraphicsData_MakeDashStroke( self, P1, P2, self->currentOffset );
+	}else{
+		DaoxQuad quad = DaoxLine2Quad( P1, P2, self->strokeWidth );
+		DaoxGraphicsData_PushStrokeQuad( self, quad );
+	}
+}
+void DaoxGraphicsData_MakeRect( DaoxGraphicsData *self, DaoxPoint P1, DaoxPoint P2, float rx, float ry )
+{
+	DaoxPoint LB, RB, RT, LT;
+	DaoxQuad quad0, quad1, quad2, quad3, quad4;
+	DaoxGraphicsData backup = *self;
+	DaoxTransform transform = {0.0,0.0,0.0,0.0,0.0,0.0};
+	DaoxColorGradient *strokeGradient = self->item->state->strokeGradient;
+	int hasGradient = strokeGradient != NULL && strokeGradient->stops->count;
+	float extra = 0.1 * DaoxGraphicsScene_Scale( self->item->scene );
+	float offset = 0.0, dashLength = 0.0;
+	float tmp, W2 = 0.5 * self->strokeWidth;
+	float left = P1.x, right = P2.x;
+	float bottom = P1.y, top = P2.y;
+	int m, roundCorner = (rx > 1E-24) && (ry > 1E-24);
+	uchar_t dashState = 0;
+
+	if( left > right ) tmp = left, left = right, right = tmp;
+	if( bottom > top ) tmp = bottom, bottom = top, top = tmp;
+
+	LB.x = left;
+	LB.y = bottom;
+	RB.x = right;
+	RB.y = bottom;
+	RT.x = right;
+	RT.y = top;
+	LT.x = left;
+	LT.y = top;
+	if( roundCorner == 0 && self->item->state->dash == 0 ){
+		quad1 = DaoxQuad_FromRect( left - W2, bottom - W2, right + W2, bottom + W2 );
+		quad2 = DaoxQuad_FromRect( right - W2, bottom + W2, right + W2, top - W2 );
+		quad3 = DaoxQuad_FromRect( left - W2, top - W2, right + W2, top + W2 );
+		quad4 = DaoxQuad_FromRect( left - W2, bottom + W2, left + W2, top - W2 );
+
+		DaoxGraphicsData_PushStrokeQuad( self, quad1 );
+		DaoxGraphicsData_PushStrokeQuad( self, quad2 );
+		DaoxGraphicsData_PushStrokeQuad( self, quad3 );
+		DaoxGraphicsData_PushStrokeQuad( self, quad4 );
+
+		if( self->item->state->fillColor.alpha < 1E-9 ) return;
+		quad0 = DaoxQuad_FromRect( left + W2, bottom + W2, right - W2, top - W2 );
+		DaoxGraphicsData_PushFillQuad( self, quad0 );
+		return;
+	}else if( roundCorner == 0 ){
+		DaoxGraphicsData_MakeLine( self, LB, RB, offset );
+		offset += DaoxDistance( LB, RB );
+		DaoxGraphicsData_MakeLine( self, RB, RT, offset );
+		offset += DaoxDistance( RB, RT );
+		DaoxGraphicsData_MakeLine( self, RT, LT, offset );
+		offset += DaoxDistance( RT, LT );
+		DaoxGraphicsData_MakeLine( self, LT, LB, offset );
+
+		quad1 = DaoxQuad_FromRect( left - W2, bottom - W2, left + W2, bottom + W2 );
+		quad2 = DaoxQuad_FromRect( right - W2, bottom - W2, right + W2, bottom + W2 );
+		quad3 = DaoxQuad_FromRect( right - W2, top - W2, right + W2, top + W2 );
+		quad4 = DaoxQuad_FromRect( left - W2, top - W2, left + W2, top + W2 );
+
+		DaoxGraphicsData_PushStrokeQuad( self, quad1 );
+		DaoxGraphicsData_PushStrokeQuad( self, quad2 );
+		DaoxGraphicsData_PushStrokeQuad( self, quad3 );
+		DaoxGraphicsData_PushStrokeQuad( self, quad4 );
+
+		if( self->item->state->fillColor.alpha < 1E-9 ) return;
+		quad0 = DaoxQuad_FromRect( left, bottom, right, top );
+		DaoxGraphicsData_PushFillQuad( self, quad0 );
+		return;
+	}
+
+	if( self->item->state->fillColor.alpha > 1E-9 ){
+		quad0 = DaoxQuad_FromRect( left+rx, bottom+ry, right-rx, top-ry );
+		DaoxGraphicsData_PushFillQuad( self, quad0 );
+		if( self->item->state->dash ){
+			quad1 = DaoxQuad_FromRect( left + rx, bottom, right - rx, bottom + ry );
+			quad2 = DaoxQuad_FromRect( right - rx, bottom + ry, right, top - ry );
+			quad3 = DaoxQuad_FromRect( left + rx, top - ry, right - rx, top );
+			quad4 = DaoxQuad_FromRect( left, bottom + ry, left + rx, top - ry );
+		}else{
+			quad1 = DaoxQuad_FromRect( left + rx, bottom + W2, right - rx, bottom + ry );
+			quad2 = DaoxQuad_FromRect( right - rx, bottom + ry, right - W2, top - ry );
+			quad3 = DaoxQuad_FromRect( left + rx, top - ry, right - rx, top - W2 );
+			quad4 = DaoxQuad_FromRect( left + W2, bottom + ry, left + rx, top - ry );
+		}
+		DaoxGraphicsData_PushFillQuad( self, quad1 );
+		DaoxGraphicsData_PushFillQuad( self, quad2 );
+		DaoxGraphicsData_PushFillQuad( self, quad3 );
+		DaoxGraphicsData_PushFillQuad( self, quad4 );
+	}
+
+	m = self->strokePoints->count;
+	self->junction = DAOX_JUNCTION_FLAT;
+	self->transform = & transform;
+	transform.Axx = - rx / 100.0;
+	transform.Ayy = - ry / 100.0 ;
+	transform.Bx = left + rx;
+	transform.By = bottom + ry;
+	DaoxPath_ExportGraphicsData( self->item->scene->quarterArc, self );
+	backup = *self;
+	if( self->item->state->fillColor.alpha > 1E-9 ){
+		self->strokeWidth = 0.0;
+		DaoxPath_ExportGraphicsData( self->item->scene->quarterCircle, self );
+	}
+	*self = backup;
+	if( self->item->state->strokeWidth > 0.001 * self->scale ){
+		DaoxPoint start = LB, end = RB;
+		start.x += rx - extra;
+		end.x -= rx - extra;
+		DaoxGraphicsData_MakeLine( self, start, end, self->currentOffset );
+		self->currentOffset += DaoxDistance( start, end );
+	}
+
+	transform.Axx = transform.Ayy = 0.0;
+	transform.Axy = + rx / 100.0;
+	transform.Ayx = - ry / 100.0 ;
+	transform.Bx = right - rx;
+	transform.By = bottom + ry;
+	DaoxPath_ExportGraphicsData( self->item->scene->quarterArc, self );
+	backup = *self;
+	if( self->item->state->fillColor.alpha > 1E-9 ){
+		self->strokeWidth = 0.0;
+		DaoxPath_ExportGraphicsData( self->item->scene->quarterCircle, self );
+	}
+	*self = backup;
+	if( self->item->state->strokeWidth > 0.001 * self->scale ){
+		DaoxPoint start = RB, end = RT;
+		start.y += ry - extra;
+		end.y -= ry - extra;
+		DaoxGraphicsData_MakeLine( self, start, end, self->currentOffset );
+		self->currentOffset += DaoxDistance( start, end );
+	}
+
+	transform.Axy = transform.Ayx = 0.0;
+	transform.Axx = + rx / 100.0;
+	transform.Ayy = + ry / 100.0 ;
+	transform.Bx = right - rx;
+	transform.By = top - ry;
+	DaoxPath_ExportGraphicsData( self->item->scene->quarterArc, self );
+	backup = *self;
+	if( self->item->state->fillColor.alpha > 1E-9 ){
+		self->strokeWidth = 0.0;
+		DaoxPath_ExportGraphicsData( self->item->scene->quarterCircle, self );
+	}
+	*self = backup;
+	if( self->item->state->strokeWidth > 0.001 * self->scale ){
+		DaoxPoint start = RT, end = LT;
+		start.x -= rx - extra;
+		end.x += rx - extra;
+		DaoxGraphicsData_MakeLine( self, start, end, self->currentOffset );
+		self->currentOffset += DaoxDistance( start, end );
+	}
+
+	transform.Axx = transform.Ayy = 0.0;
+	transform.Axy = - rx / 100.0;
+	transform.Ayx = + ry / 100.0 ;
+	transform.Bx = left + rx;
+	transform.By = top - ry;
+	DaoxPath_ExportGraphicsData( self->item->scene->quarterArc, self );
+	backup = *self;
+	if( self->item->state->fillColor.alpha > 1E-9 ){
+		self->strokeWidth = 0.0;
+		DaoxPath_ExportGraphicsData( self->item->scene->quarterCircle, self );
+	}
+	*self = backup;
+	if( self->item->state->strokeWidth > 0.001 * self->scale ){
+		DaoxPoint start = LT, end = LB;
+		start.y -= ry - extra;
+		end.y += ry - extra;
+		DaoxGraphicsData_MakeLine( self, start, end, self->currentOffset );
+		self->currentOffset += DaoxDistance( start, end );
+	}
+
+}
+
+
+
+
+
+
 void DaoxIntArray_PushTriangle( DaoxIntArray *triangles, int A, int B, int C )
 {
 	DaoxIntArray_Push( triangles, A );
@@ -636,14 +976,17 @@ void DaoxGraphicsLine_Set( DaoxGraphicsLine *self, float x1, float y1, float x2,
 	self->points->points[1].y = y2;
 }
 
-void DaoxGraphicsRect_Set( DaoxGraphicsRect *self, float x1, float y1, float x2, float y2 )
+void DaoxGraphicsRect_Set( DaoxGraphicsRect *self, float x1, float y1, float x2, float y2, float rx, float ry )
 {
+	self->roundCorner = (rx > 1E-24) && (ry > 1E-24);
 	assert( self->ctype == daox_type_graphics_rect );
-	DaoxPointArray_Resize( self->points, 2 );
+	DaoxPointArray_Resize( self->points, 2 + self->roundCorner );
 	self->points->points[0].x = x1;
 	self->points->points[0].y = y1;
 	self->points->points[1].x = x2;
 	self->points->points[1].y = y2;
+	self->points->points[2].x = rx;
+	self->points->points[2].y = ry;
 }
 
 void DaoxGraphicsCircle_Set( DaoxGraphicsCircle *self, float x, float y, float r )
@@ -734,43 +1077,32 @@ static void DaoxGraphicsiItem_ResetData( DaoxGraphicsItem *self )
 	DaoxGraphicsData_Reset( self->gdata );
 }
 
-/* TODO: dash pattern. */
 void DaoxGraphicsLine_UpdateData( DaoxGraphicsLine *self, DaoxGraphicsScene *scene )
 {
-	DaoxPoint P1 = self->points->points[0];
-	DaoxPoint P2 = self->points->points[1];
-	DaoxQuad quad = DaoxLine2Quad( P1, P2, self->state->strokeWidth );
-
-	DaoxGraphicsiItem_ResetData( self );
-	DaoxGraphicsData_PushStrokeQuad( self->gdata, quad );
+	int i, n = self->points->count;
+	DaoxGraphicsData_Init( self->gdata, self );
+	for(i=0; i<n; i+=2){
+		DaoxPoint P1 = self->points->points[i];
+		DaoxPoint P2 = self->points->points[i+1];
+		DaoxGraphicsData_MakeLine( self->gdata, P1, P2, self->gdata->currentOffset );
+		self->gdata->currentOffset += DaoxDistance( P1, P2 );
+	}
 }
 void DaoxGraphicsRect_UpdateData( DaoxGraphicsRect *self, DaoxGraphicsScene *scene )
 {
-	DaoxQuad centerQuad, bottomQuad, topQuad, leftQuad, rightQuad;
-	float left = self->points->points[0].x;
-	float bottom = self->points->points[0].y;
-	float right = self->points->points[1].x;
-	float top = self->points->points[1].y;
-	float tmp, W2 = 0.5 * self->state->strokeWidth;
-
-	if( left > right ) tmp = left, left = right, right = tmp;
-	if( bottom > top ) tmp = bottom, bottom = top, top = tmp;
-
-	centerQuad = DaoxQuad_FromRect( left + W2, bottom + W2, right - W2, top - W2 );
-	bottomQuad = DaoxQuad_FromRect( left - W2, bottom - W2, right + W2, bottom + W2 );
-	topQuad    = DaoxQuad_FromRect( left - W2, top - W2, right + W2, top + W2 );
-	leftQuad   = DaoxQuad_FromRect( left - W2, bottom + W2, left + W2, top - W2 );
-	rightQuad  = DaoxQuad_FromRect( right - W2, bottom + W2, right + W2, top - W2 );
-
-	DaoxGraphicsiItem_ResetData( self );
-
-	DaoxGraphicsData_PushStrokeQuad( self->gdata, bottomQuad );
-	DaoxGraphicsData_PushStrokeQuad( self->gdata, topQuad );
-	DaoxGraphicsData_PushStrokeQuad( self->gdata, leftQuad );
-	DaoxGraphicsData_PushStrokeQuad( self->gdata, rightQuad );
-
-	if( self->state->fillColor.alpha < 1E-9 ) return;
-	DaoxGraphicsData_PushFillQuad( self->gdata, centerQuad );
+	int i, n = self->points->count;
+	DaoxGraphicsData_Init( self->gdata, self );
+	for(i=0; i<n; i+=(2+self->roundCorner)){
+		DaoxPoint P1 = self->points->points[i];
+		DaoxPoint P2 = self->points->points[i+1];
+		float rx = 0.0, ry = 0.0;
+		if( self->roundCorner ){
+			DaoxPoint P3 = self->points->points[i+2];
+			rx = P3.x;
+			ry = P3.y;
+		}
+		DaoxGraphicsData_MakeRect( self->gdata, P1, P2, rx, ry );
+	}
 }
 void DaoxGraphicsEllipse_UpdateData( DaoxGraphicsEllipse *self, DaoxGraphicsScene *scene )
 {
@@ -830,7 +1162,6 @@ void DaoxGraphicsCircle_UpdateData( DaoxGraphicsCircle *self, DaoxGraphicsScene 
 {
 	DaoxGraphicsEllipse_UpdateData( self, scene );
 }
-void DaoxGraphicsData_MakeJunction( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C, float pos, int junction );
 void DaoxGraphicsPolyline_UpdateData( DaoxGraphicsPolyline *self, DaoxGraphicsScene *scene )
 {
 	float pos = 0;
@@ -841,13 +1172,13 @@ void DaoxGraphicsPolyline_UpdateData( DaoxGraphicsPolyline *self, DaoxGraphicsSc
 	for(i=1; i<self->points->count; ++i){
 		DaoxPoint start = self->points->points[i-1];
 		DaoxPoint end = self->points->points[i];
-		DaoxQuad quad = DaoxLine2Quad( start, end, self->state->strokeWidth );
-		DaoxGraphicsData_PushStrokeQuad( self->gdata, quad );
+		DaoxGraphicsData_MakeLine( self->gdata, start, end, pos );
 		if( i >= 2 ){
 			DaoxPoint prev = self->points->points[i-2];
 			DaoxGraphicsData_MakeJunction( self->gdata, prev, start, end, pos, jt );
 		}
 		pos += DaoxDistance( start, end );
+		self->gdata->currentOffset = pos;
 	}
 }
 void DaoxGraphicsPolygon_UpdateData( DaoxGraphicsPolygon *self, DaoxGraphicsScene *scene )
@@ -976,6 +1307,8 @@ DaoxGraphicsScene* DaoxGraphicsScene_New()
 	DaoCdata_InitCommon( (DaoCdata*) self, daox_type_graphics_scene );
 	self->items = DArray_New(D_VALUE);
 	self->states = DArray_New(D_VALUE);
+	self->quarterArc = DaoxPath_New();
+	self->quarterCircle = DaoxPath_New();
 	self->smallCircle = DaoxPath_New();
 	self->largeCircle = DaoxPath_New();
 	self->wideEllipse = DaoxPath_New();
@@ -983,6 +1316,14 @@ DaoxGraphicsScene* DaoxGraphicsScene_New()
 	self->transform = X2;
 	self->transform.Axx = 1.0;
 	self->triangulator = DaoxTriangulator_New();
+
+	DaoxPath_MoveTo( self->quarterArc,  100.0, 0.0 );
+	DaoxPath_ArcBy( self->quarterArc,  0.0, 0.0, 90 );
+
+	DaoxPath_MoveTo( self->quarterCircle, 0, 0 );
+	DaoxPath_LineTo( self->quarterCircle,  100.0, 0.0 );
+	DaoxPath_ArcTo( self->quarterCircle,  0.0, 100.0, 90 );
+	DaoxPath_Close( self->quarterCircle );
 
 	/* less accurate approximation for small circle: */
 	DaoxPath_MoveTo( self->smallCircle, -10.0, 0 );
@@ -998,6 +1339,8 @@ DaoxGraphicsScene* DaoxGraphicsScene_New()
 	DaoxPath_ImportPath( self->wideEllipse, self->largeCircle, & X2 );
 	DaoxPath_ImportPath( self->narrowEllipse, self->largeCircle, & X4 );
 
+	DaoxPath_Preprocess( self->quarterArc, self->triangulator );
+	DaoxPath_Preprocess( self->quarterCircle, self->triangulator );
 	DaoxPath_Preprocess( self->smallCircle, self->triangulator );
 	DaoxPath_Preprocess( self->largeCircle, self->triangulator );
 	DaoxPath_Preprocess( self->wideEllipse, self->triangulator );
@@ -1033,6 +1376,8 @@ void DaoxGraphicsScene_Delete( DaoxGraphicsScene *self )
 	DaoCdata_FreeCommon( (DaoCdata*) self );
 	DArray_Delete( self->items );
 	DArray_Delete( self->states );
+	DaoxPath_Delete( self->quarterArc );
+	DaoxPath_Delete( self->quarterCircle );
 	DaoxPath_Delete( self->smallCircle );
 	DaoxPath_Delete( self->largeCircle );
 	DaoxPath_Delete( self->wideEllipse );
@@ -1122,10 +1467,10 @@ DaoxGraphicsLine* DaoxGraphicsScene_AddLine( DaoxGraphicsScene *self, float x1, 
 	return item;
 }
 
-DaoxGraphicsRect* DaoxGraphicsScene_AddRect( DaoxGraphicsScene *self, float x1, float y1, float x2, float y2 )
+DaoxGraphicsRect* DaoxGraphicsScene_AddRect( DaoxGraphicsScene *self, float x1, float y1, float x2, float y2, float rx, float ry )
 {
 	DaoxGraphicsRect *item = DaoxGraphicsItem_New( self, DAOX_GS_RECT );
-	DaoxGraphicsRect_Set( item, x1, y1, x2, y2 );
+	DaoxGraphicsRect_Set( item, x1, y1, x2, y2, rx, ry );
 	DArray_PushBack( self->items, item );
 	return item;
 }
@@ -1321,7 +1666,9 @@ static void RECT_SetData( DaoxGraphicsRect *self, DaoValue *p[] )
 	float y1 = p[1]->xFloat.value;
 	float x2 = p[2]->xFloat.value;
 	float y2 = p[3]->xFloat.value;
-	DaoxGraphicsRect_Set( self, x1, y1, x2, y2 );
+	float rx = p[4]->xFloat.value;
+	float ry = p[5]->xFloat.value;
+	DaoxGraphicsRect_Set( self, x1, y1, x2, y2, rx, ry );
 }
 static void RECT_Set( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1708,7 +2055,8 @@ static void SCENE_AddRect( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
 	float x1 = p[1]->xFloat.value, y1 = p[2]->xFloat.value;
 	float x2 = p[3]->xFloat.value, y2 = p[4]->xFloat.value;
-	DaoxGraphicsRect *item = DaoxGraphicsScene_AddRect( self, x1, y1, x2, y2 );
+	float rx = p[5]->xFloat.value, ry = p[6]->xFloat.value;
+	DaoxGraphicsRect *item = DaoxGraphicsScene_AddRect( self, x1, y1, x2, y2, rx, ry );
 	DaoProcess_PutValue( proc, (DaoValue*) item );
 }
 static void SCENE_AddCircle( DaoProcess *proc, DaoValue *p[], int N )
@@ -1922,7 +2270,7 @@ static DaoFuncItem DaoxGraphicsSceneMeths[]=
 
 	{ SCENE_AddLine,   "AddLine( self: GraphicsScene, x1: float, y1: float, x2: float, y2: float ) => GraphicsLine" },
 
-	{ SCENE_AddRect,   "AddRect( self: GraphicsScene, x1: float, y1: float, x2: float, y2: float ) => GraphicsRect" },
+	{ SCENE_AddRect,   "AddRect( self: GraphicsScene, x1: float, y1: float, x2: float, y2: float, rx = 0.0, ry = 0.0 ) => GraphicsRect" },
 
 	{ SCENE_AddCircle,    "AddCircle( self: GraphicsScene, x: float, y: float, r: float ) => GraphicsCircle" },
 

@@ -148,7 +148,7 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 	glMultMatrixd( matrix );
 
 #ifdef USE_STENCIL
-	if( item->shape >= DAOX_GS_CIRCLE ){
+	if( item->shape >= DAOX_GS_RECT ){
 		glEnable( GL_STENCIL_TEST );
 		glStencilFunc( GL_NOTEQUAL, 0x01, 0x01);
 		glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
@@ -161,7 +161,7 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 	}
 
 #ifdef USE_STENCIL
-	if( item->shape >= DAOX_GS_CIRCLE ){
+	if( item->shape >= DAOX_GS_RECT ){
 		glStencilFunc( GL_NOTEQUAL, 0x01, 0x01);
 		glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
 	}
@@ -177,7 +177,7 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 		DaoxGraphics_glDrawTriangles( gd->strokePoints, gd->strokeTriangles, gd->strokeColors, stroke );
 	}
 #ifdef USE_STENCIL
-	if( item->shape >= DAOX_GS_CIRCLE ){
+	if( item->shape >= DAOX_GS_RECT ){
 		glStencilFunc( GL_ALWAYS, 0x0, 0x01);
 		glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
 		glColor4f( 0.0, 0.0, 0.0, 0.0 );
