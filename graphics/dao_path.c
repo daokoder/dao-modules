@@ -1055,8 +1055,10 @@ DaoxPathSegmentPair DaoxPathSegment_GetRefined( DaoxPathSegment *self, DaoxGraph
 	DaoxPathSegmentPair sp1, sp2, segs = {NULL, NULL};
 	DaoxColorGradient *strokeGradient = gdata->item->state->strokeGradient;
 	int m = 0, hasGradient = strokeGradient != NULL && strokeGradient->stops->count;
-	int finer = self->start < 1E-16 || self->end > (1.0-1E-16);
+	int headtail = self->start < 1E-16 || self->end > (1.0-1E-16);
 	float width = gdata->strokeWidth;
+	float scale = gdata->scale;
+	float minlen = gdata->scale;
 	float maxlen = gdata->maxlen;
 	float maxdiff = gdata->maxdiff;
 	float len, offset, nojunction = 0;
@@ -1064,8 +1066,12 @@ DaoxPathSegmentPair DaoxPathSegment_GetRefined( DaoxPathSegment *self, DaoxGraph
 	if( maxlen < 1E-16 ) maxlen = 10;
 	if( maxdiff < 1E-16 ) maxdiff = 0.001;
 
-	DaoxBounds_Init( & bounds, DaoxPoint_Transform( self->P1, gdata->transform ) );
-	DaoxBounds_Update( & bounds, DaoxPoint_Transform( self->P2, gdata->transform ) );
+	quad = DaoxLine2Quad( self->P1, self->P2, width );
+
+	DaoxBounds_Init( & bounds, DaoxPoint_Transform( quad.A, gdata->transform ) );
+	DaoxBounds_Update( & bounds, DaoxPoint_Transform( quad.B, gdata->transform ) );
+	DaoxBounds_Update( & bounds, DaoxPoint_Transform( quad.C, gdata->transform ) );
+	DaoxBounds_Update( & bounds, DaoxPoint_Transform( quad.D, gdata->transform ) );
 	if( self->bezier > 1 )
 		DaoxBounds_Update( & bounds, DaoxPoint_Transform( self->C1, gdata->transform ) );
 	if( self->bezier > 2 )
@@ -1078,24 +1084,78 @@ DaoxPathSegmentPair DaoxPathSegment_GetRefined( DaoxPathSegment *self, DaoxGraph
 		return segs;
 	}
 
-	if( finer && self->count == 1 && self->delta > 1E-6 ){
-		DaoxPathSegment_Divide( self, (self->start < 0.5) ? 0.01 : 0.99 );
-		DaoxPathSegment_ComputeLengthAndDelta( self );
+	if( headtail ){
+		maxdiff = 1E-5 * scale;
+		minlen *= 0.1;
+	}else if( gdata->item->state->dash ){
+		float dlen = gdata->item->state->dashPattern[ gdata->dashState ];
+		if( self->delta > (1E-4*dlen/width) && gdata->dashLength > 0.0 ){
+			if( (gdata->dashState & 1) == 0 ){
+				maxdiff = 1E-4 * scale * dlen / width;
+				minlen *= 0.1;
+			}else if( self->length > gdata->dashLength ){
+				maxdiff = 1E-4 * scale * dlen / width;
+				minlen *= 0.1;
+			}
+		}
+	}
+	if( self->count == 1 && self->delta > 1E-5*scale && self->length > 0.1*scale ){
+		if( headtail ){
+			/* finer segments at the stard and end of initial segments for better joining: */
+			DaoxPathSegment_Divide( self, (self->start < 0.5) ? 0.01 : 0.99 );
+		}else if( gdata->item->state->dash ){
+			float dlen = gdata->item->state->dashPattern[ gdata->dashState ];
+			if( self->delta > (1E-4*scale*dlen/width) && gdata->dashLength > 0.0 ){
+				/* finer segments for dashs: */
+				if( (gdata->dashState & 1) == 0 ){
+					DaoxPathSegment_Divide( self, 0.5 );
+				}else if( self->length > gdata->dashLength ){
+					DaoxPathSegment_Divide( self, 0.5 );
+				}
+			}
+		}
+		if( self->count > 1 ){
+			DaoxPathSegment_ComputeLengthAndDelta( self->first );
+			DaoxPathSegment_ComputeLengthAndDelta( self->second );
+			self->length = self->first->length + self->second->length;
+		}
+	}
+	if( self->bezier >= 2 && gdata->transform ){
+		DaoxPoint P1 = DaoxPoint_Transform( self->P1, gdata->transform );
+		DaoxPoint P2 = DaoxPoint_Transform( self->P2, gdata->transform );
+		DaoxPoint C1 = DaoxPoint_Transform( self->C1, gdata->transform );
+		DaoxPoint C2 = DaoxPoint_Transform( self->C2, gdata->transform );
+		float PP = DaoxDistance( P1, P2 );
+		float PC = DaoxDistance( P1, C1 );
+		float CP = DaoxDistance( self->bezier == 2 ? C1 : C2, P2 );
+		float delta = 0.0;
+		if( self->bezier >= 3 ){
+			float CC = DaoxDistance( C1, C2 );
+			delta = (PC + CC + CP - PP) / (PP + 1E-16);
+		}else{
+			delta = (PC + CP - PP) / (PP + 1E-16);
+		}
+		if( delta > maxdiff ){
+			DaoxPathSegment_Divide( self, 0.5 );
+			DaoxPathSegment_ComputeLengthAndDelta( self->first );
+			DaoxPathSegment_ComputeLengthAndDelta( self->second );
+			self->length = self->first->length + self->second->length;
+		}
 	}
 
 	if( self->bezier == 1 || self->count == 1 ){
 		DaoxPathSegment_GetRefinedStroke( self, gdata );
 		return segs;
 	}
-	if( finer == 0 && self->length <= maxlen && self->delta <= maxdiff ){
+	if( self->length <= maxlen && self->delta <= maxdiff ){
 		DaoxPathSegment_GetRefinedStroke( self, gdata );
 		return segs;
 	}
-	if( finer == 0 && self->length < gdata->scale ){
+	if( self->length < minlen ){
 		DaoxPathSegment_GetRefinedStroke( self, gdata );
 		return segs;
 	}
-	if( self->component->last->next == self->component->first ){
+	if( self->component->last->next == self->component->first && self->delta > 1E-4 ){
 		if( self->bezier == 2 ){
 			if( self->convexness >= 0 ){
 				DaoxGraphicsData_PushFilling( gdata, self->first->P2, self->P1, self->P2 );
@@ -1131,15 +1191,9 @@ DaoxPathSegmentPair DaoxPathSegment_GetRefined( DaoxPathSegment *self, DaoxGraph
 	prev = DaoxLine2Quad( P1, P2, width );
 	next = DaoxLine2Quad( P2, P3, width );
 	if( DaoxLineQuad_Junction( prev, next, NULL ) > 0 ){
-		m += DaoxGraphicsData_PushStrokeTriangle( gdata, prev.B, next.A, P2 );
-		if( gdata->item->state->dash ){
-			m += DaoxGraphicsData_PushStrokeTriangle( gdata, P2, prev.C, next.D );
-		}
+		m += DaoxGraphicsData_PushStrokeTriangle( gdata, next.A, prev.D, P2 );
 	}else{
-		m += DaoxGraphicsData_PushStrokeTriangle( gdata, prev.C, next.D, P2 );
-		if( gdata->item->state->dash ){
-			m += DaoxGraphicsData_PushStrokeTriangle( gdata, P2, prev.B, next.A );
-		}
+		m += DaoxGraphicsData_PushStrokeTriangle( gdata, prev.C, next.B, P2 );
 	}
 	if( hasGradient ){
 		float pos = offset / gdata->currentLength;
@@ -1166,13 +1220,13 @@ void DaoxPath_ExportGraphicsData( DaoxPath *self, DaoxGraphicsData *gdata )
 
 	if( self->first->first->bezier == 0 ) return;
 
-	printf( "scale: %15f\n", scale );
+	printf( ">>>>>>>>>>>>>>>>>>>>>>>>>> scale: %15f\n", scale );
 
 	maxlen *= scale;
 	maxdiff *= scale;
 
 	if( maxlen < 1E-1 ) maxlen = 0.1;
-	if( maxdiff < 1E-3 ) maxdiff = 0.001;
+	if( maxdiff < 1E-4 ) maxdiff = 0.0001;
 
 	gdata->scale = scale;
 	gdata->maxlen = maxlen;

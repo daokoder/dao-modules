@@ -426,11 +426,11 @@ float DaoxDistance2( DaoxPoint start, DaoxPoint end )
 	return (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
 }
 /*
-//        D------------------------C
+//        A------------------------D
 //        |                        |
 // line:  start------------------end
 //        |                        |
-//        A------------------------B
+//        B------------------------C
 */
 DaoxQuad DaoxLine2Quad( DaoxPoint start, DaoxPoint end, float width )
 {
@@ -440,15 +440,15 @@ DaoxQuad DaoxLine2Quad( DaoxPoint start, DaoxPoint end, float width )
 	float x = 0.5 * width * (x2 - x1) / dist;
 	float y = 0.5 * width * (y2 - y1) / dist;
 	DaoxQuad quad;
-	quad.A.x = x1 + y;
-	quad.A.y = y1 - x;
-	quad.D.x = x1 - y;
-	quad.D.y = y1 + x;
+	quad.B.x = x1 + y;
+	quad.B.y = y1 - x;
+	quad.A.x = x1 - y;
+	quad.A.y = y1 + x;
 	x = -x; y = -y;
-	quad.C.x = x2 + y;
-	quad.C.y = y2 - x;
-	quad.B.x = x2 - y;
-	quad.B.y = y2 + x;
+	quad.D.x = x2 + y;
+	quad.D.y = y2 - x;
+	quad.C.x = x2 - y;
+	quad.C.y = y2 + x;
 	return quad;
 }
 float DaoxTriangle_Area( DaoxPoint A, DaoxPoint B, DaoxPoint C )
@@ -513,19 +513,19 @@ int DaoxLine_Intersect( DaoxPoint A, DaoxPoint B, DaoxPoint C, DaoxPoint D, floa
 */
 int DaoxLineQuad_Junction( DaoxQuad first, DaoxQuad second, DaoxPoint *tip )
 {
-	float DAS1 = 0.0, DAS2 = 0.0, BCS1 = 0.0, BCS2 = 0.0;
-	int DA = DaoxLine_Intersect( first.A, first.B, second.A, second.B, & DAS1, & DAS2 );
-	int BC = DaoxLine_Intersect( first.D, first.C, second.D, second.C, & BCS1, & BCS2 );
+	float ADS1 = 0.0, ADS2 = 0.0, BCS1 = 0.0, BCS2 = 0.0;
+	int AD = DaoxLine_Intersect( first.A, first.D, second.A, second.D, & ADS1, & ADS2 );
+	int BC = DaoxLine_Intersect( first.B, first.C, second.B, second.C, & BCS1, & BCS2 );
 	if( tip ){
-		if( DAS1 > 1.0 ){
-			tip->x = (1.0 - DAS1) * first.A.x + DAS1 * first.B.x;
-			tip->y = (1.0 - DAS1) * first.A.y + DAS1 * first.B.y;
+		if( ADS1 > 1.0 ){
+			tip->x = (1.0 - ADS1) * first.A.x + ADS1 * first.D.x;
+			tip->y = (1.0 - ADS1) * first.A.y + ADS1 * first.D.y;
 		}else{
-			tip->x = (1.0 - BCS1) * first.D.x + BCS1 * first.C.x;
-			tip->y = (1.0 - BCS1) * first.D.y + BCS1 * first.C.y;
+			tip->x = (1.0 - BCS1) * first.B.x + BCS1 * first.C.x;
+			tip->y = (1.0 - BCS1) * first.B.y + BCS1 * first.C.y;
 		}
 	}
-	return (DAS1 > 1.0) ? 1 : -1;
+	return (ADS1 > 1.0) ? 1 : -1;
 }
 
 

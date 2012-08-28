@@ -240,7 +240,7 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 	DaoxVertex *V, *A, *B, *C, *inside;
 	DaoxPoint PA, PB, PC, P, *points = self->points->points;
 	int i, imin, imax, contours, K = 0, N = self->vertices->size;
-	float dist, area, ymin, ymax, dmax;
+	float dist, area, ymin, ymax, dmax, dmin;
 	float AB, BC, CA, min_area = 1E-9;
 
 	if( self->vertices->size == 0 ) return;
@@ -279,6 +279,7 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 		imax = A->sorting;
 		inside = NULL;
 		dmax = - 1.0;
+		dmin = 1E9;
 		/*
 		// find the closest point to the triangle:
 		//
@@ -334,8 +335,15 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 				*/
 				//if( V->direction != A->direction && BC == 0.0 ) continue;
 				//if( V->direction != A->direction && (BC == 0.0 || AB == 0.0 || CA == 0.0) ) continue;
+#if 0
 				if( BC > dmax ){
 					dmax = BC;
+					inside = V;
+				}
+#endif
+				float d = DaoxDistance( P, PA );
+				if( d < dmin ){
+					dmin = d;
 					inside = V;
 				}
 			}

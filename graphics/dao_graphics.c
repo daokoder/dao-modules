@@ -429,17 +429,23 @@ void DaoxGraphicsData_PushQuad( DaoxPointArray *points, DaoxIntArray *triangles,
 {
 	int index = points->count;
 	DaoxPointArray_Push( points, quad.A );
-	DaoxPointArray_Push( points, quad.D );
-	DaoxPointArray_Push( points, quad.C );
 	DaoxPointArray_Push( points, quad.B );
+	DaoxPointArray_Push( points, quad.C );
+	DaoxPointArray_Push( points, quad.D );
 	DaoxIntArray_Push( triangles, index );
-	DaoxIntArray_Push( triangles, index+2 );
 	DaoxIntArray_Push( triangles, index+1 );
-	DaoxIntArray_Push( triangles, index );
-	DaoxIntArray_Push( triangles, index+3 );
 	DaoxIntArray_Push( triangles, index+2 );
+	DaoxIntArray_Push( triangles, index );
+	DaoxIntArray_Push( triangles, index+2 );
+	DaoxIntArray_Push( triangles, index+3 );
 }
 int DaoxGraphicsData_PushStrokeQuad( DaoxGraphicsData *self, DaoxQuad quad )
+{
+	if( DaoxBounds_CheckQuad( & self->bounds, quad ) == 0 ) return 0;
+	DaoxGraphicsData_PushQuad( self->strokePoints, self->strokeTriangles, quad );
+	return 4;
+}
+int DaoxGraphicsData_PushStrokeQuadNoCheck( DaoxGraphicsData *self, DaoxQuad quad )
 {
 	if( DaoxBounds_CheckQuad( & self->bounds, quad ) == 0 ) return 0;
 	DaoxGraphicsData_PushQuad( self->strokePoints, self->strokeTriangles, quad );
@@ -485,28 +491,28 @@ void DaoxGraphicsData_MakeJunction( DaoxGraphicsData *self, DaoxPoint A, DaoxPoi
 
 	if( k > 0 ){
 		if( junction != DAOX_JUNCTION_ROUND ){
-			m = DaoxGraphicsData_PushStrokeTriangle( self, Q1.B, Q2.A, P2 );
+			m = DaoxGraphicsData_PushStrokeTriangle( self, Q2.A, Q1.D, P2 );
 			if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, m );
 		}
 		if( junction == DAOX_JUNCTION_SHARP ){
-			m = DaoxGraphicsData_PushStrokeTriangle( self, Q1.B, Q2.A, P3 );
+			m = DaoxGraphicsData_PushStrokeTriangle( self, Q1.D, Q2.A, P3 );
 			if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, m );
 		}
 	}else{
 		if( junction != DAOX_JUNCTION_ROUND ){
-			m = DaoxGraphicsData_PushStrokeTriangle( self, Q1.C, Q2.D, P2 );
+			m = DaoxGraphicsData_PushStrokeTriangle( self, Q1.C, Q2.B, P2 );
 			if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, m );
 		}
 		if( junction == DAOX_JUNCTION_SHARP ){
-			m = DaoxGraphicsData_PushStrokeTriangle( self, Q1.C, Q2.D, P3 );
+			m = DaoxGraphicsData_PushStrokeTriangle( self, Q2.B, Q1.C, P3 );
 			if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, m );
 		}
 	}
 	if( self->item->state->dash ){
 		if( k > 0 ){
-			m = DaoxGraphicsData_PushStrokeTriangle( self, P2, Q1.C, Q2.D );
+			m = DaoxGraphicsData_PushStrokeTriangle( self, P2, Q2.A, Q1.D );
 		}else{
-			m = DaoxGraphicsData_PushStrokeTriangle( self, P2, Q1.B, Q2.A );
+			m = DaoxGraphicsData_PushStrokeTriangle( self, P2, Q1.C, Q2.B );
 		}
 		if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, m );
 	}
@@ -516,7 +522,7 @@ void DaoxGraphicsData_MakeJunction( DaoxGraphicsData *self, DaoxPoint A, DaoxPoi
 	dist = DaoxDistance( P2, P3 );
 	cosine = (P3.x - P2.x) / dist;
 	sine = (P3.y - P2.y) / dist;
-	dist = DaoxDistance( Q1.B, Q2.A );
+	dist = DaoxDistance( Q1.C, Q2.B );
 	angle = acos( 1.0 - dist*dist / (2.0*W2*W2) );
 
 	m = self->strokePoints->count;
@@ -573,14 +579,28 @@ void DaoxGraphicsData_MakeLine( DaoxGraphicsData *self, DaoxPoint P1, DaoxPoint 
 {
 	float len = DaoxDistance( P1, P2 );
 	float offset = self->currentOffset;
+	DaoxQuad quad = DaoxLine2Quad( P1, P2, self->strokeWidth );
+	DaoxBounds bounds;
+
+	DaoxBounds_Init( & bounds, quad.A );
+	DaoxBounds_Update( & bounds, quad.B );
+	DaoxBounds_Update( & bounds, quad.C );
+	DaoxBounds_Update( & bounds, quad.D );
+
+	if( DaoxBounds_Intersect( & self->bounds, bounds ) == 0 ){
+		self->currentOffset += len;
+		DaoxGraphicsData_UpdateDashState( self, len );
+		return;
+	}
+
 	if( self->item->state->dash ){
 		DaoxGraphicsData_MakeDashStroke( self, P1, P2, self->currentOffset );
 	}else{
 		DaoxColorGradient *strokeGradient = self->item->state->strokeGradient;
-		int hasGradient = strokeGradient != NULL && strokeGradient->stops->count;
+		int m, hasGradient = strokeGradient != NULL && strokeGradient->stops->count;
 		DaoxQuad quad = DaoxLine2Quad( P1, P2, self->strokeWidth );
-		DaoxGraphicsData_PushStrokeQuad( self, quad );
-		if( hasGradient ) DaoxGraphicsData_PushStrokeQuadColors( self, offset, len );
+		m = DaoxGraphicsData_PushStrokeQuad( self, quad );
+		if( hasGradient && m ) DaoxGraphicsData_PushStrokeQuadColors( self, offset, len );
 	}
 	self->currentOffset += len;
 }
@@ -597,6 +617,7 @@ void DaoxGraphicsData_MakeRoundCorner( DaoxGraphicsData *self )
 }
 void DaoxGraphicsData_MakeRect( DaoxGraphicsData *self, DaoxPoint P1, DaoxPoint P2, float rx, float ry )
 {
+	DaoxBounds bounds;
 	DaoxPoint LB, RB, RT, LT, point;
 	DaoxQuad quad0, quad1, quad2, quad3, quad4;
 	DaoxTransform transform = {0.0,0.0,0.0,0.0,0.0,0.0};
@@ -615,6 +636,12 @@ void DaoxGraphicsData_MakeRect( DaoxGraphicsData *self, DaoxPoint P1, DaoxPoint 
 	if( bottom > top ) tmp = bottom, bottom = top, top = tmp;
 	width = right - left;
 	height = top - bottom;
+
+	bounds.left = left - W2;
+	bounds.right = right + W2;
+	bounds.bottom = bottom - W2;
+	bounds.top = top + W2;
+	if( DaoxBounds_Intersect( & self->bounds, bounds ) == 0 ) return;
 
 	LB.x = left;
 	LB.y = bottom;
@@ -636,8 +663,8 @@ void DaoxGraphicsData_MakeRect( DaoxGraphicsData *self, DaoxPoint P1, DaoxPoint 
 		quad1 = DaoxQuad_FromRect( left - W2, bottom - W2, right + W2, bottom + W2 );
 		quad3 = DaoxQuad_FromRect( left - W2, top - W2, right + W2, top + W2 );
 
-		DaoxGraphicsData_PushStrokeQuad( self, quad1 );
-		DaoxGraphicsData_PushStrokeQuad( self, quad3 );
+		DaoxGraphicsData_PushStrokeQuadNoCheck( self, quad1 );
+		DaoxGraphicsData_PushStrokeQuadNoCheck( self, quad3 );
 		DaoxPointArray_Push( self->strokePoints, DaoxPoint_FromXY( left+W2, bottom+W2 ) );
 		DaoxPointArray_Push( self->strokePoints, DaoxPoint_FromXY( left+W2, top-W2 ) );
 		DaoxPointArray_Push( self->strokePoints, DaoxPoint_FromXY( right-W2, bottom+W2 ) );
@@ -663,10 +690,10 @@ void DaoxGraphicsData_MakeRect( DaoxGraphicsData *self, DaoxPoint P1, DaoxPoint 
 		quad3 = DaoxQuad_FromRectRightFirst( left + W2, top - W2, right - W2, top + W2 );
 		quad4 = DaoxQuad_FromRectTopFirst( left - W2, bottom + W2, left + W2, top - W2 );
 
-		DaoxGraphicsData_PushStrokeQuad( self, quad1 );
-		DaoxGraphicsData_PushStrokeQuad( self, quad2 );
-		DaoxGraphicsData_PushStrokeQuad( self, quad3 );
-		DaoxGraphicsData_PushStrokeQuad( self, quad4 );
+		DaoxGraphicsData_PushStrokeQuadNoCheck( self, quad1 );
+		DaoxGraphicsData_PushStrokeQuadNoCheck( self, quad2 );
+		DaoxGraphicsData_PushStrokeQuadNoCheck( self, quad3 );
+		DaoxGraphicsData_PushStrokeQuadNoCheck( self, quad4 );
 		DaoxPointArray_Push( self->strokePoints, DaoxPoint_FromXY( left-W2, bottom-W2 ) );
 		DaoxPointArray_Push( self->strokePoints, DaoxPoint_FromXY( right+W2, bottom-W2 ) );
 		DaoxPointArray_Push( self->strokePoints, DaoxPoint_FromXY( right+W2, top+W2 ) );
@@ -714,10 +741,10 @@ void DaoxGraphicsData_MakeRect( DaoxGraphicsData *self, DaoxPoint P1, DaoxPoint 
 		DaoxGraphicsData_MakeLine( self, RT, LT );
 		DaoxGraphicsData_MakeLine( self, LT, LB );
 
-		DaoxGraphicsData_PushStrokeQuad( self, quad1 );
-		DaoxGraphicsData_PushStrokeQuad( self, quad2 );
-		DaoxGraphicsData_PushStrokeQuad( self, quad3 );
-		DaoxGraphicsData_PushStrokeQuad( self, quad4 );
+		DaoxGraphicsData_PushStrokeQuadNoCheck( self, quad1 );
+		DaoxGraphicsData_PushStrokeQuadNoCheck( self, quad2 );
+		DaoxGraphicsData_PushStrokeQuadNoCheck( self, quad3 );
+		DaoxGraphicsData_PushStrokeQuadNoCheck( self, quad4 );
 
 		DaoxGraphicsData_PushStrokeColor( self, color1, 4 );
 		DaoxGraphicsData_PushStrokeColor( self, color2, 4 );
@@ -1174,7 +1201,7 @@ void DaoxGraphicsEllipse_UpdateData( DaoxGraphicsEllipse *self, DaoxGraphicsScen
 
 	DaoxGraphicsData_Init( self->gdata, self );
 	self->gdata->junction = DAOX_JUNCTION_FLAT;
-	self->gdata->maxlen = 3.5 * log(RX + RY + W + 1.0) / log(2.0);
+	self->gdata->maxlen = 3.0 * log(RX + RY + W + 1.0) / log(2.0);
 	self->gdata->maxdiff = 0.5 / (RX + RY + W + 1.0);
 
 	transform.Bx = CX;
