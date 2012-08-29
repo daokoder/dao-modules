@@ -37,6 +37,27 @@
 
 
 
+float DaoxTransform_Trace( DaoxTransform *self )
+{
+	return self->Axx + self->Ayy;
+}
+float DaoxTransform_Determinant( DaoxTransform *self )
+{
+	return self->Axx * self->Ayy - self->Axy * self->Ayx;
+}
+DaoxPoint DaoxTransform_EigenValues( DaoxTransform *self )
+{
+	DaoxPoint egenvalues;
+	float trace = DaoxTransform_Trace( self );
+	float det = DaoxTransform_Determinant( self );
+	float S = sqrt( trace * trace - 4.0 * det );
+	trace = fabs( trace );  /* to make sure the first eigenvalue is the larger one; */
+	egenvalues.x = 0.5 * (trace + S);
+	egenvalues.y = 0.5 * (trace - S);
+	return egenvalues;
+}
+
+
 
 void DaoxTransform_Set( DaoxTransform *self, float *mat, int n )
 {

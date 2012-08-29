@@ -36,7 +36,7 @@
 // * multiple line, rect and ellipse in one item;
 // * type for color and transformation matrix?
 // * text on path, alignment direction (x-axis, y-axis, -x-axis, -y-axis, arbitrary angle);
-// * line cap
+// * locating item by point;
 */
 
 #ifndef __DAO_GRAPHICS_H__
@@ -126,6 +126,7 @@ struct DaoxColorArray
 */
 struct DaoxGraphicsData
 {
+	uchar_t  linecap;
 	uchar_t  junction;
 	uchar_t  dashState;
 	float    dashLength;
@@ -187,6 +188,7 @@ struct DaoxGraphicsState
 	DAO_CDATA_COMMON;
 
 	uchar_t dash;
+	uchar_t linecap;
 	uchar_t junction;
 	float   fontSize;
 	float   strokeWidth;
@@ -263,8 +265,8 @@ struct DaoxGraphicsScene
 	DaoxPath  *wideEllipse; 
 	DaoxPath  *narrowEllipse; 
 
-	DaoxPath  *smallArcs[DAOX_ARCS+1];
-	DaoxPath  *largeArcs[DAOX_ARCS+1];
+	DaoxPath  *smallArcs[DAOX_ARCS];
+	DaoxPath  *largeArcs[DAOX_ARCS];
 
 	DaoxTriangulator  *triangulator;
 };
@@ -302,6 +304,7 @@ void DaoxGraphicsData_PushStrokeQuadColors( DaoxGraphicsData *self, float offset
 int DaoxGraphicsData_PushStrokeTriangle( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C );
 int DaoxGraphicsData_PushStrokeQuad( DaoxGraphicsData *self, DaoxQuad quad );
 void DaoxGraphicsData_PushFilling( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C );
+void DaoxGraphicsData_MakeLineCap( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, int cap, int head );
 void DaoxGraphicsData_MakeJunction( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C, float pos, int junction );
 void DaoxGraphicsData_MakeDashStroke( DaoxGraphicsData *self, DaoxPoint P1, DaoxPoint P2, float offset );
 

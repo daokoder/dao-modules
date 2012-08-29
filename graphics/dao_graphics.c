@@ -137,6 +137,16 @@ void DaoxColorGradient_Add( DaoxColorGradient *self, float stop, DaoxColor color
 	DaoxFloatArray_Push( self->stops, stop );
 	DaoxColorArray_Push( self->colors, color );
 }
+int DaoxColorGradient_GetStopIndex( DaoxColorGradient *self, float start, float end )
+{
+	float *stops = self->stops->values;
+	int i, n = self->stops->count;
+	for(i=0; i<n; ++i){
+		float stop = stops[i];
+		if( stop > start && stop < end ) return i;
+	}
+	return -1;
+}
 DaoxColor DaoxColorGradient_InterpolateColor( DaoxColorGradient *self, float at )
 {
 	int i, n = self->stops->count;
@@ -470,6 +480,81 @@ void DaoxGraphicsData_PushFilling( DaoxGraphicsData *self, DaoxPoint A, DaoxPoin
 	DaoxIntArray_Push( self->fillTriangles, index+1 );
 	DaoxIntArray_Push( self->fillTriangles, index+2 );
 }
+/*
+//       /|
+//      / |
+//     /  |
+//    |  A---------------B
+//     \  |
+//      \ |
+//       \|
+*/
+void DaoxGraphicsData_MakePartialCircle( DaoxGraphicsData *self, DaoxPoint C, float angle, float cosine, float sine, float pos )
+{
+	DaoxGraphicsData round = *self;
+	DaoxTransform transform = {0.0,0.0,0.0,0.0,0.0,0.0};
+	DaoxColorGradient *strokeGradient = self->item->state->strokeGradient;
+	int k, m, hasGradient = strokeGradient != NULL && strokeGradient->stops->count;
+	float f, scale = 0.5 * self->strokeWidth / 100.0;
+
+	round.strokeWidth = 0.0;
+	round.junction = DAOX_JUNCTION_FLAT;
+	round.strokePoints = self->strokePoints;
+	round.fillPoints = self->strokePoints;
+	round.strokeTriangles = self->strokeTriangles;
+	round.fillTriangles = self->strokeTriangles;
+	round.transform = & transform;
+	transform.Axx = scale * cosine;
+	transform.Axy = - scale * sine;
+	transform.Ayx = + scale * sine;
+	transform.Ayy = scale * cosine;
+	transform.Bx = C.x - 0.01 * cosine * self->scale;
+	transform.By = C.y - 0.01 * sine * self->scale;
+	f = DAOX_ARCS * angle / M_PI;
+	k = (int) f;
+	if( f > (k + 1E-16) ) k += 1;
+	m = self->strokePoints->count;
+	DaoxPath_ExportGraphicsData( self->item->scene->largeArcs[k-1], & round );
+	if( hasGradient ){
+		DaoxColor color = DaoxColorGradient_InterpolateColor( strokeGradient, pos );
+		int n = self->strokePoints->count - self->strokeColors->count;
+		if( n > 0 ) DaoxGraphicsData_PushStrokeColor( self, color, n );
+		for(k=m; k<self->strokeColors->count; ++k) self->strokeColors->colors[k] = color;
+	}
+}
+void DaoxGraphicsData_MakeLineCap( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, int cap, int head )
+{
+	DaoxColor color = {0.0};
+	DaoxPoint P1 = DaoxPoint_Transform( head ? A : B, self->transform );
+	DaoxPoint P2 = DaoxPoint_Transform( head ? B : A, self->transform );
+	DaoxQuad quad = DaoxLine2Quad( P1, P2, self->strokeWidth );
+	DaoxQuad quad2 = DaoxLine2Quad( quad.A, quad.B, self->strokeWidth );
+	DaoxColorGradient *strokeGradient = self->item->state->strokeGradient;
+	int m, hasGradient = strokeGradient != NULL && strokeGradient->stops->count;
+	float offset = head ? 0.0 : 1.0;
+
+	if( hasGradient ) color = DaoxColorGradient_InterpolateColor( strokeGradient, offset );
+	if( cap == DAOX_LINECAP_FLAT ){
+		DaoxQuad capQuad;
+		capQuad.A = quad.B;
+		capQuad.B = quad.A;
+		capQuad.C = quad2.B;
+		capQuad.D = quad2.C;
+		m = DaoxGraphicsData_PushStrokeQuad( self, capQuad );
+		if( hasGradient && m ) DaoxGraphicsData_PushStrokeQuadColors( self, offset, 0.0 );
+	}else if( cap == DAOX_LINECAP_SHARP ){
+		DaoxPoint tip;
+		tip.x = 0.5*(quad2.B.x + quad2.C.x);
+		tip.y = 0.5*(quad2.B.y + quad2.C.y);
+		m = DaoxGraphicsData_PushStrokeTriangle( self, quad.B, quad.A, tip );
+		if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, m );
+	}else if( cap == DAOX_LINECAP_ROUND ){
+		float len = DaoxDistance( P1, P2 );
+		float cosine = (P1.x - P2.x) / len;
+		float sine = (P1.y - P2.y) / len;
+		DaoxGraphicsData_MakePartialCircle( self, P1, M_PI, cosine, sine, head ? 0.0 : 1.0 );
+	}
+}
 void DaoxGraphicsData_MakeJunction( DaoxGraphicsData *self, DaoxPoint A, DaoxPoint B, DaoxPoint C, float pos, int junction )
 {
 	DaoxColor color = {0.0};
@@ -518,30 +603,12 @@ void DaoxGraphicsData_MakeJunction( DaoxGraphicsData *self, DaoxPoint A, DaoxPoi
 	}
 	if( junction != DAOX_JUNCTION_ROUND ) return;
 
-	scale = 0.5 * self->strokeWidth / 100.0;
 	dist = DaoxDistance( P2, P3 );
 	cosine = (P3.x - P2.x) / dist;
 	sine = (P3.y - P2.y) / dist;
 	dist = DaoxDistance( Q1.C, Q2.B );
 	angle = acos( 1.0 - dist*dist / (2.0*W2*W2) );
-
-	m = self->strokePoints->count;
-	round.strokeWidth = 0.0;
-	round.junction = DAOX_JUNCTION_FLAT;
-	round.strokePoints = self->strokePoints;
-	round.fillPoints = self->strokePoints;
-	round.strokeTriangles = self->strokeTriangles;
-	round.fillTriangles = self->strokeTriangles;
-	round.transform = & transform;
-	transform.Axx = scale * cosine;
-	transform.Axy = - scale * sine;
-	transform.Ayx = + scale * sine;
-	transform.Ayy = scale * cosine;
-	transform.Bx = P2.x;
-	transform.By = P2.y;
-	k = DAOX_ARCS * angle / M_PI;
-	DaoxPath_ExportGraphicsData( self->item->scene->largeArcs[k], & round );
-	if( hasGradient ) DaoxGraphicsData_PushStrokeColor( self, color, self->strokePoints->count - m );
+	DaoxGraphicsData_MakePartialCircle( self, P2, angle, cosine, sine, pos );
 }
 void DaoxGraphicsData_MakeDashStroke( DaoxGraphicsData *self, DaoxPoint P1, DaoxPoint P2, float offset )
 {
@@ -579,6 +646,8 @@ void DaoxGraphicsData_MakeLine( DaoxGraphicsData *self, DaoxPoint P1, DaoxPoint 
 {
 	float len = DaoxDistance( P1, P2 );
 	float offset = self->currentOffset;
+	DaoxColorGradient *strokeGradient = self->item->state->strokeGradient;
+	int m, hasGradient = strokeGradient != NULL && strokeGradient->stops->count;
 	DaoxQuad quad = DaoxLine2Quad( P1, P2, self->strokeWidth );
 	DaoxBounds bounds;
 
@@ -595,12 +664,25 @@ void DaoxGraphicsData_MakeLine( DaoxGraphicsData *self, DaoxPoint P1, DaoxPoint 
 
 	if( self->item->state->dash ){
 		DaoxGraphicsData_MakeDashStroke( self, P1, P2, self->currentOffset );
-	}else{
-		DaoxColorGradient *strokeGradient = self->item->state->strokeGradient;
-		int m, hasGradient = strokeGradient != NULL && strokeGradient->stops->count;
-		DaoxQuad quad = DaoxLine2Quad( P1, P2, self->strokeWidth );
+	}else if( hasGradient ){
+		float start = offset / self->currentLength;
+		float end = (offset + len) / self->currentLength;
+		int stop = DaoxColorGradient_GetStopIndex( strokeGradient, start, end );
+		if( stop >= 0 && len > 0.5*self->scale ){
+			float at = strokeGradient->stops->values[stop];
+			/* Due to numeric precision of float, using the exact stop value
+			// may result in some minor artifacts: */
+			at = 0.1*0.5 + 0.9*at;
+			DaoxPoint mid = DaoxPoint_Interpolate( P1, P2, at );
+			DaoxGraphicsData_MakeLine( self, P1, mid );
+			DaoxGraphicsData_MakeLine( self, mid, P2 );
+			return;
+		}
 		m = DaoxGraphicsData_PushStrokeQuad( self, quad );
 		if( hasGradient && m ) DaoxGraphicsData_PushStrokeQuadColors( self, offset, len );
+	}else{
+		DaoxQuad quad = DaoxLine2Quad( P1, P2, self->strokeWidth );
+		DaoxGraphicsData_PushStrokeQuad( self, quad );
 	}
 	self->currentOffset += len;
 }
@@ -967,6 +1049,7 @@ DaoxGraphicsState* DaoxGraphicsState_New()
 {
 	DaoxGraphicsState *self = (DaoxGraphicsState*) dao_calloc(1,sizeof(DaoxGraphicsState));
 	DaoCdata_InitCommon( (DaoCdata*)self, daox_type_graphics_state );
+	self->linecap = DAOX_LINECAP_NONE;
 	self->junction = DAOX_JUNCTION_FLAT;
 	self->transform.Axx = 1.0;
 	self->transform.Ayy = 1.0;
@@ -1162,6 +1245,7 @@ static void DaoxGraphicsiItem_ResetData( DaoxGraphicsItem *self )
 
 void DaoxGraphicsLine_UpdateData( DaoxGraphicsLine *self, DaoxGraphicsScene *scene )
 {
+	int cap = self->state->linecap;
 	int i, n = self->points->count;
 	DaoxGraphicsData_Init( self->gdata, self );
 	for(i=0; i<n; i+=2){
@@ -1172,6 +1256,8 @@ void DaoxGraphicsLine_UpdateData( DaoxGraphicsLine *self, DaoxGraphicsScene *sce
 		self->gdata->currentOffset = 0.0;
 		self->gdata->currentLength = DaoxDistance( P1, P2 );
 		DaoxGraphicsData_MakeLine( self->gdata, P1, P2 );
+		DaoxGraphicsData_MakeLineCap( self->gdata, P1, P2, cap, 1 );
+		DaoxGraphicsData_MakeLineCap( self->gdata, P1, P2, cap, 0 );
 	}
 }
 void DaoxGraphicsRect_UpdateData( DaoxGraphicsRect *self, DaoxGraphicsScene *scene )
@@ -1202,7 +1288,7 @@ void DaoxGraphicsEllipse_UpdateData( DaoxGraphicsEllipse *self, DaoxGraphicsScen
 	DaoxGraphicsData_Init( self->gdata, self );
 	self->gdata->junction = DAOX_JUNCTION_FLAT;
 	self->gdata->maxlen = 3.0 * log(RX + RY + W + 1.0) / log(2.0);
-	self->gdata->maxdiff = 0.5 / (RX + RY + W + 1.0);
+	self->gdata->maxdiff = 0.2 / (RX + RY + W + 1.0);
 
 	transform.Bx = CX;
 	transform.By = CY;
@@ -1250,29 +1336,32 @@ void DaoxGraphicsCircle_UpdateData( DaoxGraphicsCircle *self, DaoxGraphicsScene 
 }
 void DaoxGraphicsPolyline_UpdateData( DaoxGraphicsPolyline *self, DaoxGraphicsScene *scene )
 {
+	DaoxGraphicsData *gdata = self->gdata;
+	DaoxPoint *points = self->points->points;
+	int count = self->points->count;
+	int cap = self->state->linecap;
 	int i, jt = self->state->junction;
 
 	DaoxGraphicsiItem_ResetData( self );
-	DaoxGraphicsData_Init( self->gdata, self );
-	self->gdata->dashState = 0;
-	self->gdata->dashLength = self->state->dashPattern[0];
-	self->gdata->currentOffset = 0.0;
-	self->gdata->currentLength = 0.0;
-	for(i=1; i<self->points->count; ++i){
-		DaoxPoint start = self->points->points[i-1];
-		DaoxPoint end = self->points->points[i];
-		self->gdata->currentLength += DaoxDistance( start, end );
-	}
-	for(i=1; i<self->points->count; ++i){
-		float pos = self->gdata->currentOffset;
-		DaoxPoint start = self->points->points[i-1];
-		DaoxPoint end = self->points->points[i];
-		DaoxGraphicsData_MakeLine( self->gdata, start, end );
+	DaoxGraphicsData_Init( gdata, self );
+	gdata->dashState = 0;
+	gdata->dashLength = self->state->dashPattern[0];
+	gdata->currentOffset = 0.0;
+	gdata->currentLength = 0.0;
+	for(i=1; i<count; ++i) gdata->currentLength += DaoxDistance( points[i-1], points[i] );
+	for(i=1; i<count; ++i){
+		float pos = gdata->currentOffset / gdata->currentLength;
+		DaoxPoint start = points[i-1];
+		DaoxPoint end = points[i];
+		DaoxGraphicsData_MakeLine( gdata, start, end );
 		if( i >= 2 ){
-			DaoxPoint prev = self->points->points[i-2];
-			DaoxGraphicsData_MakeJunction( self->gdata, prev, start, end, pos, jt );
+			DaoxPoint prev = points[i-2];
+			DaoxGraphicsData_MakeJunction( gdata, prev, start, end, pos, jt );
 		}
 	}
+	if( count < 2 ) return;
+	DaoxGraphicsData_MakeLineCap( gdata, points[0], points[1], cap, 1 );
+	DaoxGraphicsData_MakeLineCap( gdata, points[count-2], points[count-1], cap, 0 );
 }
 void DaoxGraphicsPolygon_UpdateData( DaoxGraphicsPolygon *self, DaoxGraphicsScene *scene )
 {
@@ -1345,6 +1434,7 @@ int DaoxGraphicsItem_UpdateData( DaoxGraphicsItem *self, DaoxGraphicsScene *scen
 		DaoxGraphicsiItem_ResetData( self );
 	}
 	if( self->gdata->strokePoints->count || self->gdata->fillPoints->count ) return 0;
+	self->gdata->scale = scale;
 	switch( self->shape ){
 	case DAOX_GS_LINE     : DaoxGraphicsLine_UpdateData( self, scene );     break;
 	case DAOX_GS_RECT     : DaoxGraphicsRect_UpdateData( self, scene );     break;
@@ -1356,7 +1446,6 @@ int DaoxGraphicsItem_UpdateData( DaoxGraphicsItem *self, DaoxGraphicsScene *scen
 	case DAOX_GS_TEXT     : DaoxGraphicsText_UpdateData( self, scene );     break;
 	}
 	DaoxGraphicsData_MakeFillGradient( self->gdata );
-	self->gdata->scale = scale;
 	
 	/* TODO better handling: */
 	if( self->bounds.right > self->bounds.left + 1 ) return 1;
@@ -1439,9 +1528,9 @@ DaoxGraphicsScene* DaoxGraphicsScene_New()
 	DaoxPath_Preprocess( self->wideEllipse, self->triangulator );
 	DaoxPath_Preprocess( self->narrowEllipse, self->triangulator );
 
-	for(i=0; i<=DAOX_ARCS; i++){
-		float angle2 = (i+1.0) * 180 / (float)DAOX_ARCS;
-		float angle = (i+1.0) * M_PI / (float)DAOX_ARCS;
+	for(i=0; i<DAOX_ARCS; i++){
+		float angle2 = (i+1.0) * 180  / (float)DAOX_ARCS;
+		float angle  = (i+1.0) * M_PI / (float)DAOX_ARCS;
 		float cosine = cos( 0.5 * angle );
 		float sine = sin( 0.5 * angle );
 		self->smallArcs[i] = DaoxPath_New();
@@ -2253,6 +2342,12 @@ static void STATE_SetFillColor( DaoProcess *proc, DaoValue *p[], int N )
 	self->fillColor.alpha = p[4]->xFloat.value;
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
+static void STATE_SetLineCap( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsState *self = (DaoxGraphicsState*) p[0];
+	self->linecap = p[1]->xEnum.value;
+	DaoProcess_PutValue( proc, (DaoValue*) self );
+}
 static void STATE_SetJunction( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphicsState *self = (DaoxGraphicsState*) p[0];
@@ -2398,7 +2493,8 @@ static DaoFuncItem DaoxGraphicsStateMeths[]=
 
 	{ STATE_SetFillColor,  "SetFillColor( self : GraphicsState, red: float, green: float, blue: float, alpha = 1.0 ) => GraphicsState" },
 
-	{ STATE_SetJunction, "SetJunction( self : GraphicsState, junction: enum<none,sharp,flat,round> = $sharp ) => GraphicsState" },
+	{ STATE_SetLineCap, "SetLineCap( self : GraphicsState, cap: enum<none,flat,sharp,round> = $none ) => GraphicsState" },
+	{ STATE_SetJunction, "SetJunction( self : GraphicsState, junction: enum<none,flat,sharp,round> = $sharp ) => GraphicsState" },
 
 	{ STATE_SetDash, "SetDashPattern( self : GraphicsState, pattern = [3.0,2.0] ) => GraphicsState" },
 

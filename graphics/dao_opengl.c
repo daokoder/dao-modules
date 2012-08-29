@@ -148,11 +148,9 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 	glMultMatrixd( matrix );
 
 #ifdef USE_STENCIL
-	if( item->shape >= DAOX_GS_RECT ){
-		glEnable( GL_STENCIL_TEST );
-		glStencilFunc( GL_NOTEQUAL, 0x01, 0x01);
-		glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
-	}
+	glEnable( GL_STENCIL_TEST );
+	glStencilFunc( GL_NOTEQUAL, 0x01, 0x01);
+	glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
 #endif
 	if( gd->strokeTriangles->count && m && k ){
 		if( gd->strokeColors->count < gd->strokePoints->count )
@@ -161,10 +159,8 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 	}
 
 #ifdef USE_STENCIL
-	if( item->shape >= DAOX_GS_RECT ){
-		glStencilFunc( GL_NOTEQUAL, 0x01, 0x01);
-		glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
-	}
+	glStencilFunc( GL_NOTEQUAL, 0x01, 0x01);
+	glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
 #endif
 	if( gd->fillTriangles->count ){
 		if( gd->fillColors->count < gd->fillPoints->count )
@@ -177,21 +173,19 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 		DaoxGraphics_glDrawTriangles( gd->strokePoints, gd->strokeTriangles, gd->strokeColors, stroke );
 	}
 #ifdef USE_STENCIL
-	if( item->shape >= DAOX_GS_RECT ){
-		glStencilFunc( GL_ALWAYS, 0x0, 0x01);
-		glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
-		glColor4f( 0.0, 0.0, 0.0, 0.0 );
-		if( gd->strokeTriangles->count && m && k ){
-			DaoxGraphics_glFillTriangles( gd->strokePoints, gd->strokeTriangles, NULL );
-		}
-		if( gd->fillTriangles->count ){
-			DaoxGraphics_glFillTriangles( gd->fillPoints, gd->fillTriangles, NULL );
-		}
-		if( gd->strokeTriangles->count && m && k == 0 ){
-			DaoxGraphics_glDrawTriangles( gd->strokePoints, gd->strokeTriangles, gd->strokeColors, stroke );
-		}
-		glDisable( GL_STENCIL_TEST );;
+	glStencilFunc( GL_ALWAYS, 0x0, 0x01);
+	glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
+	glColor4f( 0.0, 0.0, 0.0, 0.0 );
+	if( gd->strokeTriangles->count && m && k ){
+		DaoxGraphics_glFillTriangles( gd->strokePoints, gd->strokeTriangles, NULL );
 	}
+	if( gd->fillTriangles->count ){
+		DaoxGraphics_glFillTriangles( gd->fillPoints, gd->fillTriangles, NULL );
+	}
+	if( gd->strokeTriangles->count && m && k == 0 ){
+		DaoxGraphics_glDrawTriangles( gd->strokePoints, gd->strokeTriangles, gd->strokeColors, stroke );
+	}
+	glDisable( GL_STENCIL_TEST );;
 #endif
 
 	for(i=0; i<n; i++){

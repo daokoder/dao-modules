@@ -35,9 +35,16 @@
 enum DaoxPathJunctions
 {
 	DAOX_JUNCTION_NONE ,
-	DAOX_JUNCTION_SHARP ,
 	DAOX_JUNCTION_FLAT ,
+	DAOX_JUNCTION_SHARP ,
 	DAOX_JUNCTION_ROUND
+};
+enum DaoxLineCaps
+{
+	DAOX_LINECAP_NONE ,
+	DAOX_LINECAP_FLAT ,
+	DAOX_LINECAP_SHARP ,
+	DAOX_LINECAP_ROUND
 };
 
 
@@ -51,7 +58,8 @@ typedef struct DaoxBounds            DaoxBounds;
 typedef struct DaoxPointArray        DaoxPointArray;
 typedef struct DaoxFloatArray        DaoxFloatArray;
 
-typedef struct DaoxBezierSegment     DaoxBezierSegment;
+
+
 
 
 struct DaoxPoint
@@ -128,6 +136,7 @@ DAO_DLL DaoxPoint DaoxTransform_TransformXY( DaoxTransform *self, float x, float
 DAO_DLL DaoxTransform DaoxTransform_Inverse( DaoxTransform *self );
 
 DAO_DLL DaoxPoint DaoxPoint_Transform( DaoxPoint self, DaoxTransform *transform );
+DAO_DLL DaoxPoint DaoxTransform_EigenValues( DaoxTransform *self );
 
 
 DAO_DLL void DaoxBounds_AddMargin( DaoxBounds *self, float margin );

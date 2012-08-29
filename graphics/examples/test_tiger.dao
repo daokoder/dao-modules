@@ -1,6 +1,6 @@
 
-load graphics;
-load test_tiger_paths;
+load graphics
+load test_tiger_paths
 
 routine LoadTiger( scene : GraphicsScene )
 {

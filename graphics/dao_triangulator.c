@@ -313,34 +313,13 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 			BC = DaoxTriangle_Area( P, PB, PC );
 			AB = DaoxTriangle_Area( P, PA, PB );
 			CA = DaoxTriangle_Area( P, PC, PA );
-			//if( A->direction == DAOX_CLOCKWISE ){
 			if( area < 0.0 ){
 				AB = -AB;
 				BC = -BC;
 				CA = -CA;
 			}
 			//printf( "%3i: %12f %12f  %12f\n", i, AB, BC, CA );
-#if 0
-			if( V->direction != A->direction && BC == 0.0 ) continue;
-			if( BC > 0.0 && BC > dmax ){
-				dmax = BC;
-				inside = V;
-			}
-			continue;
-#endif
 			if( BC >= 0.0 && AB >= 0.0 && CA >= 0.0 ){
-				/*
-				// Consider vertex from a different contour with different direction,
-				// only if is fully inside the triangle:
-				*/
-				//if( V->direction != A->direction && BC == 0.0 ) continue;
-				//if( V->direction != A->direction && (BC == 0.0 || AB == 0.0 || CA == 0.0) ) continue;
-#if 0
-				if( BC > dmax ){
-					dmax = BC;
-					inside = V;
-				}
-#endif
 				float d = DaoxDistance( P, PA );
 				if( d < dmin ){
 					dmin = d;

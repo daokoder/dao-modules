@@ -1120,26 +1120,34 @@ DaoxPathSegmentPair DaoxPathSegment_GetRefined( DaoxPathSegment *self, DaoxGraph
 			self->length = self->first->length + self->second->length;
 		}
 	}
-	if( self->bezier >= 2 && gdata->transform ){
-		DaoxPoint P1 = DaoxPoint_Transform( self->P1, gdata->transform );
-		DaoxPoint P2 = DaoxPoint_Transform( self->P2, gdata->transform );
-		DaoxPoint C1 = DaoxPoint_Transform( self->C1, gdata->transform );
-		DaoxPoint C2 = DaoxPoint_Transform( self->C2, gdata->transform );
-		float PP = DaoxDistance( P1, P2 );
-		float PC = DaoxDistance( P1, C1 );
-		float CP = DaoxDistance( self->bezier == 2 ? C1 : C2, P2 );
-		float delta = 0.0;
-		if( self->bezier >= 3 ){
-			float CC = DaoxDistance( C1, C2 );
-			delta = (PC + CC + CP - PP) / (PP + 1E-16);
-		}else{
-			delta = (PC + CP - PP) / (PP + 1E-16);
-		}
-		if( delta > maxdiff ){
-			DaoxPathSegment_Divide( self, 0.5 );
-			DaoxPathSegment_ComputeLengthAndDelta( self->first );
-			DaoxPathSegment_ComputeLengthAndDelta( self->second );
-			self->length = self->first->length + self->second->length;
+	if( self->bezier >= 2 && gdata->transform && (self->delta <= maxdiff || self->count == 1) ){
+		DaoxPoint eigvalues = DaoxTransform_EigenValues( gdata->transform );
+		if( eigvalues.x > 1.5 * eigvalues.y ){
+			DaoxPoint P1 = DaoxPoint_Transform( self->P1, gdata->transform );
+			DaoxPoint P2 = DaoxPoint_Transform( self->P2, gdata->transform );
+			DaoxPoint C1 = DaoxPoint_Transform( self->C1, gdata->transform );
+			DaoxPoint C2 = DaoxPoint_Transform( self->C2, gdata->transform );
+			float PP = DaoxDistance( P1, P2 );
+			float PC = DaoxDistance( P1, C1 );
+			float CP = DaoxDistance( self->bezier == 2 ? C1 : C2, P2 );
+			float delta = 0.0;
+			if( self->bezier >= 3 ){
+				float CC = DaoxDistance( C1, C2 );
+				delta = (PC + CC + CP - PP) / (PP + 1E-16);
+			}else{
+				delta = (PC + CP - PP) / (PP + 1E-16);
+			}
+			if( delta > maxdiff ){
+				if( self->count == 1 ){
+					DaoxPathSegment_Divide( self, 0.5 );
+					DaoxPathSegment_ComputeLengthAndDelta( self->first );
+					DaoxPathSegment_ComputeLengthAndDelta( self->second );
+					self->length = self->first->length + self->second->length;
+				}
+				maxdiff = 0.5*self->delta;
+				maxlen = 0.5*self->length;
+				minlen = 0.5*minlen;
+			}
 		}
 	}
 
@@ -1216,17 +1224,18 @@ void DaoxPath_ExportGraphicsData( DaoxPath *self, DaoxGraphicsData *gdata )
 	float maxlen = gdata->maxlen;
 	float maxdiff = gdata->maxdiff;
 	float pos;
+	int userjunction;
 	int i, j, count, jt, jt2;
 
 	if( self->first->first->bezier == 0 ) return;
 
-	printf( ">>>>>>>>>>>>>>>>>>>>>>>>>> scale: %15f\n", scale );
-
 	maxlen *= scale;
 	maxdiff *= scale;
 
-	if( maxlen < 1E-1 ) maxlen = 0.1;
-	if( maxdiff < 1E-4 ) maxdiff = 0.0001;
+	if( maxlen < 1E-1 ) maxlen = 1E-1;
+	if( maxdiff < 1E-3 ) maxdiff = 1E-3;
+
+	printf( ">>>>>>>>>>>>>>>>>>>>>>>>>> scale:  %15f  %15f\n", scale, maxdiff );
 
 	gdata->scale = scale;
 	gdata->maxlen = maxlen;
@@ -1272,7 +1281,7 @@ void DaoxPath_ExportGraphicsData( DaoxPath *self, DaoxGraphicsData *gdata )
 			jt2 = gdata->item->state->dash == 0 || (gdata->dashState & 1) == 0;
 			cur = DaoxPathSegment_GetRefined( seg, gdata );
 			if( prev.first != NULL && width > 1E-6 ){
-				int userjunction = prev.second->end > 0.8 && cur.first->start < 0.2;
+				userjunction = prev.second->end > 0.8 && cur.first->start < 0.2;
 				jt = userjunction ? gdata->junction : DAOX_JUNCTION_FLAT;
 				if( jt && jt2 ) DaoxGraphicsData_MakeJunction( gdata, prev.second->P1, prev.second->P2, cur.first->P2, pos, jt );
 			}else if( prev.first == NULL ){
@@ -1283,13 +1292,19 @@ void DaoxPath_ExportGraphicsData( DaoxPath *self, DaoxGraphicsData *gdata )
 			seg = seg->next;
 		} while( seg && seg != com->refined.first );
 
-		if( com->refined.last->next == NULL ) continue;
-		if( open.first != NULL && cur.first != NULL && width > 1E-6 ){
-			int userjunction = cur.second->end > 0.8 && open.first->start < 0.2;
-			jt2 = gdata->item->state->dash == 0 || (gdata->dashState & 1) == 0;
-			jt = userjunction ? gdata->junction : DAOX_JUNCTION_FLAT;
-			if( jt && jt2 ) DaoxGraphicsData_MakeJunction( gdata, cur.second->P1, cur.second->P2, open.first->P2, 1.0, jt );
+		if( open.first == NULL || cur.first == NULL || width < 0.1*scale ) continue;
+		if( com->refined.last->next == NULL ){
+			if( gdata->item->state->linecap ){
+				int cap = gdata->item->state->linecap;
+				DaoxGraphicsData_MakeLineCap( gdata, open.first->P1, open.first->P2, cap, 1 );
+				DaoxGraphicsData_MakeLineCap( gdata, cur.first->P1, cur.first->P2, cap, 0 );
+			}
+			continue;
 		}
+		userjunction = cur.second->end > 0.8 && open.first->start < 0.2;
+		jt2 = gdata->item->state->dash == 0 || (gdata->dashState & 1) == 0;
+		jt = userjunction ? gdata->junction : DAOX_JUNCTION_FLAT;
+		if( jt && jt2 ) DaoxGraphicsData_MakeJunction( gdata, cur.second->P1, cur.second->P2, open.first->P2, 1.0, jt );
 	}
 	printf( "strokeTriangles = %6i\n", gdata->strokeTriangles->count );
 	printf( "fillTriangles   = %6i\n", gdata->fillTriangles->count );
