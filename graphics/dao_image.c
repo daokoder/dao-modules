@@ -109,29 +109,16 @@ int DaoxImage_LoadBMP( DaoxImage *self, const char *file )
 	default: goto Failed;
 	}
 	DaoxImage_Resize( self, width, height );
-		//memcpy( self->imageData, data + pixelArray, numBytes );
-		//goto Done;
-	if( pixelBits == 24 ){
-		memcpy( self->imageData, data + pixelArray, numBytes );
-		goto Done;
-	}
 
 	pixelBytes = 1 + self->depth;
 	for(i=0; i<height; ++i){
 		uchar_t *dest = self->imageData + i * self->widthStep;
 		uchar_t *src = data + pixelArray + i * self->widthStep;
 		for(j=0;  j<width;  ++j, dest += pixelBytes, src += pixelBytes){
-#if 0
-			dest[0] = src[1];
-			dest[1] = src[2];
-			dest[2] = src[3];
-			dest[3] = src[0];
-#else
 			dest[0] = src[2];
 			dest[1] = src[1];
 			dest[2] = src[0];
-			dest[3] = src[3];
-#endif
+			if( pixelBits == 32 ) dest[3] = src[3];
 		}
 	}
 
@@ -154,6 +141,7 @@ void daox_write_short( FILE *fout, short i )
 int DaoxImage_SaveBMP( DaoxImage *self, const char *file )
 {
 	FILE *fout = fopen( file, "w+" );
+	int i, j, pixelBytes = 1 + self->depth;
 	
 	if( fout == NULL ) return 0;
 
@@ -173,15 +161,11 @@ int DaoxImage_SaveBMP( DaoxImage *self, const char *file )
 	daox_write_int( fout, 2835  );
 	daox_write_int( fout, 0 );
 	daox_write_int( fout, 0 );
-	if( self->depth == DAOX_IMAGE_BIT24 ){
-		fwrite( self->imageData, 1, self->imageSize, fout );
-	}else{
-		int i, j, pixelBytes = 1 + self->depth;
-		for(i=0; i<self->height; ++i){
-			uchar_t *pix = self->imageData + i * self->widthStep;
-			for(j=0;  j<self->width;  ++j, pix += pixelBytes){
-				fprintf( fout, "%c%c%c%c", pix[3], pix[0], pix[1], pix[2] );
-			}
+	for(i=0; i<self->height; ++i){
+		uchar_t *pix = self->imageData + i * self->widthStep;
+		for(j=0;  j<self->width;  ++j, pix += pixelBytes){
+			fprintf( fout, "%c%c%c", pix[2], pix[1], pix[0] );
+			if( self->depth == DAOX_IMAGE_BIT32 ) fprintf( fout, "%c", pix[3] );
 		}
 	}
 	fclose( fout );

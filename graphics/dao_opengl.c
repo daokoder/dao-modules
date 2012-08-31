@@ -193,33 +193,31 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 		int width = item->image->width;
 		int height = item->image->height;
 		GLuint tid = 0;
-		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 		glGenTextures( 1, & tid ); /* TODO: delete */
 		gd->texture = tid;
 		glBindTexture(GL_TEXTURE_2D, tid);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		if( item->image->depth == DAOX_IMAGE_BIT24 ){
-			printf( "=========================\n" );
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 		}else if( item->image->depth == DAOX_IMAGE_BIT32 ){
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 		}
 	}
 	if( gd->texture && item->image ){
-		int width = item->image->width;
-		int height = item->image->height;
+		int x = item->points->points[0].x;
+		int y = item->points->points[0].y;
+		int w = item->image->width;
+		int h = item->image->height;
 		GLuint tid = gd->texture;
 		glEnable(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D,tid);
 		glBegin(GL_QUADS);
 		glColor3f(1,1,1);
-		glTexCoord2d(0,0);  glVertex3f(0, 0, 0);
-		glTexCoord2d(1,0);  glVertex3f(128, 0, 0);
-		glTexCoord2d(1,1);  glVertex3f(128, 128, 0);
-		glTexCoord2d(0,1);  glVertex3f(0, 128, 0);
+		glTexCoord2d(0,0);  glVertex3f(x, y, 0);
+		glTexCoord2d(1,0);  glVertex3f(x+w, y, 0);
+		glTexCoord2d(1,1);  glVertex3f(x+w, y+h, 0);
+		glTexCoord2d(0,1);  glVertex3f(x, y+h, 0);
 		glEnd();
 		glDisable(GL_TEXTURE_2D);
 	}
