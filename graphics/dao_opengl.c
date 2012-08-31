@@ -133,13 +133,13 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 	gd->bounds = bounds;
 	DaoxGraphicsItem_UpdateData( item, item->scene );
 
-	if( gd->strokeTriangles->count + gd->fillTriangles->count == 0 && n == 0 ) return;
+	//if( gd->strokeTriangles->count + gd->fillTriangles->count == 0 && n == 0 ) return;
 
-#if 0
 	printf( "strokeColors = %6i\n", gd->strokeColors->count );
 	printf( "strokePoints = %6i\n", gd->strokePoints->count );
 	printf( "strokeTriangles = %6i\n", gd->strokeTriangles->count );
 	printf( "fillTriangles   = %6i\n", gd->fillTriangles->count );
+#if 0
 #endif
 	
 	DaoxGraphics_TransfromMatrix( item->state->transform, matrix );
@@ -188,6 +188,42 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 	glDisable( GL_STENCIL_TEST );;
 #endif
 
+	if( gd->texture == 0 && item->image ){
+		uchar_t *data = item->image->imageData;
+		int width = item->image->width;
+		int height = item->image->height;
+		GLuint tid = 0;
+		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+		glGenTextures( 1, & tid ); /* TODO: delete */
+		gd->texture = tid;
+		glBindTexture(GL_TEXTURE_2D, tid);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		if( item->image->depth == DAOX_IMAGE_BIT24 ){
+			printf( "=========================\n" );
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+		}else if( item->image->depth == DAOX_IMAGE_BIT32 ){
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		}
+	}
+	if( gd->texture && item->image ){
+		int width = item->image->width;
+		int height = item->image->height;
+		GLuint tid = gd->texture;
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D,tid);
+		glBegin(GL_QUADS);
+		glColor3f(1,1,1);
+		glTexCoord2d(0,0);  glVertex3f(0, 0, 0);
+		glTexCoord2d(1,0);  glVertex3f(128, 0, 0);
+		glTexCoord2d(1,1);  glVertex3f(128, 128, 0);
+		glTexCoord2d(0,1);  glVertex3f(0, 128, 0);
+		glEnd();
+		glDisable(GL_TEXTURE_2D);
+	}
+
 	for(i=0; i<n; i++){
 		DaoxGraphicsItem *it = (DaoxGraphicsItem*) item->children->items.pVoid[i];
 		DaoxGraphics_glDrawItem( it, transform );
@@ -228,4 +264,8 @@ void DaoxGraphics_glDrawScene( DaoxGraphicsScene *scene, double left, double rig
 		DaoxGraphics_glDrawItem( it, scene->transform );
 	}
 	glPopMatrix();
+}
+
+void DaoxGraphics_glDrawSceneImage( DaoxGraphicsScene *scene, double left, double right, double bottom, double top, DaoxImage *image, int width, int height )
+{
 }

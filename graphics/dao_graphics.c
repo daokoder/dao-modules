@@ -46,6 +46,7 @@ DaoType *daox_type_graphics_polyline = NULL;
 DaoType *daox_type_graphics_polygon = NULL;
 DaoType *daox_type_graphics_path = NULL;
 DaoType *daox_type_graphics_text = NULL;
+DaoType *daox_type_graphics_image = NULL;
 
 
 
@@ -1108,6 +1109,7 @@ DaoxGraphicsItem* DaoxGraphicsItem_New( DaoxGraphicsScene *scene, int shape )
 	case DAOX_GS_POLYGON  : ctype = daox_type_graphics_polygon;  break;
 	case DAOX_GS_PATH     : ctype = daox_type_graphics_path;     break;
 	case DAOX_GS_TEXT     : ctype = daox_type_graphics_text;     break;
+	case DAOX_GS_IMAGE    : ctype = daox_type_graphics_image;     break;
 	}
 	assert( ctype != NULL );
 	DaoCdata_InitCommon( (DaoCdata*)self, ctype );
@@ -1122,6 +1124,7 @@ DaoxGraphicsItem* DaoxGraphicsItem_New( DaoxGraphicsScene *scene, int shape )
 }
 void DaoxGraphicsItem_Delete( DaoxGraphicsItem *self )
 {
+#warning"=================================GC for DaoxGraphicsItem field"
 	if( self->children ) DArray_Delete( self->children );
 	if( self->path ) DaoxPath_Delete( self->path );
 	DaoxGraphicsData_Delete( self->gdata );
@@ -1446,9 +1449,17 @@ int DaoxGraphicsItem_UpdateData( DaoxGraphicsItem *self, DaoxGraphicsScene *scen
 	case DAOX_GS_TEXT     : DaoxGraphicsText_UpdateData( self, scene );     break;
 	}
 	DaoxGraphicsData_MakeFillGradient( self->gdata );
-	
+
 	/* TODO better handling: */
 	if( self->bounds.right > self->bounds.left + 1 ) return 1;
+
+	if( self->shape == DAOX_GS_IMAGE && self->image ){
+		self->bounds.left = self->points->points[0].x;
+		self->bounds.bottom = self->points->points[0].y;
+		self->bounds.right = self->bounds.left + self->image->width;
+		self->bounds.top = self->bounds.bottom + self->image->height;
+	}
+	
 	if( self->gdata->strokePoints->count ){
 		DaoxBounds_Init( & self->bounds, self->gdata->strokePoints->points[0] );
 	}else if( self->gdata->fillPoints->count ){
@@ -1772,6 +1783,18 @@ DaoxGraphicsText* DaoxGraphicsScene_AddPathText( DaoxGraphicsScene *self, const 
 	DaoxPath_ImportPath( item->path, path, NULL );
 	DaoxPath_Preprocess( item->path, self->triangulator );
 	DaoxGraphicsText_AddCharItems( item, text, 0, 0 );
+	return item;
+}
+DaoxGraphicsImage* DaoxGraphicsScene_AddImage( DaoxGraphicsScene *self, DaoxImage *image, float x, float y )
+{
+	DaoxGraphicsState *state = DaoxGraphicsScene_GetOrPushState( self );
+	DaoxGraphicsPath *item = DaoxGraphicsItem_New( self, DAOX_GS_IMAGE );
+	DArray_PushBack( self->items, item );
+	DaoxPointArray_Resize( item->points, 1 );
+	item->points->points[0].x = x;
+	item->points->points[0].y = y;
+	DaoGC_ShiftRC( (DaoValue*) image, (DaoValue*) item->image );
+	item->image = image;
 	return item;
 }
 
@@ -2190,6 +2213,21 @@ DaoTypeBase DaoxGraphicsText_Typer =
 
 
 
+static DaoFuncItem DaoxGraphicsImageMeths[]=
+{
+	{ NULL, NULL }
+};
+
+DaoTypeBase DaoxGraphicsImage_Typer =
+{
+	"GraphicsImage", NULL, NULL, (DaoFuncItem*) DaoxGraphicsImageMeths,
+	{ & DaoxGraphicsItem_Typer, NULL }, { NULL },
+	(FuncPtrDel)DaoxGraphicsItem_Delete, DaoxGraphicsItem_GetGCFields
+};
+
+
+
+
 
 static void SCENE_New( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -2302,6 +2340,15 @@ static void SCENE_AddText2( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseException( proc, DAO_ERROR, "no font is set" );
 		return;
 	}
+	DaoProcess_PutValue( proc, (DaoValue*) item );
+}
+static void SCENE_AddImage( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
+	DaoxImage *image = (DaoxImage*) p[1];
+	float x = p[2]->xFloat.value;
+	float y = p[3]->xFloat.value;
+	DaoxGraphicsImage *item = DaoxGraphicsScene_AddImage( self, image, x, y );
 	DaoProcess_PutValue( proc, (DaoValue*) item );
 }
 static void SCENE_PushState( DaoProcess *proc, DaoValue *p[], int N )
@@ -2474,6 +2521,8 @@ static DaoFuncItem DaoxGraphicsSceneMeths[]=
 
 	{ SCENE_AddText2,     "AddText( self: GraphicsScene, text : string, path :GraphicsPath ) => GraphicsText" },
 
+	{ SCENE_AddImage,     "AddImage( self: GraphicsScene, image: Image, x :float, y :float ) => GraphicsImage" },
+
 	{ SCENE_Test,         "Test( self: GraphicsScene )" },
 	{ NULL, NULL }
 };
@@ -2526,11 +2575,13 @@ DaoTypeBase DaoxGraphicsState_Typer =
 
 DAO_DLL int DaoTriangulator_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
 DAO_DLL int DaoFont_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
+DAO_DLL int DaoImage_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
 DAO_DLL int DaoGLUT_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
 
 DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoFont_OnLoad( vmSpace, ns );
+	DaoImage_OnLoad( vmSpace, ns );
 
 	DaoNamespace_TypeDefine( ns, "tuple<red:float,green:float,blue:float,alpha:float>", "Color" );
 
@@ -2550,6 +2601,7 @@ DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	daox_type_graphics_polygon = DaoNamespace_WrapType( ns, & DaoxGraphicsPolygon_Typer, 0 );
 	daox_type_graphics_path = DaoNamespace_WrapType( ns, & DaoxGraphicsPath_Typer, 0 );
 	daox_type_graphics_text = DaoNamespace_WrapType( ns, & DaoxGraphicsText_Typer, 0 );
+	daox_type_graphics_image = DaoNamespace_WrapType( ns, & DaoxGraphicsImage_Typer, 0 );
 
 	DaoTriangulator_OnLoad( vmSpace, ns );
 	DaoGLUT_OnLoad( vmSpace, ns );

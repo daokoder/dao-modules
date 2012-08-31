@@ -37,6 +37,7 @@
 // * type for color and transformation matrix?
 // * text on path, alignment direction (x-axis, y-axis, -x-axis, -y-axis, arbitrary angle);
 // * locating item by point;
+// * render to image (bmp?);
 */
 
 #ifndef __DAO_GRAPHICS_H__
@@ -48,6 +49,7 @@
 #include "dao_geometry.h"
 #include "dao_triangulator.h"
 #include "dao_font.h"
+#include "dao_image.h"
 
 
 #define DAOX_ARCS 18
@@ -62,7 +64,8 @@ enum DaoxGraphicsShapes
 	DAOX_GS_POLYLINE ,
 	DAOX_GS_POLYGON ,
 	DAOX_GS_PATH ,
-	DAOX_GS_TEXT
+	DAOX_GS_TEXT ,
+	DAOX_GS_IMAGE
 };
 
 typedef struct DaoxColor             DaoxColor;
@@ -85,6 +88,7 @@ typedef  DaoxGraphicsItem  DaoxGraphicsPolyline;
 typedef  DaoxGraphicsItem  DaoxGraphicsPolygon;
 typedef  DaoxGraphicsItem  DaoxGraphicsPath;
 typedef  DaoxGraphicsItem  DaoxGraphicsText;
+typedef  DaoxGraphicsItem  DaoxGraphicsImage;
 
 
 
@@ -136,6 +140,7 @@ struct DaoxGraphicsData
 	float    maxlen;
 	float    maxdiff;
 	float    scale;
+	int      texture;
 
 	DaoxBounds  bounds;
 
@@ -224,6 +229,8 @@ struct DaoxGraphicsItem
 	DaoxPointArray  *points;
 	DaoxPath        *path;
 
+	DaoxImage  *image;
+
 	DaoxGraphicsData  *gdata;
 	DaoxGraphicsScene *scene;
 
@@ -238,6 +245,7 @@ DAO_DLL extern DaoType *daox_type_graphics_polyline;
 DAO_DLL extern DaoType *daox_type_graphics_polygon;
 DAO_DLL extern DaoType *daox_type_graphics_path;
 DAO_DLL extern DaoType *daox_type_graphics_text;
+DAO_DLL extern DaoType *daox_type_graphics_image;
 
 
 struct DaoxGraphicsScene
@@ -383,6 +391,7 @@ DAO_DLL DaoxGraphicsPolygon* DaoxGraphicsScene_AddPolygon( DaoxGraphicsScene *se
 DAO_DLL DaoxGraphicsPath* DaoxGraphicsScene_AddPath( DaoxGraphicsScene *self );
 
 DAO_DLL DaoxGraphicsText* DaoxGraphicsScene_AddText( DaoxGraphicsScene *self, const wchar_t *text, float x, float y );
+DAO_DLL DaoxGraphicsImage* DaoxGraphicsScene_AddImage( DaoxGraphicsScene *self, DaoxImage *image, float x, float y );
 
 
 

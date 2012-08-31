@@ -33,7 +33,7 @@ endif
 
 DAO_INCS += $(GL_INC)
 
-OBJECTS = dao_graphics.o dao_geometry.o dao_path.o dao_triangulator.o dao_font.o
+OBJECTS = dao_graphics.o dao_geometry.o dao_path.o dao_triangulator.o dao_font.o dao_image.o
 OBJECTS += dao_opengl.o
 OBJECTS += dao_glut.o
 

@@ -25,15 +25,54 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __DAO_OPENGL_H__
-#define __DAO_OPENGL_H__
+
+#ifndef __DAO_IMAGE_H__
+#define __DAO_IMAGE_H__
+
+#include "daoStdtype.h"
 
 
-#include "dao_graphics.h"
+typedef struct DaoxImage  DaoxImage;
 
-void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform );
-void DaoxGraphics_glDrawScene( DaoxGraphicsScene *scene, double left, double right, double bottom, double top );
 
-void DaoxGraphics_glDrawSceneImage( DaoxGraphicsScene *scene, double left, double right, double bottom, double top, DaoxImage *image, int width, int height );
+/*
+// Image depths including the alpha channel:
+*/
+enum DaoxImageDepth
+{
+	DAOX_IMAGE_BIT8 ,
+	DAOX_IMAGE_BIT16 ,
+	DAOX_IMAGE_BIT24 ,
+	DAOX_IMAGE_BIT32
+};
+
+
+/*
+// DaoxImage supports only RGBA with different depth.
+// Each channel is encoded in the same number of bits.
+*/
+struct DaoxImage
+{
+	DAO_CDATA_COMMON;
+
+	int       depth;
+	int       width;
+	int       height;
+
+	int       widthStep;
+	int       imageSize;
+	uchar_t  *imageData;
+};
+DAO_DLL extern DaoType *daox_type_image;
+
+
+DaoxImage* DaoxImage_New();
+void DaoxImage_Delete( DaoxImage *self );
+
+void DaoxImage_Resize( DaoxImage *self, int width, int height );
+
+
+int DaoxImage_LoadBMP( DaoxImage *self, const char *file );
+int DaoxImage_SaveBMP( DaoxImage *self, const char *file );
 
 #endif
