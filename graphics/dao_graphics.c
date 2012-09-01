@@ -2351,6 +2351,17 @@ static void SCENE_AddImage( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxGraphicsImage *item = DaoxGraphicsScene_AddImage( self, image, x, y );
 	DaoProcess_PutValue( proc, (DaoValue*) item );
 }
+
+void DaoxGraphics_glDrawSceneImage( DaoxGraphicsScene *scene, DaoxBounds viewport, DaoxImage *image, int width, int height );
+
+static void SCENE_RenderToImage( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
+	DaoxImage *image = (DaoxImage*) p[1];
+	float width = p[2]->xFloat.value;
+	float height = p[3]->xFloat.value;
+	DaoxGraphics_glDrawSceneImage( self, self->viewport, image, width, height );
+}
 static void SCENE_PushState( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
@@ -2523,6 +2534,7 @@ static DaoFuncItem DaoxGraphicsSceneMeths[]=
 
 	{ SCENE_AddImage,     "AddImage( self: GraphicsScene, image: Image, x :float, y :float ) => GraphicsImage" },
 
+	{ SCENE_RenderToImage,  "RenderToImage( self: GraphicsScene, image: Image, width :float, height :float )" },
 	{ SCENE_Test,         "Test( self: GraphicsScene )" },
 	{ NULL, NULL }
 };

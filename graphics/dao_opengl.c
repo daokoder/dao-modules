@@ -46,12 +46,12 @@
 #define USE_STENCIL
 
 
-void DaoxGraphics_glSetColor( DaoxColor color, double alpha )
+void DaoxGraphics_glSetColor( DaoxColor color, float alpha )
 {
 	glColor4f( color.red, color.green, color.blue, color.alpha * alpha );
 }
 
-void DaoxGraphics_glTriangle( DaoxPoint *pts, DaoxColor *cls, int i, int j, int k, double alpha )
+void DaoxGraphics_glTriangle( DaoxPoint *pts, DaoxColor *cls, int i, int j, int k, float alpha )
 {
 	if( cls ) glColor4f( cls[i].red, cls[i].green, cls[i].blue, cls[i].alpha * alpha );
 	glVertex2f( pts[i].x, pts[i].y );
@@ -60,7 +60,7 @@ void DaoxGraphics_glTriangle( DaoxPoint *pts, DaoxColor *cls, int i, int j, int 
 	if( cls ) glColor4f( cls[k].red, cls[k].green, cls[k].blue, cls[k].alpha * alpha );
 	glVertex2f( pts[k].x, pts[k].y );
 }
-void DaoxGraphics_glDrawTriangles( DaoxPointArray *points, DaoxIntArray *triangles, DaoxColorArray *colors, double alpha )
+void DaoxGraphics_glDrawTriangles( DaoxPointArray *points, DaoxIntArray *triangles, DaoxColorArray *colors, float alpha )
 {
 	DaoxColor *cls = colors && colors->count ? colors->colors : NULL;
 	DaoxPoint *pts = points->points;
@@ -83,9 +83,9 @@ void DaoxGraphics_glFillTriangles( DaoxPointArray *points, DaoxIntArray *triangl
 	}
 	glEnd();
 }
-void DaoxGraphics_TransfromMatrix( DaoxTransform transform, GLdouble matrix[16] )
+void DaoxGraphics_TransfromMatrix( DaoxTransform transform, GLfloat matrix[16] )
 {
-	memset( matrix, 0, 16*sizeof(GLdouble) );
+	memset( matrix, 0, 16*sizeof(GLfloat) );
 	matrix[0] = transform.Axx;
 	matrix[4] = transform.Axy;
 	matrix[12] = transform.Bx;
@@ -94,58 +94,14 @@ void DaoxGraphics_TransfromMatrix( DaoxTransform transform, GLdouble matrix[16] 
 	matrix[13] = transform.By;
 	matrix[15] = 1.0;
 }
-void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
+void DaoxGraphics_glDrawItemData( DaoxGraphicsItem *item )
 {
-	DaoxBounds bounds;
-	DaoxTransform inverse;
 	DaoxGraphicsData *gd = item->gdata;
 	DaoxGraphicsScene *scene = item->scene;
-	GLdouble matrix[16] = {0};
-	double scale = DaoxGraphicsScene_Scale( scene );
-	double stroke = item->state->strokeWidth / (scale + 1E-16);
-	int n = item->children ? item->children->size : 0;
+	float scale = DaoxGraphicsScene_Scale( scene );
+	float stroke = item->state->strokeWidth / (scale + 1E-16);
 	int k = stroke >= 1.0;
 	int m = stroke >= 1E-3;
-	int i;
-
-	DaoxTransform_Multiply( & transform, item->state->transform );
-
-	if( n == 0 && (item->bounds.right > item->bounds.left + 1E-6) ){
-		DaoxBounds box = DaoxBounds_Transform( & item->bounds, & transform );
-
-		if( box.left > scene->viewport.right + 1 ) return;
-		if( box.right < scene->viewport.left - 1 ) return;
-		if( box.bottom > scene->viewport.top + 1 ) return;
-		if( box.top < scene->viewport.bottom - 1 ) return;
-	}
-#if 0
-#endif
-
-	inverse = DaoxTransform_Inverse( & transform );
-	bounds = DaoxBounds_Transform( & item->scene->viewport, & inverse );
-	//DaoxBounds_AddMargin( & bounds, 0.1 * (bounds.right - bounds.left) );
-	DaoxBounds_AddMargin( & bounds, item->state->strokeWidth + 1 );
-	//DaoxBounds_Print( & bounds );
-	if( DaoxBounds_Contain( & gd->bounds, item->bounds ) == 0 ){
-		if( DaoxBounds_Contain( & gd->bounds, bounds ) == 0 )
-			DaoxGraphicsData_Reset( gd );
-	}
-	gd->bounds = bounds;
-	DaoxGraphicsItem_UpdateData( item, item->scene );
-
-	//if( gd->strokeTriangles->count + gd->fillTriangles->count == 0 && n == 0 ) return;
-
-	printf( "strokeColors = %6i\n", gd->strokeColors->count );
-	printf( "strokePoints = %6i\n", gd->strokePoints->count );
-	printf( "strokeTriangles = %6i\n", gd->strokeTriangles->count );
-	printf( "fillTriangles   = %6i\n", gd->fillTriangles->count );
-#if 0
-#endif
-	
-	DaoxGraphics_TransfromMatrix( item->state->transform, matrix );
-
-	glPushMatrix();
-	glMultMatrixd( matrix );
 
 #ifdef USE_STENCIL
 	glEnable( GL_STENCIL_TEST );
@@ -187,40 +143,97 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 	}
 	glDisable( GL_STENCIL_TEST );;
 #endif
+}
+void DaoxGraphics_glDrawImageItem( DaoxGraphicsItem *item )
+{
+	DaoxGraphicsData *gd = item->gdata;
+	GLuint tid = gd->texture;
+	int x = item->points->points[0].x;
+	int y = item->points->points[0].y;
+	int w = item->image->width;
+	int h = item->image->height;
 
-	if( gd->texture == 0 && item->image ){
+	if( gd->texture == 0 ){
 		uchar_t *data = item->image->imageData;
-		int width = item->image->width;
-		int height = item->image->height;
-		GLuint tid = 0;
 		glGenTextures( 1, & tid ); /* TODO: delete */
 		gd->texture = tid;
 		glBindTexture(GL_TEXTURE_2D, tid);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		if( item->image->depth == DAOX_IMAGE_BIT24 ){
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 		}else if( item->image->depth == DAOX_IMAGE_BIT32 ){
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 		}
 	}
-	if( gd->texture && item->image ){
-		int x = item->points->points[0].x;
-		int y = item->points->points[0].y;
-		int w = item->image->width;
-		int h = item->image->height;
-		GLuint tid = gd->texture;
-		glEnable(GL_TEXTURE_2D);
-		glBindTexture(GL_TEXTURE_2D,tid);
-		glBegin(GL_QUADS);
-		glColor3f(1,1,1);
-		glTexCoord2d(0,0);  glVertex3f(x, y, 0);
-		glTexCoord2d(1,0);  glVertex3f(x+w, y, 0);
-		glTexCoord2d(1,1);  glVertex3f(x+w, y+h, 0);
-		glTexCoord2d(0,1);  glVertex3f(x, y+h, 0);
-		glEnd();
-		glDisable(GL_TEXTURE_2D);
+
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D,tid);
+	glBegin(GL_QUADS);
+	glColor3f(1,1,1);
+	glTexCoord2d(0,0);  glVertex3f(x, y, 0);
+	glTexCoord2d(1,0);  glVertex3f(x+w, y, 0);
+	glTexCoord2d(1,1);  glVertex3f(x+w, y+h, 0);
+	glTexCoord2d(0,1);  glVertex3f(x, y+h, 0);
+	glEnd();
+	glDisable(GL_TEXTURE_2D);
+}
+void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
+{
+	DaoxBounds bounds;
+	DaoxTransform inverse;
+	DaoxGraphicsData *gd = item->gdata;
+	DaoxGraphicsScene *scene = item->scene;
+	GLfloat matrix[16] = {0};
+	float scale = DaoxGraphicsScene_Scale( scene );
+	float stroke = item->state->strokeWidth / (scale + 1E-16);
+	int n = item->children ? item->children->size : 0;
+	int k = stroke >= 1.0;
+	int m = stroke >= 1E-3;
+	int i, triangles;
+
+	DaoxTransform_Multiply( & transform, item->state->transform );
+
+	if( n == 0 && (item->bounds.right > item->bounds.left + 1E-6) ){
+		DaoxBounds box = DaoxBounds_Transform( & item->bounds, & transform );
+
+		if( box.left > scene->viewport.right + 1 ) return;
+		if( box.right < scene->viewport.left - 1 ) return;
+		if( box.bottom > scene->viewport.top + 1 ) return;
+		if( box.top < scene->viewport.bottom - 1 ) return;
 	}
+#if 0
+#endif
+
+	inverse = DaoxTransform_Inverse( & transform );
+	bounds = DaoxBounds_Transform( & item->scene->viewport, & inverse );
+	//DaoxBounds_AddMargin( & bounds, 0.1 * (bounds.right - bounds.left) );
+	DaoxBounds_AddMargin( & bounds, item->state->strokeWidth + 1 );
+	//DaoxBounds_Print( & bounds );
+	if( DaoxBounds_Contain( & gd->bounds, item->bounds ) == 0 ){
+		if( DaoxBounds_Contain( & gd->bounds, bounds ) == 0 )
+			DaoxGraphicsData_Reset( gd );
+	}
+	gd->bounds = bounds;
+	DaoxGraphicsItem_UpdateData( item, item->scene );
+
+	triangles = gd->strokeTriangles->count + gd->fillTriangles->count;
+	if( triangles == 0 && n == 0 && item->image == NULL ) return;
+
+#if 0
+	printf( "strokeColors = %6i\n", gd->strokeColors->count );
+	printf( "strokePoints = %6i\n", gd->strokePoints->count );
+	printf( "strokeTriangles = %6i\n", gd->strokeTriangles->count );
+	printf( "fillTriangles   = %6i\n", gd->fillTriangles->count );
+#endif
+	
+	DaoxGraphics_TransfromMatrix( item->state->transform, matrix );
+
+	glPushMatrix();
+	glMultMatrixf( matrix );
+
+	if( triangles ) DaoxGraphics_glDrawItemData( item );
+	if( item->image ) DaoxGraphics_glDrawImageItem( item );
 
 	for(i=0; i<n; i++){
 		DaoxGraphicsItem *it = (DaoxGraphicsItem*) item->children->items.pVoid[i];
@@ -228,10 +241,14 @@ void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform )
 	}
 	glPopMatrix();
 }
-void DaoxGraphics_glDrawScene( DaoxGraphicsScene *scene, double left, double right, double bottom, double top )
+void DaoxGraphics_glDrawScene( DaoxGraphicsScene *scene, DaoxBounds viewport )
 {
 	DaoxColor bgcolor = scene->background;
-	GLdouble matrix[16] = {0};
+	GLfloat matrix[16] = {0};
+	float left = viewport.left;
+	float right = viewport.right;
+	float bottom = viewport.bottom;
+	float top = viewport.top;
 	int i, n = scene->items->size;
 
 	glMatrixMode (GL_PROJECTION);
@@ -250,7 +267,7 @@ void DaoxGraphics_glDrawScene( DaoxGraphicsScene *scene, double left, double rig
 	DaoxGraphics_TransfromMatrix( scene->transform, matrix );
 
 	glPushMatrix();
-	glMultMatrixd( matrix );
+	glMultMatrixf( matrix );
 
 #ifdef USE_STENCIL
 	glClearStencil(0);
@@ -264,6 +281,96 @@ void DaoxGraphics_glDrawScene( DaoxGraphicsScene *scene, double left, double rig
 	glPopMatrix();
 }
 
-void DaoxGraphics_glDrawSceneImage( DaoxGraphicsScene *scene, double left, double right, double bottom, double top, DaoxImage *image, int width, int height )
+
+void DaoxGraphics_glDrawSubSceneImage( DaoxGraphicsScene *scene, DaoxBounds viewport, DaoxImage *image, DaoxBounds rect )
 {
+	DaoxBounds rect2, subViewport = viewport;
+	int x = rect.left;
+	int y = rect.bottom;
+	int width = rect.right - rect.left + 1;
+	int height = rect.top - rect.bottom + 1;
+	int pixelBytes = 1 + image->depth;
+	uchar_t *imageData = image->imageData + y * image->widthStep + x * pixelBytes;
+	float left = viewport.left;
+	float right = viewport.right;
+	float bottom = viewport.bottom;
+	float top = viewport.top;
+	float sceneWidth = right - left;
+	float sceneHeight = top - bottom;
+	float xmoreScene = 0.0, ymoreScene = 0.0;
+	float margin, sceneRight, sceneTop;
+	int destWidth = width, destHeight = height;
+	int xmoreWin = 0, ymoreWin = 0;
+	int xwin = 0, ywin = 0;
+
+	glReadBuffer( GL_BACK );
+	glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
+	glPixelStorei( GL_PACK_ROW_LENGTH, image->width );
+
+	if( width > scene->defaultWidth ){
+		xmoreWin = width - scene->defaultWidth;
+		xmoreScene = xmoreWin * sceneWidth / width;
+		destWidth = scene->defaultWidth;
+		subViewport.right = right - xmoreScene;
+	}else{
+		xwin = 0.5 * (scene->defaultWidth - width);
+		margin = xwin * sceneWidth / width;
+		subViewport.left -= margin;
+		subViewport.right += margin;
+	}
+	if( height > scene->defaultHeight ){
+		ymoreWin = height - scene->defaultHeight;
+		ymoreScene = ymoreWin * sceneHeight / height;
+		destHeight = scene->defaultHeight;
+		subViewport.top = top - ymoreScene;
+	}else{
+		ywin = 0.5 * (scene->defaultHeight - height);
+		margin = ywin * sceneHeight / height;
+		subViewport.bottom -= margin;
+		subViewport.top += margin;
+	}
+
+	DaoxGraphics_glDrawScene( scene, subViewport );
+	glReadPixels( xwin, ywin, destWidth, destHeight, GL_RGBA, GL_UNSIGNED_BYTE, imageData );
+
+	sceneRight = subViewport.right;
+	sceneTop = subViewport.top;
+	if( xmoreWin ){
+		subViewport = viewport;
+		subViewport.left = sceneRight;
+		rect2 = rect;
+		rect2.left += scene->defaultWidth;
+		DaoxGraphics_glDrawSubSceneImage( scene, subViewport, image, rect2 );
+	}
+
+	if( ymoreWin ){
+		subViewport = viewport;
+		subViewport.bottom = sceneTop;
+		rect2 = rect;
+		rect2.bottom += scene->defaultHeight;
+		DaoxGraphics_glDrawSubSceneImage( scene, subViewport, image, rect2 );
+	}
+
+	if( xmoreWin && ymoreWin ){
+		subViewport = viewport;
+		subViewport.left = sceneRight;
+		subViewport.bottom = sceneTop;
+		rect2 = rect;
+		rect2.left += scene->defaultWidth;
+		rect2.bottom += scene->defaultHeight;
+		DaoxGraphics_glDrawSubSceneImage( scene, subViewport, image, rect2 );
+	}
+}
+void DaoxGraphics_glDrawSceneImage( DaoxGraphicsScene *scene, DaoxBounds viewport, DaoxImage *image, int width, int height )
+{
+	DaoxBounds rect = { 0.0, 0.0, 0.0, 0.0 };
+	float sceneWidth = viewport.right - viewport.left;
+	float sceneHeight = viewport.top - viewport.bottom;
+
+	image->depth = DAOX_IMAGE_BIT32;
+	DaoxImage_Resize( image, width, height );
+
+	rect.right = width - 1;
+	rect.top = height - 1;
+	DaoxGraphics_glDrawSubSceneImage( scene, viewport, image, rect );
 }

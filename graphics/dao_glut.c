@@ -114,9 +114,8 @@ void DaoxGraphics_glutDisplay(void)
   int now, interval;
   
   if( daox_current_scene ){
-	  DaoxBounds box = daox_current_scene->viewport;
 	  DaoxGraphics_UpdateScene( daox_current_scene );
-	  DaoxGraphics_glDrawScene( daox_current_scene, box.left, box.right, box.bottom, box.top );
+	  DaoxGraphics_glDrawScene( daox_current_scene, daox_current_scene->viewport );
   }
 
   glutSwapBuffers();
@@ -302,21 +301,25 @@ static void GLUT_Init( DaoProcess *proc, DaoValue *p[], int N )
 	test_fps = DaoValue_TryGetInteger( p[4] );
 	DaoxGraphics_glutInit( window_width, window_height, title );
 }
-static void GLUT_Show( DaoProcess *proc, DaoValue *p[], int N )
+static void GLUT_SetScene( DaoProcess *proc, DaoValue *p[], int N )
 {
 	daox_current_scene = (DaoxGraphicsScene*) p[0];
-
 	daox_current_scene->defaultWidth = window_width;
 	daox_current_scene->defaultHeight = window_height;
+}
+
+static void GLUT_Show( DaoProcess *proc, DaoValue *p[], int N )
+{
+	GLUT_SetScene( proc, p, N );
 	DaoxGraphicsScene_SetViewport( daox_current_scene,
 			-window_width/2, window_width/2, -window_height/2, window_height/2 );
-
 	glutMainLoop();
 }
 static DaoFuncItem DaoxGLUTMeths[]=
 {
-	{ GLUT_Init,     "glutInit( width = 300, height = 200, title = '', fps=10, test_fps=0 )" },
-	{ GLUT_Show,     "glutShow( scene : GraphicsScene )" },
+	{ GLUT_Init,      "glutInit( width = 300, height = 200, title = '', fps=10, test_fps=0 )" },
+	{ GLUT_Show,      "glutShow( scene : GraphicsScene )" },
+	{ GLUT_SetScene,  "glutSetScene( scene : GraphicsScene )" },
 	{ NULL, NULL }
 };
 

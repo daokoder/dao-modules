@@ -32,8 +32,8 @@
 #include "dao_graphics.h"
 
 void DaoxGraphics_glDrawItem( DaoxGraphicsItem *item, DaoxTransform transform );
-void DaoxGraphics_glDrawScene( DaoxGraphicsScene *scene, double left, double right, double bottom, double top );
+void DaoxGraphics_glDrawScene( DaoxGraphicsScene *scene, DaoxBounds viewport );
 
-void DaoxGraphics_glDrawSceneImage( DaoxGraphicsScene *scene, double left, double right, double bottom, double top, DaoxImage *image, int width, int height );
+void DaoxGraphics_glDrawSceneImage( DaoxGraphicsScene *scene, DaoxBounds viewport, DaoxImage *image, int width, int height );
 
 #endif
