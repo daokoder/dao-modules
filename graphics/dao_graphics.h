@@ -35,9 +35,7 @@
 // TODO:
 // * multiple line, rect and ellipse in one item;
 // * type for color and transformation matrix?
-// * text on path, alignment direction (x-axis, y-axis, -x-axis, -y-axis, arbitrary angle);
 // * locating item by point;
-// * render to image (bmp?);
 */
 
 #ifndef __DAO_GRAPHICS_H__
@@ -390,7 +388,10 @@ DAO_DLL DaoxGraphicsPolygon* DaoxGraphicsScene_AddPolygon( DaoxGraphicsScene *se
 
 DAO_DLL DaoxGraphicsPath* DaoxGraphicsScene_AddPath( DaoxGraphicsScene *self );
 
-DAO_DLL DaoxGraphicsText* DaoxGraphicsScene_AddText( DaoxGraphicsScene *self, const wchar_t *text, float x, float y );
+DAO_DLL DaoxGraphicsText* DaoxGraphicsScene_AddText( DaoxGraphicsScene *self, const wchar_t *text, float x, float y, float degrees );
+
+DAO_DLL DaoxGraphicsText* DaoxGraphicsScene_AddPathText( DaoxGraphicsScene *self, const wchar_t *text, DaoxPath *path, float degrees );
+
 DAO_DLL DaoxGraphicsImage* DaoxGraphicsScene_AddImage( DaoxGraphicsScene *self, DaoxImage *image, float x, float y );
 
 

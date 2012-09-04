@@ -59,6 +59,7 @@ struct DaoxFont
 
 	int  fontStart;
 	int  fontHeight;
+	int  lineSpace;
 
 	int  head;  /* font header table; */
 	int  cmap;  /* character code mapping table; */

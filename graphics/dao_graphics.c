@@ -37,6 +37,7 @@ DaoType *daox_type_radial_gradient = NULL;
 DaoType *daox_type_path_gradient = NULL;
 DaoType *daox_type_graphics_state = NULL;
 DaoType *daox_type_graphics_scene = NULL;
+
 DaoType *daox_type_graphics_item = NULL;
 DaoType *daox_type_graphics_line = NULL;
 DaoType *daox_type_graphics_rect = NULL;
@@ -1418,6 +1419,7 @@ void DaoxGraphicsText_UpdateData( DaoxGraphicsText *self, DaoxGraphicsScene *sce
 	self->gdata->junction = DAOX_JUNCTION_FLAT;
 	self->gdata->maxlen = maxlen;
 	self->gdata->maxdiff = maxdiff;
+	self->gdata->strokeWidth /= scale + 1E-16;
 
 	glyph = DaoxFont_GetCharGlyph( font, self->codepoint );
 	DaoxPath_ExportGraphicsData( glyph->shape, self->gdata );
@@ -1704,28 +1706,38 @@ DaoxGraphicsPath* DaoxGraphicsScene_AddPath( DaoxGraphicsScene *self )
 	DArray_PushBack( self->items, item );
 	return item;
 }
-void DaoxGraphicsText_AddCharItems( DaoxGraphicsText *self, const wchar_t *text, double x, double y )
+void DaoxGraphicsText_AddCharItems( DaoxGraphicsText *self, const wchar_t *text, float x, float y, float degrees )
 {
 	DaoxGlyph *glyph;
 	DaoxGraphicsText *chitem;
 	DaoxFont *font = self->state->font;
 	DaoxTransform transform = {0.0,0.0,0.0,0.0,0.0,0.0};
+	DaoxTransform rotation = {0.0,0.0,0.0,0.0,0.0,0.0};
 	float width = self->state->strokeWidth;
 	float size = self->state->fontSize;
 	float scale = size / (float)font->fontHeight;
-	float offset;
+	float offset, advance, angle = degrees * M_PI / 180.0;
 
 	transform.Axx = transform.Ayy = scale;
-	transform.Bx = x;
-	transform.By = y;
+	rotation.Axx = cos( angle );
+	rotation.Axy = - sin( angle );
+	rotation.Ayx = - rotation.Axy;
+	rotation.Ayy = rotation.Axx;
+	DaoxTransform_Multiply( & transform, rotation );
 
 	if( self->path ) DaoxPath_Refine( self->path, 8.0/size, 2.0/size );
 
 	offset = x;
 	while( *text ){
+		DaoxBounds bounds = {0.0,0.0,0.0,0.0};
 		wchar_t ch = *text++;
 		glyph = DaoxFont_GetCharGlyph( font, ch );
 		if( glyph == NULL ) break;
+
+		bounds.right = glyph->advanceWidth;
+		bounds.top = font->lineSpace;
+		bounds = DaoxBounds_Transform( & bounds, & rotation );
+		advance = bounds.right - bounds.left;
 
 		if( self->children == NULL ) self->children = DArray_New(D_VALUE);
 		DaoxGraphicsScene_PushState( self->scene );
@@ -1735,9 +1747,8 @@ void DaoxGraphicsText_AddCharItems( DaoxGraphicsText *self, const wchar_t *text,
 		/* Set codepoint to zero if the glyph is empty: */
 		chitem->codepoint = glyph->shape->triangles->count ? ch : 0;
 
-		transform.Bx = offset;
 		if( self->path ){
-			float p = 0.0, adv = 0.5 * (scale * glyph->advanceWidth + width);
+			float p = 0.0, adv = 0.5 * (scale * advance + width);
 			DaoxPathSegment *seg1 = DaoxPath_LocateByDistance( self->path, offset+adv, &p );
 			DaoxPathSegment *seg2 = DaoxPath_LocateByDistance( self->path, offset, &p );
 			if( seg1 == NULL ) seg1 = seg2;
@@ -1745,17 +1756,21 @@ void DaoxGraphicsText_AddCharItems( DaoxGraphicsText *self, const wchar_t *text,
 				float dx = seg1->P2.x - seg1->P1.x;
 				float dy = seg1->P2.y - seg1->P1.y;
 				DaoxTransform_RotateXAxisTo( & transform, dx, dy );
+				DaoxTransform_Multiply( & transform, rotation );
 				DaoxTransform_SetScale( & transform, scale, scale );
 				transform.Bx = (1.0 - p) * seg2->P1.x + p * seg2->P2.x;
 				transform.By = (1.0 - p) * seg2->P1.y + p * seg2->P2.y;
 			}
+		}else{
+			transform.Bx = offset;
+			transform.By = y;
 		}
 		chitem->state->transform = transform;
-		offset += scale * glyph->advanceWidth + width;
+		offset += scale * advance + width;
 		chitem = NULL;
 	}
 }
-DaoxGraphicsText* DaoxGraphicsScene_AddText( DaoxGraphicsScene *self, const wchar_t *text, float x, float y )
+DaoxGraphicsText* DaoxGraphicsScene_AddText( DaoxGraphicsScene *self, const wchar_t *text, float x, float y, float degrees )
 {
 	DaoxGraphicsPath *item;
 	DaoxGraphicsState *state;
@@ -1765,10 +1780,10 @@ DaoxGraphicsText* DaoxGraphicsScene_AddText( DaoxGraphicsScene *self, const wcha
 
 	item = DaoxGraphicsItem_New( self, DAOX_GS_TEXT );
 	DArray_PushBack( self->items, item );
-	DaoxGraphicsText_AddCharItems( item, text, x, y );
+	DaoxGraphicsText_AddCharItems( item, text, x, y, degrees );
 	return item;
 }
-DaoxGraphicsText* DaoxGraphicsScene_AddPathText( DaoxGraphicsScene *self, const wchar_t *text, DaoxPath *path )
+DaoxGraphicsText* DaoxGraphicsScene_AddPathText( DaoxGraphicsScene *self, const wchar_t *text, DaoxPath *path, float degrees )
 {
 	DaoxGraphicsPath *item;
 	DaoxGraphicsState *state;
@@ -1782,7 +1797,7 @@ DaoxGraphicsText* DaoxGraphicsScene_AddPathText( DaoxGraphicsScene *self, const 
 	DaoxPath_Reset( item->path );
 	DaoxPath_ImportPath( item->path, path, NULL );
 	DaoxPath_Preprocess( item->path, self->triangulator );
-	DaoxGraphicsText_AddCharItems( item, text, 0, 0 );
+	DaoxGraphicsText_AddCharItems( item, text, 0, 0, degrees );
 	return item;
 }
 DaoxGraphicsImage* DaoxGraphicsScene_AddImage( DaoxGraphicsScene *self, DaoxImage *image, float x, float y )
@@ -2323,7 +2338,8 @@ static void SCENE_AddText( DaoProcess *proc, DaoValue *p[], int N )
 	DString *text = DaoValue_TryGetString( p[1] );
 	float x = p[2]->xFloat.value;
 	float y = p[3]->xFloat.value;
-	DaoxGraphicsText *item = DaoxGraphicsScene_AddText( self, DString_GetWCS( text ), x, y );
+	float a = p[4]->xFloat.value;
+	DaoxGraphicsText *item = DaoxGraphicsScene_AddText( self, DString_GetWCS( text ), x, y, a );
 	if( item == NULL ){
 		DaoProcess_RaiseException( proc, DAO_ERROR, "no font is set" );
 		return;
@@ -2332,10 +2348,11 @@ static void SCENE_AddText( DaoProcess *proc, DaoValue *p[], int N )
 }
 static void SCENE_AddText2( DaoProcess *proc, DaoValue *p[], int N )
 {
+	float a = p[3]->xFloat.value;
 	wchar_t *text = DaoValue_TryGetWCString( p[1] );
 	DaoxGraphicsScene *self = (DaoxGraphicsScene*) p[0];
 	DaoxGraphicsPath *path = (DaoxGraphicsPath*) p[2];
-	DaoxGraphicsText *item = DaoxGraphicsScene_AddPathText( self, text, path->path );
+	DaoxGraphicsText *item = DaoxGraphicsScene_AddPathText( self, text, path->path, a );
 	if( item == NULL ){
 		DaoProcess_RaiseException( proc, DAO_ERROR, "no font is set" );
 		return;
@@ -2528,9 +2545,9 @@ static DaoFuncItem DaoxGraphicsSceneMeths[]=
 
 	{ SCENE_AddPath,      "AddPath( self: GraphicsScene ) => GraphicsPath" },
 
-	{ SCENE_AddText,      "AddText( self: GraphicsScene, text : string, x :float, y :float ) => GraphicsText" },
+	{ SCENE_AddText,      "AddText( self: GraphicsScene, text : string, x :float, y :float, degrees = 0.0 ) => GraphicsText" },
 
-	{ SCENE_AddText2,     "AddText( self: GraphicsScene, text : string, path :GraphicsPath ) => GraphicsText" },
+	{ SCENE_AddText2,     "AddText( self: GraphicsScene, text : string, path :GraphicsPath, degrees = 0.0 ) => GraphicsText" },
 
 	{ SCENE_AddImage,     "AddImage( self: GraphicsScene, image: Image, x :float, y :float ) => GraphicsImage" },
 

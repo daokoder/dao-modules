@@ -47,8 +47,10 @@ routine main( fps_limit = 30, compute_fps = 0 )
 	glutInit( 800, 600, 'Dao Graphics Demo: Tiger', fps_limit, compute_fps )
 	glutShow( scene )
 }
-routine main( save : string )
+routine main( save : string, width = 1200, height = 900 )
 {
+	width = 160
+	height = 120
 	scene = GraphicsScene();
 	scene.SetBackground( 1.0, 1.0, 1.0, 0.0 );
 	scene.PushState().SetTransform( [-1.0, 0, 0, -1.0, 100, 100] );
@@ -58,6 +60,6 @@ routine main( save : string )
 
 	image = Image();
 	scene.SetViewport( -400, 400, -300, 300 );
-	scene.RenderToImage( image, 1200, 900 );
+	scene.RenderToImage( image, width, height );
 	image.Save( save );
 }

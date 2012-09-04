@@ -147,6 +147,7 @@ int DaoxFont_Open( DaoxFont *self, const char *file )
 
 	self->fontHeight = daox_tt_short( self->fontData + self->hhea + 2 );
 	self->fontHeight += daox_tt_short( self->fontData + self->hhea + 4 );
+	self->lineSpace = self->fontHeight + daox_tt_short( self->fontData + self->hhea + 8 );
 
 	self->indexToLocFormat = daox_tt_ushort( self->fontData + self->head + 50 );
 	printf( "cmap: %i\n", self->cmap );
