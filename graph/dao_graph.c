@@ -604,7 +604,7 @@ DaoTypeBase DaoxEdge_Typer =
 static DaoFuncItem DaoxGraphMeths[]=
 {
 	/* allocaters must have names identical second the typer name: */
-	{ GRAPH_Graph,    "Graph<@N=none,@E=none>( dir :enum<undirected,directed>=$undirected )" },
+	{ GRAPH_Graph,    "Graph<@N,@E>( dir :enum<undirected,directed>=$undirected )" },
 	{ GRAPH_GetNodes, "Nodes( self :Graph<@N,@E> ) => list<Node<@N,@E>>" },
 	{ GRAPH_GetEdges, "Edges( self :Graph<@N,@E> ) => list<Edge<@N,@E>>" },
 	{ GRAPH_AddNode, "AddNode( self :Graph<@N,@E> ) => Node<@N,@E>" },

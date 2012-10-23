@@ -2208,7 +2208,7 @@ void DaoJitHandle::StoreNumber( Value *value, int reg )
 		SetInsertPoint( entryBlock );
 		stackValues[reg] = CreateAlloca( cxx_number_types[type->tid - DAO_INTEGER] );
 		SetValueName( stackValues[reg], "stack", reg );
-		if( GET_BIT( lastNode->bits->mbs, reg ) ){
+		if( DMap_Find( lastNode->set, IntToPointer(reg) ) ){
 			// This stack value is alive at the end of the jit codes
 			// and will be wrote back to the VM stack,
 			// so it is necessary to initialize it with the current VM stack value,
@@ -2606,7 +2606,7 @@ Function* DaoJitHandle::Compile( int start, int end )
 					if( vmc->c == vmcs[i+1]->a ){
 						comparisons[ i+1 ] = value;
 						/* Do not store C, if it is no longer alive: */
-						if( GET_BIT( nodes[i+1]->bits->mbs, vmc->c ) == 0 ) break;
+						if( DMap_Find( nodes[i+1]->set, IntToPointer(vmc->c) ) == NULL ) break;
 					}
 				}
 			}
@@ -2680,7 +2680,7 @@ Function* DaoJitHandle::Compile( int start, int end )
 				if( m == DVM_TEST or (m >= DVM_TEST_I and m <= DVM_TEST_D) ){
 					if( vmc->c == vmcs[i+1]->a ){
 						comparisons[ i+1 ] = value;
-						if( GET_BIT( nodes[i+1]->bits->mbs, vmc->c ) == 0 ) break;
+						if( DMap_Find( nodes[i+1]->set, IntToPointer(vmc->c) ) == NULL ) break;
 					}
 				}
 			}
@@ -2738,7 +2738,7 @@ Function* DaoJitHandle::Compile( int start, int end )
 				if( m == DVM_TEST or (m >= DVM_TEST_I and m <= DVM_TEST_D) ){
 					if( vmc->c == vmcs[i+1]->a ){
 						comparisons[ i+1 ] = value;
-						if( GET_BIT( nodes[i+1]->bits->mbs, vmc->c ) == 0 ) break;
+						if( DMap_Find( nodes[i+1]->set, IntToPointer(vmc->c) ) == NULL ) break;
 					}
 				}
 			}
@@ -3280,7 +3280,7 @@ Function* DaoJitHandle::Compile( int start, int end )
 	for(i=0; i<routine->body->regCount; i++){
 		DaoType *type = types[i];
 		if( stackValues[i] == NULL ) continue;
-		if( GET_BIT( node->bits->mbs, i ) == 0 ) continue; // skip dead variables;
+		if( DMap_Find( node->set, IntToPointer(i) ) == NULL ) continue; // skip dead variables;
 		Value *A = CreateLoad( stackValues[i] );
 		Value *C = GetLocalValue( i );
 		C = GetValueNumberPointer( C, daojit_number_types[type->tid - DAO_INTEGER] );
