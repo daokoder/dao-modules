@@ -53,7 +53,7 @@ enum DaoxImageDepth
 */
 struct DaoxImage
 {
-	DAO_CDATA_COMMON;
+	DAO_CSTRUCT_COMMON;
 
 	int       depth;
 	int       width;

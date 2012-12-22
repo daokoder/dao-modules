@@ -121,7 +121,7 @@ DaoxColorGradient* DaoxColorGradient_New( int type )
 	case DAOX_GRADIENT_RADIAL : ctype = daox_type_radial_gradient; break;
 	case DAOX_GRADIENT_PATH : ctype = daox_type_path_gradient; break;
 	}
-	DaoCdata_InitCommon( (DaoCdata*)self, ctype );
+	DaoCstruct_Init( (DaoCstruct*)self, ctype );
 	self->stops = DaoxFloatArray_New();
 	self->colors = DaoxColorArray_New();
 	self->gradient = type;
@@ -131,7 +131,7 @@ void DaoxColorGradient_Delete( DaoxColorGradient *self )
 {
 	DaoxFloatArray_Delete( self->stops );
 	DaoxColorArray_Delete( self->colors );
-	DaoCdata_FreeCommon( (DaoCdata*) self );
+	DaoCstruct_Free( (DaoCstruct*) self );
 	dao_free( self );
 }
 void DaoxColorGradient_Add( DaoxColorGradient *self, float stop, DaoxColor color )
@@ -1050,7 +1050,7 @@ NoSubdivision:
 DaoxGraphicsState* DaoxGraphicsState_New()
 {
 	DaoxGraphicsState *self = (DaoxGraphicsState*) dao_calloc(1,sizeof(DaoxGraphicsState));
-	DaoCdata_InitCommon( (DaoCdata*)self, daox_type_graphics_state );
+	DaoCstruct_Init( (DaoCstruct*)self, daox_type_graphics_state );
 	self->linecap = DAOX_LINECAP_NONE;
 	self->junction = DAOX_JUNCTION_FLAT;
 	self->transform.Axx = 1.0;
@@ -1064,7 +1064,7 @@ void DaoxGraphicsState_Delete( DaoxGraphicsState *self )
 {
 	if( self->strokeGradient ) DaoxColorGradient_Delete( self->strokeGradient );
 	if( self->font ) DaoGC_DecRC( (DaoValue*) self->font );
-	DaoCdata_FreeCommon( (DaoCdata*) self );
+	DaoCstruct_Free( (DaoCstruct*) self );
 	dao_free( self );
 }
 void DaoxGraphicsState_Copy( DaoxGraphicsState *self, DaoxGraphicsState *other )
@@ -1113,7 +1113,7 @@ DaoxGraphicsItem* DaoxGraphicsItem_New( DaoxGraphicsScene *scene, int shape )
 	case DAOX_GS_IMAGE    : ctype = daox_type_graphics_image;     break;
 	}
 	assert( ctype != NULL );
-	DaoCdata_InitCommon( (DaoCdata*)self, ctype );
+	DaoCstruct_Init( (DaoCstruct*)self, ctype );
 	self->visible = 1;
 	self->scene = scene;
 	self->shape = shape;
@@ -1129,7 +1129,7 @@ void DaoxGraphicsItem_Delete( DaoxGraphicsItem *self )
 	if( self->children ) DArray_Delete( self->children );
 	if( self->path ) DaoxPath_Delete( self->path );
 	DaoxGraphicsData_Delete( self->gdata );
-	DaoCdata_FreeCommon( (DaoCdata*) self );
+	DaoCstruct_Free( (DaoCstruct*) self );
 	dao_free( self );
 }
 
@@ -1499,7 +1499,7 @@ DaoxGraphicsScene* DaoxGraphicsScene_New()
 	DaoxTransform X4 = { 4.0, 0.0, 0.0, 1.0, 0.0, 0.0 };
 
 	DaoxGraphicsScene *self = (DaoxGraphicsScene*) dao_calloc( 1, sizeof(DaoxGraphicsScene) );
-	DaoCdata_InitCommon( (DaoCdata*) self, daox_type_graphics_scene );
+	DaoCstruct_Init( (DaoCstruct*) self, daox_type_graphics_scene );
 	self->items = DArray_New(D_VALUE);
 	self->states = DArray_New(D_VALUE);
 	self->quarterArc = DaoxPath_New();
@@ -1568,7 +1568,7 @@ void DaoxGraphicsScene_Delete( DaoxGraphicsScene *self )
 		DaoxPath_Delete( self->smallArcs[i] );
 		DaoxPath_Delete( self->largeArcs[i] );
 	}
-	DaoCdata_FreeCommon( (DaoCdata*) self );
+	DaoCstruct_Free( (DaoCstruct*) self );
 	DArray_Delete( self->items );
 	DArray_Delete( self->states );
 	DaoxPath_Delete( self->quarterArc );

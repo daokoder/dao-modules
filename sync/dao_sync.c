@@ -35,7 +35,7 @@ static DaoType *daox_type_DaoQueue = NULL;
 
 struct DaoState
 {
-	DAO_CDATA_COMMON;
+	DAO_CSTRUCT_COMMON;
 
 	DaoValue *state;
 	DaoMutex *lock;
@@ -49,7 +49,7 @@ extern DaoTypeBase stateTyper;
 DaoState* DaoState_New( DaoType *type, DaoValue *state )
 {
 	DaoState *res = dao_malloc( sizeof(DaoState) );
-	DaoCdata_InitCommon( (DaoCdata*)res, type );
+	DaoCstruct_Init( (DaoCstruct*)res, type );
 	DaoValue_Copy( state, &res->state );
 	res->lock = DaoMutex_New();
 	res->defmtx = DaoMutex_New();
@@ -66,7 +66,7 @@ void DaoState_Delete( DaoState *self )
 	DaoGC_DecRC( (DaoValue*)self->lock );
 	DaoGC_DecRC( (DaoValue*)self->defmtx );
 	DaoGC_DecRC( (DaoValue*)self->demands );
-	DaoCdata_FreeCommon( (DaoCdata*)self );
+	DaoCstruct_Free( (DaoCstruct*)self );
 	dao_free( self );
 }
 static void DaoState_GetGCFields( void *p, DArray *values, DArray *arrays, DArray *maps, int remove )
@@ -242,7 +242,7 @@ typedef struct QueueItem QueueItem;
 
 struct DaoQueue
 {
-	DAO_CDATA_COMMON;
+	DAO_CSTRUCT_COMMON;
 
 	QueueItem *head;
 	QueueItem *tail;
@@ -259,7 +259,7 @@ extern DaoTypeBase queueTyper;
 DaoQueue* DaoQueue_New( DaoType *type, int capacity )
 {
 	DaoQueue *res = (DaoQueue*)dao_malloc( sizeof(DaoQueue) );
-	DaoCdata_InitCommon( (DaoCdata*)res, type );
+	DaoCstruct_Init( (DaoCstruct*)res, type );
 	res->head = res->tail = NULL;
 	res->size = 0;
 	res->capacity = ( ( capacity < 0 )? 0 : capacity );
@@ -284,7 +284,7 @@ void DaoQueue_Delete( DaoQueue *self )
 	DaoGC_DecRC( (DaoValue*)self->mtx );
 	DaoGC_DecRC( (DaoValue*)self->pushvar );
 	DaoGC_DecRC( (DaoValue*)self->popvar );
-	DaoCdata_FreeCommon( (DaoCdata*)self );
+	DaoCstruct_Free( (DaoCstruct*)self );
 	dao_free( self );
 }
 

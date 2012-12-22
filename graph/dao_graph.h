@@ -67,7 +67,7 @@ DAO_DLL extern DaoTypeBase DaoxGraph_Typer;
 
 struct DaoxNode
 {
-	DAO_CDATA_COMMON;
+	DAO_CSTRUCT_COMMON;
 
 	DaoxGraph  *graph; /* Without reference counting; */
 	DArray     *ins;   /* in edges:  <DaoxEdge*>; Without reference counting; */
@@ -88,7 +88,7 @@ DAO_DLL void DaoxNode_Delete( DaoxNode *self );
 
 struct DaoxEdge
 {
-	DAO_CDATA_COMMON;
+	DAO_CSTRUCT_COMMON;
 
 	DaoxGraph  *graph;  /* Without reference counting; */
 	DaoxNode   *first;  /* Without reference counting; */
@@ -108,7 +108,7 @@ DAO_DLL void DaoxEdge_Delete( DaoxEdge *self );
 
 struct DaoxGraph
 {
-	DAO_CDATA_COMMON;
+	DAO_CSTRUCT_COMMON;
 
 	DArray  *nodes; /* <DaoxNode*>; With reference counting; */
 	DArray  *edges; /* <DaoxEdge*>; With reference counting; */
@@ -142,7 +142,7 @@ typedef struct DaoxGraphData  DaoxGraphData;
 
 struct DaoxGraphData
 {
-	DAO_CDATA_COMMON;
+	DAO_CSTRUCT_COMMON;
 	DAOX_GRAPH_DATA;
 };
 DAO_DLL extern DaoTypeBase DaoxGraphData_Typer;
@@ -175,7 +175,7 @@ struct DaoxEdgeMF
 };
 struct DaoxGraphMaxFlow
 {
-	DAO_CDATA_COMMON;
+	DAO_CSTRUCT_COMMON;
 	DAOX_GRAPH_DATA;
 
 	double  maxflow;

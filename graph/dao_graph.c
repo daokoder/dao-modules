@@ -34,7 +34,7 @@
 DaoxNode* DaoxNode_New( DaoxGraph *graph )
 {
 	DaoxNode *self = (DaoxNode*) dao_calloc( 1, sizeof(DaoxNode) );
-	DaoCdata_InitCommon( (DaoCdata*) self, graph->nodeType );
+	DaoCstruct_Init( (DaoCstruct*) self, graph->nodeType );
 	self->graph = graph;
 	self->outs = DArray_New(0);
 	self->weight = 1;
@@ -42,7 +42,7 @@ DaoxNode* DaoxNode_New( DaoxGraph *graph )
 }
 void DaoxNode_Delete( DaoxNode *self )
 {
-	DaoCdata_FreeCommon( (DaoCdata*) self );
+	DaoCstruct_Free( (DaoCstruct*) self );
 	if( self->ins ) DArray_Delete( self->ins );
 	DArray_Delete( self->outs );
 	dao_free( self );
@@ -55,14 +55,14 @@ void DaoxNode_SetValue( DaoxNode *self, DaoValue *value )
 DaoxEdge* DaoxEdge_New( DaoxGraph *graph )
 {
 	DaoxEdge *self = (DaoxEdge*) dao_calloc( 1, sizeof(DaoxEdge) );
-	DaoCdata_InitCommon( (DaoCdata*) self, graph->edgeType );
+	DaoCstruct_Init( (DaoCstruct*) self, graph->edgeType );
 	self->graph = graph;
 	self->weight = 1;
 	return self;
 }
 void DaoxEdge_Delete( DaoxEdge *self )
 {
-	DaoCdata_FreeCommon( (DaoCdata*) self );
+	DaoCstruct_Free( (DaoCstruct*) self );
 	dao_free( self );
 }
 void DaoxEdge_SetValue( DaoxEdge *self, DaoValue *value )
@@ -73,7 +73,7 @@ void DaoxEdge_SetValue( DaoxEdge *self, DaoValue *value )
 DaoxGraph* DaoxGraph_New( DaoType *type, int directed )
 {
 	DaoxGraph *self = (DaoxGraph*) dao_calloc( 1, sizeof(DaoxGraph) );
-	DaoCdata_InitCommon( (DaoCdata*) self, type );
+	DaoCstruct_Init( (DaoCstruct*) self, type );
 	self->nodes = DArray_New(D_VALUE);
 	self->edges = DArray_New(D_VALUE);
 	self->directed = directed;
@@ -89,7 +89,7 @@ DaoxGraph* DaoxGraph_New( DaoType *type, int directed )
 }
 void DaoxGraph_Delete( DaoxGraph *self )
 {
-	DaoCdata_FreeCommon( (DaoCdata*) self );
+	DaoCstruct_Free( (DaoCstruct*) self );
 	DArray_Delete( self->nodes );
 	DArray_Delete( self->edges );
 	GC_DecRC( self->nodeType );
@@ -667,7 +667,7 @@ DaoTypeBase DaoxGraphData_Typer =
 
 void DaoxGraphData_Init( DaoxGraphData *self, DaoType *type )
 {
-	DaoCdata_InitCommon( (DaoCdata*) self, type );
+	DaoCstruct_Init( (DaoCstruct*) self, type );
 	self->graph = NULL;
 	self->edgeData = DString_New(1);
 	self->nodeData = DString_New(1);

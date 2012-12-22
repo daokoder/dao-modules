@@ -74,7 +74,7 @@ ulong_t daox_tt_ulong( uchar_t *data )
 DaoxFont* DaoxFont_New()
 {
 	DaoxFont *self = (DaoxFont*) calloc( 1, sizeof(DaoxFont) );
-	DaoCdata_InitCommon( (DaoCdata*)self, daox_type_font );
+	DaoCstruct_Init( (DaoCstruct*)self, daox_type_font );
 	self->buffer = DString_New(0);
 	self->glyphs = DMap_New(0,0);
 	self->glyphs2 = DMap_New(0,0);
@@ -92,7 +92,7 @@ void DaoxFont_Delete( DaoxFont *self )
 	DMap_Delete( self->glyphs2 );
 	DString_Delete( self->buffer );
 	DaoxTriangulator_Delete( self->triangulator );
-	DaoCdata_FreeCommon( (DaoCdata*) self );
+	DaoCstruct_Free( (DaoCstruct*) self );
 	dao_free( self );
 }
 

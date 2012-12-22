@@ -38,13 +38,13 @@ DaoType *daox_type_image = NULL;
 DaoxImage* DaoxImage_New()
 {
 	DaoxImage *self = (DaoxImage*) calloc( 1, sizeof(DaoxImage) );
-	DaoCdata_InitCommon( (DaoCdata*)self, daox_type_image );
+	DaoCstruct_Init( (DaoCstruct*)self, daox_type_image );
 	return self;
 }
 void DaoxImage_Delete( DaoxImage *self )
 {
 	if( self->imageData ) dao_free( self->imageData );
-	DaoCdata_FreeCommon( (DaoCdata*) self );
+	DaoCstruct_Free( (DaoCstruct*) self );
 	dao_free( self );
 }
 

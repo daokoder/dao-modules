@@ -52,7 +52,7 @@ struct DaoxGlyphPoint
 
 struct DaoxFont
 {
-	DAO_CDATA_COMMON;
+	DAO_CSTRUCT_COMMON;
 
 	DString  *buffer;
 	uchar_t  *fontData;

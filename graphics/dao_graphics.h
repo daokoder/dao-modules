@@ -168,7 +168,7 @@ enum DaoxGradientTypes
 
 struct DaoxColorGradient
 {
-	DAO_CDATA_COMMON;
+	DAO_CSTRUCT_COMMON;
 
 	int  gradient;
 
@@ -188,7 +188,7 @@ DAO_DLL extern DaoType *daox_type_path_gradient;
 
 struct DaoxGraphicsState
 {
-	DAO_CDATA_COMMON;
+	DAO_CSTRUCT_COMMON;
 
 	uchar_t dash;
 	uchar_t linecap;
@@ -213,7 +213,7 @@ DAO_DLL extern DaoType *daox_type_graphics_state;
 
 struct DaoxGraphicsItem
 {
-	DAO_CDATA_COMMON;
+	DAO_CSTRUCT_COMMON;
 
 	uchar_t  shape;  /* shape type; */
 	uchar_t  visible;
@@ -248,7 +248,7 @@ DAO_DLL extern DaoType *daox_type_graphics_image;
 
 struct DaoxGraphicsScene
 {
-	DAO_CDATA_COMMON;
+	DAO_CSTRUCT_COMMON;
 
 	float  defaultWidth;
 	float  defaultHeight;
