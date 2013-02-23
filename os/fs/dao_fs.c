@@ -808,6 +808,7 @@ static void FSNode_New( DaoProcess *proc, DaoValue *p[], int N )
 	int res;
 	char *path = DaoValue_TryGetMBString( p[0] );
 	if( ( res = DInode_Open( fsnode, path ) ) != 0 ){
+		DInode_Delete( fsnode );
 		if( res == 1 )
 			strcpy( errbuf, "Trying to open something which is not a file/directory" );
 		else if( res == -1 )

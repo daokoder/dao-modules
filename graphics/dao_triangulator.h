@@ -30,7 +30,7 @@
 
 #include "dao_geometry.h"
 
-typedef struct DaoxVertex  DaoxVertex;
+typedef struct DaoxVertexData  DaoxVertexData;
 
 typedef struct DaoxTriangulator  DaoxTriangulator;
 
@@ -43,7 +43,7 @@ enum DaoxContourDirections
 
 
 
-struct DaoxVertex
+struct DaoxVertexData
 {
 	uint_t  index;    /* index in the original point array; */
 	uint_t  sorting;  /* index in the sorted vertex array; */
@@ -52,13 +52,13 @@ struct DaoxVertex
 	uchar_t   direction;  /* contour direction; */
 	uchar_t   done;
 
-	DaoxVertex  *prev;  /* previous vertex; */
-	DaoxVertex  *next;  /* next vertex; */
+	DaoxVertexData  *prev;  /* previous vertex; */
+	DaoxVertexData  *next;  /* next vertex; */
 };
 
 
-DAO_DLL DaoxVertex* DaoxVertex_New( daoint index );
-DAO_DLL void DaoxVertex_Delete( DaoxVertex *self );
+DAO_DLL DaoxVertexData* DaoxVertexData_New( daoint index );
+DAO_DLL void DaoxVertexData_Delete( DaoxVertexData *self );
 
 
 
@@ -67,21 +67,21 @@ struct DaoxTriangulator
 	/* All the points in the polygon sorted by their x coordinates: */
 	DaoxPointArray  *points;
 
-	DaoxVertex  *start;
+	DaoxVertexData  *start;
 
 	/*
 	// All the vertices for both the initial and intermediate polygons.
 	// The original vertices are sorted by the x coordinates,
 	// but the duplicated vertices for intermediate polygons are not.
 	*/
-	DArray  *vertices;  /* DArray<DaoxVertex*>; */
+	DArray  *vertices;  /* DArray<DaoxVertexData*>; */
 
 	/* Sorted list of vertices for processing: */
-	DArray  *worklist;  /* DArray<DaoxVertex*>; */
+	DArray  *worklist;  /* DArray<DaoxVertexData*>; */
 
 	DArray  *triangles;  /* list of triple integers; */
 
-	DaoxVertex  *caches;  /* reusable vertices; */
+	DaoxVertexData  *caches;  /* reusable vertices; */
 };
 
 

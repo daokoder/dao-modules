@@ -44,6 +44,7 @@ static float window_height = 200.0;
 static float fps_limit = 10.0;
 
 static int fps_count = 0;
+static int current_time = 0;
 static int last_update = 0;
 static int count_reset = 0;
 static int test_fps = 0;
@@ -109,31 +110,39 @@ void DaoxGraphics_glutIdle(void)
 {
 	if( daox_current_scene ) DaoxGraphics_CallMethod( daox_current_scene, "Idle" );
 }
+void DaoxGraphics_ApplyMaxFPS( int fps_limit )
+{
+	int interval;
+	current_time = glutGet(GLUT_ELAPSED_TIME);
+	interval = current_time - last_update;
+	if( interval < 1000.0 / fps_limit ) usleep( 2000 * (1000.0 / fps_limit - interval) );
+	last_update = current_time;
+}
+void DaoxGraphics_TestFPS()
+{
+	fps_count += 1;
+
+	if( last_update ){
+		printf( "FPS: %9.1f\n", 1000.0*fps_count / (float)(current_time - count_reset) );
+		fflush( stdout );
+	}
+	if( (current_time - count_reset) > 5000 ){
+		fps_count = (int)(1000.0 * fps_count / (float)(current_time - count_reset));
+		count_reset = current_time - 1000;
+	}
+}
 void DaoxGraphics_glutDisplay(void)
 {
-  int now, interval;
-  
-  if( daox_current_scene ){
-	  DaoxGraphics_UpdateScene( daox_current_scene );
-	  DaoxGraphics_glDrawScene( daox_current_scene, daox_current_scene->viewport );
-  }
+	if( daox_current_scene ){
+		DaoxGraphics_UpdateScene( daox_current_scene );
+		DaoxGraphics_glDrawScene( daox_current_scene, daox_current_scene->viewport );
+	}
 
-  glutSwapBuffers();
+	glutSwapBuffers();
 
-  now = glutGet(GLUT_ELAPSED_TIME);
-  interval = now - last_update;
-  if( interval < 1000.0 / fps_limit ) usleep( 2000 * (1000.0 / fps_limit - interval) );
-  last_update = now;
+	DaoxGraphics_ApplyMaxFPS( fps_limit );
 
-  if( test_fps == 0 ) return;
-  
-  fps_count += 1;
-  
-  if( last_update ) printf( "FPS: %9.1f\n", 1000.0*fps_count / (float)(now - count_reset) );
-  if( (now - count_reset) > 5000 ){
-	  fps_count = (int)(1000.0 * fps_count / (float)(now - count_reset));
-	  count_reset = now - 1000;
-  }
+	if( test_fps ) DaoxGraphics_TestFPS();
 }
 
 void DaoxGraphics_glutReshape( int width, int height )

@@ -158,8 +158,8 @@ void DaoxGraphics_glDrawImageItem( DaoxGraphicsItem *item )
 		glGenTextures( 1, & tid ); /* TODO: delete */
 		gd->texture = tid;
 		glBindTexture(GL_TEXTURE_2D, tid);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		if( item->image->depth == DAOX_IMAGE_BIT24 ){
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 		}else if( item->image->depth == DAOX_IMAGE_BIT32 ){

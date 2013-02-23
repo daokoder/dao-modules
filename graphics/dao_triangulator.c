@@ -35,13 +35,13 @@
 
 
 
-DaoxVertex* DaoxVertex_New( daoint index )
+DaoxVertexData* DaoxVertexData_New( daoint index )
 {
-	DaoxVertex *self = (DaoxVertex*) dao_calloc( 1, sizeof(DaoxVertex) );
+	DaoxVertexData *self = (DaoxVertexData*) dao_calloc( 1, sizeof(DaoxVertexData) );
 	self->index = index;
 	return self;
 }
-void DaoxVertex_Delete( DaoxVertex *self )
+void DaoxVertexData_Delete( DaoxVertexData *self )
 {
 	dao_free( self );
 }
@@ -57,13 +57,13 @@ DaoxTriangulator* DaoxTriangulator_New()
 }
 void DaoxTriangulator_Delete( DaoxTriangulator *self )
 {
-	DaoxVertex *vertex;
+	DaoxVertexData *vertex;
 	DaoxTriangulator_Reset( self );
 	vertex = self->caches;
 	while( vertex ){
-		DaoxVertex *v = vertex;
+		DaoxVertexData *v = vertex;
 		vertex = vertex->next;
-		DaoxVertex_Delete( v );
+		DaoxVertexData_Delete( v );
 	}
 	DaoxPointArray_Delete( self->points );
 	DArray_Delete( self->vertices );
@@ -75,8 +75,8 @@ void DaoxTriangulator_Reset( DaoxTriangulator *self )
 {
 	daoint i;
 	for(i=0; i<self->vertices->size; ++i){
-		DaoxVertex *vertex = (DaoxVertex*) self->vertices->items.pVoid[i];
-		memset( vertex, 0, sizeof(DaoxVertex) );
+		DaoxVertexData *vertex = (DaoxVertexData*) self->vertices->items.pVoid[i];
+		memset( vertex, 0, sizeof(DaoxVertexData) );
 		vertex->next = self->caches;
 		self->caches = vertex;
 	}
@@ -87,24 +87,24 @@ void DaoxTriangulator_Reset( DaoxTriangulator *self )
 	self->start = NULL;
 }
 
-static DaoxVertex* DaoxTriangulator_GetVertex( DaoxTriangulator *self, daoint index )
+static DaoxVertexData* DaoxTriangulator_GetVertex( DaoxTriangulator *self, daoint index )
 {
-	DaoxVertex *vertex = self->caches;
+	DaoxVertexData *vertex = self->caches;
 	if( vertex ){
 		self->caches = vertex->next;
 		vertex->index = index;
 		vertex->next = NULL;
 	}else{
-		vertex = DaoxVertex_New( index );
+		vertex = DaoxVertexData_New( index );
 	}
 	return vertex;
 }
 
 void DaoxTriangulator_PushPoint( DaoxTriangulator *self, float x, float y )
 {
-	DaoxVertex *prev = NULL, *vertex = DaoxTriangulator_GetVertex( self, self->points->count );
+	DaoxVertexData *prev = NULL, *vertex = DaoxTriangulator_GetVertex( self, self->points->count );
 	if( self->vertices->size ){
-		prev = (DaoxVertex*)  self->vertices->items.pVoid[self->vertices->size-1];
+		prev = (DaoxVertexData*)  self->vertices->items.pVoid[self->vertices->size-1];
 		if( prev->next ){
 			vertex->contour = prev->contour + 1;
 		}else{
@@ -119,25 +119,25 @@ void DaoxTriangulator_PushPoint( DaoxTriangulator *self, float x, float y )
 }
 void DaoxTriangulator_PopPoint( DaoxTriangulator *self )
 {
-	DaoxVertex *vertex;
+	DaoxVertexData *vertex;
 	if( self->vertices->size == 0 ) return;
-	vertex = (DaoxVertex*) self->vertices->items.pVoid[self->vertices->size-1];
+	vertex = (DaoxVertexData*) self->vertices->items.pVoid[self->vertices->size-1];
 	if( vertex->prev ) vertex->prev->next = NULL;
-	DaoxVertex_Delete( vertex );
+	DaoxVertexData_Delete( vertex );
 	self->vertices->size -= 1;
 	self->points->count -= 1;
 }
 int DaoxTriangulator_CloseContour( DaoxTriangulator *self )
 {
-	DaoxVertex *vertex;
+	DaoxVertexData *vertex;
 	if( self->start == NULL || self->vertices->size == 0 ) return 0;
-	vertex = (DaoxVertex*) self->vertices->items.pVoid[self->vertices->size-1];
+	vertex = (DaoxVertexData*) self->vertices->items.pVoid[self->vertices->size-1];
 	/* less than 3 vertices; */
 	if( self->start->next == NULL || self->start->next->next == NULL ){
 		while( vertex->next == NULL ){
 			DaoxTriangulator_PopPoint( self );
 			if( self->vertices->size == 0 ) break;
-			vertex = (DaoxVertex*) self->vertices->items.pVoid[self->vertices->size-1];
+			vertex = (DaoxVertexData*) self->vertices->items.pVoid[self->vertices->size-1];
 		}
 		return 0;
 	}
@@ -147,16 +147,16 @@ int DaoxTriangulator_CloseContour( DaoxTriangulator *self )
 	return 1;
 }
 
-void DaoxTriangulator_MakeTriangle( DaoxTriangulator *self, DaoxVertex *A )
+void DaoxTriangulator_MakeTriangle( DaoxTriangulator *self, DaoxVertexData *A )
 {
 	DArray_PushBack( self->triangles, (void*)(daoint) A->prev->index );
 	DArray_PushBack( self->triangles, (void*)(daoint) A->index );
 	DArray_PushBack( self->triangles, (void*)(daoint) A->next->index );
 }
 
-void DaoxTriangulator_QuickSortVertices( DaoxTriangulator *self, DaoxVertex *vertices[], int first, int last )
+void DaoxTriangulator_QuickSortVertices( DaoxTriangulator *self, DaoxVertexData *vertices[], int first, int last )
 {
-	DaoxVertex *pivot, *tmp;
+	DaoxVertexData *pivot, *tmp;
 	DaoxPoint *points = self->points->points;
 	daoint lower=first+1, upper=last;
 
@@ -185,7 +185,7 @@ void DaoxTriangulator_QuickSortVertices( DaoxTriangulator *self, DaoxVertex *ver
 }
 void DaoxTriangulator_SortVertices( DaoxTriangulator *self )
 {
-	DaoxVertex **vertices = (DaoxVertex**) self->vertices->items.pVoid;
+	DaoxVertexData **vertices = (DaoxVertexData**) self->vertices->items.pVoid;
 	int i, N = self->vertices->size;
 	if( N <= 1 ) return;
 	DaoxTriangulator_QuickSortVertices( self, vertices, 0, N-1 );
@@ -193,7 +193,7 @@ void DaoxTriangulator_SortVertices( DaoxTriangulator *self )
 }
 void DaoxTriangulator_InitContourOrientation( DaoxTriangulator *self )
 {
-	DaoxVertex *vertex, *start, *vmax = NULL;
+	DaoxVertexData *vertex, *start, *vmax = NULL;
 	DaoxPoint A, B, C, *points = self->points->points;
 	int i, dir, N = self->vertices->size;
 	float xmax, ymax;
@@ -237,7 +237,7 @@ void DaoxTriangulator_InitContourOrientation( DaoxTriangulator *self )
 }
 void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 {
-	DaoxVertex *V, *A, *B, *C, *inside;
+	DaoxVertexData *V, *A, *B, *C, *inside;
 	DaoxPoint PA, PB, PC, P, *points = self->points->points;
 	int i, imin, imax, contours, K = 0, N = self->vertices->size;
 	float dist, area, ymin, ymax, dmax, dmin;
@@ -247,12 +247,12 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 
 	DaoxTriangulator_InitContourOrientation( self );
 
-	V = (DaoxVertex*) self->vertices->items.pVoid[N-1];
+	V = (DaoxVertexData*) self->vertices->items.pVoid[N-1];
 	contours = V->contour;
 
 	DArray_Assign( self->worklist, self->vertices );
 	while( self->worklist->size && (++K) < 10*N ){
-		A = (DaoxVertex*) self->worklist->items.pVoid[self->worklist->size-1];
+		A = (DaoxVertexData*) self->worklist->items.pVoid[self->worklist->size-1];
 		if( A->done ){
 			DArray_PopBack( self->worklist );
 			continue;
@@ -299,7 +299,7 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 		// as convex vertices on the outer contour!
 		*/
 		for(i=imin+1; i<imax; ++i){
-			V = (DaoxVertex*) self->vertices->items.pVoid[i];
+			V = (DaoxVertexData*) self->vertices->items.pVoid[i];
 			P = points[V->index];
 			if( V->done ) continue;
 			//printf( "%3i: %12f %12f %9p, %3i %3i %3i %3i\n", i, P.x, P.y, V, V->contour, A->contour, V->direction, A->direction );
@@ -344,11 +344,11 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 			DArray_PopBack( self->worklist );
 			//if( self->triangles->size >= 3*111 ) break;
 		}else{ /* point inside the triangle: */
-			DaoxVertex *A2, *N2;
+			DaoxVertexData *A2, *N2;
 			int breaking = inside->contour == A->contour;
 			if( inside->contour != A->contour ){ /* joining contour: */
 				/* the "inside" vertex is from a hole: */
-				DaoxVertex *V2 = inside;
+				DaoxVertexData *V2 = inside;
 				//printf( "joining\n" );
 				/* update contour: */
 				do {
@@ -379,7 +379,7 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 			if( breaking ){
 				contours += 1;
 				//printf( "contours = %3i\n", contours );
-				DaoxVertex *V2 = inside;
+				DaoxVertexData *V2 = inside;
 				/* update contour: */
 				do {
 					V2->contour = contours;

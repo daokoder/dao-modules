@@ -83,7 +83,7 @@ static int STR_Cipher( DString *self, DString *key, int hex, int flag )
 	unsigned char *data = NULL;
 	size_t size = 0;
 	int i;
-	DString_Detach( self );
+	DString_Detach( self, self->size );
 	DString_ToMBS( self );
 	if( self->size == 0 ) return 0;
 	DString_ToMBS( key );
