@@ -61,9 +61,9 @@ typedef struct DaoxNodeAP  DaoxNodeAP;
 typedef struct DaoxEdgeAP  DaoxEdgeAP;
 
 
-DAO_DLL extern DaoTypeBase DaoxNode_Typer;
-DAO_DLL extern DaoTypeBase DaoxEdge_Typer;
-DAO_DLL extern DaoTypeBase DaoxGraph_Typer;
+DAO_DLL DaoTypeBase DaoxNode_Typer;
+DAO_DLL DaoTypeBase DaoxEdge_Typer;
+DAO_DLL DaoTypeBase DaoxGraph_Typer;
 
 struct DaoxNode
 {
@@ -117,9 +117,9 @@ struct DaoxGraph
 	DaoType  *nodeType; /* With reference counting; */
 	DaoType  *edgeType; /* With reference counting; */
 };
-DAO_DLL extern DaoType *daox_node_template_type;
-DAO_DLL extern DaoType *daox_edge_template_type;
-DAO_DLL extern DaoType *daox_graph_template_type;
+DAO_DLL DaoType *daox_node_template_type;
+DAO_DLL DaoType *daox_edge_template_type;
+DAO_DLL DaoType *daox_graph_template_type;
 
 DAO_DLL DaoxGraph* DaoxGraph_New( DaoType *type, int directed );
 DAO_DLL void DaoxGraph_Delete( DaoxGraph *self );
@@ -145,8 +145,8 @@ struct DaoxGraphData
 	DAO_CSTRUCT_COMMON;
 	DAOX_GRAPH_DATA;
 };
-DAO_DLL extern DaoTypeBase DaoxGraphData_Typer;
-DAO_DLL extern DaoType *daox_graph_data_type;
+DAO_DLL DaoTypeBase DaoxGraphData_Typer;
+DAO_DLL DaoType *daox_graph_data_type;
 
 DAO_DLL void DaoxGraphData_Init( DaoxGraphData *self, DaoType *type );
 DAO_DLL void DaoxGraphData_Clear( DaoxGraphData *self );
@@ -180,7 +180,7 @@ struct DaoxGraphMaxFlow
 
 	double  maxflow;
 };
-DAO_DLL extern DaoType *daox_graph_maxflow_type;
+DAO_DLL DaoType *daox_graph_maxflow_type;
 
 DAO_DLL DaoxGraphMaxFlow* DaoxGraphMaxFlow_New();
 DAO_DLL void DaoxGraphMaxFlow_Delete( DaoxGraphMaxFlow *self );

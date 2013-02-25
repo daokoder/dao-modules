@@ -63,7 +63,7 @@ struct DaoxImage
 	int       imageSize;
 	uchar_t  *imageData;
 };
-DAO_DLL extern DaoType *daox_type_image;
+DAO_DLL DaoType *daox_type_image;
 
 
 DaoxImage* DaoxImage_New();

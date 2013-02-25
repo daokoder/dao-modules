@@ -1,4 +1,4 @@
-option(DAO_MODULES_JIT "[BROKEN] Build the JIT compiler module. Requires LLVM. NOT used by the default interpreter." OFF)
+option(DAO_MODULES_JIT "Build the JIT compiler module. Requires LLVM. NOT used by the default interpreter." OFF)
 
 if(DAO_MODULES_JIT)
     # Taken straight out of the LLVM documentation.

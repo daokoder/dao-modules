@@ -178,10 +178,10 @@ struct DaoxColorGradient
 	DaoxPoint  points[2];
 	float     radius;
 };
-DAO_DLL extern DaoType *daox_type_color_gradient;
-DAO_DLL extern DaoType *daox_type_linear_gradient;
-DAO_DLL extern DaoType *daox_type_radial_gradient;
-DAO_DLL extern DaoType *daox_type_path_gradient;
+DAO_DLL DaoType *daox_type_color_gradient;
+DAO_DLL DaoType *daox_type_linear_gradient;
+DAO_DLL DaoType *daox_type_radial_gradient;
+DAO_DLL DaoType *daox_type_path_gradient;
 
 
 
@@ -207,7 +207,7 @@ struct DaoxGraphicsState
 
 	DaoxFont  *font;
 };
-DAO_DLL extern DaoType *daox_type_graphics_state;
+DAO_DLL DaoType *daox_type_graphics_state;
 
 
 
@@ -234,16 +234,16 @@ struct DaoxGraphicsItem
 
 	DArray  *children;  /* child items; */
 };
-DAO_DLL extern DaoType *daox_type_graphics_item;
-DAO_DLL extern DaoType *daox_type_graphics_line;
-DAO_DLL extern DaoType *daox_type_graphics_rect;
-DAO_DLL extern DaoType *daox_type_graphics_circle;
-DAO_DLL extern DaoType *daox_type_graphics_ellipse;
-DAO_DLL extern DaoType *daox_type_graphics_polyline;
-DAO_DLL extern DaoType *daox_type_graphics_polygon;
-DAO_DLL extern DaoType *daox_type_graphics_path;
-DAO_DLL extern DaoType *daox_type_graphics_text;
-DAO_DLL extern DaoType *daox_type_graphics_image;
+DAO_DLL DaoType *daox_type_graphics_item;
+DAO_DLL DaoType *daox_type_graphics_line;
+DAO_DLL DaoType *daox_type_graphics_rect;
+DAO_DLL DaoType *daox_type_graphics_circle;
+DAO_DLL DaoType *daox_type_graphics_ellipse;
+DAO_DLL DaoType *daox_type_graphics_polyline;
+DAO_DLL DaoType *daox_type_graphics_polygon;
+DAO_DLL DaoType *daox_type_graphics_path;
+DAO_DLL DaoType *daox_type_graphics_text;
+DAO_DLL DaoType *daox_type_graphics_image;
 
 
 struct DaoxGraphicsScene
@@ -276,7 +276,7 @@ struct DaoxGraphicsScene
 
 	DaoxTriangulator  *triangulator;
 };
-DAO_DLL extern DaoType *daox_type_graphics_scene;
+DAO_DLL DaoType *daox_type_graphics_scene;
 
 
 
