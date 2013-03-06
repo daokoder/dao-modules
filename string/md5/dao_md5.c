@@ -37,10 +37,12 @@ static void MD5_Append( DString *md5, uint32_t h )
 {
 	const char *hex = "0123456789abcdef";
 	uint32_t k;
-	k = (h >> 0) & 0xff;  DString_AppendChar( md5, hex[k>>4] );  DString_AppendChar( md5, hex[k&0xf] );
-	k = (h >> 8) & 0xff;  DString_AppendChar( md5, hex[k>>4] );  DString_AppendChar( md5, hex[k&0xf] );
-	k = (h >>16) & 0xff;  DString_AppendChar( md5, hex[k>>4] );  DString_AppendChar( md5, hex[k&0xf] );
-	k = (h >>24) & 0xff;  DString_AppendChar( md5, hex[k>>4] );  DString_AppendChar( md5, hex[k&0xf] );
+	DString_Reserve( md5, md5->size + 8 );
+	k = (h>> 0)&0xff;  md5->mbs[md5->size++] = hex[k>>4];  md5->mbs[md5->size++] = hex[k&0xf];
+	k = (h>> 8)&0xff;  md5->mbs[md5->size++] = hex[k>>4];  md5->mbs[md5->size++] = hex[k&0xf];
+	k = (h>>16)&0xff;  md5->mbs[md5->size++] = hex[k>>4];  md5->mbs[md5->size++] = hex[k&0xf];
+	k = (h>>24)&0xff;  md5->mbs[md5->size++] = hex[k>>4];  md5->mbs[md5->size++] = hex[k&0xf];
+	md5->mbs[md5->size] = '\0';
 }
 static void MD5_Update( uint32_t H[4], uint32_t W[16], uint32_t K[64] )
 {
@@ -132,12 +134,12 @@ void DString_MD5( DString *self, DString *md5 )
 	DString_ToMBS( padding );
 	DString_Reserve( padding, 128 );
 	padding->size = 64;
-	data = (uint8_t*) padding->mbs;
 	m = size - chunks*64;
 	if( m ) memcpy( padding->mbs, data + chunks*64, m*sizeof(char) );
 	if( m + 8 > 64 ) padding->size = 128;
 	chunks = padding->size / 64;
 
+	data = (uint8_t*) padding->mbs;
 	data[m] = 1<<7; // first bit 1 followed by bit 0s;
 	for(i=m+1; i<padding->size-8; i++) data[i] = 0;
 	n = size * 8;

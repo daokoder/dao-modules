@@ -3323,7 +3323,7 @@ void DaoJIT_Compile( DaoRoutine *routine, DaoOptimizer *optimizer )
 		if( jitfunc == NULL ) continue;
 		//llvm_func_optimizer->run( *jitfunc );
 
-		DaoVmCode *vmc = routine->body->vmCodes->codes + segments[i].start;
+		DaoVmCode *vmc = routine->body->vmCodes->pod.codes + segments[i].start;
 		vmc->code = DVM_JITC;
 		vmc->a = jitFunctions->size();
 		vmc->b = segments[i].end - segments[i].start + 1;

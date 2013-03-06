@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.6)
 
-option(DAO_MODULES_GRAPHICS "Build the \"graphics\" module which adds threadsafe datastructures to Dao." ON)
+option(DAO_MODULES_GRAPHICS "Build the \"graphics\" module which adds threadsafe datastructures to Dao." OFF)
 
 
 set(DAO_GRAPHICS_SOURCE
