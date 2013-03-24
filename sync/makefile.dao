@@ -1,0 +1,16 @@
+
+dao_sync = DaoMake::Project( "DaoSync" ) 
+
+daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
+
+if( daovm == none ) return
+
+dao_sync_objects = DaoMake::Objects( { "dao_sync.c" } )
+dao_sync_lib     = dao_sync.AddSharedLibrary( "dao_sync", dao_sync_objects )
+
+dao_sync_lib.UsePackage( daovm )
+dao_sync_lib.EnableDynamicLinking()
+dao_sync.ExportCompilingFlags( "-I" + DaoMake::SourcePath() )
+
+
+dao_sync.Install( daovm.GetPath( "MOD-PATH" ), dao_sync_lib );

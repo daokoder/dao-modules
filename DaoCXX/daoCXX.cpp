@@ -83,7 +83,7 @@ static void DaoCXX_AddVirtualFile( const char *name, const char *source )
 			strlen(Buffer->getBufferStart()), time(NULL) );
 	compiler.getSourceManager().overrideFileContents( FE, Buffer );
 	compiler.getFrontendOpts().Inputs.clear();
-	compiler.getFrontendOpts().Inputs.push_back( pair<InputKind, std::string>( IK_CXX, name ) );
+	compiler.getFrontendOpts().Inputs.push_back( FrontendInputFile( name, IK_CXX ) );
 }
 
 const char *source_caption_pattern = "^ @{1,2} %[ %s* %w+ %s* %( %s* (|%w+ (|%. %w+)) %s* %)";
@@ -404,14 +404,14 @@ static int dao_cxx_block( DaoNamespace *NS, DString *VT, DArray *markers, DStrin
 	//printf( "%s:\n%s\n", name, source->mbs );
 	DaoCXX_AddVirtualFile( name, source->mbs );
 
-	action.BeginSourceFile( compiler, name, IK_CXX );
+	//action.BeginSourceFile( compiler, FrontendInputFile( name, IK_CXX ) );
 	if( ! compiler.ExecuteAction( action ) ) return error_compile_failed( out );
 
-	Module *Module = action.takeModule();
-	if( Module == NULL ) return error_compile_failed( out );
+	llvm::Module *module = action.takeModule();
+	if( module == NULL ) return error_compile_failed( out );
 
 	sprintf( name, "dao_anonymous_%p_%p", NS, VT );
-	Function *Func = Module->getFunction( name );
+	Function *Func = module->getFunction( name );
 	if( Func == NULL ) return error_function_notfound( out, name );
 
 	void *fp = engine->getPointerToFunction( Func );
@@ -462,14 +462,13 @@ static int dao_cxx_function( DaoNamespace *NS, DString *VT, DArray *markers, DSt
 	//printf( "\n%s\n%s\n", file, source->mbs );
 	DaoCXX_AddVirtualFile( file, source->mbs );
 
-	action.BeginSourceFile( compiler, file, IK_CXX );
 	if( ! compiler.ExecuteAction( action ) ) return error_compile_failed( out );
 
-	Module *Module = action.takeModule();
-	if( Module == NULL ) return error_compile_failed( out );
+	llvm::Module *module = action.takeModule();
+	if( module == NULL ) return error_compile_failed( out );
 
 	sprintf( proto2, "dao_%s", func->routName->mbs ); //XXX buffer size
-	Function *Func = Module->getFunction( proto2 );
+	Function *Func = module->getFunction( proto2 );
 	if( Func == NULL ) return error_function_notfound( out, proto2 );
 
 	void *fp = engine->getPointerToFunction( Func );
@@ -541,17 +540,16 @@ static int dao_cxx_source( DaoNamespace *NS, DString *VT, DArray *markers, DStri
 		return 1;
 	}
 
-	action.BeginSourceFile( compiler, file, kind );
 	if( ! compiler.ExecuteAction( action ) ) return error_compile_failed( out );
 
-	Module *Module = action.takeModule();
-	if( Module == NULL ) return error_compile_failed( out );
+	llvm::Module *module = action.takeModule();
+	if( module == NULL ) return error_compile_failed( out );
 
 	for(i=0; i<funcs->size; i++){
 		DaoRoutine *func = funcs->items.pRoutine[i];
 		sprintf( name, "dao_%s", func->routName->mbs ); //XXX buffer size
 
-		Function *Func = Module->getFunction( name );
+		Function *Func = module->getFunction( name );
 		if( Func == NULL ) return error_function_notfound( out, name );
 
 		void *fp = engine->getPointerToFunction( Func );
@@ -561,7 +559,7 @@ static int dao_cxx_source( DaoNamespace *NS, DString *VT, DArray *markers, DStri
 	return 0;
 }
 
-static int dao_cxx_inliner( DaoNamespace *NS, DString *mode, DString *verbatim, DString *out )
+static int dao_cxx_inliner( DaoNamespace *NS, DString *mode, DString *verbatim, DString *out, int line )
 {
 	DString *source = DString_New(1);
 	DArray *markers = DArray_New(D_STRING);
@@ -668,6 +666,9 @@ DAO_DLL int DaoOnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 	predefines = "#define MAC_OSX 1\n#define UNIX 1\n";
 	// needed to circumvent a bug which is supposingly fixed in clang 2.9-16
 	headers.AddPath( "/Developer/SDKs/MacOSX10.5.sdk/usr/lib/gcc/i686-apple-darwin9/4.2.1/include", clang::frontend::System, false, false, true );
+	// workaround for finding: stdarg.h
+	headers.AddPath( "/usr/lib/clang/3.2/include", clang::frontend::System, false, false, true );
+	headers.AddPath( "/usr/local/lib/clang/3.2/include", clang::frontend::System, false, false, true );
 #elif defined(UNIX)
 	predefines = "#define UNIX 1\n";
 #elif defined(WIN32)

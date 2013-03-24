@@ -1,0 +1,41 @@
+
+dao_graphics = DaoMake::Project( "DaoGraphics" ) 
+
+daovm  = DaoMake::FindPackage( "Dao",    $REQUIRED )
+opengl = DaoMake::FindPackage( "OpenGL", $REQUIRED )
+glut   = DaoMake::FindPackage( "GLUT",   $REQUIRED ) # TODO: make it optional;
+
+if( daovm == none or opengl == none ) return
+if( glut == none ) return
+
+dao_graphics_headers = 
+{
+	"dao_graphics.h" ,
+	"dao_geometry.h" ,
+	"dao_path.h" ,
+	"dao_triangulator.h" ,
+	"dao_font.h" ,
+	"dao_image.h" ,
+	"dao_opengl.h" ,
+	"dao_glut.h"
+}
+
+dao_graphics_sources = 
+{
+	"dao_graphics.c" ,
+	"dao_geometry.c" ,
+	"dao_path.c" ,
+	"dao_triangulator.c" ,
+	"dao_font.c" ,
+	"dao_image.c" ,
+	"dao_opengl.c" ,
+	"dao_glut.c"
+}
+
+dao_graphics_objects = DaoMake::Objects( dao_graphics_sources, dao_graphics_headers )
+dao_graphics_lib     = dao_graphics.AddSharedLibrary( "dao_graphics", dao_graphics_objects )
+
+dao_graphics_lib.UsePackage( daovm, opengl )
+dao_graphics_lib.EnableDynamicLinking()
+
+if( glut ) dao_graphics_lib.UsePackage( glut )

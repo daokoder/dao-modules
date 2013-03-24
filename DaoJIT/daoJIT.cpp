@@ -43,7 +43,7 @@
 #include "llvm/ExecutionEngine/GenericValue.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/TargetSelect.h" // "llvm/Support/TargetSelect.h" cause error!
-#include "llvm/Target/TargetData.h"
+#include "llvm/DataLayout.h"
 #include "llvm/PassManager.h"
 #include "llvm/Assembly/PrintModulePass.h"
 #include "llvm/Support/IRBuilder.h"
@@ -1271,7 +1271,7 @@ void DaoJIT_Init( DaoVmSpace *vms, DaoJIT *jit )
 #endif
 
 	llvm_func_optimizer = new FunctionPassManager( llvm_module );
-	llvm_func_optimizer->add(new TargetData(*llvm_exe_engine->getTargetData()));
+	llvm_func_optimizer->add(new DataLayout(*llvm_exe_engine->getDataLayout()));
 	llvm_func_optimizer->add(createBasicAliasAnalysisPass());
 	llvm_func_optimizer->add(createInstructionCombiningPass());
 	llvm_func_optimizer->add(createReassociatePass());

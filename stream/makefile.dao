@@ -1,0 +1,21 @@
+
+dao_stream = DaoMake::Project( "DaoStream" ) 
+
+daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
+daosys = DaoMake::FindPackage( "DaoSys", $REQUIRED )
+
+if( daovm == none or daosys == none ) return
+
+dao_buffer_objects  = DaoMake::Objects( { "buffer/dao_buffer.c" } )
+dao_clprint_objects = DaoMake::Objects( { "clprint/dao_clprint.c" } )
+
+dao_buffer_lib  = dao_stream.AddSharedLibrary( "dao_buffer", dao_buffer_objects )
+dao_clprint_lib = dao_stream.AddSharedLibrary( "dao_clprint", dao_clprint_objects )
+
+dao_buffer_lib.UsePackage( daovm )
+dao_buffer_lib.UsePackage( daosys )
+dao_clprint_lib.UsePackage( daovm )
+
+dao_buffer_lib.EnableDynamicLinking()
+dao_clprint_lib.EnableDynamicLinking()
+

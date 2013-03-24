@@ -1,0 +1,32 @@
+
+string_mods = DaoMake::Project( "DaoString" );
+
+daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
+
+if( daovm == none ) return
+
+dao_format_objects   = DaoMake::Objects( { "format/dao_format.c" } )
+dao_md5_objects      = DaoMake::Objects( { "md5/dao_md5.c" } )
+dao_tokenize_objects = DaoMake::Objects( { "tokenize/dao_tokenize.c" } )
+dao_xxtea_objects    = DaoMake::Objects( { "xxtea/dao_xxtea.c" } )
+
+dao_format_lib   = string_mods.AddSharedLibrary( "dao_format", dao_format_objects )
+dao_md5_lib      = string_mods.AddSharedLibrary( "dao_md5", dao_md5_objects )
+dao_tokenize_lib = string_mods.AddSharedLibrary( "dao_tokenize", dao_tokenize_objects )
+dao_xxtea_lib    = string_mods.AddSharedLibrary( "dao_xxtea", dao_xxtea_objects )
+
+dao_format_lib.UsePackage( daovm )
+dao_md5_lib.UsePackage( daovm )
+dao_tokenize_lib.UsePackage( daovm )
+dao_xxtea_lib.UsePackage( daovm )
+dao_format_lib.EnableDynamicLinking()
+dao_md5_lib.EnableDynamicLinking()
+dao_tokenize_lib.EnableDynamicLinking()
+dao_xxtea_lib.EnableDynamicLinking()
+
+#{
+dao_format.Install( dao_format_lib, daovm.GetPath( "MOD-PATH" ) + "/string" );
+dao_md5.Install( dao_md5_lib, daovm.GetPath( "MOD-PATH" ) + "/string" );
+dao_tokenize.Install( dao_tokenize_lib, daovm.GetPath( "MOD-PATH" ) + "/string" );
+dao_xxtea.Install( dao_xxtea_lib, daovm.GetPath( "MOD-PATH" ) + "/string" );
+#}
