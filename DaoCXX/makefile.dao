@@ -1,30 +1,34 @@
 
-dao_cxx = DaoMake::Project( "DaoCXX" ) 
+project = DaoMake::Project( "DaoCXX" ) 
 
 daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
 llvm  = DaoMake::FindPackage( "LLVM", $REQUIRED )
 
 if( daovm == none || llvm == none ) return
 
-dao_cxx_objects = DaoMake::Objects( { "daoCXX.cpp" } )
-dao_cxx_objects.AddCompilingFlag( "-fno-rtti" );
-dao_cxx_objects.AddCompilingFlag( "-fvisibility-inlines-hidden" ); # llvm-3.2
+project.UseSharedLibrary( daovm, "dao" )
+project.UseSharedLibrary( llvm )
 
-dao_cxx_lib = dao_cxx.AddSharedLibrary( "DaoCXX", dao_cxx_objects )
+project_objects = project.AddObjects( { "daoCXX.cpp" } )
+project_objects.AddCompilingFlag( "-fno-rtti" );
+project_objects.AddCompilingFlag( "-fvisibility-inlines-hidden" ); # llvm-3.2
 
-dao_cxx_lib.AddLinkingFlag( "-lclangFrontend" )
-dao_cxx_lib.AddLinkingFlag( "-lclangDriver" )
-dao_cxx_lib.AddLinkingFlag( "-lclangCodeGen" )
-dao_cxx_lib.AddLinkingFlag( "-lclangSema" )
-dao_cxx_lib.AddLinkingFlag( "-lclangAnalysis" )
-dao_cxx_lib.AddLinkingFlag( "-lclangAST" )
-dao_cxx_lib.AddLinkingFlag( "-lclangParse" )
-dao_cxx_lib.AddLinkingFlag( "-lclangLex" )
-dao_cxx_lib.AddLinkingFlag( "-lclangBasic" )
-dao_cxx_lib.AddLinkingFlag( "-lclangEdit" )
-dao_cxx_lib.AddLinkingFlag( "-lclangSerialization" )
+project_dll = project.AddSharedLibrary( "DaoCXX", project_objects )
+project_lib = project.AddStaticLibrary( "DaoCXX", project_objects )
 
-dao_cxx_lib.UsePackage( daovm, llvm )
-dao_cxx_lib.EnableDynamicLinking()
+project.AddLinkingFlag( "-lclangFrontend" )
+project.AddLinkingFlag( "-lclangDriver" )
+project.AddLinkingFlag( "-lclangCodeGen" )
+project.AddLinkingFlag( "-lclangSema" )
+project.AddLinkingFlag( "-lclangAnalysis" )
+project.AddLinkingFlag( "-lclangAST" )
+project.AddLinkingFlag( "-lclangParse" )
+project.AddLinkingFlag( "-lclangLex" )
+project.AddLinkingFlag( "-lclangBasic" )
+project.AddLinkingFlag( "-lclangEdit" )
+project.AddLinkingFlag( "-lclangSerialization" )
 
-dao_cxx.Install( daovm.GetPath( "MOD-PATH" ), dao_cxx_lib );
+
+project.GenerateFinder( $TRUE );
+project.Install( daovm.GetPath( "MOD-PATH" ), project_dll );
+project.Install( daovm.GetPath( "MOD-PATH" ), project_lib );

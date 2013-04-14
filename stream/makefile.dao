@@ -1,21 +1,27 @@
 
-dao_stream = DaoMake::Project( "DaoStream" ) 
+project = DaoMake::Project( "DaoStream" ) 
 
 daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
 daosys = DaoMake::FindPackage( "DaoSys", $REQUIRED )
 
 if( daovm == none or daosys == none ) return
 
-dao_buffer_objects  = DaoMake::Objects( { "buffer/dao_buffer.c" } )
-dao_clprint_objects = DaoMake::Objects( { "clprint/dao_clprint.c" } )
+project.UseSharedLibrary( daovm, "dao" )
 
-dao_buffer_lib  = dao_stream.AddSharedLibrary( "dao_buffer", dao_buffer_objects )
-dao_clprint_lib = dao_stream.AddSharedLibrary( "dao_clprint", dao_clprint_objects )
+dao_buffer_objs  = project.AddObjects( { "buffer/dao_buffer.c" } )
+dao_clprint_objs = project.AddObjects( { "clprint/dao_clprint.c" } )
 
-dao_buffer_lib.UsePackage( daovm )
-dao_buffer_lib.UsePackage( daosys )
-dao_clprint_lib.UsePackage( daovm )
+dao_buffer_objs.UseSharedLibrary( daosys )
 
-dao_buffer_lib.EnableDynamicLinking()
-dao_clprint_lib.EnableDynamicLinking()
+dao_buffer_dll  = project.AddSharedLibrary( "dao_buffer", dao_buffer_objs )
+dao_buffer_lib  = project.AddStaticLibrary( "dao_buffer", dao_buffer_objs )
+dao_clprint_dll = project.AddSharedLibrary( "dao_clprint", dao_clprint_objs )
+dao_clprint_lib = project.AddStaticLibrary( "dao_clprint", dao_clprint_objs )
 
+path = daovm.GetPath( "MOD-PATH" ) + "stream"
+
+project.GenerateFinder( $TRUE );
+project.Install( path, dao_buffer_dll );
+project.Install( path, dao_buffer_lib );
+project.Install( path, dao_clprint_dll );
+project.Install( path, dao_clprint_lib );

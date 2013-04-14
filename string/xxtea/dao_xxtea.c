@@ -132,6 +132,7 @@ static int STR_Cipher( DString *self, DString *key, int hex, int flag )
 		}
 		btea( (int*)self->mbs, - (int)(self->size / 4), (int*) ks );
 		size = *(int*) self->mbs;
+		if( size > self->size ) return 2;
 		DString_Erase( self, 0, 4 );
 		self->size = size;
 	}

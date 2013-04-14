@@ -1,14 +1,17 @@
 
-dao_graph = DaoMake::Project( "DaoGraph" ) 
+project = DaoMake::Project( "DaoGraph" ) 
 
 daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
 
 if( daovm == none ) return
 
-dao_graph_objects = DaoMake::Objects( { "dao_graph.c" }, { "dao_graph.h" } )
-dao_graph_lib     = dao_graph.AddSharedLibrary( "dao_graph", dao_graph_objects )
+project.UseSharedLibrary( daovm, "dao" )
 
-dao_graph_lib.UsePackage( daovm )
-dao_graph_lib.EnableDynamicLinking()
+project_objs = project.AddObjects( { "dao_graph.c" }, { "dao_graph.h" } )
+project_dll  = project.AddSharedLibrary( "dao_graph", project_objs )
+project_lib  = project.AddStaticLibrary( "dao_graph", project_objs )
 
-dao_graph.Install( daovm.GetPath( "MOD-PATH" ), dao_graph_lib );
+
+project.GenerateFinder( $TRUE );
+project.Install( daovm.GetPath( "MOD-PATH" ), project_dll );
+project.Install( daovm.GetPath( "MOD-PATH" ), project_lib );

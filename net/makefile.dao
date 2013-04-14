@@ -1,13 +1,17 @@
 
-dao_net = DaoMake::Project( "DaoNetwork" ) 
+project = DaoMake::Project( "DaoNetwork" ) 
 
 daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
 
 if( daovm == none ) return
 
-dao_net_objects = DaoMake::Objects( { "dao_network.c" } )
-dao_net_lib     = dao_net.AddSharedLibrary( "dao_net", dao_net_objects )
+project.UseSharedLibrary( daovm )
 
-dao_net_lib.UsePackage( daovm )
-dao_net_lib.EnableDynamicLinking()
+project_objs = project.AddObjects( { "dao_network.c" } )
+project_dll  = project.AddSharedLibrary( "dao_net", project_objs )
+project_lib  = project.AddStaticLibrary( "dao_net", project_objs )
 
+
+project.GenerateFinder( $TRUE );
+project.Install( daovm.GetPath( "MOD-PATH" ), project_dll );
+project.Install( daovm.GetPath( "MOD-PATH" ), project_lib );

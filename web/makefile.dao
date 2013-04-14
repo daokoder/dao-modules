@@ -1,21 +1,24 @@
 
-dao_web = DaoMake::Project( "DaoWeb" ) 
+project = DaoMake::Project( "DaoWeb" ) 
 
 daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
 
 if( daovm == none ) return
 
-dao_cgi_objects  = DaoMake::Objects( { "cgi/dao_cgi.c" } )
-dao_json_objects = DaoMake::Objects( { "json/dao_json.c" } )
+project.UseSharedLibrary( daovm, "dao" )
 
-dao_cgi_lib  = dao_web.AddSharedLibrary( "dao_cgi", dao_cgi_objects )
-dao_json_lib = dao_web.AddSharedLibrary( "dao_json", dao_json_objects )
+dao_cgi_objs  = project.AddObjects( { "cgi/dao_cgi.c" } )
+dao_json_objs = project.AddObjects( { "json/dao_json.c" } )
 
-dao_cgi_lib.UsePackage( daovm )
-dao_json_lib.UsePackage( daovm )
-dao_cgi_lib.EnableDynamicLinking()
-dao_json_lib.EnableDynamicLinking()
+dao_cgi_dll  = project.AddSharedLibrary( "dao_cgi", dao_cgi_objs )
+dao_cgi_lib  = project.AddStaticLibrary( "dao_cgi", dao_cgi_objs )
+dao_json_dll = project.AddSharedLibrary( "dao_json", dao_json_objs )
+dao_json_lib = project.AddStaticLibrary( "dao_json", dao_json_objs )
 
-dao_web.ExportCompilingFlags( "-I" + DaoMake::SourcePath() )
+path = daovm.GetPath( "MOD-PATH" ) + "web"
 
-#dao_web.Install( dao_web_lib, daovm.GetPath( "MOD-PATH" ) );
+project.GenerateFinder( $TRUE );
+project.Install( path, dao_cgi_dll );
+project.Install( path, dao_cgi_lib );
+project.Install( path, dao_json_dll );
+project.Install( path, dao_json_lib );

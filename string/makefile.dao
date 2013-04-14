@@ -1,32 +1,34 @@
 
-string_mods = DaoMake::Project( "DaoString" );
+project = DaoMake::Project( "DaoString" );
 
 daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
 
 if( daovm == none ) return
 
-dao_format_objects   = DaoMake::Objects( { "format/dao_format.c" } )
-dao_md5_objects      = DaoMake::Objects( { "md5/dao_md5.c" } )
-dao_tokenize_objects = DaoMake::Objects( { "tokenize/dao_tokenize.c" } )
-dao_xxtea_objects    = DaoMake::Objects( { "xxtea/dao_xxtea.c" } )
+project.UseSharedLibrary( daovm, "dao" )
 
-dao_format_lib   = string_mods.AddSharedLibrary( "dao_format", dao_format_objects )
-dao_md5_lib      = string_mods.AddSharedLibrary( "dao_md5", dao_md5_objects )
-dao_tokenize_lib = string_mods.AddSharedLibrary( "dao_tokenize", dao_tokenize_objects )
-dao_xxtea_lib    = string_mods.AddSharedLibrary( "dao_xxtea", dao_xxtea_objects )
+dao_format_objects   = project.AddObjects( { "format/dao_format.c" } )
+dao_md5_objects      = project.AddObjects( { "md5/dao_md5.c" } )
+dao_tokenize_objects = project.AddObjects( { "tokenize/dao_tokenize.c" } )
+dao_xxtea_objects    = project.AddObjects( { "xxtea/dao_xxtea.c" } )
 
-dao_format_lib.UsePackage( daovm )
-dao_md5_lib.UsePackage( daovm )
-dao_tokenize_lib.UsePackage( daovm )
-dao_xxtea_lib.UsePackage( daovm )
-dao_format_lib.EnableDynamicLinking()
-dao_md5_lib.EnableDynamicLinking()
-dao_tokenize_lib.EnableDynamicLinking()
-dao_xxtea_lib.EnableDynamicLinking()
+dao_format_dll   = project.AddSharedLibrary( "dao_format", dao_format_objects )
+dao_format_lib   = project.AddStaticLibrary( "dao_format", dao_format_objects )
+dao_md5_dll      = project.AddSharedLibrary( "dao_md5", dao_md5_objects )
+dao_md5_lib      = project.AddStaticLibrary( "dao_md5", dao_md5_objects )
+dao_tokenize_dll = project.AddSharedLibrary( "dao_tokenize", dao_tokenize_objects )
+dao_tokenize_lib = project.AddStaticLibrary( "dao_tokenize", dao_tokenize_objects )
+dao_xxtea_dll    = project.AddSharedLibrary( "dao_xxtea", dao_xxtea_objects )
+dao_xxtea_lib    = project.AddStaticLibrary( "dao_xxtea", dao_xxtea_objects )
 
-#{
-dao_format.Install( dao_format_lib, daovm.GetPath( "MOD-PATH" ) + "/string" );
-dao_md5.Install( dao_md5_lib, daovm.GetPath( "MOD-PATH" ) + "/string" );
-dao_tokenize.Install( dao_tokenize_lib, daovm.GetPath( "MOD-PATH" ) + "/string" );
-dao_xxtea.Install( dao_xxtea_lib, daovm.GetPath( "MOD-PATH" ) + "/string" );
-#}
+path = daovm.GetPath( "MOD-PATH" ) + "string"
+
+project.GenerateFinder( $TRUE );
+project.Install( path, dao_format_dll );
+project.Install( path, dao_format_lib );
+project.Install( path, dao_md5_dll );
+project.Install( path, dao_md5_lib );
+project.Install( path, dao_tokenize_dll );
+project.Install( path, dao_tokenize_lib );
+project.Install( path, dao_xxtea_dll );
+project.Install( path, dao_xxtea_lib );
