@@ -789,9 +789,6 @@ void DaoJIT_Init( DaoVmSpace *vms, DaoJIT *jit )
 	daojit_opcode_compilable[ DVM_GOTO ] = 1;
 	daojit_opcode_compilable[ DVM_SWITCH ] = 1;
 	daojit_opcode_compilable[ DVM_CASE ] = 1;
-	daojit_opcode_compilable[ DVM_TRY ] = 1;
-	daojit_opcode_compilable[ DVM_RAISE ] = 1;
-	daojit_opcode_compilable[ DVM_CATCH ] = 1;
 	daojit_opcode_compilable[ DVM_TEST ] = 1;
 	daojit_opcode_compilable[ DVM_TEST_I ] = 1;
 	daojit_opcode_compilable[ DVM_TEST_F ] = 1;
@@ -1469,7 +1466,7 @@ void DaoJIT_SearchCompilable( DaoRoutine *routine, std::vector<IndexRange> & seg
 			if( code != DVM_CASE ) case_mode = DAO_CASE_UNORDERED;
 			//printf( "checking %3i: ", j ); DaoVmCodeX_Print( *vmc, NULL );
 			switch( code ){
-			case DVM_GOTO : case DVM_TEST : case DVM_CATCH : 
+			case DVM_GOTO : case DVM_TEST :
 			case DVM_SWITCH : case DVM_CASE :
 			case DVM_TEST_I : case DVM_TEST_F : case DVM_TEST_D :
 				compilable = false;
@@ -1490,9 +1487,6 @@ void DaoJIT_SearchCompilable( DaoRoutine *routine, std::vector<IndexRange> & seg
 					m = routConsts[ vmc->a ]->type;
 					if( m != DAO_INTEGER and m != DAO_ENUM ) compilable = false;
 					if( vmc->b < start or vmc->b >= (end+1) ) compilable = false;
-					break;
-				case DVM_CATCH :
-					jump = vmc->c;
 					break;
 				}
 				if( compilable == false ){
@@ -3323,7 +3317,7 @@ void DaoJIT_Compile( DaoRoutine *routine, DaoOptimizer *optimizer )
 		if( jitfunc == NULL ) continue;
 		//llvm_func_optimizer->run( *jitfunc );
 
-		DaoVmCode *vmc = routine->body->vmCodes->pod.codes + segments[i].start;
+		DaoVmCode *vmc = routine->body->vmCodes->data.codes + segments[i].start;
 		vmc->code = DVM_JITC;
 		vmc->a = jitFunctions->size();
 		vmc->b = segments[i].end - segments[i].start + 1;

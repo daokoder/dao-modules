@@ -91,7 +91,7 @@ static int PrintValue( DaoValue *value, DString *dest, Format *format, DString *
 				sprintf( buf, fmt, (double)DaoValue_TryGetInteger( value ) );
 		}
 		else
-			sprintf( buf, DAO_INT_FORMAT, DaoValue_TryGetInteger( value ) );
+			sprintf( buf, "%"DAO_INT_FORMAT, DaoValue_TryGetInteger( value ) );
 		break;
 	case DAO_FLOAT:
 		if( notation ){

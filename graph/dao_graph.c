@@ -80,8 +80,10 @@ DaoxGraph* DaoxGraph_New( DaoType *type, int directed )
 	self->nodeType = NULL;
 	self->edgeType = NULL;
 	if( type ){
-		self->nodeType = DaoCdataType_Specialize( daox_node_template_type, type->nested );
-		self->edgeType = DaoCdataType_Specialize( daox_edge_template_type, type->nested );
+		DaoType **types = type->nested->items.pType;
+		daoint count = type->nested->size;
+		self->nodeType = DaoCdataType_Specialize( daox_node_template_type, types, count );
+		self->edgeType = DaoCdataType_Specialize( daox_edge_template_type, types, count );
 		GC_IncRC( self->nodeType );
 		GC_IncRC( self->edgeType );
 	}
@@ -494,7 +496,7 @@ static void NODE_Search( DaoProcess *proc, DaoValue *p[], int N )
 		if( sect->b >0 ) DaoProcess_SetValue( proc, sect->a, (DaoValue*) node );
 		proc->topFrame->entry = entry;
 		DaoProcess_Execute( proc );
-		if( proc->status == DAO_VMPROC_ABORTED ) break;
+		if( proc->status == DAO_PROCESS_ABORTED ) break;
 		if( proc->stackValues[0]->xInteger.value ){
 			DaoList_PushBack( list, (DaoValue*) node );
 			if( which == 0 ) break;
@@ -528,7 +530,7 @@ static void GRAPH_FindNodes( DaoProcess *proc, DaoValue *p[], int N )
 		if( sect->b >0 ) DaoProcess_SetValue( proc, sect->a, (DaoValue*) node );
 		proc->topFrame->entry = entry;
 		DaoProcess_Execute( proc );
-		if( proc->status == DAO_VMPROC_ABORTED ) break;
+		if( proc->status == DAO_PROCESS_ABORTED ) break;
 		if( proc->stackValues[0]->xInteger.value ){
 			DaoList_PushBack( list, (DaoValue*) node );
 			if( which == 0 ) break;
@@ -554,7 +556,7 @@ static void GRAPH_FindEdges( DaoProcess *proc, DaoValue *p[], int N )
 		if( sect->b >0 ) DaoProcess_SetValue( proc, sect->a, (DaoValue*) edge );
 		proc->topFrame->entry = entry;
 		DaoProcess_Execute( proc );
-		if( proc->status == DAO_VMPROC_ABORTED ) break;
+		if( proc->status == DAO_PROCESS_ABORTED ) break;
 		if( proc->stackValues[0]->xInteger.value ){
 			DaoList_PushBack( list, (DaoValue*) edge );
 			if( which == 0 ) break;
