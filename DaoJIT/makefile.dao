@@ -2,7 +2,7 @@
 project = DaoMake::Project( "DaoJIT" ) 
 
 daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
-llvm  = DaoMake::FindPackage( "LLVM", $REQUIRED )
+llvm  = DaoMake::FindPackage( "LLVM", $OPTIONAL )
 
 if( daovm == none || llvm == none ) return
 
