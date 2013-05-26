@@ -6,7 +6,7 @@ llvm  = DaoMake::FindPackage( "LLVM", $REQUIRED )
 
 if( daovm == none || llvm == none ) return
 
-project.UseSharedLibrary( daovm, "dao" )
+project.UseImportLibrary( daovm, "dao" )
 project.UseSharedLibrary( llvm )
 
 project_objects = project.AddObjects( { "daoCXX.cpp" } )

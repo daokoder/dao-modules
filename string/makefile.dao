@@ -5,7 +5,7 @@ daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
 
 if( daovm == none ) return
 
-project.UseSharedLibrary( daovm, "dao" )
+project.UseImportLibrary( daovm, "dao" )
 
 dao_format_objects   = project.AddObjects( { "format/dao_format.c" } )
 dao_md5_objects      = project.AddObjects( { "md5/dao_md5.c" } )

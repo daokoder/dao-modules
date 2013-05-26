@@ -1,14 +1,14 @@
 
-project = DaoMake::Project( "DaoGraphics" ) 
+project = DaoMake::Project( "graphics" ) 
 
 daovm  = DaoMake::FindPackage( "Dao",    $REQUIRED )
-opengl = DaoMake::FindPackage( "OpenGL", $REQUIRED )
-glut   = DaoMake::FindPackage( "GLUT",   $REQUIRED ) # TODO: make it optional;
+opengl = DaoMake::FindPackage( "OpenGL", $OPTIONAL )
+glut   = DaoMake::FindPackage( "GLUT",   $OPTIONAL )
 
 if( daovm == none or opengl == none ) return
-if( glut == none ) return
+if( glut == none ) return # TODO: make it optional;
 
-project.UseSharedLibrary( daovm )
+project.UseImportLibrary( daovm )
 project.UseSharedLibrary( opengl )
 if( glut ) project.UseSharedLibrary( glut )
 
@@ -20,8 +20,7 @@ project_headers =
 	"dao_triangulator.h" ,
 	"dao_font.h" ,
 	"dao_image.h" ,
-	"dao_opengl.h" ,
-	"dao_glut.h"
+	"dao_opengl.h" 
 }
 
 project_sources = 

@@ -5,7 +5,7 @@ daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
 
 if( daovm == none ) return
 
-project.UseSharedLibrary( daovm, "dao" )
+project.UseImportLibrary( daovm, "dao" )
 
 dao_cgi_objs  = project.AddObjects( { "cgi/dao_cgi.c" } )
 dao_json_objs = project.AddObjects( { "json/dao_json.c" } )

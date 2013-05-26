@@ -6,7 +6,7 @@ daosys = DaoMake::FindPackage( "DaoSys", $REQUIRED )
 
 if( daovm == none or daosys == none ) return
 
-project.UseSharedLibrary( daovm, "dao" )
+project.UseImportLibrary( daovm, "dao" )
 
 dao_buffer_objs  = project.AddObjects( { "buffer/dao_buffer.c" } )
 dao_clprint_objs = project.AddObjects( { "clprint/dao_clprint.c" } )

@@ -1,0 +1,7 @@
+Dao Standard Modules
+
+This is a collection of standard Dao modules that are developed
+separately from the Dao virtual machine and the core modules.
+
+To compile these modules, they should be placed under dao/modules,
+then they can be compiled along with Dao.
