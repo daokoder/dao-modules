@@ -46,7 +46,6 @@
 #include "llvm/DataLayout.h"
 #include "llvm/PassManager.h"
 #include "llvm/Assembly/PrintModulePass.h"
-#include "llvm/Support/IRBuilder.h"
 
 #include "daoJIT.h"
 
