@@ -791,11 +791,11 @@ static void GMF_GetGraphFlow( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem DaoxGraphMFMeths[]=
 {
 	{ GMF_New,     "GraphMaxFlow()" },
-	{ GMF_Init,    "Init( self :GraphMaxFlow, graph :Graph<any,any> )" },
-	{ GMF_Compute, "Compute( self :GraphMaxFlow, source :Node<any,any>, sink :Node<any,any> ) => int" },
-	{ GMF_SetCapacity, "SetCapacity( self :GraphMaxFlow, edge :Edge<any,any>, capacity :double )" },
-	{ GMF_GetCapacity, "GetCapacity( self :GraphMaxFlow, edge :Edge<any,any> ) => double" },
-	{ GMF_GetEdgeFlow,  "GetFlow( self :GraphMaxFlow, edge :Edge<any,any> ) => double" },
+	{ GMF_Init,    "Init( self :GraphMaxFlow, graph :Graph<@N,@E> )" },
+	{ GMF_Compute, "Compute( self :GraphMaxFlow, source :Node<@N,@E>, sink :Node<@N,@E> ) => int" },
+	{ GMF_SetCapacity, "SetCapacity( self :GraphMaxFlow, edge :Edge<@N,@E>, capacity :double )" },
+	{ GMF_GetCapacity, "GetCapacity( self :GraphMaxFlow, edge :Edge<@N,@E> ) => double" },
+	{ GMF_GetEdgeFlow,  "GetFlow( self :GraphMaxFlow, edge :Edge<@N,@E> ) => double" },
 	{ GMF_GetGraphFlow, "GetFlow( self :GraphMaxFlow ) => double" },
 	{ NULL, NULL }
 };
