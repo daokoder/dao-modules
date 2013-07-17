@@ -220,7 +220,7 @@ static void PreparePostData( DaoProcess *proc, DaoMap *httpPOSTS, DaoMap *httpPO
 			ParseKeyValueString( proc, httpPOSTS, httpPOST, DString_GetMBS( dynaBuffer ) );
 		}else{
 			char *boundary = strstr( contentType, "boundary" );
-			boundary = strstr( boundary, "------" );
+			boundary = strstr( boundary, "=" ) + 1;
 			i = 0;
 			char *part = NULL;
 			while( ! feof( stdin ) ){
@@ -353,6 +353,38 @@ void DaoCGI_RandomString( DaoProcess *proc, DaoValue *p[], int N )
 			DString_AppendChar( res, (char)(255 * (rand()/(RAND_MAX+1.0))) );
 	}
 }
+#define IO_BUF_SIZE (1<<12)
+void DaoCGI_SendFile( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DString *mbs;
+	DString *file = DaoValue_TryGetString( p[0] );
+	DString *mime = DaoValue_TryGetString( p[1] );
+	DString *notfound = DaoValue_TryGetString( p[2] );
+	char buf[IO_BUF_SIZE];
+	FILE *fin = fopen( DString_GetMBS( file ), "r" );
+	if( fin == NULL ){
+		printf( "%s", DString_GetMBS( notfound ) );
+		return;
+	}
+	mbs = DString_New(1);
+	printf( "Content-Type: %s\n\n", DString_GetMBS( mime ) );
+	while(1){
+		size_t count = fread( buf, 1, IO_BUF_SIZE, fin );
+		if( count ==0 ) break;
+		DString_Reset( mbs, 0 );
+		DString_AppendDataMBS( mbs, buf, count );
+		DaoFile_WriteString( stdout, mbs );
+	}
+	fclose( fin );
+	DString_Delete( mbs );
+}
+
+static DaoFuncItem cgiMeths[]=
+{
+	{ DaoCGI_RandomString,  "random_string( n:int, alnum=1 )=>string" },
+	{ DaoCGI_SendFile,  "sendfile( file :string, mime='text/plain', notfound='' )=>string" },
+	{ NULL, NULL }
+};
 
 DAO_DLL int DaoCGI_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
@@ -362,7 +394,7 @@ DAO_DLL int DaoCGI_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	srand( time(NULL) );
 
 	vmMaster = vmSpace;
-	DaoNamespace_WrapFunction( ns, DaoCGI_RandomString, "random_string( n : int, alnum=1 )" );
+	DaoNamespace_WrapFunctions( ns, cgiMeths );
 
 	httpENV = DaoMap_New(1+rand());
 	httpGET = DaoMap_New(1+rand());
@@ -377,14 +409,19 @@ DAO_DLL int DaoCGI_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace_AddValue( ns, "HTTP_POST", (DaoValue*)httpPOST, "map<string,string>" );
 	DaoNamespace_AddValue( ns, "HTTP_FILE", (DaoValue*)httpFILE, "map<string,io::stream>" );
 	DaoNamespace_AddValue( ns, "HTTP_COOKIE", (DaoValue*)httpCOOKIE, "map<string,string>");
-	DaoNamespace_AddValue( ns,"HTTP_GETS",(DaoValue*)httpGETS,"map<string,list<string> >");
-	DaoNamespace_AddValue( ns,"HTTP_POSTS",(DaoValue*)httpPOSTS,"map<string,list<string> >");
+	DaoNamespace_AddValue( ns,"HTTP_GETS",(DaoValue*)httpGETS,"map<string,list<string>>");
+	DaoNamespace_AddValue( ns,"HTTP_POSTS",(DaoValue*)httpPOSTS,"map<string,list<string>>");
 
 	// Prepare HTTP_ENV:
 	ParseKeyValueStringArray( process, httpENV, environ );
-	
+
 	// Prepare HTTP_GET:
 	char *query = getenv( "QUERY_STRING" );
+	if( query == NULL ){ /* lighttpd does not set "QUERY_STRING": */
+		query = getenv( "REQUEST_URI" );
+		if( query ) query = strchr( query, '?' );
+		if( query ) query += 1;
+	}
 	if( query ) ParseKeyValueString( process, httpGETS, httpGET, query );
 	query = getenv( "HTTP_COOKIE" );
 	if( query ) ParseKeyValueString( process, NULL, httpCOOKIE, query );
