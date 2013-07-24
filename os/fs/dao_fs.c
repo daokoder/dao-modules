@@ -34,10 +34,6 @@
 
 #include"dao.h"
 
-#define dao_malloc malloc
-#define dao_free free
-#define dao_realloc realloc
-
 #ifdef WIN32
 
 #include"io.h"

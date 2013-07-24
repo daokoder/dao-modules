@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2011,2012, Limin Fu
+// Copyright (c) 2011-2013, Limin Fu
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without modification,
@@ -68,6 +68,8 @@ using namespace clang;
 CompilerInstance compiler;
 EmitLLVMOnlyAction action;
 ExecutionEngine *engine;
+
+static DaoType *dao_type_stream2 = NULL;
 
 extern "C"{
 static void DaoCXX_Default( DaoProcess *proc, DaoValue *p[], int N )
@@ -279,7 +281,7 @@ static int dao_make_wrapper( DString *name, DaoType *routype, DString *cproto, D
 				DString_AppendMBS( wrapper, " = DaoValue_TryGetCdata( _p[" );
 				DString_AppendMBS( wrapper, sindex );
 				DString_AppendMBS( wrapper, "] );\n" );
-			}else if( DaoType_MatchTo( type, dao_type_stream, NULL ) ){
+			}else if( DaoType_MatchTo( type, dao_type_stream2, NULL ) ){
 				DString_Append( cc, pname );
 				DString_AppendMBS( cproto, "FILE *" );
 				DString_Append( cproto, pname );
@@ -346,7 +348,7 @@ static int dao_make_wrapper( DString *name, DaoType *routype, DString *cproto, D
 				DString_AppendMBS( wrapper, " _res = " );
 				DString_Append( wrapper, cc );
 				DString_AppendMBS( wrapper, "DaoProcess_PutCdata( _proc, _res, NULL );\n" );
-			}else if( DaoType_MatchTo( type, dao_type_stream, NULL ) ){
+			}else if( DaoType_MatchTo( type, dao_type_stream2, NULL ) ){
 				DString_InsertMBS( cproto, "FILE* ", 0, 0, 0 );
 				DString_AppendMBS( wrapper, "FILE* " );
 				DString_AppendMBS( wrapper, " _res = " );
@@ -710,5 +712,7 @@ DAO_DLL int DaoOnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 	DaoNamespace_TypeDefine( ns, "int", "uint32_t" );
 	DaoNamespace_TypeDefine( ns, "int", "int64_t" );
 	DaoNamespace_TypeDefine( ns, "int", "uint64_t" );
+	ns = DaoVmSpace_GetNamespace( vms, "io" );
+	dao_type_stream2 = DaoNamespace_FindTypeMBS( ns, "stream" );
 	return 0;
 }

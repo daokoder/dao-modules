@@ -57,9 +57,6 @@ typedef size_t socklen_t;
 #include"dao.h"
 
 
-#define dao_malloc malloc
-#define dao_free free
-
 #define BACKLOG 1000 /*  how many pending connections queue will hold */
 #define MAX_DATA 512 /*  max number of bytes we can get at once */
 

@@ -654,7 +654,7 @@ DaoTypeBase DaoxGraph_Typer =
 static void GD_GetGraph( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphData *self = (DaoxGraphData*) p[0];
-	DaoProcess_PutValue( proc, self->graph ? (DaoValue*) self->graph : dao_none_value );
+	DaoProcess_PutValue( proc, self->graph ? (DaoValue*) self->graph : DaoValue_MakeNone() );
 }
 static DaoFuncItem DaoxGraphDataMeths[]=
 {

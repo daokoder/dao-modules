@@ -1382,7 +1382,7 @@ static bool CompilableSETI( DaoVmCodeX *vmc, DaoType **types )
 	//printf("%s %s %s\n",types[vmc->a]->name->mbs,types[vmc->b]->name->mbs,types[vmc->c]->name->mbs);
 	if( types[vmc->c]->tid != DAO_ARRAY ) return false;
 	if( types[vmc->b]->tid != DAO_NONE && types[vmc->b]->tid != DAO_VALTYPE ) return false;
-	if( types[vmc->b]->tid == DAO_VALTYPE && types[vmc->b]->value != dao_none_value ) return false;
+	if( types[vmc->b]->tid == DAO_VALTYPE && types[vmc->b]->value->type != DAO_NONE ) return false;
 	if( types[vmc->a]->tid == DAO_ARRAY ) return true;
 	return types[vmc->a]->tid >= DAO_INTEGER && types[vmc->a]->tid <= DAO_COMPLEX;
 }

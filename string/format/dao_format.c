@@ -32,7 +32,6 @@
 #include"dao.h"
 #include"daoValue.h"
 
-#define dao_free free
 
 struct Format
 {
