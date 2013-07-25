@@ -305,6 +305,7 @@ static void DaoCLoader_Load( DaoProcess *proc, DaoValue *p[], int N )
 	int i, j;
 	int ok = 1;
 	DString_ToMBS( lib );
+	DaoVmSpace_CompleteModuleName( vms, lib );
 	handle = Dao_OpenDLL( lib->mbs );
 	if( handle == NULL ){
 		DaoProcess_PutNone( proc );
