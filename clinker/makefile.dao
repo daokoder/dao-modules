@@ -1,0 +1,25 @@
+
+daovm  = DaoMake::FindPackage( "Dao", $REQUIRED )
+ffi    = DaoMake::FindPackage( "FFI", $REQUIRED )
+
+if( daovm == none or ffi == none ) return
+
+project = DaoMake::Project( "DaoClinker" ) 
+project.UseImportLibrary( daovm, "dao" )
+project.UseImportLibrary( ffi, "FFI" )
+
+project.AddIncludePath( "." )
+project.AddIncludePath( "../../kernel" )
+
+clinker_objs = project.AddObjects( { "dao_clinker.c" } )
+clinker_dll = project.AddSharedLibrary( "clinker", clinker_objs )
+
+sample_objs = project.AddObjects( { "sample.c" } )
+sample_dll = project.AddSharedLibrary( "sample", sample_objs )
+
+
+
+#project.GenerateFinder( $TRUE );
+#project.Install( daovm.GetPath( "MOD-PATH" ), clinker_dll );
+#project.Install( daovm.GetPath( "MOD-PATH" ), ffiite_dll );
+#project.Install( daovm.GetPath( "MOD-PATH" ), myffi_dll );

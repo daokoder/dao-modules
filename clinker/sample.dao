@@ -1,0 +1,21 @@
+
+load clinker;
+
+funcs =
+{
+	"test( p : int ) => float" ,
+	"test2( p : float ) => string" ,
+	"test_string( s : string ) => float" ,
+	"test_dao_list( ls : list<int> )" ,
+	"test_array_short( p : array<short> )" ,
+	"test_array_float( p : array<float> )"
+}
+types = 
+{
+	"MyType"
+}
+ns = link( "./libsample.dylib", funcs, types );
+
+ns.test(123);
+ns.test_dao_list( { 1, 2, 3 } );
+ns.test_array_float( [ 1.0F, 2, 3 ] );
