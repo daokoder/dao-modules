@@ -1,0 +1,40 @@
+
+project = DaoMake::Project( "FFI" ) 
+
+# TODO: adapt to other platforms.
+
+inc =
+{
+	"include/ffi.h",
+	"include/fficonfig.h",
+	"include/ffi_common.h",
+	"src/x86/ffitarget.h",
+}
+
+src =
+{
+	"src/closures.c",
+	"src/dlmalloc.c",
+	"src/prep_cif.c",
+	"src/types.c",
+	"src/debug.c",
+	"src/java_raw_api.c",
+	"src/raw_api.c",
+	"src/x86/darwin64.S",
+	"src/x86/ffi64.c",
+}
+
+project.AddIncludePath( "include" )
+project.AddIncludePath( "src/x86" )
+
+ffi_objs = project.AddObjects( src, inc )
+ffi_dll = project.AddSharedLibrary( "ffi", ffi_objs )
+ffi_lib = project.AddStaticLibrary( "ffi", ffi_objs )
+
+
+
+
+#project.GenerateFinder( $TRUE );
+#project.Install( daovm.GetPath( "MOD-PATH" ), ffi_dll );
+#project.Install( daovm.GetPath( "MOD-PATH" ), ffiite_dll );
+#project.Install( daovm.GetPath( "MOD-PATH" ), myffi_dll );

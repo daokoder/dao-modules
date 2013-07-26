@@ -21,8 +21,11 @@
 #include"ffi.h"
 
 
-const char *const ctype[] = { "uint8","sint8","uint16","sint16","uint32","sint32" };
-const char *const alias[] = { "uchar","char","ushort","short","uint","int" };
+const char *const ctype[] =
+{ "uint8", "sint8", "uint16", "sint16", "uint32", "sint32", "uint64", "sint64" };
+
+const char *const alias[] =
+{ "uchar", "char", "ushort", "short", "uint", "int", "uint64", "sint64" };
 
 typedef void* (*bare_func)();
 typedef struct DaoFFI DaoFFI;
@@ -35,10 +38,13 @@ enum DaoFFITypes
 	DAO_FFI_UINT16 ,
 	DAO_FFI_SINT16 ,
 	DAO_FFI_UINT32 ,
-	DAO_FFI_SINT32
+	DAO_FFI_SINT32 ,
+	DAO_FFI_UINT64 ,
+	DAO_FFI_SINT64
 };
-DaoType *daox_ffi_int_types[ DAO_FFI_SINT32 + 1 ] = { NULL };
+DaoType *daox_ffi_int_types[ DAO_FFI_SINT64 + 1 ] = { NULL };
 DaoType *daox_ffi_wstring_type = NULL;
+DaoType *daox_ffi_stream_type = NULL;
 
 struct DaoFFI
 {
@@ -64,6 +70,16 @@ void DaoFFI_Delete( DaoFFI *self )
 	dao_free( self );
 }
 
+typedef union IntArgument IntArgument;
+union IntArgument
+{
+	unsigned char   m_uint8;
+	signed   char   m_sint8;
+	unsigned short  m_uint16;
+	signed   short  m_sint16;
+	unsigned int    m_uint32;
+	signed   int    m_sint32;
+};
 
 static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -74,10 +90,13 @@ static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 	DaoFFI *ffi;
 	DString *str = NULL;
 	complex16 com = { 0.0, 0.0 };
-	char *chs;
-	void **args;
+	IntArgument ints[DAO_MAX_PARAM];
+	void *args[DAO_MAX_PARAM];
+	char *mbs = NULL;
+	wchar_t *wcs = NULL;
 	double dummy;
 	void *ret = & dummy;
+	daoint ivalue;
 	int i;
 	if( func == NULL || func->routHost == NULL || func->routHost->aux == NULL ){
 		return;
@@ -89,16 +108,30 @@ static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 	//printf( "ffiData = %p\n", func->ffiData );
 	routype = func->routType;
 	nested = routype->nested->items.pType;
-	args = (void*)alloca( func->parCount * sizeof(void*) );
 	memset( args, 0, func->parCount * sizeof(void*) );
 	for(i=0; i<func->parCount; i++){
 		if( i >= routype->nested->size ) continue;
 		tp = nested[i];
-		if( tp->tid == DAO_PAR_NAMED || tp->tid == DAO_PAR_DEFAULT ) tp = (DaoType*) tp->aux;
 		//printf( "%i  %i  %s\n", i, tp->tid, tp->name->mbs );
+		if( tp->tid == DAO_PAR_NAMED || tp->tid == DAO_PAR_DEFAULT ) tp = (DaoType*) tp->aux;
 		switch( tp->tid ){
 		case DAO_INTEGER :
-			args[i] = & p[i]->xInteger.value;
+			args[i] = & ints[i];
+			ivalue = p[i]->xInteger.value;
+			if( tp == daox_ffi_int_types[ DAO_FFI_UINT8 ] ){
+				ints[i].m_uint8 = ivalue;
+			}else if( tp == daox_ffi_int_types[ DAO_FFI_SINT8 ] ){
+				ints[i].m_sint8 = ivalue;
+			}else if( tp == daox_ffi_int_types[ DAO_FFI_UINT16 ] ){
+				ints[i].m_uint16 = ivalue;
+			}else if( tp == daox_ffi_int_types[ DAO_FFI_SINT16 ] ){
+				ints[i].m_sint16 = ivalue;
+			}else if( tp == daox_ffi_int_types[ DAO_FFI_UINT32 ] ){
+				ints[i].m_uint32 = ivalue;
+			}else{
+				ints[i].m_sint32 = ivalue;
+			}
+			//args[i] = & p[i]->xInteger.value; // only works with little-endian;
 			break;
 		case DAO_FLOAT :
 			args[i] = & p[i]->xFloat.value;
@@ -124,7 +157,6 @@ static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 		case DAO_ARRAY :
 			itp = tp->nested->size ? tp->nested->items.pType[0] : NULL;
 			array = (DaoArray*) p[i];
-			args[i] = & array->data.p;
 			if( itp == NULL ) break;
 			switch( itp->tid ){
 			case DAO_INTEGER :
@@ -152,6 +184,13 @@ static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 				break;
 			default : break;
 			}
+			args[i] = & array->data.p;
+			break;
+		case DAO_CSTRUCT :
+			args[i] = & p[i];
+			if( DaoValue_CastCstruct( p[i], daox_ffi_stream_type ) ){
+				args[i] = & p[i]->xStream.file;
+			}
 			break;
 		case DAO_CDATA :
 			args[i] = & p[i]->xCdata.data;
@@ -161,7 +200,6 @@ static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 			break;
 		}
 	}
-	//printf( "debug 1\n" );
 	tp = (DaoType*) routype->aux;
 	if( tp ){
 		switch( tp->tid ){
@@ -178,9 +216,7 @@ static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 			ret = (void*) DaoProcess_PutComplex( proc, com );
 			break;
 		case DAO_STRING :
-			str = DaoProcess_PutMBString( proc, "" );
-			DString_Detach( str, str->size );
-			ret = (void*) & str->mbs;
+			ret = tp == daox_ffi_wstring_type ? (void*) & wcs : (void*) & mbs;
 			break;
 		case DAO_CDATA :
 			cdata = DaoProcess_PutCdata( proc, NULL, tp );
@@ -190,20 +226,15 @@ static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 		}
 	}
 	ffi_call( & ffi->cif, ffi->fptr, ret, args );
-	if( tp ){
-		switch( tp->tid ){
-		case DAO_STRING :
-			if( ret ){
-				str->size = strlen( str->mbs );
-				str->bufSize = str->size + 1;
-			}
-			break;
-		default : break;
-		}
+	if( tp == daox_ffi_wstring_type ){
+		DaoProcess_PutWCString( proc, wcs );
+	}else{
+		DaoProcess_PutMBString( proc, mbs );
 	}
 	for(i=0; i<func->parCount; i++){
 		if( i >= routype->nested->size ) continue;
 		tp = nested[i];
+		if( tp->tid == DAO_PAR_NAMED || tp->tid == DAO_PAR_DEFAULT ) tp = (DaoType*) tp->aux;
 		switch( tp->tid ){
 		case DAO_STRING :
 			if( p[i]->xString.data->mbs ){
@@ -258,7 +289,9 @@ static ffi_type *intps[] =
 	& ffi_type_uint16,
 	& ffi_type_sint16,
 	& ffi_type_uint32,
-	& ffi_type_sint32
+	& ffi_type_sint32,
+	& ffi_type_uint64,
+	& ffi_type_sint64
 };
 static ffi_type* ConvertType( DaoType *tp )
 {
@@ -268,19 +301,15 @@ static ffi_type* ConvertType( DaoType *tp )
 	switch( tp->tid ){
 	case DAO_INTEGER :
 		ffitype = & ffi_type_sint32;
-		for(i=DAO_FFI_INT; i<=DAO_FFI_SINT32; ++i){
+		for(i=DAO_FFI_INT; i<=DAO_FFI_SINT64; ++i){
 			if( tp == daox_ffi_int_types[i] ){
 				ffitype = intps[i];
 				break;
 			}
 		}
 		break;
-	case DAO_FLOAT :
-		ffitype = & ffi_type_float;
-		break;
-	case DAO_DOUBLE :
-		ffitype = & ffi_type_double;
-		break;
+	case DAO_FLOAT  : ffitype = & ffi_type_float; break;
+	case DAO_DOUBLE : ffitype = & ffi_type_double; break;
 	default : break;
 	}
 	return ffitype;
@@ -313,10 +342,12 @@ static void DaoCLoader_Load( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	ns = DaoNamespace_New( vms, lib->mbs );
 	DaoProcess_PutValue( proc, (DaoValue*) ns );
-	for(i=0; i<DAO_FFI_SINT32; i++){
+
+	DaoNamespace_AddType( ns, daox_ffi_wstring_type->name, daox_ffi_wstring_type );
+	for(i=0; i<DAO_FFI_SINT64; i++){
 		DString mbs = DString_WrapMBS( alias[i] );
 		DaoNamespace_AddType( ns, daox_ffi_int_types[i]->name, daox_ffi_int_types[i] );
-		if( i != DAO_FFI_SINT32 ) DaoNamespace_AddType( ns, & mbs, daox_ffi_int_types[i] );
+		if( i < DAO_FFI_SINT32 ) DaoNamespace_AddType( ns, & mbs, daox_ffi_int_types[i] );
 	}
 
 	dummy = DaoRoutine_New( ns, NULL, 0 );
@@ -357,7 +388,7 @@ static void DaoCLoader_Load( DaoProcess *proc, DaoValue *p[], int N )
 		ffi->fptr = fptr;
 		for(j=0; j<func->parCount; j++){
 			tp = nested[j];
-			if( tp->tid ==DAO_PAR_NAMED || tp->tid ==DAO_PAR_DEFAULT ) tp = (DaoType*) tp;
+			if( tp->tid ==DAO_PAR_NAMED || tp->tid ==DAO_PAR_DEFAULT ) tp = (DaoType*) tp->aux;
 			ffi->args[j] = ConvertType( tp );
 		}
 		ffi->retype = ConvertType( (DaoType*) routype->aux );
@@ -381,14 +412,16 @@ DaoTypeBase DaoFFI_Typer =
 
 int DaoOnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 {
+	DaoNamespace *io = DaoVmSpace_GetNamespace( vms, "io" );
 	int i;
 
+	daox_ffi_stream_type = DaoNamespace_FindTypeMBS( io, "stream" );
 	daox_ffi_wstring_type = DaoNamespace_TypeDefine( ns, "string", "wstring" );
 	daox_ffi_type = DaoNamespace_WrapType( ns, & DaoFFI_Typer, 0 );
-	for(i=0; i<DAO_FFI_SINT32; i++){
+	for(i=0; i<DAO_FFI_SINT64; i++){
 		DString mbs = DString_WrapMBS( alias[i] );
 		daox_ffi_int_types[i] = DaoNamespace_TypeDefine( ns, "int", ctype[i] );
-		if( i != DAO_FFI_SINT32 ) DaoNamespace_AddType( ns, & mbs, daox_ffi_int_types[i] );
+		if( i < DAO_FFI_SINT32 ) DaoNamespace_AddType( ns, & mbs, daox_ffi_int_types[i] );
 	}
 
 	DaoNamespace_WrapFunction( ns, DaoCLoader_Load,

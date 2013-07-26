@@ -8,7 +8,9 @@ const funcs =
 	"test_string( s : string ) => float" ,
 	"test_dao_list( ls : list<int> )" ,
 	"test_array_short( p : array<short> )" ,
-	"test_array_float( p : array<float> )"
+	"test_array_float( p : array<float> )" ,
+	"test_array_double( p : array<double> )" ,
+	"test_stream( s : io::stream )" ,
 }
 
 const types = 
@@ -20,8 +22,18 @@ const sample = link( "sample", funcs, types );
 
 use sample
 
+x = [ 1, 2, 3, 4 ]
+
 test( 123 );
 test_dao_list( { 1, 2, 3 } );
 test_array_float( [ 1.0F, 2, 3 ] );
+test_array_double( [ 1.0, 2, 3 ] );
+
+test_array_short( x );
+s = test2( 123.5 );
+io.writeln( s, x )
+
+test_stream( io::stdio )
+test_stream( io::stderr )
 
 #test( 'abc' ); # compile error;

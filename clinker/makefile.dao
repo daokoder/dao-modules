@@ -1,12 +1,20 @@
 
 daovm  = DaoMake::FindPackage( "Dao", $REQUIRED )
-ffi    = DaoMake::FindPackage( "FFI", $REQUIRED )
 
-if( daovm == none or ffi == none ) return
+if( daovm == none ) return
 
 project = DaoMake::Project( "DaoClinker" ) 
 project.UseImportLibrary( daovm, "dao" )
-project.UseImportLibrary( ffi, "FFI" )
+
+
+ffi = DaoMake::FindPackage( "FFI2", $OPTIONAL )
+if( ffi ){
+	project.UseImportLibrary( ffi, "FFI" )
+}else{
+	project.AddDirectory( "libffi", "libffi" )
+	ffi = DaoMake::FindPackage( "FFI", $REQUIRED )
+	project.UseStaticLibrary( ffi, "ffi" )
+}
 
 project.AddIncludePath( "." )
 project.AddIncludePath( "../../kernel" )
