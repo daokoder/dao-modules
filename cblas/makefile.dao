@@ -1,0 +1,37 @@
+
+code = 
+@[cxx]
+#include "cblas.h"
+int main(void){
+	void *p = cblas_dgemv;
+	return 0;
+}
+@[cxx]
+
+if( DaoMake::TestCompile( code, '-lcblas', '-I.' ) == 0 ) return
+
+project = DaoMake::Project( "cblas" ) 
+
+daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
+
+if( daovm == none ) return
+
+source_cblas = { "dao_cblas.c", "dao_cblas2.c", "dao_cblas3.c" }
+
+project.UseImportLibrary( daovm, "dao" )
+
+project.AddCommand( 'dao_cblas.h: cblas.h cblas.c', '../../tools/clangdao/clangdao cblas.c' )
+
+project.AddIncludePath( "../../kernel" )
+project.AddLinkingFlag( "-lcblas" )
+
+project_objs = project.AddObjects( source_cblas, { "dao_cblas.h" } )
+
+project_dll  = project.AddSharedLibrary( "dao_cblas", project_objs )
+project_lib  = project.AddStaticLibrary( "dao_cblas", project_objs )
+
+
+
+project.GenerateFinder( $TRUE );
+project.Install( daovm.GetPath( "MOD-PATH" ), project_dll );
+project.Install( daovm.GetPath( "MOD-PATH" ), project_lib );
