@@ -25,12 +25,12 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <llvm/IR/Module.h>
+#include <llvm/Module.h>
 #include <llvm/Support/Host.h>
 #include <llvm/Support/Path.h>
 #include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Support/TargetSelect.h>
-#include <llvm/IR/LLVMContext.h>
+#include <llvm/LLVMContext.h>
 #include <llvm/ExecutionEngine/JIT.h>
 #include <llvm/ExecutionEngine/Interpreter.h>
 #include <llvm/ExecutionEngine/GenericValue.h>
@@ -644,22 +644,22 @@ DAO_DLL int DaoOnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 	DString_SetMBS( mbs, header_suffix_pattern );
 	header_suffix_regex = DaoRegex_New( mbs );
 
-	compiler.createDiagnostics();
+	compiler.createDiagnostics(argc, argv);
 
 	DiagnosticsEngine & DG = compiler.getDiagnostics();
 	CompilerInvocation::CreateFromArgs( compiler.getInvocation(), argv + 1, argv + argc, DG );
-	compiler.setTarget( TargetInfo::CreateTargetInfo( DG, & compiler.getTargetOpts() ) );
+	compiler.setTarget( TargetInfo::CreateTargetInfo( DG, compiler.getTargetOpts() ) );
 
 	clang::HeaderSearchOptions & headers = compiler.getHeaderSearchOpts();
 	DString_SetMBS( mbs, DaoVmSpace_CurrentLoadingPath( vms ) );
 	DString_AppendMBS( mbs, "/../" ); // /usr/local/dao relative to /usr/local/dao/lib
-	headers.AddPath( mbs->mbs, clang::frontend::System, false, true );
+	headers.AddPath( mbs->mbs, clang::frontend::System, false, false, true );
 #ifdef DAO_DIR
-	headers.AddPath( DAO_DIR "/include", clang::frontend::System, false, true );
+	headers.AddPath( DAO_DIR "/include", clang::frontend::System, false, false, true );
 #endif
 	DString_SetMBS( mbs, DaoVmSpace_CurrentLoadingPath( vms ) );
 	DString_AppendMBS( mbs, "/../../kernel" ); // at build
-	headers.AddPath( mbs->mbs, clang::frontend::System, false, true );
+	headers.AddPath( mbs->mbs, clang::frontend::System, false, false, true );
 
 	DString_Delete( mbs );
 
@@ -667,15 +667,15 @@ DAO_DLL int DaoOnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 #ifdef MAC_OSX
 	predefines = "#define MAC_OSX 1\n#define UNIX 1\n";
 	// needed to circumvent a bug which is supposingly fixed in clang 2.9-16
-	headers.AddPath( "/Developer/SDKs/MacOSX10.5.sdk/usr/lib/gcc/i686-apple-darwin9/4.2.1/include", clang::frontend::System, false, true );
+	headers.AddPath( "/Developer/SDKs/MacOSX10.5.sdk/usr/lib/gcc/i686-apple-darwin9/4.2.1/include", clang::frontend::System, false, false, true );
 	// workaround for finding: stdarg.h
-	headers.AddPath( "/usr/lib/clang/3.2/include", clang::frontend::System, false, true );
-	headers.AddPath( "/usr/local/lib/clang/3.2/include", clang::frontend::System, false, true );
+	headers.AddPath( "/usr/lib/clang/3.2/include", clang::frontend::System, false, false, true );
+	headers.AddPath( "/usr/local/lib/clang/3.2/include", clang::frontend::System, false, false, true );
 #elif defined(UNIX)
 	predefines = "#define UNIX 1\n";
 #elif defined(WIN32)
 	predefines = "#define WIN32 1\n";
-	headers.AddPath( "C:/MinGW/lib/gcc/mingw32/4.6.1/include", clang::frontend::System, false, true );
+	headers.AddPath( "C:/MinGW/lib/gcc/mingw32/4.6.1/include", clang::frontend::System, false, false, true );
 #endif
 
 	//compiler.getHeaderSearchOpts().AddPath( "", clang::frontend::Angled, false, false, true );
