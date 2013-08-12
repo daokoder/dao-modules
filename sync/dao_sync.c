@@ -351,6 +351,7 @@ DaoState* DaoState_New( DaoType *type, DaoValue *state )
 {
 	DaoState *res = dao_malloc( sizeof(DaoState) );
 	DaoCstruct_Init( (DaoCstruct*)res, type );
+	res->state = 0;
 	DaoValue_Copy( state, &res->state );
 	res->lock = DaoMutex_New();
 	res->defmtx = DaoMutex_New();
@@ -384,7 +385,19 @@ extern DaoTypeBase stateTyper;
 static void DaoState_Create( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoType *type = DaoProcess_GetReturnType( proc );
-	DaoState *res = DaoState_New( type, p[0] );
+	DaoState *res;
+	switch ( p[0]->type ){
+	case DAO_INTEGER:
+	case DAO_FLOAT:
+	case DAO_DOUBLE:
+	case DAO_COMPLEX:
+	case DAO_ENUM:
+		break;
+	default:
+		DaoProcess_RaiseException( proc, DAO_ERROR, "type not supported" );
+		return;
+	}
+	res = DaoState_New( type, p[0] );
 	DaoProcess_PutValue( proc, (DaoValue*)res );
 }
 
@@ -419,7 +432,9 @@ static void DaoState_Set( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoState *self = (DaoState*)DaoValue_CastCstruct( p[0], NULL );
 	DNode *node;
+	DaoValue *old = 0;
 	DaoMutex_Lock( self->lock );
+	DaoValue_Copy( self->state, &old );
 	DaoValue_Copy( p[1], &self->state );
 	node = DaoMap_First( self->demands );
 	while( node && DaoValue_Compare( DNode_Key( node ), self->state ) )
@@ -429,6 +444,89 @@ static void DaoState_Set( DaoProcess *proc, DaoValue *p[], int N )
 		DaoMap_Erase( self->demands, DNode_Key( node ) );
 	}
 	DaoMutex_Unlock( self->lock );
+	DaoProcess_PutValue( proc, old );
+}
+
+static void DaoState_FetchAdd( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoState *self = (DaoState*)DaoValue_CastCstruct( p[0], NULL );
+	DNode *node;
+	DaoValue *old = 0;
+	DaoMutex_Lock( self->lock );
+	if ( p[1]->type != self->state->type ){
+		DaoMutex_Unlock( self->lock );
+		DaoProcess_RaiseException( proc, DAO_ERROR, "types do not match" );
+		return;
+	}
+	DaoValue_Copy( self->state, &old );
+	switch ( self->state->type ){
+	case DAO_INTEGER:
+		self->state->xInteger.value += p[1]->xInteger.value;
+		break;
+	case DAO_FLOAT:
+		self->state->xFloat.value += p[1]->xFloat.value;
+		break;
+	case DAO_DOUBLE:
+		self->state->xDouble.value += p[1]->xDouble.value;
+		break;
+	case DAO_COMPLEX:
+		self->state->xComplex.value.real += p[1]->xComplex.value.real;
+		self->state->xComplex.value.imag += p[1]->xComplex.value.imag;
+		break;
+	case DAO_ENUM:
+		DaoEnum_AddValue( &self->state->xEnum, &p[1]->xEnum, 0 ); //enames ignored?
+		break;
+	}
+	node = DaoMap_First( self->demands );
+	while( node && DaoValue_Compare( DNode_Key( node ), self->state ) )
+		node = DaoMap_Next( self->demands, node );
+	if( node ){
+		DaoCondVar_BroadCast( (DaoCondVar*)DNode_Value( node ) );
+		DaoMap_Erase( self->demands, DNode_Key( node ) );
+	}
+	DaoMutex_Unlock( self->lock );
+	DaoProcess_PutValue( proc, old );
+}
+
+static void DaoState_FetchSub( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoState *self = (DaoState*)DaoValue_CastCstruct( p[0], NULL );
+	DNode *node;
+	DaoValue *old = 0;
+	DaoMutex_Lock( self->lock );
+	if ( p[1]->type != self->state->type ){
+		DaoMutex_Unlock( self->lock );
+		DaoProcess_RaiseException( proc, DAO_ERROR, "types do not match" );
+		return;
+	}
+	DaoValue_Copy( self->state, &old );
+	switch ( self->state->type ){
+	case DAO_INTEGER:
+		self->state->xInteger.value -= p[1]->xInteger.value;
+		break;
+	case DAO_FLOAT:
+		self->state->xFloat.value -= p[1]->xFloat.value;
+		break;
+	case DAO_DOUBLE:
+		self->state->xDouble.value -= p[1]->xDouble.value;
+		break;
+	case DAO_COMPLEX:
+		self->state->xComplex.value.real -= p[1]->xComplex.value.real;
+		self->state->xComplex.value.imag -= p[1]->xComplex.value.imag;
+		break;
+	case DAO_ENUM:
+		DaoEnum_RemoveValue( &self->state->xEnum, &p[1]->xEnum, 0 ); //enames ignored?
+		break;
+	}
+	node = DaoMap_First( self->demands );
+	while( node && DaoValue_Compare( DNode_Key( node ), self->state ) )
+		node = DaoMap_Next( self->demands, node );
+	if( node ){
+		DaoCondVar_BroadCast( (DaoCondVar*)DNode_Value( node ) );
+		DaoMap_Erase( self->demands, DNode_Key( node ) );
+	}
+	DaoMutex_Unlock( self->lock );
+	DaoProcess_PutValue( proc, old );
 }
 
 static void DaoState_WaitFor( DaoProcess *proc, DaoValue *p[], int N )
@@ -450,42 +548,8 @@ static void DaoState_WaitFor( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	DaoMutex_Unlock( self->lock );
 	if( !eq ){
-		timeout = DaoValue_TryGetFloat( p[3] );
-		if( timeout > 0 )
-			do
-				res = !DaoCondVar_TimedWait( condvar, (DaoMutex*)p[2], timeout );
-			while( res && DaoValue_Compare( self->state, state ) );
-		else if( timeout == 0 )
-			res = 0;
-		else
-			do
-				DaoCondVar_Wait( condvar, (DaoMutex*)p[2] );
-			while( DaoValue_Compare( self->state, state ) );
-	}
-	DaoProcess_PutInteger( proc, res );
-}
-
-static void DaoState_WaitFor2( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoState *self = (DaoState*)DaoValue_CastCstruct( p[0], NULL );
-	int eq = 0, res = 1;
-	DaoValue *state = p[1];
-	float timeout;
-	DaoCondVar *condvar = NULL;
-	DaoMutex_Lock( self->lock );
-	if( !DaoValue_Compare( self->state, state ) )
-		eq = 1;
-	else{
-		condvar = (DaoCondVar*)DaoMap_GetValue( self->demands, state );
-		if( !condvar ){
-			condvar = DaoCondVar_New();
-			DaoMap_Insert( self->demands, state, (DaoValue*)condvar );
-		}
-	}
-	DaoMutex_Unlock( self->lock );
-	if( !eq ){
 		DaoMutex_Lock( self->defmtx );
-		timeout = DaoValue_TryGetFloat( p[2] );
+		timeout = p[2]->xFloat.value;
 		if( timeout > 0 )
 			do
 				res = !DaoCondVar_TimedWait( condvar, self->defmtx, timeout );
@@ -519,16 +583,17 @@ static DaoFuncItem stateMeths[] =
 {
 	{ DaoState_Create,   "state<@T>( value: @T )" },
 	{ DaoState_Value,    "value( self: state<@T> ) => @T" },
-	{ DaoState_Set,      "set( self: state<@T>, value: @T )" },
+	{ DaoState_Set,	     "set( self: state<@T>, value: @T ) => @T" },
 	{ DaoState_TestSet,  "alter( self: state<@T>, from: @T, into: @T ) => int" },
-	{ DaoState_WaitFor,  "wait( self: state<@T>, value: @T, mtx: mutex, timeout: float = 0 ) => int" },
-	{ DaoState_WaitFor2, "wait( self: state<@T>, value: @T, timeout: float = 0 ) => int" },
+	{ DaoState_FetchAdd, "add( self: state<@T>, value: @T ) => @T" },
+	{ DaoState_FetchSub, "sub( self: state<@T>, value: @T ) => @T" },
+	{ DaoState_WaitFor,  "wait( self: state<@T>, value: @T, timeout: float = -1 ) => int" },
 	{ DaoState_Waitlist, "waitlist( self: state<@T> ) => list<@T>" },
 	{ NULL, NULL }
 };
 
 DaoTypeBase stateTyper = {
-	"state<@T>", NULL, NULL, stateMeths, {NULL}, {0}, 
+	"state<@T>", NULL, NULL, stateMeths, {NULL}, {0},
 	(FuncPtrDel)DaoState_Delete, DaoState_GetGCFields
 };
 
