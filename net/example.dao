@@ -2,7 +2,7 @@
 load net;
 load sys;
 
-class @Server
+class Server
 {
 	routine Start()
 	{
@@ -22,7 +22,7 @@ class @Server
 	}
 }
 
-class @Client
+class Client
 {
 	routine Start()
 	{
@@ -37,8 +37,8 @@ class @Client
 #std.listmeth( net );
 #io.println( net );
 
-server = Server();
+server = Server() !!;
 server.Start();
 sys.sleep(1);
-client = Client();
+client = Client() !!;
 client.Start();

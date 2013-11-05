@@ -20,12 +20,31 @@ src =
 	"src/debug.c",
 	"src/java_raw_api.c",
 	"src/raw_api.c",
-	"src/x86/darwin64.S",
-	"src/x86/ffi64.c",
 }
 
 project.AddIncludePath( "include" )
-project.AddIncludePath( "src/x86" )
+
+is64bit = DaoMake::Is64Bit()
+
+if( DaoMake::IsUnix() ){
+	project.AddIncludePath( "src/x86" )
+	src.append( is64bit ? "src/x86/ffi64.c" : "src/x86/ffi.c" )
+	if( DaoMake::IsLinux() ){
+		src.append( "src/x86/unix64.S" )
+	}else if( DaoMake::IsMacOSX() ){
+		src.append( is64bit ? "src/x86/darwin64.S" : "src/x86/darwin.S" )
+	}else{
+		return
+	}
+}else if( DaoMake::IsWin32() ){
+	project.AddIncludePath( "src/x86" )
+	src.append( is64bit ? "src/x86/ffi64.c" : "src/x86/ffi.c" )
+	src.append( is64bit ? "src/x86/win64.c" : "src/x86/win32.c" )
+}else{
+	return
+}
+
+
 
 ffi_objs = project.AddObjects( src, inc )
 ffi_dll = project.AddSharedLibrary( "ffi", ffi_objs )
