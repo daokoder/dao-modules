@@ -1,0 +1,46 @@
+load string.template
+
+source = 
+@[]
+<div class="post">
+  <h1>By {{author.firstName}} {{author.lastName}}</h1>
+  <div class="body">{{body}}</div>
+
+  <h1>Comments</h1>
+
+  {{! This is a comment}}
+  {{#not_empty comments}}
+  <h2>Number of comments: {{@count}}</h2>
+  {{#each comments}}
+  <h3>{{@index}}/{{@count}}. By {{author.firstName}} {{author.lastName}}</h3>
+    {{#each author}}
+      {{@key}} {{@value}}
+    {{/each}}
+  <div class="body">{{body}}</div>
+  {{/each}}
+  {{/contain}}
+</div>
+@[]
+
+var context = {
+	"author" => {"firstName" => "Alan", "lastName" => "Johnson"},
+	"body" => "I Love Handlebars",
+	"comments" => {
+		{
+			"author" => {"firstName" => "Yehuda", "lastName" => "Katz"},
+			"body" => "Me too!"
+		},
+		{
+			"author" => {"firstName" => "Yehuda2", "lastName" => "Katz2"},
+			"body" => "Me too!"
+		},
+		{
+			"author" => {"firstName" => "Yehuda2", "lastName" => "Katz2"},
+			"body" => "Me too!"
+		}
+	}
+};
+
+text = source.template( context )
+
+io.writeln( text )

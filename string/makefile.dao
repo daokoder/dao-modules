@@ -7,11 +7,14 @@ if( daovm == none ) return
 
 project.UseImportLibrary( daovm, "dao" )
 
+dao_template_objects   = project.AddObjects( { "template/dao_template.c" } )
 dao_format_objects   = project.AddObjects( { "format/dao_format.c" } )
 dao_md5_objects      = project.AddObjects( { "md5/dao_md5.c" } )
 dao_tokenize_objects = project.AddObjects( { "tokenize/dao_tokenize.c" } )
 dao_xxtea_objects    = project.AddObjects( { "xxtea/dao_xxtea.c" } )
 
+dao_template_dll   = project.AddSharedLibrary( "dao_template", dao_template_objects )
+dao_template_lib   = project.AddStaticLibrary( "dao_template", dao_template_objects )
 dao_format_dll   = project.AddSharedLibrary( "dao_format", dao_format_objects )
 dao_format_lib   = project.AddStaticLibrary( "dao_format", dao_format_objects )
 dao_md5_dll      = project.AddSharedLibrary( "dao_md5", dao_md5_objects )
@@ -24,6 +27,8 @@ dao_xxtea_lib    = project.AddStaticLibrary( "dao_xxtea", dao_xxtea_objects )
 path = daovm.GetPath( "MOD-PATH" ) + "string"
 
 project.GenerateFinder( $TRUE );
+project.Install( path, dao_template_dll );
+project.Install( path, dao_template_lib );
 project.Install( path, dao_format_dll );
 project.Install( path, dao_format_lib );
 project.Install( path, dao_md5_dll );
