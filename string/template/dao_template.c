@@ -244,10 +244,18 @@ DaoValue* DaoxTemplateNode_GetPath( DaoxTemplateNode *self, DaoValue *container,
 	}
 	if( container == NULL ) return NULL;
 	if( i >= path->size ) return container;
-	if( container->type != DAO_MAP ) return NULL;
-	value = DaoMap_GetValueMBS( (DaoMap*) container, path->items.pString[i]->mbs );
-	if( value == NULL ) value = DaoMap_GetValueWCS( (DaoMap*) container, path2->items.pString[i]->wcs );
-	return DaoxTemplateNode_GetPath( self, value, NULL, i+1 );
+	if( container->type == DAO_MAP ){
+		DaoMap *map = (DaoMap*) container;
+		value = DaoMap_GetValueMBS( map, path->items.pString[i]->mbs );
+		if( value == NULL ) value = DaoMap_GetValueWCS( map, path2->items.pString[i]->wcs );
+		return DaoxTemplateNode_GetPath( self, value, NULL, i+1 );
+	}else if( container->type == DAO_TUPLE ){
+		DaoTuple *tup = (DaoTuple*) container;
+		it = DMap_Find( tup->unitype->mapNames, path->items.pString[i] );
+		if( it == NULL ) return NULL;
+		return DaoxTemplateNode_GetPath( self, tup->items[it->value.pInt], NULL, i+1 );
+	}
+	return NULL;
 }
 void DaoxTemplateNodes_Generate( DArray *nodes, DaoValue *value, DMap *vars, DString *output );
 void DaoxTemplateNode_Generate( DaoxTemplateNode *self, DaoValue *value, DMap *vars,  DString *output )
@@ -258,9 +266,13 @@ void DaoxTemplateNode_Generate( DaoxTemplateNode *self, DaoValue *value, DMap *v
 		DString skey = DString_WrapMBS( "@key" );
 		DString svalue = DString_WrapMBS( "@value" );
 		DString scount = DString_WrapMBS( "@count" );
+		DString udf = DString_WrapMBS( "UNDEFINED" );
+		DaoString key0 = { DAO_STRING,0,0,0,1,NULL};
 		DaoInteger index0 = {DAO_INTEGER,0,0,0,0,0};
 		DaoInteger *index = & index0;
+		DaoString *key = & key0;
 		DMap *vars2;
+		DNode *it;
 		if( strcmp( self->command->mbs, "each" ) == 0 ){
 			if( field == NULL ) return;
 			vars2 = vars ? DMap_Copy( vars ) : DMap_New(D_STRING,D_VALUE);
@@ -276,44 +288,59 @@ void DaoxTemplateNode_Generate( DaoxTemplateNode *self, DaoValue *value, DMap *v
 				}
 			}else if( field->type == DAO_MAP ){
 				DaoMap *map = (DaoMap*) field;
-				DNode *it;
 				for(it=DaoMap_First(map); it; it=DaoMap_Next(map,it)){
 					DMap_Insert( vars2, & skey, it->key.pValue );
 					DMap_Insert( vars2, & svalue, it->value.pValue );
 					DaoxTemplateNodes_Generate( self->children, it->value.pValue, vars2, output );
 				}
+			}else if( field->type == DAO_TUPLE ){
+				DaoTuple *tup = (DaoTuple*) field;
+				DMap *mapNames = tup->unitype->mapNames;
+				DArray *names = DArray_New(0);
+				int i;
+				DArray_Resize( names, tup->size, NULL );
+				for(it=DMap_First(mapNames); it; it=DMap_Next(mapNames,it)){
+					names->items.pString[it->value.pInt] = it->key.pString;
+				}
+				for(i=0; i<tup->size; ++i){
+					DaoValue *item = tup->items[i];
+					index->value = i + 1;
+					key->data = names->items.pString[i];
+					if( key->data == NULL ) key->data = & udf;
+					DMap_Insert( vars2, & sindex, (DaoValue*) index );
+					DMap_Insert( vars2, & skey, key );
+					DMap_Insert( vars2, & svalue, item );
+					DaoxTemplateNodes_Generate( self->children, item, vars2, output );
+				}
+				DArray_Delete( names );
 			}
 			DMap_Delete( vars2 );
 		}else if( strcmp( self->command->mbs, "empty" ) == 0 ){
+			int count = 1;
 			if( field == NULL ){
 				DaoxTemplateNodes_Generate( self->children, value, vars, output );
 				return;
 			}
-			if( field->type == DAO_LIST ){
-				if( field->xList.items.size == 0 )
-					DaoxTemplateNodes_Generate( self->children, value, vars, output );
-			}else if( field->type == DAO_MAP ){
-				if( field->xMap.items->size == 0 )
-					DaoxTemplateNodes_Generate( self->children, value, vars, output );
+			switch( field->type ){
+			case DAO_LIST  : count = field->xList.items.size; break;
+			case DAO_MAP   : count = field->xMap.items->size; break;
+			case DAO_TUPLE : count = field->xTuple.size; break;
 			}
+			if( count == 0 ) DaoxTemplateNodes_Generate( self->children, value, vars, output );
 		}else if( strcmp( self->command->mbs, "not_empty" ) == 0 ){
+			int count = 0;
 			if( field == NULL ) return;
-			if( field->type == DAO_LIST ){
-				if( field->xList.items.size != 0 ){
-					vars2 = vars ? DMap_Copy( vars ) : DMap_New(D_STRING,D_VALUE);
-					index->value = field->xList.items.size;
-					DMap_Insert( vars2, & scount, (DaoValue*) index );
-					DaoxTemplateNodes_Generate( self->children, value, vars2, output );
-					DMap_Delete( vars2 );
-				}
-			}else if( field->type == DAO_MAP ){
-				if( field->xMap.items->size != 0 ){
-					vars2 = vars ? DMap_Copy( vars ) : DMap_New(D_STRING,D_VALUE);
-					index->value = field->xMap.items->size;
-					DMap_Insert( vars2, & scount, (DaoValue*) index );
-					DaoxTemplateNodes_Generate( self->children, value, vars2, output );
-					DMap_Delete( vars2 );
-				}
+			switch( field->type ){
+			case DAO_LIST  : count = field->xList.items.size; break;
+			case DAO_MAP   : count = field->xMap.items->size; break;
+			case DAO_TUPLE : count = field->xTuple.size; break;
+			}
+			if( count > 0 ){
+				vars2 = vars ? DMap_Copy( vars ) : DMap_New(D_STRING,D_VALUE);
+				index->value = count;
+				DMap_Insert( vars2, & scount, (DaoValue*) index );
+				DaoxTemplateNodes_Generate( self->children, value, vars2, output );
+				DMap_Delete( vars2 );
 			}
 		}else if( strcmp( self->command->mbs, "contain" ) == 0 ){
 			if( field != NULL ) DaoxTemplateNodes_Generate( self->children, value, vars, output );
@@ -397,6 +424,6 @@ static void DaoTemplate( DaoProcess *proc, DaoValue *p[], int N )
 
 DAO_DLL int DaoTemplate_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	DaoNamespace_WrapFunction( ns, (DaoCFunction)DaoTemplate, "template( self: string, content : list<any>|map<string,any> )=>string" );
+	DaoNamespace_WrapFunction( ns, (DaoCFunction)DaoTemplate, "template( self: string, content : list<any>|map<string,any>|tuple )=>string" );
 	return 0;
 }

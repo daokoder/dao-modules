@@ -41,6 +41,27 @@ var context = {
 	}
 };
 
-text = source.template( context )
+var context2 =
+(
+	author => (firstName => "Alan", lastName => "Johnson"),
+	body => "I Love Handlebars",
+	comments => {
+		(
+			author => (firstName => "Yehuda", lastName => "Katz"),
+			body => "Me too!"
+		),
+		(
+			author => (firstName => "Yehuda2", lastName => "Katz2"),
+			body => "Me too!"
+		),
+		(
+			author => (firstName => "Yehuda2", lastName => "Katz2"),
+			body => "Me too!"
+		)
+	}
+);
 
-io.writeln( text )
+
+io.writeln( source.template( context ) )
+
+io.writeln( source.template( context2 ) )
