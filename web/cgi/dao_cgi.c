@@ -36,6 +36,8 @@
 #define LOCAL_BUF_SIZE 1000
 
 #include"dao.h"
+#include"daoStdtype.h"
+#include"daoNamespace.h"
 
 #ifdef MAC_OSX
 #  include <crt_externs.h>
@@ -43,6 +45,9 @@
 #else
 extern char ** environ;
 #endif
+
+DaoType *daox_type_namestream = NULL;
+DaoType *daox_type_filemap = NULL;
 
 static DaoVmSpace *vmMaster = NULL;
 
@@ -60,85 +65,44 @@ static void InsertKeyValue( DaoProcess *proc, DaoMap *mulmap, DaoMap *map, DaoVa
 		DaoList_PushBack( DaoValue_CastList( val ), vv );
 	}
 }
-static void ParseKeyValueString( DaoProcess *proc, DaoMap *mulmap, DaoMap *map, const char *s )
+
+#define HEXTOI(x) (isdigit(x) ? x - '0' : x - 'W')
+
+static void ParseKeyValueString( DaoProcess *proc, DaoMap *mulmap, DaoMap *map, const char *data )
 {
-	int i = 0;
-	int nc = 0;
-	int len = 0;
-	char buffer[ LOCAL_BUF_SIZE + 1 ];
-	
+	const char *end = data + strlen( data );
 	DaoValue *vk = (DaoValue*) DaoProcess_NewMBString( proc, NULL, 0 );
 	DaoValue *vv = (DaoValue*) DaoProcess_NewMBString( proc, NULL, 0 );
 	DString *key = DaoString_Get( DaoValue_CastString( vk ) );
 	DString *value = DaoString_Get( DaoValue_CastString( vv ) );
+	DString *buffer = key;
 
-	len = strlen( s );
-	nc = 0;
-	int isKey = 1;
-	char tmp[3];
-	tmp[2] = 0;
-	for(i=0; i<len; i++){
-		if( s[i] == '=' ){
-			buffer[nc] = 0;
-			DString_AppendMBS( key, buffer );
-			nc = 0;
-			isKey = 0;
-		}else if( s[i] == '&' || s[i] == ';' || i+1==len ){
-			if( i+1 == len ){
-				buffer[ nc ] = s[i];
-				nc ++;
-			}
-			if( DString_Size( key ) > 0 ){
-				buffer[ nc ] = 0;
-				DString_AppendMBS( value, buffer );
-				InsertKeyValue( proc, mulmap, map, vk, vv );
-				DString_Clear( key );
-				DString_Clear( value );
-				nc = 0;
-				isKey = 1;
-			}else if( nc > 0 ){
-				buffer[ nc ] = 0;
-				DString_AppendMBS( key, buffer );
-				DString_SetMBS( value, "NULL" );
-				InsertKeyValue( proc, mulmap, map, vk, vv );
-				DString_Clear( key );
-				DString_Clear( value );
-				nc = 0;
-				isKey = 1;
-			}
-		}else if( s[i] != ' ' ){
-			if( nc >= LOCAL_BUF_SIZE ){
-				buffer[ nc ] = 0;
-				if( isKey ){
-					DString_AppendMBS( key, buffer );
-				}else{
-					DString_AppendMBS( value, buffer );
-				}
-				nc = 0;
-			}
-			if( s[i] == '%' ){
-				tmp[0] = s[i+1];
-				tmp[1] = s[i+2];
-				buffer[ nc ] = strtol( tmp, NULL, 16 );
-				i += 2;
-			}else if( s[i] == '+' ){
-				buffer[ nc ] = ' ';
+	buffer->size = 0;
+	for(; data < end; ++data){
+		if( buffer->size >= buffer->bufSize ) DString_Reserve( buffer, 1.5*buffer->size + 8 );
+		if( *data == '=' ){
+			buffer->mbs[ buffer->size ] = 0;
+			buffer = value;
+			buffer->size = 0;
+		}else if( *data == '&' || *data == ';' ){
+			buffer->mbs[ buffer->size ] = 0;
+			InsertKeyValue( proc, mulmap, map, vk, vv );
+			key->size = value->size = 0;
+			buffer = key;
+		}else if( *data != ' ' ){
+			if( *data == '%' ){
+				char a = tolower( data[1] );
+				char b = tolower( data[2] );
+				buffer->mbs[ buffer->size ++ ] = (char) ((HEXTOI(a) << 4) | HEXTOI(b));
+				data += 2;
+			}else if( *data == '+' ){
+				buffer->mbs[ buffer->size ++ ] = ' ';
 			}else{
-				buffer[ nc ] = s[i];
+				buffer->mbs[ buffer->size ++ ] = *data;
 			}
-			nc ++;
 		}
 	}
-	if( DString_Size( key ) > 0 ){
-		buffer[ nc ] = 0;
-		DString_AppendMBS( value, buffer );
-		InsertKeyValue( proc, mulmap, map, vk, vv );
-	}else if( nc > 0 ){
-		buffer[ nc ] = 0;
-		DString_AppendMBS( key, buffer );
-		DString_SetMBS( value, "NULL" );
-		InsertKeyValue( proc, mulmap, map, vk, vv );
-	}
+	if( key->size ) InsertKeyValue( proc, mulmap, map, vk, vv );
 }
 static void ParseKeyValueStringArray( DaoProcess *proc, DaoMap *map, char **p )
 {
@@ -172,173 +136,138 @@ static void ParseKeyValueStringArray( DaoProcess *proc, DaoMap *map, char **p )
 		p ++;
 	}
 }
+
+
+/*
+// POST /upload HTTP/1.1
+// Host: 127.0.0.1:8080
+// Content-Length: 123456
+// Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryHPkMEn
+//
+// ------WebKitFormBoundaryHPkMEn
+// Content-Disposition: form-data; name="first"
+//
+// field abc
+// ------WebKitFormBoundaryHPkMEn
+// Content-Disposition: form-data; name="second"
+//
+// field def
+// ------WebKitFormBoundaryHPkMEn
+// Content-Disposition: form-data; name="file"; filename="summary.txt"
+// Content-Type: text/plain
+//
+// Test Summary:  files, 19 passed, 0 failed;  units: 169 passed, 0 failed;
+//
+// ------WebKitFormBoundaryHPkMEn--
+*/
+
 static void PreparePostData( DaoProcess *proc, DaoMap *httpPOSTS, DaoMap *httpPOST, DaoMap *httpFILE )
 {
+	DString *fname;
+	DString *buffer = DString_New(1);
 	DaoValue *vk = (DaoValue*) DaoProcess_NewMBString( proc, NULL, 0 );
 	DaoValue *vv = (DaoValue*) DaoProcess_NewMBString( proc, NULL, 0 );
 	DString *key = DaoString_Get( DaoValue_CastString( vk ) );
 	DString *value = DaoString_Get( DaoValue_CastString( vv ) );
-	DString *dynaBuffer = DString_New(1);
-	int i = 0;
-	int len = 0;
-	char buffer[ LOCAL_BUF_SIZE + 1 ];
-	char *last = buffer + (LOCAL_BUF_SIZE-1);
-	
-	char *contentLength = getenv( "CONTENT_LENGTH" );
-	char *contentType = getenv( "CONTENT_TYPE" );
-	len = 0;
-	*last = 0;
-	if( contentLength != NULL ) len = strtol( contentLength, NULL, 10);
-	if( contentType != NULL ){
-		//printf( "CONTENT_TYPE = %s\n", contentType );
-		if( strstr( contentType, "multipart/form-data" ) == NULL ){
-			i = 0;
-			DString_Clear( dynaBuffer );
-			while( i < len ){
-				int n = 0;
-				int ch = getchar();
-				while( ch != EOF ){
-					buffer[n] = (char)ch;
-					n ++;
-					if( n == LOCAL_BUF_SIZE ) break;
-					ch = getchar();
-				}
-				buffer[ n ] = 0;
-				//printf( "%s|||||||||||||||||\n", buffer );
-				char *p = strchr( buffer, '&' );
-				if( p != NULL ){
-					*p = 0; // null-terminating
-					p++;
-					DString_AppendMBS( dynaBuffer, buffer );
-					ParseKeyValueString( proc, httpPOSTS, httpPOST, DString_GetMBS( dynaBuffer ) );
-					DString_Clear( dynaBuffer );
-					DString_AppendMBS( dynaBuffer, p );
-				}else{
-					DString_AppendMBS( dynaBuffer, buffer );
-				}
-				i += LOCAL_BUF_SIZE;
+	char *content_length = getenv( "CONTENT_LENGTH" );
+	char *content_type = getenv( "CONTENT_TYPE" );
+	const char *boundary;
+	char postbuf[1024];
+	daoint postlen, boundarylen, len = 0;
+	daoint pos, pos2, pos_rnrn, offset;
+
+	if( content_length != NULL ) len = strtol( content_length, NULL, 10);
+	if( len == 0 ) return;
+	DString_SetSharing( buffer, 0 );
+	if( content_type == NULL || strstr( content_type, "multipart/form-data" ) == NULL ){
+		postlen = fread( postbuf, 1, sizeof(postbuf), stdin );
+		while( postlen ){
+			DString_AppendDataMBS( buffer, postbuf, postlen );
+			postlen = fread( postbuf, 1, sizeof(postbuf), stdin );
+		}
+		ParseKeyValueString( proc, httpPOSTS, httpPOST, buffer->mbs );
+		DString_Delete( buffer );
+		return;
+	}
+	boundary = strstr( content_type, "boundary=" ) + strlen( "boundary=" );
+	boundarylen = strlen( boundary );
+
+	fname = DString_New(1);
+	buffer->size = 0;
+	for(;;){
+		postlen = fread( postbuf, 1, sizeof(postbuf), stdin );
+		if( postlen == 0 && buffer->size < boundarylen ) break;
+
+		DString_AppendDataMBS( buffer, postbuf, postlen );
+		while( strstr( buffer->mbs, "\r\n\r\n" ) == 0 && postlen != 0 ){
+			postlen = fread( postbuf, 1, sizeof(postbuf), stdin );
+			DString_AppendDataMBS( buffer, postbuf, postlen );
+		}
+		//printf( "###############\n%s\n", buffer->mbs );
+
+		key->size = 0;
+		fname->size = 0;
+		pos = DString_FindMBS( buffer, "name=", 20 ); /* Skip: Content-Disposition: ; */
+		pos2 = DString_FindChar( buffer, '\"', pos+6 );
+		DString_SubString( buffer, key, pos + 6, pos2 - pos - 6 );
+
+		pos_rnrn = DString_FindMBS( buffer, "\r\n\r\n", pos2 );
+		pos = DString_FindMBS( buffer, "filename=", pos2 );
+		if( pos != MAXSIZE && pos < pos_rnrn ){
+			daoint pos3 = DString_FindChar( buffer, '\"', pos+10 );
+			DString_SubString( buffer, fname, pos + 10, pos3 - pos - 10 );
+		}
+
+		buffer->size -= pos_rnrn + 4;
+		memmove( buffer->mbs, buffer->mbs + pos_rnrn + 4, buffer->size );
+		if( fname->size == 0 ){
+			offset = 0;
+			while( (pos2 = DString_FindMBS( buffer, boundary, offset )) == MAXSIZE ){
+				offset = buffer->size - boundarylen;
+				if( offset < 0 ) offset = 0;
+				postlen = fread( postbuf, 1, sizeof(postbuf), stdin );
+				DString_AppendDataMBS( buffer, postbuf, postlen );
 			}
-			ParseKeyValueString( proc, httpPOSTS, httpPOST, DString_GetMBS( dynaBuffer ) );
+			DString_SubString( buffer, value, 0, pos2 - 4 ); /* \r\n-- */
+			DaoMap_Insert( httpPOST, (DaoValue*) vk, (DaoValue*) vv );
+			buffer->size -= pos2 + boundarylen;
+			memmove( buffer->mbs, buffer->mbs + pos2 + boundarylen, buffer->size );
 		}else{
-			char *boundary = strstr( contentType, "boundary" );
-			boundary = strstr( boundary, "=" ) + 1;
-			i = 0;
-			char *part = NULL;
-			while( ! feof( stdin ) ){
-				if( part == NULL ) part = fgets( buffer, LOCAL_BUF_SIZE, stdin );
-				if( part == NULL ) break;
-				if( strstr( part, boundary ) == NULL ) break;
+			DaoInteger isize = {DAO_INTEGER,0,0,0,0,0};
+			DaoStream *stream = DaoStream_New();
+			DaoTuple *tuple = DaoTuple_New(3);
+			FILE *file = tmpfile();
 
-				// read content information
-				DString_Clear( dynaBuffer );
-				buffer[ LOCAL_BUF_SIZE ] = 0; // null-terminating
-				char *p = fgets( buffer, LOCAL_BUF_SIZE, stdin );
-				if( p == NULL ) break; // the last boundary scanned
-				p = strchr( p, '\n' );
-				*p = 0; // null-terminating
-				DString_AppendMBS( dynaBuffer, buffer );
-				char *info = (char*)DString_GetMBS( dynaBuffer );
-				info = strchr( info, '=' );
-				info += 2; // at char after name="
-				p = info;
-				while( *p != '\"' ) p ++;
-				*p = 0; // null-terminating
-				DString_SetMBS( key,  info );
-				p ++;
-				if( (p = strstr(p,"filename") ) == NULL ){
-					p = fgets( buffer, LOCAL_BUF_SIZE, stdin );
-					p = fgets( buffer, LOCAL_BUF_SIZE, stdin );
-					// now real data:
-					DString_Clear( value );
-					while( p != NULL && strstr( p, boundary ) == NULL ){
-						char *t = strstr( p, "\r\n" );
-						if( t != NULL ) *t = 0;
-						DString_AppendMBS( value, buffer );
-						if( feof( stdin ) ) break;
-						p = fgets( buffer, LOCAL_BUF_SIZE, stdin );
-						t = strchr( p, '\n' );
-						if( t!= NULL ) *(t+1) = 0;
-					}
-					if( p != NULL ) part = p;
-					DaoMap_Insert( httpPOST, vk, vv );
-				}else{
-					DaoValue *vs = (DaoValue*) DaoProcess_NewStream( proc, tmpfile() );
-					FILE *file = DaoStream_GetFile( DaoValue_CastStream( vs ) );
-					char *t = NULL;
-					p = strchr( p, '\"' ) + 1;
-					info = p;
-					while( *p != '\"' ) p ++;
-					*p = 0; // null-terminating
-					//XXX stream->TYPER->SetName( stream, info );
-					DString_Clear( value );
-					// Content-Type ...\r\n
-					p = fgets( buffer, LOCAL_BUF_SIZE, stdin );
-					// \r\n
-					p = fgets( buffer, LOCAL_BUF_SIZE, stdin );
-					// data
-#if 0
-					int count = fread( buffer, 1, LOCAL_BUF_SIZE, stdin );
-					while( count && strstr( buffer, boundary ) == NULL ){
-						fwrite( buffer, 1, count, file );
-						fprintf( file, "%s\n", "===========================" );
-						if( feof( stdin ) ) break;
-						count = fread( buffer, 1, LOCAL_BUF_SIZE, stdin );
-					}
-#else
-					char tail[3] = { 0, 0, 0 };
-					int count, ntail = 0;
-					p = fgets( buffer, LOCAL_BUF_SIZE, stdin );
+			DaoString_Set( (DaoString*) vv, fname );
+			DaoStream_SetFile( stream, file );
+			DaoTuple_SetType( tuple, daox_type_namestream );
+			DaoTuple_SetItem( tuple, (DaoValue*) vv, 0 );
+			DaoTuple_SetItem( tuple, (DaoValue*) stream, 2 );
+			DaoMap_Insert( httpFILE, (DaoValue*) vk, (DaoValue*) tuple );
 
-					while( p != NULL && strstr( p, boundary ) == NULL ){
-						if( feof( stdin ) ){
-							// XXX
-							break;
-						}else{
-							t = p;
-							while( t != last && (*t) != '\n' ) t ++;
-							if( (*t) == '\n' ){
-								count = t-p+1;
-								if( count >= 2 ){
-									count -= 2;
-									if( ntail ) fwrite( tail, 1, ntail, file );
-									tail[0] = p[ count ];
-									tail[1] = p[ count+1 ];
-									ntail = 2;
-									fwrite( p, 1, count, file );
-								}else if( count == 1 ){
-									if( ntail == 2 ){
-										fwrite( tail, 1, 1, file );
-										tail[0] = tail[1];
-										tail[1] = p[0];
-									}else if( ntail ==1 ){
-										tail[1] = p[0];
-										ntail = 2;
-									}else{
-										tail[0] = p[0];
-										ntail = 1;
-									}
-								}
-							}else{
-								if( ntail ) fwrite( tail, 1, ntail, file );
-								count = LOCAL_BUF_SIZE-3;
-								tail[0] = p[ count ];
-								tail[1] = p[ count+1 ];
-								ntail = 2;
-								fwrite( p, 1, count, file );
-							}
-						}
-						p = fgets( buffer, LOCAL_BUF_SIZE, stdin );
-					}
-#endif
-					//if( p != NULL ) part = p;
-					rewind( file );
-					DaoMap_Insert( httpFILE, vk, vs );
+			offset = 0;
+			while( (pos2 = DString_FindMBS( buffer, boundary, 0 )) == MAXSIZE ){
+				offset = buffer->size - boundarylen;
+				if( offset > 0 ){
+					isize.value += offset;
+					fwrite( buffer->mbs, 1, offset, file );
+					buffer->size -= offset;
+					memmove( buffer->mbs, buffer->mbs + offset, buffer->size );
 				}
+				postlen = fread( postbuf, 1, sizeof(postbuf), stdin );
+				DString_AppendDataMBS( buffer, postbuf, postlen );
 			}
+			isize.value += pos2 - 4;
+			fwrite( buffer->mbs, 1, pos2 - 4, file );  /* \r\n-- */
+			buffer->size -= pos2 + boundarylen;
+			memmove( buffer->mbs, buffer->mbs + pos2 + boundarylen, buffer->size );
+			rewind( file );
+			DaoTuple_SetItem( tuple, (DaoValue*) & isize, 1 );
 		}
 	}
-	DString_Delete( dynaBuffer );
+	DString_Delete( buffer );
 }
+
 const char alnumChars[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 void DaoCGI_RandomString( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -395,6 +324,10 @@ DAO_DLL int DaoCGI_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	srand( time(NULL) );
 
 	vmMaster = vmSpace;
+
+	daox_type_namestream = DaoNamespace_TypeDefine( ns, "tuple<file:string,size:int,data:io::stream>", "HttpUpload" );
+	daox_type_filemap = DaoNamespace_ParseType( ns, "map<string,HttpUpload>" );
+
 	DaoNamespace_WrapFunctions( ns, cgiMeths );
 
 	httpENV = DaoMap_New(1+rand());
@@ -408,7 +341,7 @@ DAO_DLL int DaoCGI_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace_AddValue( ns, "HTTP_ENV", (DaoValue*)httpENV, "map<string,string>" );
 	DaoNamespace_AddValue( ns, "HTTP_GET", (DaoValue*)httpGET, "map<string,string>" );
 	DaoNamespace_AddValue( ns, "HTTP_POST", (DaoValue*)httpPOST, "map<string,string>" );
-	DaoNamespace_AddValue( ns, "HTTP_FILE", (DaoValue*)httpFILE, "map<string,io::stream>" );
+	DaoNamespace_AddValue( ns, "HTTP_FILE", (DaoValue*)httpFILE, "map<string,HttpUpload>" );
 	DaoNamespace_AddValue( ns, "HTTP_COOKIE", (DaoValue*)httpCOOKIE, "map<string,string>");
 	DaoNamespace_AddValue( ns,"HTTP_GETS",(DaoValue*)httpGETS,"map<string,list<string>>");
 	DaoNamespace_AddValue( ns,"HTTP_POSTS",(DaoValue*)httpPOSTS,"map<string,list<string>>");
