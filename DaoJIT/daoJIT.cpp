@@ -1372,11 +1372,15 @@ struct IndexRange
 };
 
 
+extern DMutex mutex_routine_specialize;
 void DaoJIT_Free( void *jitdata )
 {
+	/* LLVMContext provides no locking guarantees: */
+	DMutex_Lock( & mutex_routine_specialize );
 	std::vector<DaoJitFunctionData> *jitFuncs = (std::vector<DaoJitFunctionData>*) jitdata;
 	for(int i=0,n=jitFuncs->size(); i<n; i++) jitFuncs->operator[](i).llvmFunction->eraseFromParent();
 	delete jitFuncs;
+	DMutex_Unlock( & mutex_routine_specialize );
 }
 static bool CompilableSETI( DaoVmCodeX *vmc, DaoType **types )
 {
