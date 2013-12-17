@@ -1023,6 +1023,7 @@ void DaoJIT_Init( DaoVmSpace *vms, DaoJIT *jit )
 	field_types.push_back( int16_type ); // valueCount;
 	field_types.push_back( daojit_class_type_p ); // defClass;
 	field_types.push_back( void_type_p ); // rootObject;
+	field_types.push_back( void_type_p ); // parent;
 	field_types.push_back( daojit_value_ptr_array_type_p ); // objValues;
 	daojit_object_type = StructType::get( *llvm_context, field_types );
 	daojit_object_type_p = PointerType::getUnqual( daojit_object_type );
@@ -2150,7 +2151,7 @@ Value* DaoJitHandle::GetObjectVariable( int reg, int field )
 	value = GetLocalValue( reg );
 	SetInsertPoint( current );
 	value = CreatePointerCast( value, daojit_object_type_p );
-	value = CreateConstGEP2_32( value, 0, 10 /*bit fields*/ ); // object->objValues: DaoValue*[]**;
+	value = CreateConstGEP2_32( value, 0, 11 /*bit fields*/ ); // object->objValues: DaoValue*[]**;
 	value = Dereference( value ); // object->objValues: DaoValue*[]*;
 	if( maycache ) dataItems[reg] = std::pair<Value*,BasicBlock*>( value, current );
 
