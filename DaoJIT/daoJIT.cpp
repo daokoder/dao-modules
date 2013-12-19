@@ -3358,3 +3358,14 @@ void DaoJIT_Execute( DaoProcess *process, DaoJitCallData *data, int jitcode )
 	}
 }
 
+extern "C"{
+DAO_DLL int DaoJIT_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+{
+	DaoJIT_Init( vmSpace, & dao_jit );
+	dao_jit.Quit = DaoJIT_Quit;
+	dao_jit.Free = DaoJIT_Free;
+	dao_jit.Compile = DaoJIT_Compile;
+	dao_jit.Execute = DaoJIT_Execute;
+	return 0;
+}
+}
