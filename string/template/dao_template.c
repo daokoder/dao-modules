@@ -251,7 +251,7 @@ DaoValue* DaoxTemplateNode_GetPath( DaoxTemplateNode *self, DaoValue *container,
 		return DaoxTemplateNode_GetPath( self, value, NULL, i+1 );
 	}else if( container->type == DAO_TUPLE ){
 		DaoTuple *tup = (DaoTuple*) container;
-		it = DMap_Find( tup->unitype->mapNames, path->items.pString[i] );
+		it = DMap_Find( tup->ctype->mapNames, path->items.pString[i] );
 		if( it == NULL ) return NULL;
 		return DaoxTemplateNode_GetPath( self, tup->items[it->value.pInt], NULL, i+1 );
 	}
@@ -295,7 +295,7 @@ void DaoxTemplateNode_Generate( DaoxTemplateNode *self, DaoValue *value, DMap *v
 				}
 			}else if( field->type == DAO_TUPLE ){
 				DaoTuple *tup = (DaoTuple*) field;
-				DMap *mapNames = tup->unitype->mapNames;
+				DMap *mapNames = tup->ctype->mapNames;
 				DArray *names = DArray_New(0);
 				int i;
 				DArray_Resize( names, tup->size, NULL );

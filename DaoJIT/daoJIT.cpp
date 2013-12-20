@@ -754,7 +754,7 @@ void DaoJIT_SETI_TI( DaoValue *dA, daoint id, DaoValue *dC, int *estatus )
 		*estatus = DAO_ERROR_INDEX;
 		return;
 	}
-	type = tuple->unitype->nested->items.pType[id];
+	type = tuple->ctype->nested->items.pType[id];
 	if( type->tid == DAO_PAR_NAMED ) type = & type->aux->xType;
 	if( DaoValue_Move( dA, tuple->items + id, type ) ==0 ) *estatus = DAO_ERROR_VALUE;
 }
@@ -964,7 +964,7 @@ void DaoJIT_Init( DaoVmSpace *vms, DaoJIT *jit )
 
 	field_types.erase( field_types.begin()+6, field_types.end() );
 	field_types.push_back( int32_type ); // size
-	field_types.push_back( daojit_type_type_p ); // unitype
+	field_types.push_back( daojit_type_type_p ); // ctype
 	field_types.push_back( daojit_value_ptr_array_type ); // items
 	daojit_tuple_type = StructType::get( *llvm_context, field_types );
 	daojit_tuple_type_p = PointerType::getUnqual( daojit_tuple_type );
