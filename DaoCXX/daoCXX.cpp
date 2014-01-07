@@ -388,13 +388,29 @@ static int error_function_notwrapped( DString *out, const char *name )
 	DString_AppendMBS( out, name );
 	return 1;
 }
+static uint_t DaoRotatingHash( DString *text )
+{
+	int i, len = text->size;
+	uint_t hash = text->size;
+	for(i=0; i<len; ++i) hash = ((hash<<4)^(hash>>28)^text->mbs[i])&0x7fffffff;
+	return hash;
+}
+static void dao_make_anonymous_name( char *name, DaoNamespace *NS, DString *VT, const char *prefix, const char *suffix )
+{
+	uint_t hash1, hash2;
+	DString *path = DString_Copy( NS->name );
+	DString_Erase( path, path->size - NS->lang->size - 1, -1 );
+	hash1 = DaoRotatingHash( path );
+	hash2 = DaoRotatingHash( VT );
+	sprintf( name, "%sanonymous_%x_%x%s", prefix, hash1, hash2, suffix );
+}
 
 static int dao_cxx_block( DaoNamespace *NS, DString *VT, DArray *markers, DString *source, DString *out )
 {
 	char bytes[200];
 	char name[50];
 
-	sprintf( name, "anonymous_%p_%p", NS, VT );
+	dao_make_anonymous_name( name, NS, VT, "", "" );
 	sprintf( bytes, "void %s(){\n", name );
 	DString_InsertMBS( source, bytes, 0, 0, 0 );
 	DString_InsertMBS( source, dao_cxx_default_includes, 0, 0, 0 );
@@ -402,7 +418,7 @@ static int dao_cxx_block( DaoNamespace *NS, DString *VT, DArray *markers, DStrin
 	sprintf( bytes, "\n}\nextern \"C\"{\nvoid dao_%s%s{\n\t%s();\n}\n}", name, dao_wrapper, name );
 	DString_AppendMBS( source, bytes );
 
-	sprintf( name, "anonymous_%p_%p.cxx", NS, VT );
+	dao_make_anonymous_name( name, NS, VT, "", ".cxx" );
 	//printf( "%s:\n%s\n", name, source->mbs );
 	DaoCXX_AddVirtualFile( name, source->mbs );
 
@@ -412,7 +428,7 @@ static int dao_cxx_block( DaoNamespace *NS, DString *VT, DArray *markers, DStrin
 	llvm::Module *module = action.takeModule();
 	if( module == NULL ) return error_compile_failed( out );
 
-	sprintf( name, "dao_anonymous_%p_%p", NS, VT );
+	dao_make_anonymous_name( name, NS, VT, "dao_", "" );
 	Function *Func = module->getFunction( name );
 	if( Func == NULL ) return error_function_notfound( out, name );
 
@@ -433,8 +449,8 @@ static int dao_cxx_function( DaoNamespace *NS, DString *VT, DArray *markers, DSt
 	char *proto = proto2;
 	DString *mbs = DString_New(1);
 
-	sprintf( file, "anonymous_%p_%p.cxx", NS, VT );
-	sprintf( proto2, "anonymous_%p_%p()", NS, VT );
+	dao_make_anonymous_name( file, NS, VT, "", ".cxx" );
+	dao_make_anonymous_name( proto2, NS, VT, "", "()" );
 	if( dao_markers_get( markers, "define", mbs, NULL ) ) proto = mbs->mbs;
 
 	DaoRoutine *func = DaoNamespace_WrapFunction( NS, DaoCXX_Default, proto );
@@ -484,7 +500,7 @@ static int dao_cxx_header( DaoNamespace *NS, DString *VT, DArray *markers, DStri
 	DString *mbs = DString_New(1);
 	char name[50];
 	char *file = name;
-	sprintf( name, "anonymous_%p_%p.h", NS, VT );
+	dao_make_anonymous_name( name, NS, VT, "", ".h" );
 	if( dao_markers_get( markers, "file", mbs, NULL ) ){
 		// TODO: better handling of suffix?
 		if( isalnum( mbs->mbs[0] ) ) DString_InsertMBS( mbs, "./", 0, 0, 0 );
@@ -506,7 +522,7 @@ static int dao_cxx_source( DaoNamespace *NS, DString *VT, DArray *markers, DStri
 	char *file = name;
 	daoint i, failed = 0;
 
-	sprintf( name, "anonymous_%p_%p.cxx", NS, VT );
+	dao_make_anonymous_name( name, NS, VT, "", ".cxx" );
 	dao_markers_get( markers, "wrap", mbs, wraps );
 	if( dao_markers_get( markers, "file", mbs, NULL ) ){
 		file = mbs->mbs;
@@ -670,6 +686,7 @@ DAO_DLL int DaoOnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 	headers.AddPath( "/Developer/SDKs/MacOSX10.5.sdk/usr/lib/gcc/i686-apple-darwin9/4.2.1/include", clang::frontend::System, false, false, true );
 	// workaround for finding: stdarg.h
 	headers.AddPath( "/usr/lib/clang/3.2/include", clang::frontend::System, false, false, true );
+	headers.AddPath( "/usr/lib/clang/4.2/include", clang::frontend::System, false, false, true );
 	headers.AddPath( "/usr/local/lib/clang/3.2/include", clang::frontend::System, false, false, true );
 #elif defined(UNIX)
 	predefines = "#define UNIX 1\n";
@@ -700,8 +717,6 @@ DAO_DLL int DaoOnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 
 	DaoNamespace_AddCodeInliner( ns, "cxx", dao_cxx_inliner );
 	DaoNamespace_AddCodeInliner( ns, "cpp", dao_cxx_inliner );
-	DaoNamespace_AddModuleLoader( ns, "cxx", dao_cxx_loader );
-	DaoNamespace_AddModuleLoader( ns, "cpp", dao_cxx_loader );
 	DaoNamespace_TypeDefine( ns, "int", "short" );
 	DaoNamespace_TypeDefine( ns, "int", "size_t" );
 	DaoNamespace_TypeDefine( ns, "int", "int8_t" );

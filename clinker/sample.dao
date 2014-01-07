@@ -3,22 +3,22 @@ load clinker;
 
 const funcs =
 {
-	"test( p : int ) => float" ,
-	"test2( p : float ) => string" ,
-	"test_string( s : string ) => float" ,
-	"test_dao_list( ls : list<int> )" ,
-	"test_array_short( p : array<short> )" ,
-	"test_array_float( p : array<float> )" ,
-	"test_array_double( p : array<double> )" ,
-	"test_stream( s : io::stream )" ,
+	'test( p : int ) => float' ,
+	'test2( p : float ) => string' ,
+	'test_string( s : string ) => float' ,
+	'test_dao_list( ls : list<int> )' ,
+	'test_array_short( p : array<short> )' ,
+	'test_array_float( p : array<float> )' ,
+	'test_array_double( p : array<double> )' ,
+	'test_stream( s : io::stream )' ,
 }
 
 const types = 
 {
-	"MyType"
+	'MyType'
 }
 
-const sample = link( "sample", funcs, types );
+const sample = link( 'sample', funcs, types );
 
 use sample
 

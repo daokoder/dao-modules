@@ -16,6 +16,7 @@ project_objects.AddCompilingFlag( "-fvisibility-inlines-hidden" ); # llvm-3.2
 project_dll = project.AddSharedLibrary( "DaoCXX", project_objects )
 project_lib = project.AddStaticLibrary( "DaoCXX", project_objects )
 
+#project.AddLinkingPath( "/Users/min/lib" )
 project.AddLinkingFlag( "-lclangFrontend" )
 project.AddLinkingFlag( "-lclangDriver" )
 project.AddLinkingFlag( "-lclangCodeGen" )
