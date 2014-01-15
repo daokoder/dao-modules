@@ -15,7 +15,7 @@ dao_cgi_lib  = project.AddStaticLibrary( "dao_cgi", dao_cgi_objs )
 dao_json_dll = project.AddSharedLibrary( "dao_json", dao_json_objs )
 dao_json_lib = project.AddStaticLibrary( "dao_json", dao_json_objs )
 
-path = daovm.GetPath( "MOD-PATH" ) + "web"
+path = DaoMake::MakePath( daovm.GetPath( "MOD-PATH" ), "web" )
 
 project.GenerateFinder( $TRUE );
 project.Install( path, dao_cgi_dll );

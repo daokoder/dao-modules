@@ -976,7 +976,7 @@ DaoType *daox_graph_template_type = NULL;
 DaoType *daox_graph_data_type = NULL;
 DaoType *daox_graph_maxflow_type = NULL;
 
-DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_DLL int DaoGraph_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	daox_node_template_type = DaoNamespace_WrapType( ns, & DaoxNode_Typer, 0 );
 	daox_edge_template_type = DaoNamespace_WrapType( ns, & DaoxEdge_Typer, 0 );

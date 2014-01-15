@@ -24,7 +24,7 @@ dao_tokenize_lib = project.AddStaticLibrary( "dao_tokenize", dao_tokenize_object
 dao_xxtea_dll    = project.AddSharedLibrary( "dao_xxtea", dao_xxtea_objects )
 dao_xxtea_lib    = project.AddStaticLibrary( "dao_xxtea", dao_xxtea_objects )
 
-path = daovm.GetPath( "MOD-PATH" ) + "string"
+path = DaoMake::MakePath( daovm.GetPath( "MOD-PATH" ), "string" )
 
 project.GenerateFinder( $TRUE );
 project.Install( path, dao_template_dll );

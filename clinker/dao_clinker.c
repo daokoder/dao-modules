@@ -410,7 +410,7 @@ static void DaoCLoader_Load( DaoProcess *proc, DaoValue *p[], int N )
 DaoTypeBase DaoFFI_Typer =
 { "FFI", NULL, NULL, NULL, {0}, {0}, (FuncPtrDel) DaoFFI_Delete, NULL };
 
-int DaoOnLoad( DaoVmSpace *vms, DaoNamespace *ns )
+DAO_DLL int DaoClinker_OnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 {
 	DaoNamespace *io = DaoVmSpace_GetNamespace( vms, "io" );
 	int i;

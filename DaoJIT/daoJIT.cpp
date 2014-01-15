@@ -1455,7 +1455,7 @@ void DaoJIT_SearchCompilable( DaoRoutine *routine, std::vector<IndexRange> & seg
 		}
 		last = compilable;
 #ifdef DEBUG
-		printf( "%3i  %i: ", i, compilable ); DaoVmCodeX_Print( *vmc, NULL );
+		printf( "%3i  %i: ", i, compilable ); DaoVmCodeX_Print( *vmc, NULL, NULL );
 #endif
 	}
 	for(k=0; k<segments.size(); k++) ranges[segments[k]] = 1;
@@ -2295,7 +2295,7 @@ Function* DaoJitHandle::Compile( int start, int end )
 		code = vmc->code;
 		currentNode = nodes[i];
 #ifdef DEBUG
-		printf( "%3i ", i ); DaoVmCodeX_Print( *vmc, NULL );
+		printf( "%3i ", i ); DaoVmCodeX_Print( *vmc, NULL, NULL );
 #endif
 		if( labels.find( i ) != labels.end() ) labels[i] = NewBlock( vmc );
 		switch( code ){

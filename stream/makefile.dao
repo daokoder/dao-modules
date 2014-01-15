@@ -18,7 +18,7 @@ dao_buffer_lib  = project.AddStaticLibrary( "dao_buffer", dao_buffer_objs )
 dao_clprint_dll = project.AddSharedLibrary( "dao_clprint", dao_clprint_objs )
 dao_clprint_lib = project.AddStaticLibrary( "dao_clprint", dao_clprint_objs )
 
-path = daovm.GetPath( "MOD-PATH" ) + "stream"
+path = DaoMake::MakePath( daovm.GetPath( "MOD-PATH" ), "stream" )
 
 project.GenerateFinder( $TRUE );
 project.Install( path, dao_buffer_dll );

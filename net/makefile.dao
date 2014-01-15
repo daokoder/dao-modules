@@ -11,6 +11,9 @@ project_objs = project.AddObjects( { "dao_network.c" } )
 project_dll  = project.AddSharedLibrary( "dao_net", project_objs )
 project_lib  = project.AddStaticLibrary( "dao_net", project_objs )
 
+if( DaoMake::IsWin32() ){
+	if( DaoMake::IsMinGW() ) project.AddLinkingFlag( "-lwsock32" )
+}
 
 project.GenerateFinder( $TRUE );
 project.Install( daovm.GetPath( "MOD-PATH" ), project_dll );

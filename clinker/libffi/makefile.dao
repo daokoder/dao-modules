@@ -37,9 +37,10 @@ if( DaoMake::IsUnix() ){
 		return
 	}
 }else if( DaoMake::IsWin32() ){
+	project.AddDefinition( is64bit ? "X86_WIN64" : "X86_WIN32" )
 	project.AddIncludePath( "src/x86" )
 	src.append( is64bit ? "src/x86/ffi64.c" : "src/x86/ffi.c" )
-	src.append( is64bit ? "src/x86/win64.c" : "src/x86/win32.c" )
+	src.append( is64bit ? "src/x86/win64.S" : "src/x86/win32.S" )
 }else{
 	return
 }
