@@ -68,6 +68,11 @@
 /* Define if __attribute__((visibility("hidden"))) is supported. */
 /* #undef HAVE_HIDDEN_VISIBILITY_ATTRIBUTE */
 
+/* Added for GCC on Linux (2014-01-16): */
+#define HAVE_HIDDEN_VISIBILITY_ATTRIBUTE 1
+#define HAVE_AS_ASCII_PSEUDO_OP 1
+#define HAVE_AS_X86_PCREL 1
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
 
