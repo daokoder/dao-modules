@@ -648,7 +648,11 @@ static int dao_cxx_loader( DaoNamespace *NS, DString *file, DString *emsg )
 	return retc;
 }
 
-DAO_DLL int DaoOnLoad( DaoVmSpace *vms, DaoNamespace *ns )
+extern "C"{
+DAO_DLL int DaoCxx_OnLoad( DaoVmSpace *vms, DaoNamespace *ns );
+}
+
+DAO_DLL int DaoCxx_OnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 {
 	static int argc = 2;
 	const char *argv[2] = { "dao", "dummy-main.cpp" };

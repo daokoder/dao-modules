@@ -331,10 +331,29 @@ static void DaoCLoader_Load( DaoProcess *proc, DaoValue *p[], int N )
 	DaoFFI *ffi;
 	void *handle, *fptr;
 	char *chs;
-	int i, j;
-	int ok = 1;
+	int i, j, ok = 1;
+	DString *path = DString_New(1);
+	DString *file = DString_New(1);
+	daoint pos;
+
 	DString_ToMBS( lib );
-	DaoVmSpace_CompleteModuleName( vms, lib, DAO_MODULE_DLL );
+	pos = lib->size;
+	while( pos && (lib->mbs[pos-1] == '_' || isalnum( lib->mbs[pos-1] )) ) pos -= 1;
+	if( pos && (lib->mbs[pos-1] == '/' || lib->mbs[pos-1] == '\\') ){
+		DString_SubString( lib, path, 0, pos );
+		DString_SubString( lib, file, pos, lib->size - pos );
+	}else{
+		DString_Assign( file, lib );
+	}
+
+	pos = DString_FindMBS( file, DAO_DLL_PREFIX, 0 );
+	if( pos != 0 ) DString_InsertMBS( file, DAO_DLL_PREFIX, 0, 0, strlen(DAO_DLL_PREFIX) );
+	pos = DString_FindMBS( file, DAO_DLL_SUFFIX, 0 );
+	if( pos != (file->size - strlen(DAO_DLL_SUFFIX)) ) DString_AppendMBS( file, DAO_DLL_SUFFIX );
+	DString_Assign( lib, file );
+	Dao_MakePath( path, lib );
+	Dao_MakePath( proc->activeNamespace->path, lib );
+
 	handle = Dao_OpenDLL( lib->mbs );
 	if( handle == NULL ){
 		DaoProcess_PutNone( proc );

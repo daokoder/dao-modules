@@ -13,8 +13,8 @@ project_objects = project.AddObjects( { "daoCXX.cpp" } )
 project_objects.AddCompilingFlag( "-fno-rtti" );
 project_objects.AddCompilingFlag( "-fvisibility-inlines-hidden" ); # llvm-3.2
 
-project_dll = project.AddSharedLibrary( "DaoCXX", project_objects )
-project_lib = project.AddStaticLibrary( "DaoCXX", project_objects )
+project_dll = project.AddSharedLibrary( "dao_cxx", project_objects )
+project_lib = project.AddStaticLibrary( "dao_cxx", project_objects )
 
 #project.AddLinkingPath( "/Users/min/lib" )
 project.AddLinkingFlag( "-lclangFrontend" )
