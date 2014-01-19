@@ -15,3 +15,7 @@ project_lib  = project.AddStaticLibrary( "dao_graph", project_objs )
 project.GenerateFinder( $TRUE );
 project.Install( daovm.GetPath( "MOD-PATH" ), project_dll );
 project.Install( daovm.GetPath( "MOD-PATH" ), project_lib );
+
+daovm_doc_path = daovm.GetPath( "DOC-PATH" );
+demos = { "examples/maxflow.dao" }
+project.Install( DaoMake::MakePath( daovm_doc_path, "./demo/modules/graph" ), demos )
