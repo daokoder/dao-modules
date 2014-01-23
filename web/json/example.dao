@@ -1,17 +1,17 @@
 load "../json";
 
 data = { 
-	"module":               (any)"DaoJSON", 
-	"descriptioin":         "JSON serializer/parser",
-	"external dependences": none,
-	"classes":              0,
-	"methods":              { "serialize", "deserialize" }, 
-	"Dao => JSON mapping":  { 
-	"map<string, any>": "object",
-	"list<any>":        "array",
-	"string":           "string",
-	"int/float/double": "number",
-	"none":             "null"
+	"module" =>               (any)"DaoJSON", 
+	"descriptioin" =>         "JSON serializer/parser",
+	"external dependences" => none,
+	"classes" =>              0,
+	"methods" =>              { "serialize", "deserialize" }, 
+	"Dao => JSON mapping" =>  { 
+	"map<string, any>" => "object",
+	"list<any>" =>        "array",
+	"string" =>           "string",
+	"int/float/double" => "number",
+	"none" =>             "null"
     } 
 };
 

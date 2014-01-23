@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2011,2012, Limin Fu
+// Copyright (c) 2011-2013, Limin Fu
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without modification,
@@ -30,8 +30,9 @@
 #include "errno.h"
 
 #include"dao.h"
+#include"daoValue.h"
 
-#define DAO_INT_LFORMAT  L"" DAO_INT_FORMAT
+#define DAO_INT_LFORMAT  L"%" DAO_INT_FORMAT
 
 void JSON_Indent( DString *text, int indent )
 {
@@ -42,41 +43,44 @@ void JSON_Indent( DString *text, int indent )
 
 int JSON_SerializeValue( DaoValue *value, DString *text, int indent )
 {
-	int i, res;
+	daoint i, res;
 	wchar_t buf[100];
 	wchar_t *sep = indent >= 0? L",\n" : L",";
 	DaoList *list;
 	DaoMap *map;
 	DNode *node;
+	DString *str;
 	switch( DaoValue_Type( value ) ){
 	case DAO_INTEGER:
-		swprintf( buf,
-#ifndef __MINGW32__
-				  sizeof(buf),
-#endif
-				  DAO_INT_LFORMAT, DaoValue_TryGetInteger( value ) );
+		swprintf( buf, sizeof(buf), DAO_INT_LFORMAT, DaoValue_TryGetInteger( value ) );
 		DString_AppendWCS( text, buf );
 		break;
 	case DAO_FLOAT:
-		swprintf( buf,
-#ifndef __MINGW32__
-				  sizeof(buf),
-#endif
-				  L"%f", DaoValue_TryGetFloat( value ) );
+		swprintf( buf, sizeof(buf), L"%f", DaoValue_TryGetFloat( value ) );
 		DString_AppendWCS( text, buf );
 		break;
 	case DAO_DOUBLE:
-		swprintf( buf,
-#ifndef __MINGW32__
-				  sizeof(buf),
-#endif
-				  L"%f", DaoValue_TryGetDouble( value ) );
+		swprintf( buf, sizeof(buf), L"%f", DaoValue_TryGetDouble( value ) );
 		DString_AppendWCS( text, buf );
 		break;
 	case DAO_STRING:
 		DString_AppendWChar( text, L'"' );
-		DString_AppendWCS( text, DaoValue_TryGetWCString( value ) );
+		str = DString_Copy( value->xString.data );
+		DString_ToWCS( str );
+		for ( i = 0; i < str->size; i++ )
+			switch ( str->wcs[i] ){
+			case L'\"': DString_AppendWCS( text, L"\\\"" ); break;
+			case L'\\': DString_AppendWCS( text, L"\\\\" ); break;
+			case L'/':  DString_AppendWCS( text, L"\\/" ); break;
+			case L'\b': DString_AppendWCS( text, L"\\b" ); break;
+			case L'\f': DString_AppendWCS( text, L"\\f" ); break;
+			case L'\n': DString_AppendWCS( text, L"\\n" ); break;
+			case L'\r': DString_AppendWCS( text, L"\\r" ); break;
+			case L'\t': DString_AppendWCS( text, L"\\t" ); break;
+			default:	DString_AppendWChar( text, str->wcs[i] );
+			}
 		DString_AppendWChar( text, L'"' );
+		DString_Delete( str );
 		break;
 	case DAO_LIST:
 		if( indent >= 0 ){
@@ -190,8 +194,29 @@ DaoValue* JSON_ParseString( DaoProcess *process, wchar_t* *text )
 		if( *end == L'\\' && *(end + 1) != L'\0' )
 			end++;
 		else if( *end == L'"' ){
+			DString *str;
+			daoint i;
 			value = (DaoValue*) DaoProcess_NewWCString( process, *text + 1, end - *text - 1 );
 			*text = end + 1;
+			str = value->xString.data;
+			for ( i = 0; i < str->size - 1; i++ )
+				if ( str->wcs[i] == L'\\' )
+					switch ( str->wcs[i + 1] ){
+					case L'\"': DString_InsertWCS( str, L"\"", i, 2, 1 ); break;
+					case L'\\': DString_InsertWCS( str, L"\\", i, 2, 1 ); break;
+					case L'/':  DString_InsertWCS( str, L"/", i, 2, 1 ); break;
+					case L'b':  DString_InsertWCS( str, L"\b", i, 2, 1 ); break;
+					case L'f':  DString_InsertWCS( str, L"\f", i, 2, 1 ); break;
+					case L'n':  DString_InsertWCS( str, L"\n", i, 2, 1 ); break;
+					case L'r':  DString_InsertWCS( str, L"\r", i, 2, 1 ); break;
+					case L't':  DString_InsertWCS( str, L"\t", i, 2, 1 ); break;
+					case L'u':
+						if ( i < str->size - 5 ){
+							DString_Erase( str, i + 1, 5 );
+							str->wcs[i] = (wchar_t)wcstol( str->wcs, NULL, 16 );
+						}
+						break;
+					}
 			return value;
 		}
 	return NULL;
@@ -453,7 +478,7 @@ static void JSON_Deserialize( DaoProcess *proc, DaoValue *p[], int N )
 DAO_DLL int DaoJSON_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace_WrapFunction( ns, (DaoCFunction)JSON_Serialize,
-		"toJSON( self: map<string, any>|list<any>, style: enum<pretty,compact>=$pretty )=>string" );
+		"toJSON( self: map<string, @V>|list<@V>, style: enum<pretty,compact>=$pretty )=>string" );
 	DaoNamespace_WrapFunction( ns, (DaoCFunction)JSON_Deserialize,
 		"parseJSON( self: string )=>map<string, any>|list<any>" );
 	return 0;

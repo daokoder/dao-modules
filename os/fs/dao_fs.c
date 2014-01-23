@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2011,2012, Limin Fu
+// Copyright (c) 2011-2014, Limin Fu
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without modification,
@@ -132,7 +132,7 @@ int DInode_Open( DInode *self, const char *path )
 	self->pexec = info.st_mode & _S_IEXEC;
 	self->type = ( info.st_mode & _S_IFDIR )? 0 : 1;
 	self->size = ( info.st_mode & _S_IFDIR )? 0 : info.st_size;
-	if( len < 2 || path[1] != ':' ){
+	if( len < 2 || ( path[1] != ':' && path[0] != '\\' ) ){
 		if( !getcwd( buf, MAX_PATH ) )
 			return errno;
 		strcat( buf, "\\" );
@@ -213,6 +213,17 @@ char* DInode_Parent( DInode *self, char *buffer )
 		if( i == 2 )
 			i++;
 		strncpy( buffer, self->path, i );
+		if( self->path[0] == '\\' ){
+			int j;
+			int k = 0;
+			for (j = 2; j < i && k < 2; j++)
+				if( IS_PATH_SEP( self->path[j] ) )
+					k++;
+			if( i == j ){
+				buffer[i] = '\\';
+				i++;
+			}
+		}
 		buffer[i] = '\0';
 	}
 #else
@@ -241,7 +252,7 @@ int DInode_Rename( DInode *self, const char *path )
 	if( !DInode_Parent( self, buf ) )
 		return 1;
 #ifdef WIN32
-	if( len < 2 || path[1] != ':' ){
+	if( len < 2 || ( path[1] != ':' && path[0] != '\\' ) ){
 #else
 	if( path[0] != '/' ){
 #endif
@@ -652,12 +663,6 @@ static void FSNode_Makedir( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutCdata( proc, (void*)child, daox_type_fsnode );
 }
 
-static void FSNode_Isroot( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
-	DaoProcess_PutInteger( proc, IS_PATH_SEP( self->path[strlen( self->path ) - 1] ) ? 1 : 0 );
-}
-
 static void FSNode_Child( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
@@ -792,9 +797,8 @@ static void FSNode_Dirs( DaoProcess *proc, DaoValue *p[], int N )
 static void FSNode_Suffix( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
-	char *pos;
-	pos = strrchr( self->path, '.' );
-	DaoProcess_PutMBString( proc, pos? pos + 1 : "" );
+	char *pos = strrchr( self->path, '.' );
+	DaoProcess_PutMBString( proc, pos && !strstr( pos + 1, STD_PATH_SEP )? pos + 1 : "" );
 }
 
 static void FSNode_New( DaoProcess *proc, DaoValue *p[], int N )
@@ -850,28 +854,79 @@ static void FSNode_SetCWD( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem fsnodeMeths[] =
 {
+	/*! Returns new fsnode given @path of file or directory
+	 *	\note '.' and '..' entries in @path are not allowed */
 	{ FSNode_New,      "fsnode( path : string )=>fsnode" },
+
+	/*! Returns full path */
 	{ FSNode_Path,     "path( self : fsnode )=>string" },
+
+	/*! Returns base name */
 	{ FSNode_Name,     "name( self : fsnode )=>string" },
+
+	/*! Returns type of file object */
 	{ FSNode_Type,     "type( self : fsnode )=>enum<file, dir>" },
+
+	/*! Returns size of file (0 for directory) */
 	{ FSNode_Size,     "size( self : fsnode )=>int" },
+
+	/*! Returns rightmost path part following '.' */
 	{ FSNode_Suffix,   "suffix( self: fsnode )=>string" },
+
+	/*! Returns parent directory */
 	{ FSNode_Parent,   "parent( self : fsnode )=>fsnode" },
+
+	/*! Returns creation time */
 	{ FSNode_Ctime,    "ctime( self : fsnode )=>int" },
+
+	/*! Returns last modification time */
 	{ FSNode_Mtime,    "mtime( self : fsnode )=>int" },
+
+	/*! Returns access mode for the current user */
 	{ FSNode_Access,   "access( self : fsnode )=>enum<read; write; execute>" },
+
+	/*! Sets access @mode for the current user */
 	{ FSNode_SetAccess,"set_access( self : fsnode, mode: enum<read; write; execute>)" },
+
+	/*! Renames linked file object as @path. May move file objects within the file system
+	 *	\note '.' and '..' entries in @path are not allowed */
 	{ FSNode_Rename,   "rename( self : fsnode, path : string )" },
+
+	/*! Deletes linked file object
+	 * \note Doing this does not invalidate the fsnode */
 	{ FSNode_Remove,   "remove( self : fsnode )" },
+
+	/*! For directory creates new file given its relative @path and returns its fsnode
+	 *	\note '.' and '..' entries in @path are not allowed */
 	{ FSNode_Makefile, "mkfile( self : fsnode, path : string )=>fsnode" },
+
+	/*! For directory creates new directory given its relative @path and returns its fsnode
+	 *	\note '.' and '..' entries in @path are not allowed */
 	{ FSNode_Makedir,  "mkdir( self : fsnode, path : string )=>fsnode" },
-	{ FSNode_Isroot,   "isroot( self : fsnode )=>int" },
+
+	/*! For directory returns list of inner file objects of the given @type with names matching @filter,
+	 * where @filter type is defined by @filtering and can be either a wildcard pattern or normal string pattern */
 	{ FSNode_Children, "children( self : fsnode, type : enum<files; dirs>, filter='*', filtering : enum<wildcard, regex> = $wildcard )=>list<fsnode>" },
+
+	/*! For directory returns list of inner files with names matching @filter,
+	 * where @filter type is defined by @filtering and can be either a wildcard pattern or normal string pattern */
 	{ FSNode_Files,    "files( self : fsnode, filter='*', filtering : enum<wildcard, regex> = $wildcard )=>list<fsnode>" },
+
+	/*! For directory returns list of inner directories with names matching @filter,
+	 * where @filter type is defined by @filtering and can be either a wildcard pattern or normal string pattern */
 	{ FSNode_Dirs,     "dirs( self : fsnode, filter='*', filtering : enum<wildcard, regex> = $wildcard )=>list<fsnode>" },
+
+	/*! For directory returns inner fsnode given its relative @path
+	 *	\note '.' and '..' entries in @path are not allowed */
 	{ FSNode_Child,    "[]( self : fsnode, path : string )=>fsnode" },
+
+	/*! Returns the current working directory */
 	{ FSNode_GetCWD,   "cwd(  )=>fsnode" },
+
+	/*! For directory makes it the current working directory */
 	{ FSNode_SetCWD,   "set_cwd( self : fsnode )" },
+
+	/*! Re-reads all attributes of linked file object */
 	{ FSNode_Update,   "update( self : fsnode )" },
 	{ NULL, NULL }
 };
