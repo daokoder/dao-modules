@@ -26,6 +26,20 @@ if(DAO_MODULES_STRING_CRYPTO)
     install(TARGETS dao_xxtea DESTINATION "${DAO_MODULES_INSTALL_DIR}/string")
 endif(DAO_MODULES_STRING_CRYPTO)
 
+option(DAO_MODULES_STRING_TEMPLATE "Build the \"template\" module which adds string template engine to Dao." ON)
+if(DAO_MODULES_STRING_TEMPLATE )
+    add_library(dao_template SHARED template/dao_template.c template/dao_template.h)
+    target_link_libraries(dao_template  ${DAOLIB_TO_LINK})
+    install(TARGETS dao_template DESTINATION "${DAO_MODULES_INSTALL_DIR}/string")
+endif(DAO_MODULES_STRING_TEMPLATE )
+
+option(DAO_MODULES_STRING_SCANNER "Build the \"scanner\" module which adds regexp string scanning to Dao." ON)
+if(DAO_MODULES_STRING_SCANNER)
+    add_library(dao_scanner SHARED scanner/dao_scanner.c scanner/dao_scanner.h)
+    target_link_libraries(dao_scanner ${DAOLIB_TO_LINK})
+    install(TARGETS dao_scanner DESTINATION "${DAO_MODULES_INSTALL_DIR}/string")
+endif(DAO_MODULES_STRING_SCANNER)
+
 # Also add the "string" module containing all of these.
 if(DAO_MODULES_STRING_FORMAT OR DAO_MODULES_STRING_MD5 OR DAO_MODULES_STRING_TOKENIZE OR DAO_MODULES_STRING_CRYPTO)
     install(FILES "string.dao" DESTINATION "${DAO_MODULES_INSTALL_DIR}/string")

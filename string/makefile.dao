@@ -12,6 +12,7 @@ dao_format_objects   = project.AddObjects( { "format/dao_format.c" } )
 dao_md5_objects      = project.AddObjects( { "md5/dao_md5.c" } )
 dao_tokenize_objects = project.AddObjects( { "tokenize/dao_tokenize.c" } )
 dao_xxtea_objects    = project.AddObjects( { "xxtea/dao_xxtea.c" } )
+dao_scanner_objects    = project.AddObjects( { "scanner/dao_scanner.c" } )
 
 dao_template_dll   = project.AddSharedLibrary( "dao_template", dao_template_objects )
 dao_template_lib   = project.AddStaticLibrary( "dao_template", dao_template_objects )
@@ -23,6 +24,8 @@ dao_tokenize_dll = project.AddSharedLibrary( "dao_tokenize", dao_tokenize_object
 dao_tokenize_lib = project.AddStaticLibrary( "dao_tokenize", dao_tokenize_objects )
 dao_xxtea_dll    = project.AddSharedLibrary( "dao_xxtea", dao_xxtea_objects )
 dao_xxtea_lib    = project.AddStaticLibrary( "dao_xxtea", dao_xxtea_objects )
+dao_scanner_dll    = project.AddSharedLibrary( "dao_scanner", dao_scanner_objects  )
+dao_scanner_lib    = project.AddStaticLibrary( "dao_scanner", dao_scanner_objects )
 
 path = DaoMake::MakePath( daovm.GetPath( "MOD-PATH" ), "string" )
 
@@ -37,3 +40,5 @@ project.Install( path, dao_tokenize_dll );
 project.Install( path, dao_tokenize_lib );
 project.Install( path, dao_xxtea_dll );
 project.Install( path, dao_xxtea_lib );
+project.Install( path, dao_scanner_dll );
+project.Install( path, dao_scanner_lib );
