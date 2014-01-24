@@ -38,6 +38,8 @@
 #ifdef WIN32
 
 #include"io.h"
+#include<lmcons.h>
+#include<aclapi.h>
 #ifdef _MSC_VER
 #define chdir _chdir
 #define rmdir _rmdir
@@ -54,6 +56,7 @@
 #ifdef UNIX
 #include<unistd.h>
 #include<sys/time.h>
+#include<pwd.h>
 #endif
 
 #ifndef MAX_PATH
@@ -70,6 +73,9 @@ struct DInode
 	time_t mtime;
 	mode_t mode;
 	size_t size;
+#ifndef WIN32
+	uid_t uid;
+#endif
 };
 
 typedef struct DInode DInode;
@@ -138,6 +144,7 @@ int DInode_Open( DInode *self, const char *path )
 		return 1;
 	self->type = ( S_ISDIR( info.st_mode ) )? 0 : 1;
 	self->size = ( S_ISDIR( info.st_mode ) )? 0 : info.st_size;
+	self->uid = info.st_uid;
 	if( path[0] != '/' ){
 		if( !getcwd( buf, MAX_PATH ) )
 			return errno;
@@ -175,6 +182,7 @@ int DInode_Reopen( DInode *self )
 		return 1;
 	self->type = ( S_ISDIR( info.st_mode ) )? 0 : 1;
 	self->size = ( S_ISDIR( info.st_mode ) )? 0 : info.st_size;
+	self->uid = info.st_uid;
 #endif
 	self->ctime = info.st_ctime;
 	self->mtime = info.st_mtime;
@@ -457,6 +465,33 @@ void DInode_GetMode( DInode *self, DaoTuple *res )
 		DString_AppendMBS( res->items[2]->xString.data, "w" );
 	if ( self->mode & _S_IXOTH )
 		DString_AppendMBS( res->items[2]->xString.data, "x" );
+#endif
+}
+
+int DInode_GetOwner( DInode *self, DString *name )
+{
+#ifdef WIN32
+	PSID sid = NULL;
+	SID_NAME_USE sidname;
+	PSECURITY_DESCRIPTOR sd = NULL;
+	char buf[UNLEN], dbuf[UNLEN];
+	DWORD bufsize = sizeof(buf), sdsize = sizeof(dbuf);
+	if ( GetNamedSecurityInfo( self->path, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION, &sid, NULL, NULL, NULL, &sd ) != ERROR_SUCCESS )
+		return 1;
+	if ( !LookupAccountSid( NULL, sid, buf, &bufsize, dbuf, &sdsize, &sidname ) ){
+		LocalFree( sd );
+		return 1;
+	}
+	DString_SetMBS( name, buf );
+	LocalFree( sd );
+	return 0;
+#else
+	struct passwd pwd, *res;
+	char buf[16384];
+	if ( getpwuid_r( self->uid, &pwd, buf, sizeof(buf), &res ) )
+		return 1;
+	DString_SetMBS( name, pwd.pw_name );
+	return 0;
 #endif
 }
 
@@ -888,6 +923,18 @@ Exit:
 	DString_Delete( path );
 }
 
+static void FSNode_Owner( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
+	DString *name = DString_New( 1 );
+	int res = DInode_GetOwner( self, name );
+	if ( res )
+		DaoProcess_RaiseException( proc, DAO_ERROR, "Unaible to get information on file owner" );
+	else
+		DaoProcess_PutString( proc, name );
+	DString_Delete( name );
+}
+
 static void FSNode_New( DaoProcess *proc, DaoValue *p[], int N )
 {
 	char errbuf[MAX_ERRMSG + MAX_PATH + 3];
@@ -966,6 +1013,9 @@ static DaoFuncItem fsnodeMeths[] =
 
 	/*! Returns last modification time */
 	{ FSNode_Mtime,    "mtime( self : fsnode )=>int" },
+
+	/*! Returns owner name */
+	{ FSNode_Owner,    "owner( self : fsnode )=>string" },
 
 	/*! Returns access mode as a combination of 'r', 'w' and 'x'. On Windows, only permissions for the current user are returned */
 	{ FSNode_Access,   "access( self : fsnode )=>tuple<user: string, group: string, other: string>" },
