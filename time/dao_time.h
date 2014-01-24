@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2011-2013, Limin Fu
+// Copyright (c) 2011-2014, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -28,8 +28,13 @@
 
 #include"dao.h"
 #include"daoValue.h"
-#include<time.h>
 #include<ctype.h>
+
+#ifdef UNIX
+#include<sys/time.h>
+#else
+#include<time.h>
+#endif
 
 #ifndef __DAO_TIME_H__
 #define __DAO_TIME_H__
