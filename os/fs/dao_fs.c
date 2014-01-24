@@ -33,6 +33,7 @@
 #include<sys/stat.h>
 
 #include"dao.h"
+#include"daoValue.h"
 
 #ifdef WIN32
 
@@ -67,9 +68,7 @@ struct DInode
 	short type;
 	time_t ctime;
 	time_t mtime;
-	short pread;
-	short pwrite;
-	short pexec;
+	mode_t mode;
 	size_t size;
 };
 
@@ -127,9 +126,7 @@ int DInode_Open( DInode *self, const char *path )
 #ifdef WIN32
 	if( !( info.st_mode & _S_IFDIR ) && !( info.st_mode & _S_IFREG ) )
 		return 1;
-	self->pread = info.st_mode & _S_IREAD;
-	self->pwrite = info.st_mode & _S_IWRITE;
-	self->pexec = info.st_mode & _S_IEXEC;
+	self->mode = info.st_mode;
 	self->type = ( info.st_mode & _S_IFDIR )? 0 : 1;
 	self->size = ( info.st_mode & _S_IFDIR )? 0 : info.st_size;
 	if( len < 2 || ( path[1] != ':' && path[0] != '\\' ) ){
@@ -174,17 +171,13 @@ int DInode_Reopen( DInode *self )
 #ifdef WIN32
 	if( !( info.st_mode & _S_IFDIR ) && !( info.st_mode & _S_IFREG ) )
 		return 1;
-	self->pread = info.st_mode & _S_IREAD;
-	self->pwrite = info.st_mode & _S_IWRITE;
-	self->pexec = info.st_mode & _S_IEXEC;
+	self->mode = info.st_mode;
 	self->type = ( info.st_mode & _S_IFDIR )? 0 : 1;
 	self->size = ( info.st_mode & _S_IFDIR )? 0 : info.st_size;
 #else
 	if( !S_ISDIR( info.st_mode ) && !S_ISREG( info.st_mode ) )
 		return 1;
-	self->pread = info.st_mode & S_IRUSR;
-	self->pwrite = info.st_mode & S_IWUSR;
-	self->pexec = info.st_mode & S_IXUSR;
+	self->mode = info.st_mode;
 	self->type = ( S_ISDIR( info.st_mode ) )? 0 : 1;
 	self->size = ( S_ISDIR( info.st_mode ) )? 0 : info.st_size;
 #endif
@@ -427,12 +420,12 @@ int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *des
 	return 0;
 }
 
-int DInode_SetAccess(DInode *self, int mode)
+int DInode_SetAccess( DInode *self, int r, int w, int x )
 {
 #ifdef WIN32
-	if (chmod(self->path, ((mode & 1)? _S_IREAD : 0) | ((mode & 2)? _S_IWRITE : 0)))
+	if (chmod(self->path, (r? _S_IREAD : 0) | (w? _S_IWRITE : 0)))
 #else
-	if (chmod(self->path, ((mode & 1)? S_IREAD : 0) | ((mode & 2)? S_IWRITE : 0) | ((mode & 4)? S_IEXEC : 0)))
+	if (chmod(self->path, (r? S_IREAD : 0) | (w? S_IWRITE : 0) | (x? S_IEXEC : 0)))
 #endif
 		return errno;
 	return 0;
@@ -600,27 +593,64 @@ static void FSNode_Mtime( DaoProcess *proc, DaoValue *p[], int N )
 static void FSNode_Access( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
-	char res[20] = {0};
-	if( self->pread )
-		strcat( res, "$read" );
-	if( self->pwrite )
-		strcat( res, "$write" );
-	if( self->pexec )
-		strcat( res, "$execute" );
-	DaoProcess_PutEnum( proc, res );
+	DaoTuple *res = DaoProcess_PutTuple( proc, 3 );
+#ifdef WIN32
+	if ( self->mode & _S_IREAD )
+		DString_AppendMBS( res->items[0]->xString.data, "r" );
+	if ( self->mode & _S_IWRITE )
+		DString_AppendMBS( res->items[0]->xString.data, "w" );
+	if ( self->mode & _S_IEXEC )
+		DString_AppendMBS( res->items[0]->xString.data, "x" );
+#else
+	if ( self->mode & _S_IRUSR )
+		DString_AppendMBS( res->items[0]->xString.data, "r" );
+	if ( self->mode & _S_IWUSR )
+		DString_AppendMBS( res->items[0]->xString.data, "w" );
+	if ( self->mode & _S_IXUSR )
+		DString_AppendMBS( res->items[0]->xString.data, "x" );
+
+	if ( self->mode & _S_IRGRP )
+		DString_AppendMBS( res->items[1]->xString.data, "r" );
+	if ( self->mode & _S_IWGRP )
+		DString_AppendMBS( res->items[1]->xString.data, "w" );
+	if ( self->mode & _S_IXGRP )
+		DString_AppendMBS( res->items[1]->xString.data, "x" );
+
+	if ( self->mode & _S_IROTH )
+		DString_AppendMBS( res->items[2]->xString.data, "r" );
+	if ( self->mode & _S_IWOTH )
+		DString_AppendMBS( res->items[2]->xString.data, "w" );
+	if ( self->mode & _S_IXOTH )
+		DString_AppendMBS( res->items[2]->xString.data, "x" );
+#endif
 }
 
 static void FSNode_SetAccess(DaoProcess *proc, DaoValue *p[], int N)
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata(p[0]);
 	char errbuf[MAX_ERRMSG];
-	int res = DInode_SetAccess(self, DaoValue_TryGetEnum(p[1]));
+	daoint i;
+	int r = 0, w = 0, x = 0;
+	DString *mode = DString_Copy( p[1]->xString.data );
+	DString_ToMBS( mode );
+	for ( i = 0; i < mode->size; i++ )
+		switch ( mode->mbs[i] ){
+		case 'r': if ( r ) goto Error; r = 1; break;
+		case 'w': if ( w ) goto Error; w = 1; break;
+		case 'x': if ( x ) goto Error; x = 1; break;
+		default: goto Error;
+		}
+	DString_Delete( mode );
+	int res = DInode_SetAccess(self, r, w, x);
 	if (res){
 		GetErrorMessage(errbuf, res, 0);
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
 	}
 	else
 		FSNode_Update(proc, p, N);
+	return;
+Error:
+	DaoProcess_RaiseException( proc, DAO_ERROR, "Invalid access mode format" );
 }
 
 static void FSNode_Makefile( DaoProcess *proc, DaoValue *p[], int N )
@@ -892,11 +922,11 @@ static DaoFuncItem fsnodeMeths[] =
 	/*! Returns last modification time */
 	{ FSNode_Mtime,    "mtime( self : fsnode )=>int" },
 
-	/*! Returns access mode for the current user */
-	{ FSNode_Access,   "access( self : fsnode )=>enum<read; write; execute>" },
+	/*! Returns access mode as a combination of 'r', 'w' and 'x'. On Windows, only permissions for the current user are returned */
+	{ FSNode_Access,   "access( self : fsnode )=>tuple<user: string, group: string, other: string>" },
 
-	/*! Sets access @mode for the current user */
-	{ FSNode_SetAccess,"set_access( self : fsnode, mode: enum<read; write; execute>)" },
+	/*! Sets access mode to @mode for the current user, where @mode is a combination of 'r', 'w' and 'x' */
+	{ FSNode_SetAccess,"access( self : fsnode, mode: string)" },
 
 	/*! Moves linked file object within the file system so that its full path becomes @path. @path may end with directory separator,
 	 * omitting the file object name, in which case the current name is assumed
