@@ -126,7 +126,6 @@ int DInode_Open( DInode *self, const char *path )
 #ifdef WIN32
 	if( !( info.st_mode & _S_IFDIR ) && !( info.st_mode & _S_IFREG ) )
 		return 1;
-	self->mode = info.st_mode;
 	self->type = ( info.st_mode & _S_IFDIR )? 0 : 1;
 	self->size = ( info.st_mode & _S_IFDIR )? 0 : info.st_size;
 	if( len < 2 || ( path[1] != ':' && path[0] != '\\' ) ){
@@ -137,9 +136,6 @@ int DInode_Open( DInode *self, const char *path )
 #else
 	if( !S_ISDIR( info.st_mode ) && !S_ISREG( info.st_mode ) )
 		return 1;
-	self->pread = info.st_mode & S_IRUSR;
-	self->pwrite = info.st_mode & S_IWUSR;
-	self->pexec = info.st_mode & S_IXUSR;
 	self->type = ( S_ISDIR( info.st_mode ) )? 0 : 1;
 	self->size = ( S_ISDIR( info.st_mode ) )? 0 : info.st_size;
 	if( path[0] != '/' ){
@@ -160,6 +156,7 @@ int DInode_Open( DInode *self, const char *path )
 #endif
 	self->ctime = info.st_ctime;
 	self->mtime = info.st_mtime;
+	self->mode = info.st_mode;
 	return 0;
 }
 
@@ -171,18 +168,17 @@ int DInode_Reopen( DInode *self )
 #ifdef WIN32
 	if( !( info.st_mode & _S_IFDIR ) && !( info.st_mode & _S_IFREG ) )
 		return 1;
-	self->mode = info.st_mode;
 	self->type = ( info.st_mode & _S_IFDIR )? 0 : 1;
 	self->size = ( info.st_mode & _S_IFDIR )? 0 : info.st_size;
 #else
 	if( !S_ISDIR( info.st_mode ) && !S_ISREG( info.st_mode ) )
 		return 1;
-	self->mode = info.st_mode;
 	self->type = ( S_ISDIR( info.st_mode ) )? 0 : 1;
 	self->size = ( S_ISDIR( info.st_mode ) )? 0 : info.st_size;
 #endif
 	self->ctime = info.st_ctime;
 	self->mtime = info.st_mtime;
+	self->mode = info.st_mode;
 	return 0;
 }
 
@@ -431,6 +427,39 @@ int DInode_SetAccess( DInode *self, int r, int w, int x )
 	return 0;
 }
 
+void DInode_GetMode( DInode *self, DaoTuple *res )
+{
+#ifdef WIN32
+	if ( self->mode & _S_IREAD )
+		DString_AppendMBS( res->items[0]->xString.data, "r" );
+	if ( self->mode & _S_IWRITE )
+		DString_AppendMBS( res->items[0]->xString.data, "w" );
+	if ( self->mode & _S_IEXEC )
+		DString_AppendMBS( res->items[0]->xString.data, "x" );
+#else
+	if ( self->mode & _S_IRUSR )
+		DString_AppendMBS( res->items[0]->xString.data, "r" );
+	if ( self->mode & _S_IWUSR )
+		DString_AppendMBS( res->items[0]->xString.data, "w" );
+	if ( self->mode & _S_IXUSR )
+		DString_AppendMBS( res->items[0]->xString.data, "x" );
+
+	if ( self->mode & _S_IRGRP )
+		DString_AppendMBS( res->items[1]->xString.data, "r" );
+	if ( self->mode & _S_IWGRP )
+		DString_AppendMBS( res->items[1]->xString.data, "w" );
+	if ( self->mode & _S_IXGRP )
+		DString_AppendMBS( res->items[1]->xString.data, "x" );
+
+	if ( self->mode & _S_IROTH )
+		DString_AppendMBS( res->items[2]->xString.data, "r" );
+	if ( self->mode & _S_IWOTH )
+		DString_AppendMBS( res->items[2]->xString.data, "w" );
+	if ( self->mode & _S_IXOTH )
+		DString_AppendMBS( res->items[2]->xString.data, "x" );
+#endif
+}
+
 static void GetErrorMessage( char *buffer, int code, int special )
 {
 	switch ( code ){
@@ -594,35 +623,7 @@ static void FSNode_Access( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
 	DaoTuple *res = DaoProcess_PutTuple( proc, 3 );
-#ifdef WIN32
-	if ( self->mode & _S_IREAD )
-		DString_AppendMBS( res->items[0]->xString.data, "r" );
-	if ( self->mode & _S_IWRITE )
-		DString_AppendMBS( res->items[0]->xString.data, "w" );
-	if ( self->mode & _S_IEXEC )
-		DString_AppendMBS( res->items[0]->xString.data, "x" );
-#else
-	if ( self->mode & _S_IRUSR )
-		DString_AppendMBS( res->items[0]->xString.data, "r" );
-	if ( self->mode & _S_IWUSR )
-		DString_AppendMBS( res->items[0]->xString.data, "w" );
-	if ( self->mode & _S_IXUSR )
-		DString_AppendMBS( res->items[0]->xString.data, "x" );
-
-	if ( self->mode & _S_IRGRP )
-		DString_AppendMBS( res->items[1]->xString.data, "r" );
-	if ( self->mode & _S_IWGRP )
-		DString_AppendMBS( res->items[1]->xString.data, "w" );
-	if ( self->mode & _S_IXGRP )
-		DString_AppendMBS( res->items[1]->xString.data, "x" );
-
-	if ( self->mode & _S_IROTH )
-		DString_AppendMBS( res->items[2]->xString.data, "r" );
-	if ( self->mode & _S_IWOTH )
-		DString_AppendMBS( res->items[2]->xString.data, "w" );
-	if ( self->mode & _S_IXOTH )
-		DString_AppendMBS( res->items[2]->xString.data, "x" );
-#endif
+	DInode_GetMode( self, res );
 }
 
 static void FSNode_SetAccess(DaoProcess *proc, DaoValue *p[], int N)
@@ -926,7 +927,7 @@ static DaoFuncItem fsnodeMeths[] =
 	{ FSNode_Access,   "access( self : fsnode )=>tuple<user: string, group: string, other: string>" },
 
 	/*! Sets access mode to @mode for the current user, where @mode is a combination of 'r', 'w' and 'x' */
-	{ FSNode_SetAccess,"access( self : fsnode, mode: string)" },
+	{ FSNode_SetAccess,"access( self : fsnode, mode : string )" },
 
 	/*! Moves linked file object within the file system so that its full path becomes @path. @path may end with directory separator,
 	 * omitting the file object name, in which case the current name is assumed
