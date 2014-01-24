@@ -240,10 +240,12 @@ char* DInode_Parent( DInode *self, char *buffer )
 int DInode_Rename( DInode *self, const char *path )
 {
 	char buf[MAX_PATH + 1] = {0};
-	int i, len;
+	int i, len, noname = 0;
 	if( !self->path )
 		return 1;
 	len = strlen( path );
+	if ( IS_PATH_SEP( path[len - 1] ) )
+		noname = 1;
 	for( i = 0; i < len; i++ )
 		if( path[i] == '.' && ( i == 0 || IS_PATH_SEP( path[i - 1] ) )
 			&& ( i == len - 1 || IS_PATH_SEP( path[i + 1] ) ||
@@ -265,6 +267,14 @@ int DInode_Rename( DInode *self, const char *path )
 		if( len > MAX_PATH )
 			return ENAMETOOLONG;
 		strcpy( buf, path );
+	}
+	if ( noname ){
+		int i;
+		for (i = strlen( self->path ) - 1; i > 0; i--)
+			if( IS_PATH_SEP( self->path[i] ) )
+				break;
+		strcat( buf, STD_PATH_SEP );
+		strcat( buf, self->path + i );
 	}
 	if( rename( self->path, buf ) != 0 )
 		return errno;
@@ -888,9 +898,10 @@ static DaoFuncItem fsnodeMeths[] =
 	/*! Sets access @mode for the current user */
 	{ FSNode_SetAccess,"set_access( self : fsnode, mode: enum<read; write; execute>)" },
 
-	/*! Renames linked file object as @path. May move file objects within the file system
+	/*! Moves linked file object within the file system so that its full path becomes @path. @path may end with directory separator,
+	 * omitting the file object name, in which case the current name is assumed
 	 *	\note '.' and '..' entries in @path are not allowed */
-	{ FSNode_Rename,   "rename( self : fsnode, path : string )" },
+	{ FSNode_Rename,   "move( self : fsnode, path : string )" },
 
 	/*! Deletes linked file object
 	 * \note Doing this does not invalidate the fsnode */
