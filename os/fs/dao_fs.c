@@ -463,6 +463,9 @@ void DInode_GetMode( DInode *self, DaoTuple *res )
 static void GetErrorMessage( char *buffer, int code, int special )
 {
 	switch ( code ){
+	case -1:
+		strcpy( buffer, "'.' and '..' entries in path are not allowed" );
+		break;
 	case EACCES:
 	case EBADF:
 		strcpy( buffer, "Access not permitted (EACCES/EBADF)");
@@ -515,7 +518,7 @@ static void GetErrorMessage( char *buffer, int code, int special )
 static void FSNode_Update( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
-	char errbuf[MAX_PATH + 1];
+	char errbuf[MAX_ERRMSG + MAX_PATH + 3];
 	int res;
 	if( ( res = DInode_Reopen( self ) ) != 0 ){
 		if( res == 1 )
@@ -523,7 +526,7 @@ static void FSNode_Update( DaoProcess *proc, DaoValue *p[], int N )
 		else
 			GetErrorMessage( errbuf, res, 0 );
 		if( res == 1 || res == ENOENT )
-			snprintf( errbuf + strlen( errbuf ), 256, ": %s", self->path );
+			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", self->path );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
 	}
 }
@@ -584,9 +587,7 @@ static void FSNode_Rename( DaoProcess *proc, DaoValue *p[], int N )
 	int res;
 	char errbuf[MAX_ERRMSG];
 	if ( (res = DInode_Rename( self, DaoValue_TryGetMBString( p[1] ) ) ) != 0 ){
-		if( res == -1 )
-			strcpy( errbuf, "'.' and '..' entries in path are not allowed" );
-		else if( res == 1 )
+		if( res == 1 )
 			strcpy( errbuf, "Trying to rename root fsnode" );
 		else
 			GetErrorMessage( errbuf, res, 0 );
@@ -669,8 +670,6 @@ static void FSNode_Makefile( DaoProcess *proc, DaoValue *p[], int N )
 		DInode_Delete( child );
 		if( res == 1 )
 			strcpy( errbuf, "The fsnode's name is invalid (EINVAL)" );
-		else if( res == -1 )
-			strcpy( errbuf, "'.' and '..' entries in path are not allowed" );
 		else
 			GetErrorMessage( errbuf, res, 0 );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
@@ -694,8 +693,6 @@ static void FSNode_Makedir( DaoProcess *proc, DaoValue *p[], int N )
 		DInode_Delete( child );
 		if( res == 1 )
 			strcpy( errbuf, "The fsnode's name is invalid (EINVAL)" );
-		else if( res == -1 )
-			strcpy( errbuf, "'.' and '..' entries in path are not allowed" );
 		else
 			GetErrorMessage( errbuf, res, 0 );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
@@ -728,8 +725,6 @@ static void FSNode_Child( DaoProcess *proc, DaoValue *p[], int N )
 		DInode_Delete( child );
 		if( res == 1 )
 			strcpy( path, "The fsnode is not a directory" );
-		else if( res == -1 )
-			strcpy( path, "'.' and '..' entries in path are not allowed" );
 		else
 			GetErrorMessage( path, res, 0 );
 		DaoProcess_RaiseException( proc, DAO_ERROR, path );
@@ -842,9 +837,60 @@ static void FSNode_Suffix( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutMBString( proc, pos && !strstr( pos + 1, STD_PATH_SEP )? pos + 1 : "" );
 }
 
+static void FSNode_Copy( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
+	DString *path = DString_Copy( p[1]->xString.data );
+	DString_ToMBS( path );
+	FILE *src, *dest;
+	DInode *copy;
+	int res;
+	char buf[4096];
+	if ( self->type == 0 ){
+		DaoProcess_RaiseException( proc, DAO_ERROR, "Copying of directories is not supported" );
+		goto Exit;
+	}
+	src = fopen( self->path, "r" );
+	if ( !src ){
+		DaoProcess_RaiseException( proc, DAO_ERROR, "Unable to read from initial file" );
+		goto Exit;
+	}
+	if ( IS_PATH_SEP( path->mbs[path->size - 1] ) ){
+		int i;
+		for (i = strlen( self->path ) - 1; i > 0; i--)
+			if( IS_PATH_SEP( self->path[i] ) )
+				break;
+		DString_AppendMBS( path, STD_PATH_SEP );
+		DString_AppendMBS( path, self->path + i );
+	}
+	dest = fopen( path->mbs, "w" );
+	if ( !dest ){
+		fclose( src );
+		DaoProcess_RaiseException( proc, DAO_ERROR, "Unable to write to destination file" );
+		goto Exit;
+	}
+	while ( !feof( src ) ){
+		size_t count = fread( buf, sizeof(char), sizeof(buf), src );
+		fwrite( buf, sizeof(char), count, dest );
+	}
+	fclose( src );
+	fclose( dest );
+	copy = DInode_New();
+	if ( ( res = DInode_Open( copy, path->mbs ) ) != 0 ){
+		char errbuf[MAX_ERRMSG];
+		DInode_Delete( copy );
+		GetErrorMessage( errbuf, res, 0 );
+		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
+	}
+	else
+		DaoProcess_PutCdata( proc, copy, daox_type_fsnode );
+Exit:
+	DString_Delete( path );
+}
+
 static void FSNode_New( DaoProcess *proc, DaoValue *p[], int N )
 {
-	char errbuf[MAX_ERRMSG + 256];
+	char errbuf[MAX_ERRMSG + MAX_PATH + 3];
 	DInode *fsnode = DInode_New();
 	int res;
 	char *path = DaoValue_TryGetMBString( p[0] );
@@ -852,12 +898,10 @@ static void FSNode_New( DaoProcess *proc, DaoValue *p[], int N )
 		DInode_Delete( fsnode );
 		if( res == 1 )
 			strcpy( errbuf, "Trying to open something which is not a file/directory" );
-		else if( res == -1 )
-			strcpy( errbuf, "'.' and '..' entries in path are not allowed" );
 		else
 			GetErrorMessage( errbuf, res, 0 );
 		if( res == 1 || res == ENOENT )
-			snprintf( errbuf + strlen( errbuf ), 256, ": %s", path );
+			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", path );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
 		return;
 	}
@@ -961,6 +1005,10 @@ static DaoFuncItem fsnodeMeths[] =
 	/*! For directory returns inner fsnode given its relative @path
 	 *	\note '.' and '..' entries in @path are not allowed */
 	{ FSNode_Child,    "[]( self : fsnode, path : string )=>fsnode" },
+
+	/*! Copies file and returns fsnode of the copy
+	 *	\note '.' and '..' entries in @path are not allowed; file will still be copied, but fsnode object will not be created */
+	{ FSNode_Copy,  "copy( self : fsnode, path : string )=>fsnode" },
 
 	/*! Returns the current working directory */
 	{ FSNode_GetCWD,   "cwd(  )=>fsnode" },
