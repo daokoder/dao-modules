@@ -424,12 +424,14 @@ int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *des
 	return 0;
 }
 
-int DInode_SetAccess( DInode *self, int r, int w, int x )
+int DInode_SetAccess( DInode *self, int ur, int uw, int ux, int gr, int gw, int gx, int otr, int otw, int otx )
 {
 #ifdef WIN32
-	if (chmod(self->path, (r? _S_IREAD : 0) | (w? _S_IWRITE : 0)))
+	if ( chmod( self->path, (ur? _S_IREAD : 0) | (uw? _S_IWRITE : 0) ) )
 #else
-	if (chmod(self->path, (r? S_IREAD : 0) | (w? S_IWRITE : 0) | (x? S_IEXEC : 0)))
+	if ( chmod( self->path, (ur? _S_IRUSR : 0) | (uw? _S_IWUSR : 0) | (ux? _S_IXUSR : 0) |
+				(gr? _S_IRGRP : 0) | (gw? _S_IWGRP : 0) | (gx? _S_IXGRP : 0) |
+				(otr? _S_IROTH : 0) | (otw? _S_IWOTH : 0) | (otx? _S_IXOTH : 0) ) )
 #endif
 		return errno;
 	return 0;
@@ -662,32 +664,47 @@ static void FSNode_Access( DaoProcess *proc, DaoValue *p[], int N )
 	DInode_GetMode( self, res );
 }
 
+int InitAccessBits( DString *mode, int *r, int *w, int *x )
+{
+	daoint i;
+	DString_ToMBS( mode );
+	*r = *w = *x = 0;
+	for ( i = 0; i < mode->size; i++ )
+		switch ( mode->mbs[i] ){
+		case 'r': if ( *r ) return 0; *r = 1; break;
+		case 'w': if ( *w ) return 0; *w = 1; break;
+		case 'x': if ( *x ) return 0; *x = 1; break;
+		default: return 0;
+		}
+	return 1;
+}
+
 static void FSNode_SetAccess(DaoProcess *proc, DaoValue *p[], int N)
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata(p[0]);
 	char errbuf[MAX_ERRMSG];
-	daoint i;
-	int r = 0, w = 0, x = 0;
+	int ur, uw, ux, gr, gw, gx, otr, otw, otx;
 	DString *mode = DString_Copy( p[1]->xString.data );
-	DString_ToMBS( mode );
-	for ( i = 0; i < mode->size; i++ )
-		switch ( mode->mbs[i] ){
-		case 'r': if ( r ) goto Error; r = 1; break;
-		case 'w': if ( w ) goto Error; w = 1; break;
-		case 'x': if ( x ) goto Error; x = 1; break;
-		default: goto Error;
-		}
-	DString_Delete( mode );
-	int res = DInode_SetAccess(self, r, w, x);
+	if ( !InitAccessBits( mode, &ur, &uw, &ux ) )
+		goto Error;
+	DString_Assign( mode, p[2]->xString.data );
+	if ( !InitAccessBits( mode, &gr, &gw, &gx ) )
+		goto Error;
+	DString_Assign( mode, p[3]->xString.data );
+	if ( !InitAccessBits( mode, &otr, &otw, &otx ) )
+		goto Error;
+	int res = DInode_SetAccess(self, ur, uw, ux, gr, gw, gx, otr, otw, otx);
 	if (res){
 		GetErrorMessage(errbuf, res, 0);
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
 	}
 	else
 		FSNode_Update(proc, p, N);
+	DString_Delete( mode );
 	return;
 Error:
 	DaoProcess_RaiseException( proc, DAO_ERROR, "Invalid access mode format" );
+	DString_Delete( mode );
 }
 
 static void FSNode_Makefile( DaoProcess *proc, DaoValue *p[], int N )
@@ -1020,8 +1037,8 @@ static DaoFuncItem fsnodeMeths[] =
 	/*! Returns access mode as a combination of 'r', 'w' and 'x'. On Windows, only permissions for the current user are returned */
 	{ FSNode_Access,   "access( self : fsnode )=>tuple<user: string, group: string, other: string>" },
 
-	/*! Sets access mode to @mode for the current user, where @mode is a combination of 'r', 'w' and 'x' */
-	{ FSNode_SetAccess,"access( self : fsnode, mode : string )" },
+	/*! Sets access mode to @mode, where @mode is a combination of 'r', 'w' and 'x' */
+	{ FSNode_SetAccess,"access( self : fsnode, user : string, group='', other='' )" },
 
 	/*! Moves linked file object within the file system so that its full path becomes @path. @path may end with directory separator,
 	 * omitting the file object name, in which case the current name is assumed
