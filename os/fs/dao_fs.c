@@ -1137,7 +1137,7 @@ static DaoFuncItem fsnodeMeths[] =
 
 	/*! Deletes linked file object
 	 * \note Doing this does not invalidate the fsnode */
-	{ FSNode_Remove,   "remove( self : fsnode )" },
+	{ FSNode_Remove,   "delete( self : fsnode )" },
 
 	/*! For directory creates new file given its relative @path and returns its fsnode */
 	{ FSNode_Makefile, "mkfile( self : fsnode, path : string )=>fsnode" },
@@ -1184,7 +1184,7 @@ static DaoFuncItem fsMeths[] =
 	{ FS_SetCWD2,	"cwd( dir : string )" },
 
 	/*! Returns canonical form of @path. On Windows, replaces all '\' in path with '/' */
-	{ FS_NormPath,	"canonical( path : string )=>string" },
+	{ FS_NormPath,	"realpath( path : string )=>string" },
 
 	{ NULL, NULL }
 };
@@ -1195,7 +1195,8 @@ DAO_DLL int DaoFS_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	FS_INIT();
 	fsns = DaoVmSpace_GetNamespace( vmSpace, "fs" );
 	DaoNamespace_AddConstValue( ns, "fs", (DaoValue*)fsns );
-	daox_type_fsnode = DaoNamespace_WrapType( fsns, & fsnodeTyper, 1 );
+	DaoNamespace_AddParent( fsns, ns );
+	daox_type_fsnode = DaoNamespace_WrapType( ns, & fsnodeTyper, 1 );
 	DaoNamespace_WrapFunctions( fsns, fsMeths );
 	return 0;
 }
