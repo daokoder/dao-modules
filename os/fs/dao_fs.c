@@ -1093,6 +1093,16 @@ static void FS_NormPath( DaoProcess *proc, DaoValue *p[], int N )
 	DString_Delete( path );
 }
 
+static void FS_Exists( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DString *path = DString_Copy( p[0]->xString.data );
+	DInode *fsnode = DInode_New();
+	DString_ToMBS( path );
+	DaoProcess_PutInteger( proc, DInode_Open( fsnode, path->mbs ) == 0 );
+	DString_Delete( path );
+	DInode_Delete( fsnode );
+}
+
 static DaoFuncItem fsnodeMeths[] =
 {
 	/*! Returns new fsnode given @path of file or directory */
@@ -1185,6 +1195,9 @@ static DaoFuncItem fsMeths[] =
 
 	/*! Returns canonical form of @path. On Windows, replaces all '\' in path with '/' */
 	{ FS_NormPath,	"realpath( path : string )=>string" },
+
+	/*! Returns non-zero if @path exists and is a file or directory */
+	{ FS_Exists,   "exists( path : string )=>int" },
 
 	{ NULL, NULL }
 };
