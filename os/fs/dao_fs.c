@@ -429,9 +429,9 @@ int DInode_SetAccess( DInode *self, int ur, int uw, int ux, int gr, int gw, int 
 #ifdef WIN32
 	if ( chmod( self->path, (ur? _S_IREAD : 0) | (uw? _S_IWRITE : 0) ) )
 #else
-	if ( chmod( self->path, (ur? _S_IRUSR : 0) | (uw? _S_IWUSR : 0) | (ux? _S_IXUSR : 0) |
-				(gr? _S_IRGRP : 0) | (gw? _S_IWGRP : 0) | (gx? _S_IXGRP : 0) |
-				(otr? _S_IROTH : 0) | (otw? _S_IWOTH : 0) | (otx? _S_IXOTH : 0) ) )
+	if ( chmod( self->path, (ur? S_IRUSR : 0) | (uw? S_IWUSR : 0) | (ux? S_IXUSR : 0) |
+				(gr? S_IRGRP : 0) | (gw? S_IWGRP : 0) | (gx? S_IXGRP : 0) |
+				(otr? S_IROTH : 0) | (otw? S_IWOTH : 0) | (otx? S_IXOTH : 0) ) )
 #endif
 		return errno;
 	return 0;
@@ -447,25 +447,25 @@ void DInode_GetMode( DInode *self, DaoTuple *res )
 	if ( self->mode & _S_IEXEC )
 		DString_AppendMBS( res->items[0]->xString.data, "x" );
 #else
-	if ( self->mode & _S_IRUSR )
+	if ( self->mode & S_IRUSR )
 		DString_AppendMBS( res->items[0]->xString.data, "r" );
-	if ( self->mode & _S_IWUSR )
+	if ( self->mode & S_IWUSR )
 		DString_AppendMBS( res->items[0]->xString.data, "w" );
-	if ( self->mode & _S_IXUSR )
+	if ( self->mode & S_IXUSR )
 		DString_AppendMBS( res->items[0]->xString.data, "x" );
 
-	if ( self->mode & _S_IRGRP )
+	if ( self->mode & S_IRGRP )
 		DString_AppendMBS( res->items[1]->xString.data, "r" );
-	if ( self->mode & _S_IWGRP )
+	if ( self->mode & S_IWGRP )
 		DString_AppendMBS( res->items[1]->xString.data, "w" );
-	if ( self->mode & _S_IXGRP )
+	if ( self->mode & S_IXGRP )
 		DString_AppendMBS( res->items[1]->xString.data, "x" );
 
-	if ( self->mode & _S_IROTH )
+	if ( self->mode & S_IROTH )
 		DString_AppendMBS( res->items[2]->xString.data, "r" );
-	if ( self->mode & _S_IWOTH )
+	if ( self->mode & S_IWOTH )
 		DString_AppendMBS( res->items[2]->xString.data, "w" );
-	if ( self->mode & _S_IXOTH )
+	if ( self->mode & S_IXOTH )
 		DString_AppendMBS( res->items[2]->xString.data, "x" );
 #endif
 }
