@@ -31,6 +31,7 @@
 #include"string.h"
 #include"errno.h"
 #include<sys/stat.h>
+#include<limits.h>
 
 #include"dao.h"
 #include"daoValue.h"
@@ -49,8 +50,15 @@
 #define chmod _chmod
 #endif
 
+DMutex fs_mtx;
+#define FS_TRANS( st ) DMutex_Lock( &fs_mtx ); st; DMutex_Unlock( &fs_mtx )
+#define FS_INIT() DMutex_Init( &fs_mtx )
+
 #else
 #include"dirent.h"
+
+#define FS_TRANS( st ) st
+#define FS_INIT()
 #endif
 
 #ifdef UNIX
@@ -60,7 +68,11 @@
 #endif
 
 #ifndef MAX_PATH
+#ifndef PATH_MAX
 #define MAX_PATH 512
+#else
+#define MAX_PATH PATH_MAX
+#endif
 #endif
 
 #define MAX_ERRMSG 100
@@ -107,46 +119,63 @@ void DInode_Delete( DInode *self )
 
 #ifdef WIN32
 #define IS_PATH_SEP( c ) ( ( c ) == '\\' || ( c ) == '/' || ( c ) == ':' )
-#define STD_PATH_SEP "\\"
 #else
 #define IS_PATH_SEP( c ) ( ( c ) == '/' )
-#define STD_PATH_SEP "/"
 #endif
 
-int DInode_Open( DInode *self, const char *path )
+int NormalizePath( const char *path, char *dest )
+{
+#ifdef WIN32
+	int res;
+	FS_TRANS( res = GetFullPathName( path, MAX_PATH + 1, dest, NULL ) != 0 );
+	if ( res ){
+		char *pos = dest;
+		for ( ; *pos != '\0'; pos++ )
+			if ( *pos == '\\' )
+				*pos = '/';
+	}
+	return res;
+#else
+	return realpath( path, dest ) != NULL;
+#endif
+}
+
+int DInode_Open( DInode *self, const char *fpath )
 {
 	char buf[MAX_PATH + 1] = {0};
+	char path[MAX_PATH + 1];
 	struct stat info;
 	int len, i;
+	if ( !NormalizePath( fpath, path ) )
+		return -2;
 	DInode_Close( self );
-	if( !path )
-		return 1;
 	len = strlen( path );
+#ifdef WIN32
+	if ( len > 1 && IS_PATH_SEP( path[len - 1] ) && path[len - 2] != ':' )
+#else
+	if ( len > 1 && IS_PATH_SEP( path[len - 1] ) )
+#endif
+		path[len - 1] = '\0';
 	if( stat( path, &info ) != 0 )
 		return errno;
-	for( i = 0; i < len; i++ )
-		if( path[i] == '.' && ( i == 0 || IS_PATH_SEP( path[i - 1] ) )
-			&& ( i == len - 1 || IS_PATH_SEP( path[i + 1] ) ||
-			( path[i + 1] == '.' && ( i == len - 2 || IS_PATH_SEP( path[i + 2] ) ) ) ) )
-			return -1;
 #ifdef WIN32
 	if( !( info.st_mode & _S_IFDIR ) && !( info.st_mode & _S_IFREG ) )
-		return 1;
+		return -1;
 	self->type = ( info.st_mode & _S_IFDIR )? 0 : 1;
 	self->size = ( info.st_mode & _S_IFDIR )? 0 : info.st_size;
 	if( len < 2 || ( path[1] != ':' && path[0] != '\\' ) ){
-		if( !getcwd( buf, MAX_PATH ) )
+		if( !getcwd( buf, sizeof(buf) ) )
 			return errno;
-		strcat( buf, "\\" );
+		strcat( buf, "/" );
 	}
 #else
 	if( !S_ISDIR( info.st_mode ) && !S_ISREG( info.st_mode ) )
-		return 1;
+		return -1;
 	self->type = ( S_ISDIR( info.st_mode ) )? 0 : 1;
 	self->size = ( S_ISDIR( info.st_mode ) )? 0 : info.st_size;
 	self->uid = info.st_uid;
 	if( path[0] != '/' ){
-		if( !getcwd( buf, MAX_PATH ) )
+		if( !getcwd( buf, sizeof(buf) ) )
 			return errno;
 		strcat( buf, "/" );
 	}
@@ -174,12 +203,12 @@ int DInode_Reopen( DInode *self )
 		return errno;
 #ifdef WIN32
 	if( !( info.st_mode & _S_IFDIR ) && !( info.st_mode & _S_IFREG ) )
-		return 1;
+		return -1;
 	self->type = ( info.st_mode & _S_IFDIR )? 0 : 1;
 	self->size = ( info.st_mode & _S_IFDIR )? 0 : info.st_size;
 #else
 	if( !S_ISDIR( info.st_mode ) && !S_ISREG( info.st_mode ) )
-		return 1;
+		return -1;
 	self->type = ( S_ISDIR( info.st_mode ) )? 0 : 1;
 	self->size = ( S_ISDIR( info.st_mode ) )? 0 : info.st_size;
 	self->uid = info.st_uid;
@@ -203,21 +232,21 @@ char* DInode_Parent( DInode *self, char *buffer )
 #ifdef WIN32
 	if( self->path[i] == ':' ){
 		strncpy( buffer, self->path, i + 1 );
-		buffer[i + 1] = '\\';
+		buffer[i + 1] = '/';
 		buffer[i + 2] = '\0';
 	}
 	else{
 		if( i == 2 )
 			i++;
 		strncpy( buffer, self->path, i );
-		if( self->path[0] == '\\' ){
+		if( self->path[0] == '/' ){
 			int j;
 			int k = 0;
 			for (j = 2; j < i && k < 2; j++)
 				if( IS_PATH_SEP( self->path[j] ) )
 					k++;
 			if( i == j ){
-				buffer[i] = '\\';
+				buffer[i] = '/';
 				i++;
 			}
 		}
@@ -234,28 +263,32 @@ char* DInode_Parent( DInode *self, char *buffer )
 	return buffer;
 }
 
-int DInode_Rename( DInode *self, const char *path )
+int DInode_Rename( DInode *self, const char *fpath )
 {
 	char buf[MAX_PATH + 1] = {0};
+	char path[MAX_PATH + 1];
 	int i, len, noname = 0;
 	if( !self->path )
-		return 1;
+		return -1;
+	if ( !NormalizePath( fpath, path ) )
+		return -2;
 	len = strlen( path );
+#ifdef WIN32
+	if ( len > 1 && IS_PATH_SEP( path[len - 1] ) && path[len - 2] != ':' )
+#else
+	if ( len > 1 && IS_PATH_SEP( path[len - 1] ) )
+#endif
+		path[len - 1] = '\0';
 	if ( IS_PATH_SEP( path[len - 1] ) )
 		noname = 1;
-	for( i = 0; i < len; i++ )
-		if( path[i] == '.' && ( i == 0 || IS_PATH_SEP( path[i - 1] ) )
-			&& ( i == len - 1 || IS_PATH_SEP( path[i + 1] ) ||
-			( path[i + 1] == '.' && ( i == len - 2 || IS_PATH_SEP( path[i + 2] ) ) ) ) )
-			return -1;
 	if( !DInode_Parent( self, buf ) )
 		return 1;
 #ifdef WIN32
-	if( len < 2 || ( path[1] != ':' && path[0] != '\\' ) ){
+	if( len < 2 || ( path[1] != ':' && path[0] != '/' ) ){
 #else
 	if( path[0] != '/' ){
 #endif
-		strcat( buf, STD_PATH_SEP );
+		strcat( buf, "/" );
 		len += strlen( buf );
 		if( len > MAX_PATH )
 			return ENAMETOOLONG;
@@ -270,7 +303,7 @@ int DInode_Rename( DInode *self, const char *path )
 		for (i = strlen( self->path ) - 1; i > 0; i--)
 			if( IS_PATH_SEP( self->path[i] ) )
 				break;
-		strcat( buf, STD_PATH_SEP );
+		strcat( buf, "/" );
 		strcat( buf, self->path + i );
 	}
 	if( rename( self->path, buf ) != 0 )
@@ -283,7 +316,7 @@ int DInode_Rename( DInode *self, const char *path )
 int DInode_Remove( DInode *self )
 {
 	if( !self->path )
-		return 1;
+		return -1;
 	if( self->type == 0 ){
 		if( rmdir( self->path ) != 0 )
 			return errno;
@@ -294,23 +327,27 @@ int DInode_Remove( DInode *self )
 	return 0;
 }
 
-int DInode_Append( DInode *self, const char *path, int dir, DInode *dest )
+int DInode_Append( DInode *self, const char *fpath, int dir, DInode *dest )
 {
 	int i, len;
 	char buf[MAX_PATH + 1];
+	char path[MAX_PATH + 1];
 	FILE *handle;
 	struct stat info;
-	if( !self->path || self->type != 0 || !dest )
-		return 1;
+	if( !self->path || self->type != 0 )
+		return -1;
+	if ( !NormalizePath( fpath, path ) )
+		return -2;
 	len = strlen( path );
-	for( i = 0; i < len; i++ )
-		if( path[i] == '.' && ( i == 0 || IS_PATH_SEP( path[i - 1] ) )
-			&& ( i == len - 1 || IS_PATH_SEP( path[i + 1] ) ||
-			( path[i + 1] == '.' && ( i == len - 2 || IS_PATH_SEP( path[i + 2] ) ) ) ) )
-			return -1;
+#ifdef WIN32
+	if ( len > 1 && IS_PATH_SEP( path[len - 1] ) && path[len - 2] != ':' )
+#else
+	if ( len > 1 && IS_PATH_SEP( path[len - 1] ) )
+#endif
+		path[len - 1] = '\0';
 	if( DInode_Parent( self, buf ) ){
 		strcpy( buf, self->path );
-		strcat( buf, STD_PATH_SEP );
+		strcat( buf, "/" );
 	}
 	else
 		strcpy( buf, self->path );
@@ -333,10 +370,10 @@ int DInode_Append( DInode *self, const char *path, int dir, DInode *dest )
 	}else{
 #ifdef WIN32
 	if( mkdir( buf ) != 0 )
-		return ( errno == EINVAL ) ? 1 : errno;
+		return ( errno == EINVAL ) ? -1 : errno;
 #else
 	if( mkdir( buf, S_IRWXU|S_IRGRP|S_IXGRP|S_IXOTH ) != 0 )
-		return ( errno == EINVAL ) ? 1 : errno;
+		return ( errno == EINVAL ) ? -1 : errno;
 #endif
 	}
 	return DInode_Open( dest, buf );
@@ -356,7 +393,7 @@ int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *des
 	struct dirent *finfo;
 #endif
 	if( !self->path || self->type != 0 )
-		return 1;
+		return -1;
     strcpy( buffer, self->path );
 	len = strlen( buffer );
 #ifdef WIN32
@@ -364,7 +401,7 @@ int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *des
 	if( IS_PATH_SEP( buffer[len - 1] ) )
     	strcpy( buffer + len, "*" );
     else
-		strcpy( buffer + len++, "\\*" );
+		strcpy( buffer + len++, "/*" );
 	handle = _findfirst( buffer, &finfo );
 	if (handle != -1){
 		DString *str = DString_New( 1 );
@@ -489,7 +526,7 @@ int DInode_GetOwner( DInode *self, DString *name )
 	return 0;
 #else
 	struct passwd pwd, *res;
-	char buf[16384];
+	char buf[4096];
 	if ( getpwuid_r( self->uid, &pwd, buf, sizeof(buf), &res ) )
 		return 1;
 	DString_SetMBS( name, pwd.pw_name );
@@ -500,8 +537,8 @@ int DInode_GetOwner( DInode *self, DString *name )
 static void GetErrorMessage( char *buffer, int code, int special )
 {
 	switch ( code ){
-	case -1:
-		strcpy( buffer, "'.' and '..' entries in path are not allowed" );
+	case -2:
+		strcpy( buffer, "Invalid path" );
 		break;
 	case EACCES:
 	case EBADF:
@@ -558,11 +595,11 @@ static void FSNode_Update( DaoProcess *proc, DaoValue *p[], int N )
 	char errbuf[MAX_ERRMSG + MAX_PATH + 3];
 	int res;
 	if( ( res = DInode_Reopen( self ) ) != 0 ){
-		if( res == 1 )
+		if( res == -1 )
 			strcpy( errbuf, "Trying to open something which is not a file/directory" );
 		else
 			GetErrorMessage( errbuf, res, 0 );
-		if( res == 1 || res == ENOENT )
+		if( res == -1 || res == ENOENT )
 			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", self->path );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
 	}
@@ -623,14 +660,16 @@ static void FSNode_Rename( DaoProcess *proc, DaoValue *p[], int N )
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
 	int res;
 	char errbuf[MAX_ERRMSG];
-	if ( (res = DInode_Rename( self, DaoValue_TryGetMBString( p[1] ) ) ) != 0 ){
-		if( res == 1 )
+	DString *path = DString_Copy( p[1]->xString.data );
+	DString_ToMBS( path );
+	if ( (res = DInode_Rename( self, path->mbs ) ) != 0 ){
+		if( res == -1 )
 			strcpy( errbuf, "Trying to rename root fsnode" );
 		else
 			GetErrorMessage( errbuf, res, 0 );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
-		return;
 	}
+	DString_Delete( path );
 }
 
 static void FSNode_Remove( DaoProcess *proc, DaoValue *p[], int N )
@@ -641,7 +680,6 @@ static void FSNode_Remove( DaoProcess *proc, DaoValue *p[], int N )
 	if ( (res = DInode_Remove( self ) ) != 0 ){
 		GetErrorMessage( errbuf, res, self->type == 0 );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
-		return;
 	}
 }
 
@@ -664,7 +702,7 @@ static void FSNode_Access( DaoProcess *proc, DaoValue *p[], int N )
 	DInode_GetMode( self, res );
 }
 
-int InitAccessBits( DString *mode, int *r, int *w, int *x )
+int InitPermissions( DString *mode, int *r, int *w, int *x )
 {
 	daoint i;
 	DString_ToMBS( mode );
@@ -685,13 +723,13 @@ static void FSNode_SetAccess(DaoProcess *proc, DaoValue *p[], int N)
 	char errbuf[MAX_ERRMSG];
 	int ur, uw, ux, gr, gw, gx, otr, otw, otx;
 	DString *mode = DString_Copy( p[1]->xString.data );
-	if ( !InitAccessBits( mode, &ur, &uw, &ux ) )
+	if ( !InitPermissions( mode, &ur, &uw, &ux ) )
 		goto Error;
 	DString_Assign( mode, p[2]->xString.data );
-	if ( !InitAccessBits( mode, &gr, &gw, &gx ) )
+	if ( !InitPermissions( mode, &gr, &gw, &gx ) )
 		goto Error;
 	DString_Assign( mode, p[3]->xString.data );
-	if ( !InitAccessBits( mode, &otr, &otw, &otx ) )
+	if ( !InitPermissions( mode, &otr, &otw, &otx ) )
 		goto Error;
 	int res = DInode_SetAccess(self, ur, uw, ux, gr, gw, gx, otr, otw, otx);
 	if (res){
@@ -711,78 +749,91 @@ static void FSNode_Makefile( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
 	DInode *child;
-	char errbuf[MAX_ERRMSG];
+	DString *path = DString_Copy( p[1]->xString.data );
+	DString_ToMBS( path );
 	int res;
 	if( self->type != 0 ){
 		DaoProcess_RaiseException( proc, DAO_ERROR, "The fsnode is not a directory" );
+		DString_Delete( path );
 		return;
 	}
 	child = DInode_New();
-	if( ( res = DInode_Append( self, DaoValue_TryGetMBString( p[1] ), 0, child ) ) != 0 ){
+	if( ( res = DInode_Append( self, path->mbs, 0, child ) ) != 0 ){
+		char errbuf[MAX_ERRMSG];
 		DInode_Delete( child );
-		if( res == 1 )
+		if( res == -1 )
 			strcpy( errbuf, "The fsnode's name is invalid (EINVAL)" );
 		else
 			GetErrorMessage( errbuf, res, 0 );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
-		return;
 	}
-	DaoProcess_PutCdata( proc, (void*)child, daox_type_fsnode );
+	else
+		DaoProcess_PutCdata( proc, (void*)child, daox_type_fsnode );
+	DString_Delete( path );
 }
 
 static void FSNode_Makedir( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
 	DInode *child;
-	char errbuf[MAX_ERRMSG];
+	DString *path = DString_Copy( p[1]->xString.data );
 	int res;
+	DString_ToMBS( path );
 	if( self->type != 0 ){
 		DaoProcess_RaiseException( proc, DAO_ERROR, "The fsnode is not a directory" );
+		DString_Delete( path );
 		return;
 	}
 	child = DInode_New();
-	if( ( res = DInode_Append( self, DaoValue_TryGetMBString( p[1] ), 1, child ) ) != 0 ){
+	if( ( res = DInode_Append( self, path->mbs, 1, child ) ) != 0 ){
+		char errbuf[MAX_ERRMSG];
 		DInode_Delete( child );
-		if( res == 1 )
+		if( res == -1 )
 			strcpy( errbuf, "The fsnode's name is invalid (EINVAL)" );
 		else
 			GetErrorMessage( errbuf, res, 0 );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
-		return;
 	}
-	DaoProcess_PutCdata( proc, (void*)child, daox_type_fsnode );
+	else
+		DaoProcess_PutCdata( proc, (void*)child, daox_type_fsnode );
+	DString_Delete( path );
 }
 
 static void FSNode_Child( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
 	DInode *child;
-	char path[MAX_PATH + 1], *str;
+	DString *path = DString_Copy( p[1]->xString.data );
+	char buf[MAX_PATH + 1];
 	int res;
+	DString_ToMBS( path );
 	if( self->type != 0 ){
 		DaoProcess_RaiseException( proc, DAO_ERROR, "The fsnode is not a directory" );
-		return;
+		goto Exit;
 	}
 	child = DInode_New();
-	strcpy( path, self->path );
-	strcat( path, STD_PATH_SEP );
-	str = DaoValue_TryGetMBString( p[1] );
-	if( strlen( path ) + strlen( str ) > MAX_PATH ){
-		GetErrorMessage( path, ENAMETOOLONG, 0 );
-		DaoProcess_RaiseException( proc, DAO_ERROR, path );
-		return;
-	}
-	strcat( path, str );
-	if( ( res = DInode_Open( child, path ) ) != 0 ){
+	strcpy( buf, self->path );
+	strcat( buf, "/" );
+	if( strlen( buf ) + path->size > MAX_PATH ){
+		char errbuf[MAX_ERRMSG];
+		GetErrorMessage( errbuf, ENAMETOOLONG, 0 );
+		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
 		DInode_Delete( child );
-		if( res == 1 )
-			strcpy( path, "The fsnode is not a directory" );
+		goto Exit;
+	}
+	if( ( res = DInode_Open( child, path->mbs ) ) != 0 ){
+		char errbuf[MAX_ERRMSG];
+		DInode_Delete( child );
+		if( res == -1 )
+			strcpy( errbuf, "The fsnode is not a directory" );
 		else
-			GetErrorMessage( path, res, 0 );
-		DaoProcess_RaiseException( proc, DAO_ERROR, path );
+			GetErrorMessage( errbuf, res, 0 );
+		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
 		return;                                  
 	}
 	DaoProcess_PutCdata( proc, (void*)child, daox_type_fsnode );
+Exit:
+	DString_Delete( path );
 }
 
 static void DInode_Children( DInode *self, DaoProcess *proc, int type, DString *pat, int ft )
@@ -857,8 +908,9 @@ static void DInode_Children( DInode *self, DaoProcess *proc, int type, DString *
     	return;
 	type = ( type == 3 ) ? 2 : ( ( type == 1 ) ? 1 : 0 );
 	if( ( res = DInode_ChildrenRegex( self, type, proc, list, pattern ) ) != 0 ){
-		GetErrorMessage( buffer, res, 1 );
-		DaoProcess_RaiseException( proc, DAO_ERROR, buffer );
+		char errbuf[MAX_ERRMSG];
+		GetErrorMessage( errbuf, res, 1 );
+		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
 		return;
 	}
 }
@@ -866,45 +918,49 @@ static void DInode_Children( DInode *self, DaoProcess *proc, int type, DString *
 static void FSNode_Children( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
-	DInode_Children( self, proc, DaoValue_TryGetEnum( p[1] ), DaoString_Get( DaoValue_CastString( p[2] ) ),
-					 DaoValue_TryGetEnum( p[3] ) );
+	DString *pt = DString_Copy( p[2]->xString.data );
+	DInode_Children( self, proc, DaoValue_TryGetEnum( p[1] ), pt, DaoValue_TryGetEnum( p[3] ) );
+	DString_Delete( pt );
 }
 
 static void FSNode_Files( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
-	DInode_Children( self, proc, 1, DaoString_Get( DaoValue_CastString( p[1] ) ), DaoValue_TryGetEnum( p[2] ) );
+	DString *pt = DString_Copy( p[1]->xString.data );
+	DInode_Children( self, proc, 1, pt, DaoValue_TryGetEnum( p[2] ) );
 }
 
 static void FSNode_Dirs( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
-	DInode_Children( self, proc, 2, DaoString_Get( DaoValue_CastString( p[1] ) ), DaoValue_TryGetEnum( p[2] ) );
+	DString *pt = DString_Copy( p[1]->xString.data );
+	DInode_Children( self, proc, 2, pt, DaoValue_TryGetEnum( p[2] ) );
+	DString_Delete( pt );
 }
 
 static void FSNode_Suffix( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
 	char *pos = strrchr( self->path, '.' );
-	DaoProcess_PutMBString( proc, pos && !strstr( pos + 1, STD_PATH_SEP )? pos + 1 : "" );
+	DaoProcess_PutMBString( proc, pos && !strchr( pos + 1, '/' )? pos + 1 : "" );
 }
 
 static void FSNode_Copy( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
 	DString *path = DString_Copy( p[1]->xString.data );
-	DString_ToMBS( path );
-	FILE *src, *dest;
+	FILE *src = NULL, *dest = NULL;
 	DInode *copy;
 	int res;
 	char buf[4096];
+	DString_ToMBS( path );
 	if ( self->type == 0 ){
 		DaoProcess_RaiseException( proc, DAO_ERROR, "Copying of directories is not supported" );
 		goto Exit;
 	}
 	src = fopen( self->path, "r" );
 	if ( !src ){
-		DaoProcess_RaiseException( proc, DAO_ERROR, "Unable to read from initial file" );
+		DaoProcess_RaiseException( proc, DAO_ERROR, "Unable to read initial file" );
 		goto Exit;
 	}
 	if ( IS_PATH_SEP( path->mbs[path->size - 1] ) ){
@@ -912,32 +968,32 @@ static void FSNode_Copy( DaoProcess *proc, DaoValue *p[], int N )
 		for (i = strlen( self->path ) - 1; i > 0; i--)
 			if( IS_PATH_SEP( self->path[i] ) )
 				break;
-		DString_AppendMBS( path, STD_PATH_SEP );
 		DString_AppendMBS( path, self->path + i );
 	}
 	dest = fopen( path->mbs, "w" );
 	if ( !dest ){
-		fclose( src );
-		DaoProcess_RaiseException( proc, DAO_ERROR, "Unable to write to destination file" );
+		char errbuf[MAX_ERRMSG + MAX_PATH + 3];
+		snprintf( errbuf, sizeof(errbuf), "Unable to write destination file: %s", path->mbs );
+		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
 		goto Exit;
 	}
 	while ( !feof( src ) ){
 		size_t count = fread( buf, sizeof(char), sizeof(buf), src );
 		fwrite( buf, sizeof(char), count, dest );
 	}
-	fclose( src );
-	fclose( dest );
 	copy = DInode_New();
 	if ( ( res = DInode_Open( copy, path->mbs ) ) != 0 ){
 		char errbuf[MAX_ERRMSG];
 		DInode_Delete( copy );
 		GetErrorMessage( errbuf, res, 0 );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
+		goto Exit;
 	}
-	else
-		DaoProcess_PutCdata( proc, copy, daox_type_fsnode );
+	DaoProcess_PutCdata( proc, copy, daox_type_fsnode );
 Exit:
 	DString_Delete( path );
+	if ( src ) fclose( src );
+	if ( dest ) fclose( dest );
 }
 
 static void FSNode_Owner( DaoProcess *proc, DaoValue *p[], int N )
@@ -946,7 +1002,7 @@ static void FSNode_Owner( DaoProcess *proc, DaoValue *p[], int N )
 	DString *name = DString_New( 1 );
 	int res = DInode_GetOwner( self, name );
 	if ( res )
-		DaoProcess_RaiseException( proc, DAO_ERROR, "Unaible to get information on file owner" );
+		DaoProcess_RaiseException( proc, DAO_ERROR, "Unable to get information on file owner" );
 	else
 		DaoProcess_PutString( proc, name );
 	DString_Delete( name );
@@ -954,57 +1010,92 @@ static void FSNode_Owner( DaoProcess *proc, DaoValue *p[], int N )
 
 static void FSNode_New( DaoProcess *proc, DaoValue *p[], int N )
 {
-	char errbuf[MAX_ERRMSG + MAX_PATH + 3];
 	DInode *fsnode = DInode_New();
 	int res;
-	char *path = DaoValue_TryGetMBString( p[0] );
-	if( ( res = DInode_Open( fsnode, path ) ) != 0 ){
+	DString *path = DString_Copy( p[0]->xString.data );
+	DString_ToMBS( path );
+	if( ( res = DInode_Open( fsnode, path->mbs ) ) != 0 ){
+		char errbuf[MAX_ERRMSG + MAX_PATH + 3];
 		DInode_Delete( fsnode );
-		if( res == 1 )
-			strcpy( errbuf, "Trying to open something which is not a file/directory" );
+		if( res == -1 )
+			strcpy( errbuf, "File object is not a file/directory" );
 		else
 			GetErrorMessage( errbuf, res, 0 );
-		if( res == 1 || res == ENOENT )
-			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", path );
+		if( res == -1 || res == ENOENT )
+			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", path->mbs );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
-		return;
 	}
-	DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_fsnode );
+	else
+		DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_fsnode );
+	DString_Delete( path );
 }
 
-static void FSNode_GetCWD( DaoProcess *proc, DaoValue *p[], int N )
+static void FS_GetCWD( DaoProcess *proc, DaoValue *p[], int N )
 {
 	char buf[MAX_PATH + 1];
 	int res = 0;
 	DInode *fsnode = DInode_New();
-	if( !getcwd( buf, MAX_PATH ) || ( res = DInode_Open( fsnode, buf ) ) != 0 ){
+	FS_TRANS( res = (int)getcwd( buf, sizeof(buf) ) );
+	if( !res || ( res = DInode_Open( fsnode, buf ) ) != 0 ){
+		char errbuf[MAX_ERRMSG];
 		DInode_Delete( fsnode );
-		GetErrorMessage( buf, ( res == 0 )? errno : res, 0 );
-		DaoProcess_RaiseException( proc, DAO_ERROR, buf );
+		GetErrorMessage( errbuf, ( res == 0 )? errno : res, 0 );
+		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
 		return;
 	}
 	DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_fsnode );
 }
 
-static void FSNode_SetCWD( DaoProcess *proc, DaoValue *p[], int N )
+static void FS_SetCWD( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *fsnode = (DInode*)DaoValue_TryGetCdata( p[0] );
-	char errbuf[MAX_PATH + 1];
+	int res;
 	if( fsnode->type != 0 ){
 		DaoProcess_RaiseException( proc, DAO_ERROR, "The fsnode is not a directory" );
 		return;
 	}
-	if( chdir( fsnode->path ) != 0 ){
+	FS_TRANS( res = chdir( fsnode->path ) );
+	if( res ){
+		char errbuf[MAX_PATH + 1];
 		GetErrorMessage( errbuf, errno, 0 );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
-		return;
 	}
+}
+
+static void FS_SetCWD2( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DString *path = DString_Copy( p[0]->xString.data );
+	int res;
+	DInode *fsnode = DInode_New();
+	DString_ToMBS( path );
+	if( ( res = DInode_Open( fsnode, path->mbs ) ) == 0 && fsnode->type == 0 )
+		FS_TRANS( res = chdir( fsnode->path ) );
+	if ( res ) {
+		char errbuf[MAX_ERRMSG + MAX_PATH + 3];
+		GetErrorMessage( errbuf, errno, 0 );
+		if( res == -1 || res == ENOENT )
+			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", path->mbs );
+		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
+	}
+	DString_Delete( path );
+	DInode_Delete( fsnode );
+}
+
+static void FS_NormPath( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DString *path = DString_Copy( p[0]->xString.data );
+	char buf[MAX_PATH + 1];
+	DString_ToMBS( path );
+	if ( NormalizePath( path->mbs, buf ) )
+		DaoProcess_PutMBString( proc, buf );
+	else
+		DaoProcess_RaiseException( proc, DAO_ERROR, "Invalid path" );
+	DString_Delete( path );
 }
 
 static DaoFuncItem fsnodeMeths[] =
 {
-	/*! Returns new fsnode given @path of file or directory
-	 *	\note '.' and '..' entries in @path are not allowed */
+	/*! Returns new fsnode given @path of file or directory */
 	{ FSNode_New,      "fsnode( path : string )=>fsnode" },
 
 	/*! Returns full path */
@@ -1013,7 +1104,7 @@ static DaoFuncItem fsnodeMeths[] =
 	/*! Returns base name */
 	{ FSNode_Name,     "name( self : fsnode )=>string" },
 
-	/*! Returns type of file object */
+	/*! Returns type of file object: file or directory */
 	{ FSNode_Type,     "type( self : fsnode )=>enum<file, dir>" },
 
 	/*! Returns size of file (0 for directory) */
@@ -1022,13 +1113,13 @@ static DaoFuncItem fsnodeMeths[] =
 	/*! Returns rightmost path part following '.' */
 	{ FSNode_Suffix,   "suffix( self: fsnode )=>string" },
 
-	/*! Returns parent directory */
+	/*! Returns parent directory, raises exception if none */
 	{ FSNode_Parent,   "parent( self : fsnode )=>fsnode" },
 
-	/*! Returns creation time */
+	/*! Returns creation time (use time module to operate it) */
 	{ FSNode_Ctime,    "ctime( self : fsnode )=>int" },
 
-	/*! Returns last modification time */
+	/*! Returns last modification time (use time module to operate it) */
 	{ FSNode_Mtime,    "mtime( self : fsnode )=>int" },
 
 	/*! Returns owner name */
@@ -1037,24 +1128,21 @@ static DaoFuncItem fsnodeMeths[] =
 	/*! Returns access mode as a combination of 'r', 'w' and 'x'. On Windows, only permissions for the current user are returned */
 	{ FSNode_Access,   "access( self : fsnode )=>tuple<user: string, group: string, other: string>" },
 
-	/*! Sets access mode to @mode, where @mode is a combination of 'r', 'w' and 'x' */
+	/*! Sets access mode to @mode, where @mode is a combination of 'r', 'w' and 'x'. On Windows, only permissions for the current user are changed */
 	{ FSNode_SetAccess,"access( self : fsnode, user : string, group='', other='' )" },
 
 	/*! Moves linked file object within the file system so that its full path becomes @path. @path may end with directory separator,
-	 * omitting the file object name, in which case the current name is assumed
-	 *	\note '.' and '..' entries in @path are not allowed */
+	 * omitting the file object name, in which case the current name is assumed */
 	{ FSNode_Rename,   "move( self : fsnode, path : string )" },
 
 	/*! Deletes linked file object
 	 * \note Doing this does not invalidate the fsnode */
 	{ FSNode_Remove,   "remove( self : fsnode )" },
 
-	/*! For directory creates new file given its relative @path and returns its fsnode
-	 *	\note '.' and '..' entries in @path are not allowed */
+	/*! For directory creates new file given its relative @path and returns its fsnode */
 	{ FSNode_Makefile, "mkfile( self : fsnode, path : string )=>fsnode" },
 
-	/*! For directory creates new directory given its relative @path and returns its fsnode
-	 *	\note '.' and '..' entries in @path are not allowed */
+	/*! For directory creates new directory given its relative @path and returns its fsnode */
 	{ FSNode_Makedir,  "mkdir( self : fsnode, path : string )=>fsnode" },
 
 	/*! For directory returns list of inner file objects of the given @type with names matching @filter,
@@ -1069,31 +1157,45 @@ static DaoFuncItem fsnodeMeths[] =
 	 * where @filter type is defined by @filtering and can be either a wildcard pattern or normal string pattern */
 	{ FSNode_Dirs,     "dirs( self : fsnode, filter='*', filtering : enum<wildcard, regex> = $wildcard )=>list<fsnode>" },
 
-	/*! For directory returns inner fsnode given its relative @path
-	 *	\note '.' and '..' entries in @path are not allowed */
+	/*! For directory returns inner fsnode given its relative @path */
 	{ FSNode_Child,    "[]( self : fsnode, path : string )=>fsnode" },
 
-	/*! Copies file and returns fsnode of the copy
-	 *	\note '.' and '..' entries in @path are not allowed; file will still be copied, but fsnode object will not be created */
+	/*! Copies file and returns fsnode of the copy */
 	{ FSNode_Copy,  "copy( self : fsnode, path : string )=>fsnode" },
-
-	/*! Returns the current working directory */
-	{ FSNode_GetCWD,   "cwd(  )=>fsnode" },
-
-	/*! For directory makes it the current working directory */
-	{ FSNode_SetCWD,   "set_cwd( self : fsnode )" },
 
 	/*! Re-reads all attributes of linked file object */
 	{ FSNode_Update,   "update( self : fsnode )" },
+
 	{ NULL, NULL }
 };
 
+/*! Provides platform-independent interface for manipulating file system objects */
 DaoTypeBase fsnodeTyper = {
 	"fsnode", NULL, NULL, fsnodeMeths, {NULL}, {0}, (FuncPtrDel)DInode_Delete, NULL
 };
 
+static DaoFuncItem fsMeths[] =
+{
+	/*! Returns fsnode of the current working directory */
+	{ FS_GetCWD,	"cwd()=>fsnode" },
+
+	/*! Makes @dir the current working directory */
+	{ FS_SetCWD,	"cwd( dir : fsnode )" },
+	{ FS_SetCWD2,	"cwd( dir : string )" },
+
+	/*! Returns canonical form of @path. On Windows, replaces all '\' in path with '/' */
+	{ FS_NormPath,	"canonical( path : string )=>string" },
+
+	{ NULL, NULL }
+};
+
 DAO_DLL int DaoFS_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	daox_type_fsnode = DaoNamespace_WrapType( ns, & fsnodeTyper, 1 );
+	DaoNamespace *fsns;
+	FS_INIT();
+	fsns = DaoVmSpace_GetNamespace( vmSpace, "fs" );
+	DaoNamespace_AddConstValue( ns, "fs", (DaoValue*)fsns );
+	daox_type_fsnode = DaoNamespace_WrapType( fsns, & fsnodeTyper, 1 );
+	DaoNamespace_WrapFunctions( fsns, fsMeths );
 	return 0;
 }
