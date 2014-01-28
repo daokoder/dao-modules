@@ -132,10 +132,10 @@ int NormalizePath( const char *path, char *dest )
 	int res;
 	FS_TRANS( res = GetFullPathName( path, MAX_PATH + 1, dest, NULL ) != 0 );
 	if ( res ){
-		char *pos = dest;
-		for ( ; *pos != '\0'; pos++ )
-			if ( *pos == '\\' )
-				*pos = '/';
+		int i;
+		for ( i = 0; dest[i] != '\0'; i++ )
+			if ( dest[i] == '\\' )
+				dest[i] = '/';
 	}
 	return res;
 #else
@@ -1131,7 +1131,7 @@ static void FSNode_New( DaoProcess *proc, DaoValue *p[], int N )
 	DString_Delete( path );
 }
 
-static void FS_GetCWD( DaoProcess *proc, DaoValue *p[], int N )
+static void FS_CWD( DaoProcess *proc, DaoValue *p[], int N )
 {
 	char buf[MAX_PATH + 1];
 	int res = 0;
@@ -1142,9 +1142,28 @@ static void FS_GetCWD( DaoProcess *proc, DaoValue *p[], int N )
 		DInode_Delete( fsnode );
 		GetErrorMessage( errbuf, ( res == 0 )? errno : res, 0 );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
-		return;
 	}
-	DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_fsnode );
+	else
+		DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_fsnode );
+}
+
+static void FS_PWD( DaoProcess *proc, DaoValue *p[], int N )
+{
+	char path[MAX_PATH + 1];
+	int res = 0;
+	FS_TRANS( res = (int)getcwd( path, sizeof(path) ) );
+	if( !res ){
+		char errbuf[MAX_ERRMSG];
+		GetErrorMessage( errbuf, ( res == 0 )? errno : res, 0 );
+		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
+	}
+	else {
+		char buf[MAX_PATH + 1];
+		if ( NormalizePath( path, buf ) )
+			DaoProcess_PutMBString( proc, buf );
+		else
+			DaoProcess_PutMBString( proc, path );
+	}
 }
 
 static void FS_SetCWD( DaoProcess *proc, DaoValue *p[], int N )
@@ -1320,7 +1339,10 @@ DaoTypeBase fsnodeTyper = {
 static DaoFuncItem fsMeths[] =
 {
 	/*! Returns fsnode of the current working directory */
-	{ FS_GetCWD,	"pwd()=>fsnode" },
+	{ FS_CWD,	"cwd()=>fsnode" },
+
+	/*! Returns path of the current working directory */
+	{ FS_PWD,	"pwd()=>string" },
 
 	/*! Makes @dir the current working directory */
 	{ FS_SetCWD,	"cd( dir : fsnode )" },
