@@ -154,11 +154,22 @@ int DInode_Open( DInode *self, const char *fpath )
 	DInode_Close( self );
 	len = strlen( path );
 #ifdef WIN32
-	if ( len > 1 && IS_PATH_SEP( path[len - 1] ) && path[len - 2] != ':' )
+	if ( len > 2 && path[len - 1] == '/' && path[len - 2] != ':' ){
+		if ( path[0] == '/' && path[1] == '/' ){
+			char *pos = strchr( path + 2, '/' );
+			if ( pos ){
+				pos = strchr( pos + 1, '/' );
+				if ( pos && *( pos + 1 ) != '\0' )
+					path[len - 1] = '\0';
+			}
+		}
+		else
+			path[len - 1] = '\0';
+	}
 #else
-	if ( len > 1 && IS_PATH_SEP( path[len - 1] ) )
-#endif
+	if ( len > 1 && path[len - 1] == '/' )
 		path[len - 1] = '\0';
+#endif
 	if( stat64( path, &info ) != 0 )
 		return errno;
 #ifdef WIN32
