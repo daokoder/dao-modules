@@ -48,6 +48,7 @@
 #define mkdir _mkdir
 #define stat _stat
 #define chmod _chmod
+#define mktemp _mktemp
 #endif
 
 DMutex fs_mtx;
@@ -145,7 +146,7 @@ int DInode_Open( DInode *self, const char *fpath )
 	char buf[MAX_PATH + 1] = {0};
 	char path[MAX_PATH + 1];
 	struct stat info;
-	int len, i;
+	int len;
 	if ( !NormalizePath( fpath, path ) )
 		return -2;
 	DInode_Close( self );
@@ -163,7 +164,7 @@ int DInode_Open( DInode *self, const char *fpath )
 		return -1;
 	self->type = ( info.st_mode & _S_IFDIR )? 0 : 1;
 	self->size = ( info.st_mode & _S_IFDIR )? 0 : info.st_size;
-	if( len < 2 || ( path[1] != ':' && path[0] != '\\' ) ){
+	if( len < 2 || ( path[1] != ':' && path[0] != '/' ) ){
 		if( !getcwd( buf, sizeof(buf) ) )
 			return errno;
 		strcat( buf, "/" );
@@ -327,42 +328,43 @@ int DInode_Remove( DInode *self )
 	return 0;
 }
 
-int DInode_Append( DInode *self, const char *fpath, int dir, DInode *dest )
+int DInode_SubInode( DInode *self, const char *fpath, int dir, DInode *dest, int test )
 {
-	int i, len;
-	char buf[MAX_PATH + 1];
-	char path[MAX_PATH + 1];
+	int len;
+	char buf[MAX_PATH + 1], path[MAX_PATH + 1];
 	FILE *handle;
 	struct stat info;
 	if( !self->path || self->type != 0 )
 		return -1;
-	if ( !NormalizePath( fpath, path ) )
-		return -2;
-	len = strlen( path );
+	if( DInode_Parent( self, path ) ){
+		strcpy( path, self->path );
+		strcat( path, "/" );
+	}
+	else
+		strcpy( path, self->path );
+	len = strlen( path ) + strlen( fpath );
+	if( len > MAX_PATH )
+		return ENAMETOOLONG;
+	strcat( path, fpath );
 #ifdef WIN32
 	if ( len > 1 && IS_PATH_SEP( path[len - 1] ) && path[len - 2] != ':' )
 #else
 	if ( len > 1 && IS_PATH_SEP( path[len - 1] ) )
 #endif
 		path[len - 1] = '\0';
-	if( DInode_Parent( self, buf ) ){
-		strcpy( buf, self->path );
-		strcat( buf, "/" );
-	}
-	else
-		strcpy( buf, self->path );
-	if( strlen( buf ) + len > MAX_PATH )
-		return ENAMETOOLONG;
-	strcat( buf, path );
+	if ( !NormalizePath( path, buf ) )
+		return -2;
 #ifdef WIN32
-	if( stat( buf, &info ) == 0 && ( ( dir && ( info.st_mode & _S_IFDIR ) )
-		|| ( !dir && ( info.st_mode & _S_IFREG ) ) ) )
+	if( stat( buf, &info ) == 0 && ( test || ( ( dir && ( info.st_mode & _S_IFDIR ) )
+		|| ( !dir && ( info.st_mode & _S_IFREG ) ) ) ) )
 		return DInode_Open( dest, buf );
 #else
-	if( stat( buf, &info ) == 0 && ( ( dir && S_ISDIR( info.st_mode ) )
-		|| ( !dir && S_ISREG( info.st_mode ) ) ) )
+	if( stat( buf, &info ) == 0 && ( test || ( ( dir && S_ISDIR( info.st_mode ) )
+		|| ( !dir && S_ISREG( info.st_mode ) ) ) ) )
 		return DInode_Open( dest, buf );
 #endif
+	if ( test )
+		return ENOENT;
 	if( !dir ){
 		if( !( handle = fopen( buf, "w" ) ) )
 			return ( errno == EINVAL ) ? 1 : errno;
@@ -758,7 +760,7 @@ static void FSNode_Makefile( DaoProcess *proc, DaoValue *p[], int N )
 		return;
 	}
 	child = DInode_New();
-	if( ( res = DInode_Append( self, path->mbs, 0, child ) ) != 0 ){
+	if( ( res = DInode_SubInode( self, path->mbs, 0, child, 0 ) ) != 0 ){
 		char errbuf[MAX_ERRMSG];
 		DInode_Delete( child );
 		if( res == -1 )
@@ -785,7 +787,7 @@ static void FSNode_Makedir( DaoProcess *proc, DaoValue *p[], int N )
 		return;
 	}
 	child = DInode_New();
-	if( ( res = DInode_Append( self, path->mbs, 1, child ) ) != 0 ){
+	if( ( res = DInode_SubInode( self, path->mbs, 1, child, 0 ) ) != 0 ){
 		char errbuf[MAX_ERRMSG];
 		DInode_Delete( child );
 		if( res == -1 )
@@ -797,6 +799,23 @@ static void FSNode_Makedir( DaoProcess *proc, DaoValue *p[], int N )
 	else
 		DaoProcess_PutCdata( proc, (void*)child, daox_type_fsnode );
 	DString_Delete( path );
+}
+
+static void FSNode_Contains( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
+	DInode *child;
+	DString *path = DString_Copy( p[1]->xString.data );
+	DString_ToMBS( path );
+	if( self->type != 0 ){
+		DaoProcess_RaiseException( proc, DAO_ERROR, "The fsnode is not a directory" );
+		DString_Delete( path );
+		return;
+	}
+	child = DInode_New();
+	DaoProcess_PutInteger( proc, DInode_SubInode( self, path->mbs, 0, child, 1 ) == 0 );
+	DString_Delete( path );
+	DInode_Delete( child );
 }
 
 static void FSNode_Child( DaoProcess *proc, DaoValue *p[], int N )
@@ -1103,6 +1122,25 @@ static void FS_Exists( DaoProcess *proc, DaoValue *p[], int N )
 	DInode_Delete( fsnode );
 }
 
+static void FS_TmpName( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DString *tml = DString_Copy( p[0]->xString.data );
+	char buf[MAX_PATH + 1], nbuf[MAX_PATH + 1], *name;
+	DString_ToMBS( tml );
+	if ( !tml->size )
+		name = tmpnam( buf );
+	else {
+		strcpy( buf, tml->mbs );
+		if ( tml->size < 6 || strcmp( tml->mbs + tml->size - 6, "XXXXXX" ) != 0 )
+			strcat( buf, "XXXXXX" );
+		name = mktemp( buf );
+	}
+	if ( name )
+		NormalizePath( buf, nbuf );
+	DaoProcess_PutMBString( proc, name? nbuf: "" );
+	DString_Delete( tml );
+}
+
 static DaoFuncItem fsnodeMeths[] =
 {
 	/*! Returns new fsnode given @path of file or directory */
@@ -1173,6 +1211,9 @@ static DaoFuncItem fsnodeMeths[] =
 	/*! Copies file and returns fsnode of the copy */
 	{ FSNode_Copy,  "copy( self : fsnode, path : string )=>fsnode" },
 
+	/*! For directory returns non-zero it it contains file object specified by relative @path */
+	{ FSNode_Contains,  "contains( self : fsnode, path : string )=>int" },
+
 	/*! Re-reads all attributes of linked file object */
 	{ FSNode_Update,   "update( self : fsnode )" },
 
@@ -1187,17 +1228,21 @@ DaoTypeBase fsnodeTyper = {
 static DaoFuncItem fsMeths[] =
 {
 	/*! Returns fsnode of the current working directory */
-	{ FS_GetCWD,	"cwd()=>fsnode" },
+	{ FS_GetCWD,	"pwd()=>fsnode" },
 
 	/*! Makes @dir the current working directory */
-	{ FS_SetCWD,	"cwd( dir : fsnode )" },
-	{ FS_SetCWD2,	"cwd( dir : string )" },
+	{ FS_SetCWD,	"cd( dir : fsnode )" },
+	{ FS_SetCWD2,	"cd( dir : string )" },
 
 	/*! Returns canonical form of @path. On Windows, replaces all '\' in path with '/' */
 	{ FS_NormPath,	"realpath( path : string )=>string" },
 
 	/*! Returns non-zero if @path exists and is a file or directory */
 	{ FS_Exists,   "exists( path : string )=>int" },
+
+	/*! Generates unique file name based on @template if it is not empty. An example of template is '/tmp/prefixXXXXXX'.
+	 * If @template does not end with 'XXXXXX', it is automatically appended */
+	{ FS_TmpName,   "tmpname( template='' )=>string" },
 
 	{ NULL, NULL }
 };
