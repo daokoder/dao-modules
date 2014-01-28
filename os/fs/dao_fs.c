@@ -47,7 +47,7 @@
 #define rmdir _rmdir
 #define getcwd _getcwd
 #define mkdir _mkdir
-#define stat _stat
+#define stat64 _stat64
 #define chmod _chmod
 #define mktemp _mktemp
 #endif
@@ -147,7 +147,7 @@ int DInode_Open( DInode *self, const char *fpath )
 {
 	char buf[MAX_PATH + 1] = {0};
 	char path[MAX_PATH + 1];
-	struct stat info;
+	struct stat64 info;
 	int len;
 	if ( !NormalizePath( fpath, path ) )
 		return -2;
@@ -159,7 +159,7 @@ int DInode_Open( DInode *self, const char *fpath )
 	if ( len > 1 && IS_PATH_SEP( path[len - 1] ) )
 #endif
 		path[len - 1] = '\0';
-	if( stat( path, &info ) != 0 )
+	if( stat64( path, &info ) != 0 )
 		return errno;
 #ifdef WIN32
 	if( !( info.st_mode & _S_IFDIR ) && !( info.st_mode & _S_IFREG ) )
@@ -202,8 +202,8 @@ int DInode_Open( DInode *self, const char *fpath )
 
 int DInode_Reopen( DInode *self )
 {
-	struct stat info;
-	if( stat( self->path, &info ) != 0 )
+	struct stat64 info;
+	if( stat64( self->path, &info ) != 0 )
 		return errno;
 #ifdef WIN32
 	if( !( info.st_mode & _S_IFDIR ) && !( info.st_mode & _S_IFREG ) )
@@ -337,7 +337,7 @@ int DInode_SubInode( DInode *self, const char *fpath, int dir, DInode *dest, int
 	int len;
 	char buf[MAX_PATH + 1], path[MAX_PATH + 1];
 	FILE *handle;
-	struct stat info;
+	struct stat64 info;
 	if( !self->path || self->type != 0 )
 		return -1;
 	if( DInode_Parent( self, path ) ){
@@ -359,11 +359,11 @@ int DInode_SubInode( DInode *self, const char *fpath, int dir, DInode *dest, int
 	if ( !NormalizePath( path, buf ) )
 		return -2;
 #ifdef WIN32
-	if( stat( buf, &info ) == 0 && ( test || ( ( dir && ( info.st_mode & _S_IFDIR ) )
+	if( stat64( buf, &info ) == 0 && ( test || ( ( dir && ( info.st_mode & _S_IFDIR ) )
 		|| ( !dir && ( info.st_mode & _S_IFREG ) ) ) ) )
 		return DInode_Open( dest, buf );
 #else
-	if( stat( buf, &info ) == 0 && ( test || ( ( dir && S_ISDIR( info.st_mode ) )
+	if( stat64( buf, &info ) == 0 && ( test || ( ( dir && S_ISDIR( info.st_mode ) )
 		|| ( !dir && S_ISREG( info.st_mode ) ) ) ) )
 		return DInode_Open( dest, buf );
 #endif
@@ -550,7 +550,7 @@ int DInode_Resize( DInode *self, daoint size )
 	res = _chsize_s( fd, size );
 	_close( fd );
 #else
-	res = truncate( self->path, size )? errno : 0;
+	res = truncate64( self->path, size )? errno : 0;
 #endif
 	if ( !res )
 		self->size = size;
@@ -599,22 +599,22 @@ static void GetErrorMessage( char *buffer, int code, int special )
 		strcat( buffer, "Inconsistent type of file object (EPERM/ENOTDIR/EISDIR)" );
 		break;
 	case EINVAL:
-		strcpy( buffer, special? "Path does not exist (EINVAL)" : "Trying to make a directory its own subdirectory (EINVAL)" );
+		strcpy( buffer, special? "Path does not exist (EINVAL)" : "Making a directory its own subdirectory (EINVAL)" );
 		break;
 	case EMLINK:
-		strcat( buffer, "Trying to create too many entries in parent directory (EMLINK)" );
+		strcat( buffer, "Too many entries in parent directory (EMLINK)" );
 		break;
 	case ENOENT:
 		strcpy( buffer, "Path does not exist (ENOENT)" );
 		break;
 	case ENOSPC:
-		strcpy( buffer, "No space for new entry in the file system (ENOSPC)" );
+		strcpy( buffer, "Not enough free space in the file system (ENOSPC)" );
 		break;
 	case EROFS:
-		strcpy( buffer, "Trying to write to a read-only file system (EROFS)" );
+		strcpy( buffer, "Writing to a read-only file system (EROFS)" );
 		break;
 	case EXDEV:
-		strcpy( buffer, "Trying to relocate file object to a different file system (EXDEV)" );
+		strcpy( buffer, "Relocating file object to a different file system (EXDEV)" );
 		break;
 	case ENAMETOOLONG:
 		strcpy( buffer, "Path is too long (ENAMETOOLONG)" );
@@ -647,7 +647,7 @@ static void FSNode_Update( DaoProcess *proc, DaoValue *p[], int N )
 	int res;
 	if( ( res = DInode_Reopen( self ) ) != 0 ){
 		if( res == -1 )
-			strcpy( errbuf, "Trying to open something which is not a file/directory" );
+			strcpy( errbuf, "File object is not a file or directory" );
 		else
 			GetErrorMessage( errbuf, res, 0 );
 		if( res == -1 || res == ENOENT )
@@ -703,7 +703,7 @@ static void FSNode_Parent( DaoProcess *proc, DaoValue *p[], int N )
 	if( !DInode_Parent( self, path ) || ( res = DInode_Open( par, path ) ) != 0 ){
 		DInode_Delete( par );
 		if( res == 0 )
-			strcpy( path, "Trying to obtain parent directory of root directory" );
+			strcpy( path, "Obtaining parent directory of root directory" );
 		else
 			GetErrorMessage( path, res, 0 );
 		DaoProcess_RaiseException( proc, DAO_ERROR, path );
@@ -730,7 +730,7 @@ static void FSNode_Resize( DaoProcess *proc, DaoValue *p[], int N )
 	daoint size = p[1]->xInteger.value;
 	int res;
 	if ( self->type == 0 ){
-		DaoProcess_RaiseException( proc, DAO_ERROR, "Trying to resize a directory" );
+		DaoProcess_RaiseException( proc, DAO_ERROR, "Resizing a directory" );
 	}
 	if ( ( res = DInode_Resize( self, size ) ) != 0 ){
 		char errbuf[MAX_ERRMSG];
@@ -751,7 +751,7 @@ static void FSNode_Rename( DaoProcess *proc, DaoValue *p[], int N )
 	DString_ToMBS( path );
 	if ( (res = DInode_Rename( self, path->mbs ) ) != 0 ){
 		if( res == -1 )
-			strcpy( errbuf, "Trying to rename root directory" );
+			strcpy( errbuf, "Renaming root directory" );
 		else
 			GetErrorMessage( errbuf, res, 0 );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
