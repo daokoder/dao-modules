@@ -1056,7 +1056,9 @@ static void FSNode_Copy( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	src = fopen( self->path, "r" );
 	if ( !src ){
-		DaoProcess_RaiseException( proc, DAO_ERROR, "Unable to read file" );
+		char errbuf[MAX_ERRMSG] = "Unable to read file; ";
+		GetErrorMessage( errbuf + strlen( errbuf ), errno, 0 );
+		DaoProcess_RaiseException( proc, DAO_ERROR, buf );
 		goto Exit;
 	}
 	if ( IS_PATH_SEP( path->mbs[path->size - 1] ) ){
@@ -1069,7 +1071,8 @@ static void FSNode_Copy( DaoProcess *proc, DaoValue *p[], int N )
 	dest = fopen( path->mbs, "w" );
 	if ( !dest ){
 		char errbuf[MAX_ERRMSG + MAX_PATH + 3];
-		snprintf( errbuf, sizeof(errbuf), "Unable to write file: %s", path->mbs );
+		snprintf( errbuf, sizeof(errbuf), "Unable to write file: %s;", path->mbs );
+		GetErrorMessage( errbuf + strlen( errbuf ), errno, 0 );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
 		goto Exit;
 	}
