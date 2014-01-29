@@ -693,13 +693,14 @@ static void FSNode_Parent( DaoProcess *proc, DaoValue *p[], int N )
 	DInode *par;
 	char path[MAX_PATH + 1];
 	int res = 0;
+	if ( !DInode_Parent( self, path ) ){
+		DaoProcess_PutNone( proc );
+		return;
+	}
 	par = DInode_New();
-	if( !DInode_Parent( self, path ) || ( res = DInode_Open( par, path ) ) != 0 ){
+	if( ( res = DInode_Open( par, path ) ) != 0 ){
 		DInode_Delete( par );
-		if( res == 0 )
-			strcpy( path, "Obtaining parent directory of root directory" );
-		else
-			GetErrorMessage( path, res, 0 );
+		GetErrorMessage( path, res, 0 );
 		DaoProcess_RaiseException( proc, DAO_ERROR, path );
 		return;
 	}
@@ -1321,8 +1322,8 @@ static DaoFuncItem fsnodeMeths[] =
 	/*! Resizes file */
 	{ FSNode_Resize,     "resize( self : fsnode, size : int )" },
 
-	/*! Returns parent directory, raises exception if none */
-	{ FSNode_Parent,   "parent( self : fsnode )=>fsnode" },
+	/*! Returns parent directory */
+	{ FSNode_Parent,   "parent( self : fsnode )=>fsnode|none" },
 
 	/*! Returns creation, last modification and last access time (use time module to operate them) */
 	{ FSNode_Time,    "time( self : fsnode )=>tuple<created: int, modified: int, accessed: int>" },
