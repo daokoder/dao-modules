@@ -153,23 +153,6 @@ int DInode_Open( DInode *self, const char *fpath )
 		return -2;
 	DInode_Close( self );
 	len = strlen( path );
-#ifdef WIN32
-	if ( len > 2 && path[len - 1] == '/' && path[len - 2] != ':' ){
-		if ( path[0] == '/' && path[1] == '/' ){
-			char *pos = strchr( path + 2, '/' );
-			if ( pos ){
-				pos = strchr( pos + 1, '/' );
-				if ( pos && *( pos + 1 ) != '\0' )
-					path[len - 1] = '\0';
-			}
-		}
-		else
-			path[len - 1] = '\0';
-	}
-#else
-	if ( len > 1 && path[len - 1] == '/' )
-		path[len - 1] = '\0';
-#endif
 	if( stat64( path, &info ) != 0 )
 		return errno;
 #ifdef WIN32
@@ -1260,6 +1243,58 @@ static void FS_Roots( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseException( proc, DAO_ERROR, "Failed to obtain the list of root directories" );
 }
 
+static void FS_NewFile( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DInode *fsnode = DInode_New();
+	int res;
+	DString *path = DString_Copy( p[0]->xString.data );
+	DString_ToMBS( path );
+	if( ( res = DInode_Open( fsnode, path->mbs ) ) != 0 ){
+		char errbuf[MAX_ERRMSG + MAX_PATH + 3];
+		DInode_Delete( fsnode );
+		if( res == -1 )
+			strcpy( errbuf, "File object is not a file or directory" );
+		else
+			GetErrorMessage( errbuf, res, 0 );
+		if( res == -1 || res == ENOENT )
+			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", path->mbs );
+		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
+	}
+	else if ( fsnode->type == 0 ){
+		DInode_Delete( fsnode );
+		DaoProcess_RaiseException( proc, DAO_ERROR, "File object is not a file" );
+	}
+	else
+		DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_fsnode );
+	DString_Delete( path );
+}
+
+static void FS_NewDir( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DInode *fsnode = DInode_New();
+	int res;
+	DString *path = DString_Copy( p[0]->xString.data );
+	DString_ToMBS( path );
+	if( ( res = DInode_Open( fsnode, path->mbs ) ) != 0 ){
+		char errbuf[MAX_ERRMSG + MAX_PATH + 3];
+		DInode_Delete( fsnode );
+		if( res == -1 )
+			strcpy( errbuf, "File object is not a file or directory" );
+		else
+			GetErrorMessage( errbuf, res, 0 );
+		if( res == -1 || res == ENOENT )
+			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", path->mbs );
+		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
+	}
+	else if ( fsnode->type == 1 ){
+		DInode_Delete( fsnode );
+		DaoProcess_RaiseException( proc, DAO_ERROR, "File object is not a directory" );
+	}
+	else
+		DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_fsnode );
+	DString_Delete( path );
+}
+
 static DaoFuncItem fsnodeMeths[] =
 {
 	/*! Returns new fsnode given @path of file or directory */
@@ -1342,7 +1377,7 @@ static DaoFuncItem fsnodeMeths[] =
 	{ NULL, NULL }
 };
 
-/*! Provides platform-independent interface for manipulating file system objects */
+/*! Provides platform-independent interface for manipulating files and directories */
 DaoTypeBase fsnodeTyper = {
 	"fsnode", NULL, NULL, fsnodeMeths, {NULL}, {0}, (FuncPtrDel)DInode_Delete, NULL
 };
@@ -1371,6 +1406,12 @@ static DaoFuncItem fsMeths[] =
 
 	/*! On Windows, returns list of root directories (drives). On other systems returns {'/'} */
 	{ FS_Roots,		"roots()=>list<string>" },
+
+	/*! Returns fsnode for @path if it points to a file, otherwise raises exception */
+	{ FS_NewFile,	"file( path : string )=>fsnode" },
+
+	/*! Returns fsnode for @path if it points to a directory, otherwise raises exception */
+	{ FS_NewDir,	"dir( path : string )=>fsnode" },
 
 	{ NULL, NULL }
 };
