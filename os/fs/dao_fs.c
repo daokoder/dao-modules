@@ -137,9 +137,9 @@ int NormalizePath( const char *path, char *dest )
 			if ( dest[i] == '\\' )
 				dest[i] = '/';
 	}
-	return res;
+	return res? 0 : EINVAL;
 #else
-	return realpath( path, dest ) != NULL;
+	return realpath( path, dest )? 0 : errno;
 #endif
 }
 
@@ -148,9 +148,10 @@ int DInode_Open( DInode *self, const char *fpath )
 	char buf[MAX_PATH + 1] = {0};
 	char path[MAX_PATH + 1];
 	struct stat64 info;
-	int len;
-	if ( !NormalizePath( fpath, path ) )
-		return -2;
+	size_t len;
+	int res;
+	if ( ( res = NormalizePath( fpath, path ) ) != 0 )
+		return res;
 	DInode_Close( self );
 	len = strlen( path );
 	if( stat64( path, &info ) != 0 )
@@ -220,14 +221,17 @@ int DInode_Reopen( DInode *self )
 
 char* DInode_Parent( DInode *self, char *buffer )
 {
-	int i;
+	size_t i, len;
 	if( !self->path )
 		return NULL;
-	for (i = strlen( self->path ) - 1; i >= 0; i--)
+	len = strlen( self->path );
+#ifdef WIN32
+	if ( len > 2 && self->path[len - 1] == '/' && self->path[0] == '/' && self->path[1] == '/'  ) /* UNC volume */
+		return NULL;
+#endif
+	for (i = len - 1; i > 0; i--)
 		if( IS_PATH_SEP( self->path[i] ) )
 			break;
-	if( self->path[i + 1] == '\0' )
-		return NULL;
 #ifdef WIN32
 	if( self->path[i] == ':' ){
 		strncpy( buffer, self->path, i + 1 );
@@ -266,11 +270,12 @@ int DInode_Rename( DInode *self, const char *fpath )
 {
 	char buf[MAX_PATH + 1] = {0};
 	char path[MAX_PATH + 1];
-	int len, noname = 0;
+	size_t len;
+	int res, noname = 0;
 	if( !self->path )
 		return -1;
-	if ( !NormalizePath( fpath, path ) )
-		return -2;
+	if ( ( res = NormalizePath( fpath, path ) ) != 0 )
+		return res;
 	len = strlen( path );
 #ifdef WIN32
 	if ( len > 1 && IS_PATH_SEP( path[len - 1] ) && path[len - 2] != ':' ){
@@ -328,7 +333,8 @@ int DInode_Remove( DInode *self )
 
 int DInode_SubInode( DInode *self, const char *fpath, int dir, DInode *dest, int test )
 {
-	int len;
+	size_t len;
+	int res;
 	char buf[MAX_PATH + 1], path[MAX_PATH + 1];
 	FILE *handle;
 	struct stat64 info;
@@ -350,8 +356,8 @@ int DInode_SubInode( DInode *self, const char *fpath, int dir, DInode *dest, int
 	if ( len > 1 && IS_PATH_SEP( path[len - 1] ) )
 #endif
 		path[len - 1] = '\0';
-	if ( !NormalizePath( path, buf ) )
-		return -2;
+	if ( ( res = NormalizePath( path, buf ) ) != 0 )
+		return res;
 #ifdef WIN32
 	if( stat64( buf, &info ) == 0 && ( test || ( ( dir && ( info.st_mode & _S_IFDIR ) )
 		|| ( !dir && ( info.st_mode & _S_IFREG ) ) ) ) )
@@ -384,7 +390,8 @@ extern DaoTypeBase fsnodeTyper;
 int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *dest, DaoRegex *pattern )
 {
 	char buffer[MAX_PATH + 1];
-	int len, res;
+	size_t len;
+	int res;
 #ifdef WIN32
 	intptr_t handle;
 	struct _finddata_t finfo;
@@ -544,11 +551,41 @@ int DInode_Resize( DInode *self, daoint size )
 	res = _chsize_s( fd, size );
 	_close( fd );
 #else
-	res = truncate64( self->path, size )? errno : 0;
+	res = truncate64( self->path, size );
 #endif
 	if ( !res )
 		self->size = size;
 	return res? errno : 0;
+}
+
+int MakeTmpFile( char *dir, char *prefix, char *namebuf )
+{
+	char buf[MAX_PATH + 1];
+	int res;
+	size_t i, len = strlen( dir ) + strlen( prefix );
+	if ( len > MAX_PATH - 6 )
+		return -1;
+	if ( ( res = NormalizePath( dir, buf ) ) != 0 )
+		return res;
+	for ( i = 0; i < strlen( prefix ); i++ )
+		if ( IS_PATH_SEP( prefix[i] ) )
+			return -2;
+#ifdef WIN32
+	return GetTempFileName( buf, prefix, 0, namebuf )? 0 : errno;
+#else
+	strcpy( namebuf, buf );
+	if ( *namebuf != '\0' && namebuf[strlen( namebuf ) - 1] != '/' )
+		strcat( namebuf, "/" );
+	strcat( namebuf, prefix );
+	strcat( namebuf, "XXXXXX" );
+	res = mkstemp( namebuf );
+	if ( res == -1 )
+		return errno;
+	else {
+		close( fd );
+		return 0;
+	}
+#endif
 }
 
 int GetRootDirs( DaoList *dest )
@@ -573,9 +610,6 @@ int GetRootDirs( DaoList *dest )
 static void GetErrorMessage( char *buffer, int code, int special )
 {
 	switch ( code ){
-	case -2:
-		strcpy( buffer, "Invalid path" );
-		break;
 	case EACCES:
 	case EBADF:
 		strcpy( buffer, "Access not permitted (EACCES/EBADF)");
@@ -593,7 +627,7 @@ static void GetErrorMessage( char *buffer, int code, int special )
 		strcat( buffer, "Inconsistent type of file object (EPERM/ENOTDIR/EISDIR)" );
 		break;
 	case EINVAL:
-		strcpy( buffer, special? "Path does not exist (EINVAL)" : "Making a directory its own subdirectory (EINVAL)" );
+		strcpy( buffer, special? "Invalid path (EINVAL)" : "Making a directory its own subdirectory (EINVAL)" );
 		break;
 	case EMLINK:
 		strcat( buffer, "Too many entries in parent directory (EMLINK)" );
@@ -628,6 +662,9 @@ static void GetErrorMessage( char *buffer, int code, int special )
 		break;
 	case EINTR:
 		strcpy( buffer, "Operation interrupted by a signal (EINTR)" );
+		break;
+	case ELOOP:
+		strcpy( buffer, "Too many symbolic links" );
 		break;
 	default:
 		sprintf( buffer, "Unknown system error (%x)", code );
@@ -1107,6 +1144,35 @@ static void FSNode_Owner( DaoProcess *proc, DaoValue *p[], int N )
 	DString_Delete( name );
 }
 
+static void FSNode_Mktemp( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
+	DString *pref = DString_Copy( p[1]->xString.data );
+	char buf[MAX_PATH + 1];
+	int res;
+	if ( self->type != 0 )
+		DaoProcess_RaiseException( proc, DAO_ERROR, "File object is not a directory" );
+	else {
+		DString_ToMBS( pref );
+		res = MakeTmpFile( self->path, pref->mbs, buf );
+		DInode *fsnode = DInode_New();
+		if ( res || ( res = DInode_Open( fsnode, buf ) ) != 0 ){
+			char errbuf[MAX_ERRMSG];
+			DInode_Delete( fsnode );
+			if ( res == -1 )
+				strcpy( errbuf, "Resulting file name is too large" );
+			else if ( res == -2 )
+				strcpy( errbuf, "Incorrect file prefix" );
+			else
+				GetErrorMessage( errbuf, errno, 0 );
+			DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
+		}
+		else
+			DaoProcess_PutCdata( proc, fsnode, daox_type_fsnode );
+	}
+	DString_Delete( pref );
+}
+
 static void FSNode_New( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *fsnode = DInode_New();
@@ -1157,10 +1223,13 @@ static void FS_PWD( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	else {
 		char buf[MAX_PATH + 1];
-		if ( NormalizePath( path, buf ) )
-			DaoProcess_PutMBString( proc, buf );
+		if ( ( res = NormalizePath( path, buf ) ) != 0 ){
+			char errbuf[MAX_ERRMSG];
+			GetErrorMessage( errbuf, res, 0 );
+			DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
+		}
 		else
-			DaoProcess_PutMBString( proc, path );
+			DaoProcess_PutMBString( proc, buf );
 	}
 }
 
@@ -1203,11 +1272,15 @@ static void FS_NormPath( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DString *path = DString_Copy( p[0]->xString.data );
 	char buf[MAX_PATH + 1];
+	int res;
 	DString_ToMBS( path );
-	if ( NormalizePath( path->mbs, buf ) )
+	if ( ( res = NormalizePath( path->mbs, buf ) ) == 0 )
 		DaoProcess_PutMBString( proc, buf );
-	else
-		DaoProcess_RaiseException( proc, DAO_ERROR, "Invalid path" );
+	else {
+		char errbuf[MAX_ERRMSG];
+		GetErrorMessage( errbuf, res, 0 );
+		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
+	}
 	DString_Delete( path );
 }
 
@@ -1219,25 +1292,6 @@ static void FS_Exists( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutInteger( proc, DInode_Open( fsnode, path->mbs ) == 0 );
 	DString_Delete( path );
 	DInode_Delete( fsnode );
-}
-
-static void FS_TmpName( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DString *tml = DString_Copy( p[0]->xString.data );
-	char buf[MAX_PATH + 1], nbuf[MAX_PATH + 1], *name;
-	DString_ToMBS( tml );
-	if ( !tml->size )
-		name = tmpnam( buf );
-	else {
-		strcpy( buf, tml->mbs );
-		if ( tml->size < 6 || strcmp( tml->mbs + tml->size - 6, "XXXXXX" ) != 0 )
-			strcat( buf, "XXXXXX" );
-		name = mktemp( buf );
-	}
-	if ( name )
-		NormalizePath( buf, nbuf );
-	DaoProcess_PutMBString( proc, name? nbuf: "" );
-	DString_Delete( tml );
 }
 
 static void FS_Roots( DaoProcess *proc, DaoValue *p[], int N )
@@ -1375,6 +1429,9 @@ static DaoFuncItem fsnodeMeths[] =
 	/*! For directory returns non-zero it it contains file object specified by relative @path */
 	{ FSNode_Contains,  "contains( self : fsnode, path : string )=>int" },
 
+	/*! For directory creates file with unique name prefixed by @prefix in it. Returns fsnode of the file */
+	{ FSNode_Mktemp,   "mktemp( self : fsnode, prefix='' )=>fsnode" },
+
 	/*! Re-reads all attributes of file object */
 	{ FSNode_Update,   "refresh( self : fsnode )" },
 
@@ -1403,10 +1460,6 @@ static DaoFuncItem fsMeths[] =
 
 	/*! Returns non-zero if @path exists and is a file or directory */
 	{ FS_Exists,   "exists( path : string )=>int" },
-
-	/*! Generates unique file name based on @template if it is not empty. An example of template is '/tmp/prefixXXXXXX'.
-	 * If @template does not end with 'XXXXXX', it is automatically appended. Returns empty string in case of failure */
-	{ FS_TmpName,   "tmpname( template='' )=>string" },
 
 	/*! On Windows, returns list of root directories (drives). On other systems returns {'/'} */
 	{ FS_Roots,		"roots()=>list<string>" },
