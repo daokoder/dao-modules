@@ -552,63 +552,28 @@ static void GetErrorMessage( char *buffer, int code, int special )
 {
 	switch ( code ){
 	case EACCES:
-	case EBADF:
-		strcpy( buffer, "Access not permitted (EACCES/EBADF)");
-		break;
-	case EBUSY:
-		strcpy (buffer, "Path is being used (EBUSY)" );
-		break;
+	case EBADF:			strcpy( buffer, "Access not permitted (EACCES/EBADF)"); break;
+	case EBUSY:			strcpy (buffer, "Path is being used (EBUSY)" ); break;
 	case ENOTEMPTY:
-	case EEXIST:
-		strcpy( buffer, special? "Directory is not empty (ENOTEMPTY/EEXIST)" : "File object already exists (EEXIST/ENOTEMPTY)" );
-		break;
+	case EEXIST:		strcpy( buffer, special? "Directory is not empty (ENOTEMPTY/EEXIST)" : "File object already exists (EEXIST/ENOTEMPTY)" ); break;
 	case EPERM:
 	case ENOTDIR:
-	case EISDIR:
-		strcat( buffer, "Inconsistent type of file object (EPERM/ENOTDIR/EISDIR)" );
-		break;
-	case EINVAL:
-		strcpy( buffer, special? "Invalid path (EINVAL)" : "Making a directory its own subdirectory (EINVAL)" );
-		break;
-	case EMLINK:
-		strcat( buffer, "Too many entries in parent directory (EMLINK)" );
-		break;
-	case ENOENT:
-		strcpy( buffer, "Path does not exist (ENOENT)" );
-		break;
-	case ENOSPC:
-		strcpy( buffer, "Not enough free space in the file system (ENOSPC)" );
-		break;
-	case EROFS:
-		strcpy( buffer, "Writing to a read-only file system (EROFS)" );
-		break;
-	case EXDEV:
-		strcpy( buffer, "Relocating file object to a different file system (EXDEV)" );
-		break;
-	case ENAMETOOLONG:
-		strcpy( buffer, "Path is too long (ENAMETOOLONG)" );
-		break;
+	case EISDIR:		strcat( buffer, "Inconsistent type of file object (EPERM/ENOTDIR/EISDIR)" ); break;
+	case EINVAL:		strcpy( buffer, special? "Invalid path (EINVAL)" : "Making a directory its own subdirectory (EINVAL)" ); break;
+	case EMLINK:		strcat( buffer, "Too many entries in parent directory (EMLINK)" ); break;
+	case ENOENT:		strcpy( buffer, "Path does not exist (ENOENT)" ); break;
+	case ENOSPC:		strcpy( buffer, "Not enough free space in the file system (ENOSPC)" ); break;
+	case EROFS:			strcpy( buffer, "Writing to a read-only file system (EROFS)" ); break;
+	case EXDEV:			strcpy( buffer, "Relocating file object to a different file system (EXDEV)" ); break;
+	case ENAMETOOLONG:	strcpy( buffer, "Path is too long (ENAMETOOLONG)" ); break;
 	case EMFILE:
-	case ENFILE:
-		strcpy( buffer, "Too many files open (EMFILE/ENFILE)" );
-		break;
-	case ENOMEM:
-		strcpy( buffer, "Not enough memory (ENOMEM)" );
-		break;
-	case EFBIG:
-		strcpy( buffer, "File size is too large (EFBIG)" );
-		break;
-	case EIO:
-		strcpy( buffer, "Hardware I/O error (EIO)" );
-		break;
-	case EINTR:
-		strcpy( buffer, "Operation interrupted by a signal (EINTR)" );
-		break;
-	case ELOOP:
-		strcpy( buffer, "Too many symbolic links" );
-		break;
-	default:
-		sprintf( buffer, "Unknown system error (%x)", code );
+	case ENFILE:		strcpy( buffer, "Too many files open (EMFILE/ENFILE)" ); break;
+	case ENOMEM:		strcpy( buffer, "Not enough memory (ENOMEM)" ); break;
+	case EFBIG:			strcpy( buffer, "File size is too large (EFBIG)" ); break;
+	case EIO:			strcpy( buffer, "Hardware I/O error (EIO)" ); break;
+	case EINTR:			strcpy( buffer, "Operation interrupted by a signal (EINTR)" ); break;
+	case ELOOP:			strcpy( buffer, "Too many symbolic links" ); break;
+	default:			sprintf( buffer, "Unknown system error (%x)", code );
 	}
 }
 
@@ -637,8 +602,8 @@ static void FSNode_Path( DaoProcess *proc, DaoValue *p[], int N )
 static void FSNode_Name( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
-	int i;
-	for (i = strlen( self->path ) - 1; i >= 0; i--)
+	size_t i;
+	for (i = strlen( self->path ) - 1; i > 0; i--)
 		if( IS_PATH_SEP( self->path[i] ) )
 			break;
 	if( self->path[i + 1] == '\0' )
@@ -650,9 +615,9 @@ static void FSNode_Name( DaoProcess *proc, DaoValue *p[], int N )
 static void FSNode_BaseName( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
-	int i;
+	size_t i;
 	char *name, *pos;
-	for (i = strlen( self->path ) - 1; i >= 0; i--)
+	for (i = strlen( self->path ) - 1; i > 0; i--)
 		if( IS_PATH_SEP( self->path[i] ) )
 			break;
 	name = self->path;
