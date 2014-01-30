@@ -49,9 +49,9 @@
 #define mkdir _mkdir
 #define stat64 _stat64
 #define chmod _chmod
-#define mktemp _mktemp
 #endif
 
+/* Windows functions which read or change working directory are not thread-safe, so certain safety measures are desirable */
 DMutex fs_mtx;
 #define FS_TRANS( st ) DMutex_Lock( &fs_mtx ); st; DMutex_Unlock( &fs_mtx )
 #define FS_INIT() DMutex_Init( &fs_mtx )
@@ -143,47 +143,32 @@ int NormalizePath( const char *path, char *dest )
 #endif
 }
 
-int DInode_Open( DInode *self, const char *fpath )
+int DInode_Open( DInode *self, const char *path )
 {
-	char buf[MAX_PATH + 1] = {0};
-	char path[MAX_PATH + 1];
+	char buf[MAX_PATH + 1];
 	struct stat64 info;
 	size_t len;
 	int res;
-	if ( ( res = NormalizePath( fpath, path ) ) != 0 )
-		return res;
-	DInode_Close( self );
-	len = strlen( path );
 	if( stat64( path, &info ) != 0 )
 		return errno;
+	if ( ( res = NormalizePath( path, buf ) ) != 0 )
+		return res;
+	DInode_Close( self );
+	len = strlen( buf );
 #ifdef WIN32
 	if( !( info.st_mode & _S_IFDIR ) && !( info.st_mode & _S_IFREG ) )
 		return -1;
 	self->type = ( info.st_mode & _S_IFDIR )? 0 : 1;
 	self->size = ( info.st_mode & _S_IFDIR )? 0 : info.st_size;
-	if( len < 2 || ( path[1] != ':' && path[0] != '/' ) ){
-		if( !getcwd( buf, sizeof(buf) ) )
-			return errno;
-		strcat( buf, "/" );
-	}
 #else
 	if( !S_ISDIR( info.st_mode ) && !S_ISREG( info.st_mode ) )
 		return -1;
 	self->type = ( S_ISDIR( info.st_mode ) )? 0 : 1;
 	self->size = ( S_ISDIR( info.st_mode ) )? 0 : info.st_size;
 	self->uid = info.st_uid;
-	if( path[0] != '/' ){
-		if( !getcwd( buf, sizeof(buf) ) )
-			return errno;
-		strcat( buf, "/" );
-	}
 #endif
-	len += strlen( buf );
-	if( len > MAX_PATH )
-		return ENAMETOOLONG;
 	self->path = (char*)dao_malloc( len + 1 );
 	strcpy( self->path, buf );
-	strcat( self->path, path );
 #ifndef WIN32
 	if( self->path[len - 1] == '/' && len > 1 )
 		self->path[len - 1] = '\0';
@@ -226,7 +211,7 @@ char* DInode_Parent( DInode *self, char *buffer )
 		return NULL;
 	len = strlen( self->path );
 #ifdef WIN32
-	if ( len > 2 && self->path[len - 1] == '/' && self->path[0] == '/' && self->path[1] == '/'  ) /* UNC volume */
+	if ( len > 2 && self->path[len - 1] == '/' && self->path[0] == '/'  ) /* UNC volume */
 		return NULL;
 #endif
 	for (i = len - 1; i > 0; i--)
@@ -235,8 +220,7 @@ char* DInode_Parent( DInode *self, char *buffer )
 #ifdef WIN32
 	if( self->path[i] == ':' ){
 		strncpy( buffer, self->path, i + 1 );
-		buffer[i + 1] = '/';
-		buffer[i + 2] = '\0';
+		strcpy( buffer + i + 1, "/" );
 	}
 	else{
 		if( i == 2 )
@@ -266,54 +250,34 @@ char* DInode_Parent( DInode *self, char *buffer )
 	return buffer;
 }
 
-int DInode_Rename( DInode *self, const char *fpath )
+int DInode_Rename( DInode *self, const char *path )
 {
-	char buf[MAX_PATH + 1] = {0};
-	char path[MAX_PATH + 1];
+	char buf[MAX_PATH + 1], nbuf[MAX_PATH];
 	size_t len;
-	int res, noname = 0;
-	if( !self->path )
+	int res;
+	if( !self->path || !DInode_Parent( self, buf ) )
 		return -1;
-	if ( ( res = NormalizePath( fpath, path ) ) != 0 )
-		return res;
 	len = strlen( path );
+	if ( len > MAX_PATH )
+		return ENAMETOOLONG;
+	strcpy( buf, path );
 #ifdef WIN32
 	if ( len > 1 && IS_PATH_SEP( path[len - 1] ) && path[len - 2] != ':' ){
 #else
-	if ( len > 1 && IS_PATH_SEP( path[len - 1] ) ){
+	if ( len > 1 && path[len - 1] == '/' ){
 #endif
-		path[len - 1] = '\0';
-		noname = 1;
-	}
-	if( !DInode_Parent( self, buf ) )
-		return 1;
-#ifdef WIN32
-	if( len < 2 || ( path[1] != ':' && path[0] != '/' ) ){
-#else
-	if( path[0] != '/' ){
-#endif
-		strcat( buf, "/" );
-		len += strlen( buf );
-		if( len > MAX_PATH )
-			return ENAMETOOLONG;
-		strcat( buf, path );
-	}else{
-		if( len > MAX_PATH )
-			return ENAMETOOLONG;
-		strcpy( buf, path );
-	}
-	if ( noname ){
 		int i;
 		for (i = strlen( self->path ) - 1; i > 0; i--)
 			if( IS_PATH_SEP( self->path[i] ) )
 				break;
-		strcat( buf, "/" );
-		strcat( buf, self->path + i );
+		strcat( buf, self->path + i + 1 );
 	}
 	if( rename( self->path, buf ) != 0 )
 		return errno;
-	self->path = (char*)dao_realloc( self->path, len + 1 );
-	strcpy( self->path, buf );
+	if ( ( res = NormalizePath( buf, nbuf ) ) != 0 )
+		return res;
+	self->path = (char*)dao_realloc( self->path, strlen( nbuf ) + 1 );
+	strcpy( self->path, nbuf );
 	return 0;
 }
 
@@ -331,56 +295,33 @@ int DInode_Remove( DInode *self )
 	return 0;
 }
 
-int DInode_SubInode( DInode *self, const char *fpath, int dir, DInode *dest, int test )
+int DInode_SubInode( DInode *self, const char *path, int dir, DInode *dest, int exists )
 {
-	size_t len;
-	int res;
-	char buf[MAX_PATH + 1], path[MAX_PATH + 1];
-	FILE *handle;
-	struct stat64 info;
+	char buf[MAX_PATH + 1];
 	if( !self->path || self->type != 0 )
 		return -1;
-	if( DInode_Parent( self, path ) ){
-		strcpy( path, self->path );
-		strcat( path, "/" );
-	}
-	else
-		strcpy( path, self->path );
-	len = strlen( path ) + strlen( fpath );
-	if( len > MAX_PATH )
+	strcpy( buf, self->path );
+	if ( self->path[strlen( self->path ) - 1] != '/' )
+		strcat( buf, "/" );
+	if( strlen( buf ) + strlen( path ) > MAX_PATH )
 		return ENAMETOOLONG;
-	strcat( path, fpath );
+	strcat( buf, path );
+	if ( !exists ){
+		if ( !dir ){
+			FILE *handle;
+			if ( !( handle = fopen( buf, "w" ) ) )
+				return ( errno == EINVAL )? -1 : errno;
+			fclose( handle );
+		}
+		else {
 #ifdef WIN32
-	if ( len > 1 && IS_PATH_SEP( path[len - 1] ) && path[len - 2] != ':' )
+			if ( mkdir( buf ) != 0 )
+				return ( errno == EINVAL )? -1 : errno;
 #else
-	if ( len > 1 && IS_PATH_SEP( path[len - 1] ) )
+			if ( mkdir( buf, S_IRWXU|S_IRGRP|S_IXGRP|S_IXOTH ) != 0 )
+				return ( errno == EINVAL )? -1 : errno;
 #endif
-		path[len - 1] = '\0';
-	if ( ( res = NormalizePath( path, buf ) ) != 0 )
-		return res;
-#ifdef WIN32
-	if( stat64( buf, &info ) == 0 && ( test || ( ( dir && ( info.st_mode & _S_IFDIR ) )
-		|| ( !dir && ( info.st_mode & _S_IFREG ) ) ) ) )
-		return DInode_Open( dest, buf );
-#else
-	if( stat64( buf, &info ) == 0 && ( test || ( ( dir && S_ISDIR( info.st_mode ) )
-		|| ( !dir && S_ISREG( info.st_mode ) ) ) ) )
-		return DInode_Open( dest, buf );
-#endif
-	if ( test )
-		return ENOENT;
-	if( !dir ){
-		if( !( handle = fopen( buf, "w" ) ) )
-			return ( errno == EINVAL ) ? -1 : errno;
-		fclose( handle );
-	}else{
-#ifdef WIN32
-	if( mkdir( buf ) != 0 )
-		return ( errno == EINVAL ) ? -1 : errno;
-#else
-	if( mkdir( buf, S_IRWXU|S_IRGRP|S_IXGRP|S_IXOTH ) != 0 )
-		return ( errno == EINVAL ) ? -1 : errno;
-#endif
+		}
 	}
 	return DInode_Open( dest, buf );
 }
@@ -438,7 +379,7 @@ int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *des
 	/* Using POSIX opendir/readdir otherwise */
 	handle = opendir( buffer );
 	if( !IS_PATH_SEP( buffer[len - 1] ) )
-		strcpy( buffer + len++,  "/");
+		strcpy( buffer + len++, "/" );
 	if( handle ){
 		DString *str = DString_New( 1 );
 		DaoValue *value;
@@ -582,7 +523,7 @@ int MakeTmpFile( char *dir, char *prefix, char *namebuf )
 	if ( res == -1 )
 		return errno;
 	else {
-		close( fd );
+		close( res );
 		return 0;
 	}
 #endif
@@ -946,7 +887,8 @@ static void FSNode_Child( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	child = DInode_New();
 	strcpy( buf, self->path );
-	strcat( buf, "/" );
+	if ( buf[strlen( buf ) - 1] != '/' )
+		strcat( buf, "/" );
 	if( strlen( buf ) + path->size > MAX_PATH ){
 		char errbuf[MAX_ERRMSG];
 		GetErrorMessage( errbuf, ENAMETOOLONG, 0 );
