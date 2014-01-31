@@ -821,7 +821,7 @@ static void FSNode_Makedir( DaoProcess *proc, DaoValue *p[], int N )
 	DString_Delete( path );
 }
 
-static void FSNode_Contains( DaoProcess *proc, DaoValue *p[], int N )
+static void FSNode_Exists( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
 	DInode *child;
@@ -958,8 +958,8 @@ static void DInode_Children( DInode *self, DaoProcess *proc, int type, DString *
 static void FSNode_Children( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
-	DString *pt = DString_Copy( p[2]->xString.data );
-	DInode_Children( self, proc, DaoValue_TryGetEnum( p[1] ), pt, DaoValue_TryGetEnum( p[3] ) );
+	DString *pt = DString_Copy( p[1]->xString.data );
+	DInode_Children( self, proc, 3, pt, DaoValue_TryGetEnum( p[2] ) );
 	DString_Delete( pt );
 }
 
@@ -1178,16 +1178,19 @@ static void FS_SetCWD2( DaoProcess *proc, DaoValue *p[], int N )
 static void FS_NormPath( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DString *path = DString_Copy( p[0]->xString.data );
-	char buf[MAX_PATH + 1];
 	int res;
+	DInode *fsnode = DInode_New();
 	DString_ToMBS( path );
-	if ( ( res = NormalizePath( path->mbs, buf ) ) == 0 )
-		DaoProcess_PutMBString( proc, buf );
+	if ( ( res = DInode_Open( fsnode, path->mbs ) ) == 0 )
+		DaoProcess_PutMBString( proc, fsnode->path );
 	else {
-		char errbuf[MAX_ERRMSG];
+		char errbuf[MAX_ERRMSG + MAX_PATH + 3];
 		GetErrorMessage( errbuf, res, 0 );
+		if( res == -1 || res == ENOENT )
+			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", path->mbs );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
 	}
+	DInode_Delete( fsnode );
 	DString_Delete( path );
 }
 
@@ -1262,120 +1265,120 @@ static void FS_NewDir( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem fsnodeMeths[] =
 {
-	/*! Returns new fsnode given @path of file or directory */
-	{ FSNode_New,      "fsnode( path : string )=>fsnode" },
+	/*! Returns new entry bound to @path of file or directory */
+	{ FSNode_New,		"entry(path: string) => entry" },
 
 	/*! Returns full path */
-	{ FSNode_Path,     "path( self : fsnode )=>string" },
+	{ FSNode_Path,		"path(self: entry) => string" },
 
-	/*! Returns file object name */
-	{ FSNode_Name,     "name( self : fsnode )=>string" },
+	/*! Returns entry name (last component of path) */
+	{ FSNode_Name,		"name(self: entry) => string" },
 
-	/*! Returns base name of file object (up to, but not including, the first '.') */
-	{ FSNode_BaseName, "basename( self : fsnode )=>string" },
+	/*! Returns base name (up to, but not including, the first '.' in name) */
+	{ FSNode_BaseName,	"basename(self: entry) => string" },
 
 	/*! Returns name part after the last '.' */
-	{ FSNode_Suffix,   "suffix( self: fsnode )=>string" },
+	{ FSNode_Suffix,	"suffix(self: entry) => string" },
 
-	/*! Returns type of file object: file or directory */
-	{ FSNode_Type,     "type( self : fsnode )=>enum<file, dir>" },
+	/*! Returns type of entry: file or directory */
+	{ FSNode_Type,		"type(self: entry ) => enum<file, dir>" },
 
 	/*! Returns size of file (0 for directory) */
-	{ FSNode_Size,     "size( self : fsnode )=>int" },
+	{ FSNode_Size,		"size(self: entry) => int" },
 
 	/*! Resizes file */
-	{ FSNode_Resize,     "resize( self : fsnode, size : int )" },
+	{ FSNode_Resize,	"resize(self: entry, size: int)" },
 
-	/*! Returns parent directory */
-	{ FSNode_Parent,   "parent( self : fsnode )=>fsnode|none" },
+	/*! Returns directory which contains this entry */
+	{ FSNode_Parent,	"dirup(self: entry)=> entry|none" },
 
-	/*! Returns creation, last modification and last access time (use time module to operate them) */
-	{ FSNode_Time,    "time( self : fsnode )=>tuple<created: int, modified: int, accessed: int>" },
+	/*! Returns time of creation, last modification and access (use time module to operate them) */
+	{ FSNode_Time,		"time(self: entry) => tuple<created: int, modified: int, accessed: int>" },
 
 	/*! Returns owner name */
-	{ FSNode_Owner,    "owner( self : fsnode )=>string" },
+	{ FSNode_Owner,		"owner(self: entry) => string" },
 
 	/*! Returns access mode as a combination of 'r', 'w' and 'x'. On Windows, only permissions for the current user are returned */
-	{ FSNode_Access,   "access( self : fsnode )=>tuple<user: string, group: string, other: string>" },
+	{ FSNode_Access,	"access(self: entry) => tuple<user: string, group: string, other: string>" },
 
 	/*! Sets access mode to @mode, where @mode is a combination of 'r', 'w' and 'x'. On Windows, only permissions for the current user are changed */
-	{ FSNode_SetAccess,"access( self : fsnode, user : string, group='', other='' )" },
+	{ FSNode_SetAccess,	"access(self: entry, user: string, group = '', other = '')" },
 
-	/*! Moves (renames) file object within the file system so that its full path becomes @path. @path may end with directory separator,
-	 * omitting the file object name, in which case the current name is assumed */
-	{ FSNode_Rename,   "move( self : fsnode, path : string )" },
+	/*! Moves (renames) entry within the file system so that its full path becomes @path. @path may end with directory separator,
+	 * omitting entry name, in which case the current name is assumed */
+	{ FSNode_Rename,	"move(self: entry, path: string)" },
 
 	/*! Deletes file or empty directory
-	 * \note Doing this does not invalidate the fsnode */
-	{ FSNode_Remove,   "delete( self : fsnode )" },
+	 * \note Doing this does not invalidate the entry */
+	{ FSNode_Remove,	"delete(self: entry)" },
 
-	/*! For directory creates new file given its relative @path and returns its fsnode */
-	{ FSNode_Makefile, "mkfile( self : fsnode, path : string )=>fsnode" },
+	/*! For directory creates new file given its relative @path and returns the corresponding entry */
+	{ FSNode_Makefile,	"mkfile(self: entry, path: string) => entry" },
 
-	/*! For directory creates new directory given its relative @path and returns its fsnode */
-	{ FSNode_Makedir,  "mkdir( self : fsnode, path : string )=>fsnode" },
+	/*! For directory creates new directory given its relative @path and returns the corrsesponding entry */
+	{ FSNode_Makedir,	"mkdir(self: entry, path: string) => entry" },
 
-	/*! For directory returns list of inner file objects of the given @type with names matching @filter,
-	 * where @filter type is defined by @filtering and can be either a wildcard pattern or normal string pattern */
-	{ FSNode_Children, "children( self : fsnode, type : enum<files; dirs>, filter='*', filtering : enum<wildcard, regex> = $wildcard )=>list<fsnode>" },
+	/*! For directory returns list of inner entries of given @type with names matching @filter,
+	 * where @filter type is defined by @filtering and can be either a wildcard pattern or usual string pattern */
+	{ FSNode_Children,	"entries(self: entry, filter = '*', filtering: enum<wildcard, regex> = $wildcard) => list<entry>" },
 
 	/*! For directory returns list of inner files with names matching @filter,
-	 * where @filter type is defined by @filtering and can be either a wildcard pattern or normal string pattern */
-	{ FSNode_Files,    "files( self : fsnode, filter='*', filtering : enum<wildcard, regex> = $wildcard )=>list<fsnode>" },
+	 * where @filter type is defined by @filtering and can be either a wildcard pattern or usual string pattern */
+	{ FSNode_Files,		"files(self: entry, filter = '*', filtering: enum<wildcard, regex> = $wildcard) => list<entry>" },
 
 	/*! For directory returns list of inner directories with names matching @filter,
-	 * where @filter type is defined by @filtering and can be either a wildcard pattern or normal string pattern */
-	{ FSNode_Dirs,     "dirs( self : fsnode, filter='*', filtering : enum<wildcard, regex> = $wildcard )=>list<fsnode>" },
+	 * where @filter type is defined by @filtering and can be either a wildcard pattern or usual string pattern */
+	{ FSNode_Dirs,		"dirs(self: entry, filter = '*', filtering: enum<wildcard, regex> = $wildcard) => list<entry>" },
 
-	/*! For directory returns inner fsnode given its relative @path */
-	{ FSNode_Child,    "[]( self : fsnode, path : string )=>fsnode" },
+	/*! For directory returns entry given its relative @path */
+	{ FSNode_Child,		"[](self: entry, path: string) => entry" },
 
-	/*! Copies file and returns fsnode of the copy */
-	{ FSNode_Copy,  "copy( self : fsnode, path : string )=>fsnode" },
+	/*! Copies file and returns entry of the copy */
+	{ FSNode_Copy,		"copy(self: entry, path: string) => entry" },
 
-	/*! For directory returns non-zero it it contains file object specified by relative @path */
-	{ FSNode_Contains,  "contains( self : fsnode, path : string )=>int" },
+	/*! For directory returns non-zero if entry specified by relative @path exists */
+	{ FSNode_Exists,	"exists(self: entry, path: string) => int" },
 
-	/*! For directory creates file with unique name prefixed by @prefix in it. Returns fsnode of the file */
-	{ FSNode_Mktemp,   "mktemp( self : fsnode, prefix='' )=>fsnode" },
+	/*! For directory creates file with unique name prefixed by @prefix in this directory. Returns the corresponding entry */
+	{ FSNode_Mktemp,	"mktemp(self: entry, prefix = '') => entry" },
 
-	/*! Re-reads all attributes of file object */
-	{ FSNode_Update,   "refresh( self : fsnode )" },
+	/*! Re-reads all entry attributes */
+	{ FSNode_Update,	"refresh(self: entry)" },
 
 	{ NULL, NULL }
 };
 
 /*! Provides platform-independent interface for manipulating files and directories */
 DaoTypeBase fsnodeTyper = {
-	"fsnode", NULL, NULL, fsnodeMeths, {NULL}, {0}, (FuncPtrDel)DInode_Delete, NULL
+	"entry", NULL, NULL, fsnodeMeths, {NULL}, {0}, (FuncPtrDel)DInode_Delete, NULL
 };
 
 static DaoFuncItem fsMeths[] =
 {
-	/*! Returns fsnode of the current working directory */
-	{ FS_CWD,	"cwd()=>fsnode" },
+	/*! Returns entry of current working directory */
+	{ FS_CWD,		"cwd() => entry" },
 
-	/*! Returns path of the current working directory */
-	{ FS_PWD,	"pwd()=>string" },
+	/*! Returns path of current working directory */
+	{ FS_PWD,		"pwd() => string" },
 
 	/*! Makes @dir the current working directory */
-	{ FS_SetCWD,	"cd( dir : fsnode )" },
-	{ FS_SetCWD2,	"cd( dir : string )" },
+	{ FS_SetCWD,	"cd(dir: entry)" },
+	{ FS_SetCWD2,	"cd(dir: string)" },
 
-	/*! Returns absolute form of @path. On Windows, replaces all '\' in path with '/' */
-	{ FS_NormPath,	"realpath( path : string )=>string" },
+	/*! Returns absolute form of @path, which must point to an existing file or directory. On Windows, replaces all '\' in path with '/' */
+	{ FS_NormPath,	"realpath(path: string) => string" },
 
-	/*! Returns non-zero if @path exists and is a file or directory */
-	{ FS_Exists,   "exists( path : string )=>int" },
+	/*! Returns non-zero if @path exists and points to a file or directory */
+	{ FS_Exists,	"exists(path: string) => int" },
 
 	/*! On Windows, returns list of root directories (drives). On other systems returns {'/'} */
-	{ FS_Roots,		"roots()=>list<string>" },
+	{ FS_Roots,		"roots() => list<string>" },
 
-	/*! Returns fsnode for @path if it points to a file, otherwise raises exception */
-	{ FS_NewFile,	"file( path : string )=>fsnode" },
+	/*! Returns entry bound to @path if it points to a file, otherwise raises exception */
+	{ FS_NewFile,	"file(path: string) => entry" },
 
-	/*! Returns fsnode for @path if it points to a directory, otherwise raises exception */
-	{ FS_NewDir,	"dir( path : string )=>fsnode" },
+	/*! Returns entry bount to @path if it points to a directory, otherwise raises exception */
+	{ FS_NewDir,	"dir(path: string) => entry" },
 
 	{ NULL, NULL }
 };
@@ -1386,8 +1389,7 @@ DAO_DLL int DaoFS_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	FS_INIT();
 	fsns = DaoVmSpace_GetNamespace( vmSpace, "fs" );
 	DaoNamespace_AddConstValue( ns, "fs", (DaoValue*)fsns );
-	DaoNamespace_AddParent( fsns, ns );
-	daox_type_fsnode = DaoNamespace_WrapType( ns, & fsnodeTyper, 1 );
+	daox_type_fsnode = DaoNamespace_WrapType( fsns, & fsnodeTyper, 1 );
 	DaoNamespace_WrapFunctions( fsns, fsMeths );
 	return 0;
 }
