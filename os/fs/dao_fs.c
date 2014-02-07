@@ -1265,7 +1265,7 @@ static void FS_NewDir( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem fsnodeMeths[] =
 {
-	/*! Returns new entry bound to @path of file or directory */
+	/*! Returns new entry bound to \a path of file or directory */
 	{ FSNode_New,		"entry(path: string) => entry" },
 
 	/*! Returns full path */
@@ -1301,10 +1301,11 @@ static DaoFuncItem fsnodeMeths[] =
 	/*! Returns access mode as a combination of 'r', 'w' and 'x'. On Windows, only permissions for the current user are returned */
 	{ FSNode_Access,	"access(self: entry) => tuple<user: string, group: string, other: string>" },
 
-	/*! Sets access mode to @mode, where @mode is a combination of 'r', 'w' and 'x'. On Windows, only permissions for the current user are changed */
+	/*! Sets access mode to \a mode, where \a mode is a combination of 'r', 'w' and 'x'.
+	 * On Windows, only permissions for the current user are changed */
 	{ FSNode_SetAccess,	"access(self: entry, user: string, group = '', other = '')" },
 
-	/*! Moves (renames) entry within the file system so that its full path becomes @path. @path may end with directory separator,
+	/*! Moves (renames) entry within the file system so that its full path becomes \a path. \a path may end with directory separator,
 	 * omitting entry name, in which case the current name is assumed */
 	{ FSNode_Rename,	"move(self: entry, path: string)" },
 
@@ -1312,34 +1313,34 @@ static DaoFuncItem fsnodeMeths[] =
 	 * \note Doing this does not invalidate the entry */
 	{ FSNode_Remove,	"delete(self: entry)" },
 
-	/*! For directory creates new file given its relative @path and returns the corresponding entry */
+	/*! For directory creates new file given its relative \a path and returns the corresponding entry */
 	{ FSNode_Makefile,	"mkfile(self: entry, path: string) => entry" },
 
-	/*! For directory creates new directory given its relative @path and returns the corrsesponding entry */
+	/*! For directory creates new directory given its relative \a path and returns the corrsesponding entry */
 	{ FSNode_Makedir,	"mkdir(self: entry, path: string) => entry" },
 
-	/*! For directory returns list of inner entries of given @type with names matching @filter,
-	 * where @filter type is defined by @filtering and can be either a wildcard pattern or usual string pattern */
+	/*! For directory returns list of inner entries of given \a type with names matching \a filter,
+	 * where \a filter type is defined by \a filtering and can be either a wildcard pattern or usual string pattern */
 	{ FSNode_Children,	"entries(self: entry, filter = '*', filtering: enum<wildcard, regex> = $wildcard) => list<entry>" },
 
-	/*! For directory returns list of inner files with names matching @filter,
-	 * where @filter type is defined by @filtering and can be either a wildcard pattern or usual string pattern */
+	/*! For directory returns list of inner files with names matching \a filter,
+	 * where \a filter type is defined by \a filtering and can be either a wildcard pattern or usual string pattern */
 	{ FSNode_Files,		"files(self: entry, filter = '*', filtering: enum<wildcard, regex> = $wildcard) => list<entry>" },
 
-	/*! For directory returns list of inner directories with names matching @filter,
-	 * where @filter type is defined by @filtering and can be either a wildcard pattern or usual string pattern */
+	/*! For directory returns list of inner directories with names matching \a filter,
+	 * where \a filter type is defined by \a filtering and can be either a wildcard pattern or usual string pattern */
 	{ FSNode_Dirs,		"dirs(self: entry, filter = '*', filtering: enum<wildcard, regex> = $wildcard) => list<entry>" },
 
-	/*! For directory returns entry given its relative @path */
+	/*! For directory returns entry given its relative \a path */
 	{ FSNode_Child,		"[](self: entry, path: string) => entry" },
 
 	/*! Copies file and returns entry of the copy */
 	{ FSNode_Copy,		"copy(self: entry, path: string) => entry" },
 
-	/*! For directory returns non-zero if entry specified by relative @path exists */
+	/*! For directory returns non-zero if entry specified by relative \a path exists */
 	{ FSNode_Exists,	"exists(self: entry, path: string) => int" },
 
-	/*! For directory creates file with unique name prefixed by @prefix in this directory. Returns the corresponding entry */
+	/*! For directory creates file with unique name prefixed by \a prefix in this directory. Returns the corresponding entry */
 	{ FSNode_Mktemp,	"mktemp(self: entry, prefix = '') => entry" },
 
 	/*! Re-reads all entry attributes */
@@ -1365,19 +1366,19 @@ static DaoFuncItem fsMeths[] =
 	{ FS_SetCWD,	"cd(dir: entry)" },
 	{ FS_SetCWD2,	"cd(dir: string)" },
 
-	/*! Returns absolute form of @path, which must point to an existing file or directory. On Windows, replaces all '\' in path with '/' */
+	/*! Returns absolute form of \a path, which must point to an existing file or directory. On Windows, replaces all '\' in path with '/' */
 	{ FS_NormPath,	"realpath(path: string) => string" },
 
-	/*! Returns non-zero if @path exists and points to a file or directory */
+	/*! Returns non-zero if \a path exists and points to a file or directory */
 	{ FS_Exists,	"exists(path: string) => int" },
 
 	/*! On Windows, returns list of root directories (drives). On other systems returns {'/'} */
 	{ FS_Roots,		"roots() => list<string>" },
 
-	/*! Returns entry bound to @path if it points to a file, otherwise raises exception */
+	/*! Returns entry bound to \a path if it points to a file, otherwise raises exception */
 	{ FS_NewFile,	"file(path: string) => entry" },
 
-	/*! Returns entry bount to @path if it points to a directory, otherwise raises exception */
+	/*! Returns entry bount to \a path if it points to a directory, otherwise raises exception */
 	{ FS_NewDir,	"dir(path: string) => entry" },
 
 	{ NULL, NULL }
