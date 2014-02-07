@@ -1362,7 +1362,7 @@ static DaoFuncItem fsMeths[] =
 	/*! Returns path of current working directory */
 	{ FS_PWD,		"pwd() => string" },
 
-	/*! Makes @dir the current working directory */
+	/*! Makes \a dir the current working directory */
 	{ FS_SetCWD,	"cd(dir: entry)" },
 	{ FS_SetCWD2,	"cd(dir: string)" },
 
