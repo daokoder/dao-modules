@@ -47,7 +47,7 @@
 #define rmdir _rmdir
 #define getcwd _getcwd
 #define mkdir _mkdir
-#define stat _stat
+#define stat _stat64
 #define chmod _chmod
 #endif
 
