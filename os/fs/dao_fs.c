@@ -59,6 +59,8 @@ DMutex fs_mtx;
 #else
 #include<dirent.h>
 
+#define _FILE_OFFSET_BITS 64
+
 #define FS_TRANS( st ) st
 #define FS_INIT()
 #endif
