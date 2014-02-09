@@ -1109,7 +1109,7 @@ static void FS_CWD( DaoProcess *proc, DaoValue *p[], int N )
 	char buf[MAX_PATH + 1];
 	int res = 0;
 	DInode *fsnode = DInode_New();
-	FS_TRANS( res = (int)getcwd( buf, sizeof(buf) ) );
+	FS_TRANS( res = getcwd( buf, sizeof(buf) ) != NULL );
 	if( !res || ( res = DInode_Open( fsnode, buf ) ) != 0 ){
 		char errbuf[MAX_ERRMSG];
 		DInode_Delete( fsnode );
@@ -1124,7 +1124,7 @@ static void FS_PWD( DaoProcess *proc, DaoValue *p[], int N )
 {
 	char path[MAX_PATH + 1];
 	int res = 0;
-	FS_TRANS( res = (int)getcwd( path, sizeof(path) ) );
+	FS_TRANS( res = getcwd( path, sizeof(path) ) != NULL );
 	if( !res ){
 		char errbuf[MAX_ERRMSG];
 		GetErrorMessage( errbuf, ( res == 0 )? errno : res, 0 );
