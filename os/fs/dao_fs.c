@@ -47,7 +47,7 @@
 #define rmdir _rmdir
 #define getcwd _getcwd
 #define mkdir _mkdir
-#define stat64 _stat64
+#define stat _stat
 #define chmod _chmod
 #endif
 
@@ -146,10 +146,10 @@ int NormalizePath( const char *path, char *dest )
 int DInode_Open( DInode *self, const char *path )
 {
 	char buf[MAX_PATH + 1];
-	struct stat64 info;
+	struct stat info;
 	size_t len;
 	int res;
-	if( stat64( path, &info ) != 0 )
+	if( stat( path, &info ) != 0 )
 		return errno;
 	if ( ( res = NormalizePath( path, buf ) ) != 0 )
 		return res;
@@ -182,8 +182,8 @@ int DInode_Open( DInode *self, const char *path )
 
 int DInode_Reopen( DInode *self )
 {
-	struct stat64 info;
-	if( stat64( self->path, &info ) != 0 )
+	struct stat info;
+	if( stat( self->path, &info ) != 0 )
 		return errno;
 #ifdef WIN32
 	if( !( info.st_mode & _S_IFDIR ) && !( info.st_mode & _S_IFREG ) )
