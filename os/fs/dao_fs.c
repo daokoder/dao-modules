@@ -30,7 +30,6 @@
 
 #include<string.h>
 #include<errno.h>
-#include<sys/stat.h>
 #include<limits.h>
 
 #include"dao.h"
@@ -38,6 +37,7 @@
 
 #ifdef WIN32
 
+#include<sys/stat.h>
 #include<io.h>
 #include<fcntl.h>
 #include<lmcons.h>
@@ -57,9 +57,10 @@ DMutex fs_mtx;
 #define FS_INIT() DMutex_Init( &fs_mtx )
 
 #else
-#include<dirent.h>
 
 #define _FILE_OFFSET_BITS 64
+#include<dirent.h>
+#include<sys/stat.h>
 
 #define FS_TRANS( st ) st
 #define FS_INIT()
