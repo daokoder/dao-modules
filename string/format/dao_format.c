@@ -128,9 +128,6 @@ static int PrintValue( DaoValue *value, DString *dest, Format *format, DString *
 		else
 			sprintf( buf, "%g%+g$", DaoValue_TryGetComplex( value ).real, DaoValue_TryGetComplex( value ).imag );
 		break;
-	case DAO_LONG:
-		DLong_Print( value->xLong.value, tmp );
-		break;
 	case DAO_ENUM:
 		DaoEnum_MakeName( DaoValue_CastEnum( value ), tmp );
 		break;
@@ -371,7 +368,7 @@ static int PrintValue( DaoValue *value, DString *dest, Format *format, DString *
 				for( i = 0; i < diff; i++ )
 					DString_AppendChar( dest, ' ' );
 		}
-		else if( type == DAO_LONG || type == DAO_ENUM || ( type == DAO_STRING && !indexed ) ){
+		else if( type == DAO_ENUM || ( type == DAO_STRING && !indexed ) ){
 			len = DString_Size( tmp );
 			if( centered )
 				diff = ( alignment - len )/2 + ( ( ( alignment - len )%2 )? 1 : 0 );
@@ -393,7 +390,7 @@ static int PrintValue( DaoValue *value, DString *dest, Format *format, DString *
 	else
 		return 5;
 	if( notation )
-		return ( type != DAO_ENUM && ( type != DAO_STRING || indexed ) && type != DAO_LONG && type != DAO_NONE )?
+		return ( type != DAO_ENUM && ( type != DAO_STRING || indexed ) && type != DAO_NONE )?
 					error : 3;
 	else
 		return error;

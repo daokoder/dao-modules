@@ -153,7 +153,6 @@ static void JSON_Serialize( DaoProcess *proc, DaoValue *p[], int N )
 			strcpy( buf, "Unsupported value type: " );
 			switch( res ){
 				case DAO_COMPLEX:   strcat( buf, "complex" ); break;
-				case DAO_LONG:      strcat( buf, "long" ); break;
 				case DAO_ENUM:      strcat( buf, "enum" ); break;
 				case DAO_ARRAY:	    strcat( buf, "array" );	break;
 				case DAO_TUPLE:	    strcat( buf, "tuple" );	break;
