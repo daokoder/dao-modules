@@ -31,10 +31,6 @@
 #ifndef __DAO_SCANNER_H__
 #define __DAO_SCANNER_H__
 
-#ifndef DAO_WITH_REGEX
-#error This module requies Dao compiled with regular expressions support (DAO_WITH_REGEX)
-#endif
-
 struct DaoScanner {
 	DString *context;
 	DaoRegex *regex;
