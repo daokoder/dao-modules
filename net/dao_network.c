@@ -51,10 +51,12 @@
 
 typedef size_t socklen_t;
 #define fileno _fileno
+#define fdopen _fdopen
 
 #endif
 
 #include"dao.h"
+#include"daoStream.h"
 
 
 #define BACKLOG 1000 /*  how many pending connections queue will hold */
@@ -110,6 +112,7 @@ static void GetErrorMessage( char *buffer, int code )
 	case WSASYSNOTREADY:         strcpy( buffer, "The network subsystem is not ready (WSASYSNOTREADY)" ); break;
 	case WSAVERNOTSUPPORTED:     strcpy( buffer, "The version is not supported (WSAVERNOTSUPPORTED)" ); break;
 	case WSAEPROCLIM:            strcpy( buffer, "A limit on the number of tasks has been reached (WSAEPROCLIM)" ); break;
+	case WSAEFAULT:				 strcpy( buffer, "Failed to allocate necessary resources (WSAEFAULT)" ); break;
 #else
 	case EAFNOSUPPORT:    strcpy( buffer, "The address family is not supported (EAFNOSUPPORT)" ); break;
 	case EMFILE:
@@ -126,6 +129,7 @@ static void GetErrorMessage( char *buffer, int code )
 	case EMSGSIZE:        strcpy( buffer, "The message is too large (EMSGSIZE)" ); break;
 	case EPIPE:           strcpy( buffer, "The connection was broken (EPIPE)" ); break;
 	case EINVAL:          strcpy( buffer, "Invalid parameter (EINVAL)" ); break;
+	case ENOMEM:          strcpy( buffer, "Insufficient space (ENOMEM)" ); break;
 #endif
 	default: sprintf( buffer, "Unknown system error (%x)", code );
 	}
@@ -483,23 +487,26 @@ static int DaoNetwork_SendExt( DaoProcess *proc, int sockfd, DaoValue *data[], i
 	int i;
 	for( i=0; i<size; i++ ){
 		DaoValue *item = data[i];
+		int res = 0;
 		switch( DaoValue_Type( item ) ){
 		case DAO_INTEGER :
 		case DAO_FLOAT :
 		case DAO_DOUBLE :
-			DaoNetwork_SendNumber( sockfd, item );
+			res = DaoNetwork_SendNumber( sockfd, item );
 			break;
 		case DAO_STRING :
-			DaoNetwork_SendString( sockfd, DaoString_Get( DaoValue_CastString( item ) ) );
+			res = DaoNetwork_SendString( sockfd, DaoString_Get( DaoValue_CastString( item ) ) );
 			break;
 		case DAO_COMPLEX :
-			DaoNetwork_SendComplex( sockfd, DaoComplex_Get( DaoValue_CastComplex( item ) ) );
+			res = DaoNetwork_SendComplex( sockfd, DaoComplex_Get( DaoValue_CastComplex( item ) ) );
 			break;
 		case DAO_ARRAY :
-			DaoNetwork_SendArray( sockfd, DaoValue_CastArray( item ) );
+			res = DaoNetwork_SendArray( sockfd, DaoValue_CastArray( item ) );
 			break;
 		default : break;
 		}
+		if( res == -1 )
+			return -1;
 	}
 	return 1;
 }
@@ -776,7 +783,6 @@ static void DaoSocket_Lib_Send( DaoProcess *proc, DaoValue *par[], int N  )
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
 	}
-	DaoProcess_PutInteger( proc, n );
 }
 
 static void DaoSocket_Lib_Receive( DaoProcess *proc, DaoValue *par[], int N  )
@@ -809,7 +815,6 @@ static void DaoSocket_Lib_SendDao( DaoProcess *proc, DaoValue *par[], int N  )
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
 		return;
 	}
-	DaoProcess_PutInteger( proc, n );
 }
 
 static void DaoSocket_Lib_ReceiveDao( DaoProcess *proc, DaoValue *par[], int N  )
@@ -869,20 +874,77 @@ static void DaoSocket_Lib_GetPeerName( DaoProcess *proc, DaoValue *par[], int N 
 	DString_SetMBS( res, inet_ntoa( addr.sin_addr ) );
 }
 
+static void DaoSocket_Lib_GetStream( DaoProcess *proc, DaoValue *par[], int N  )
+{
+	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	const char *mode = DString_GetMBS( DaoValue_TryGetString( par[1] ) );
+	DaoStream *stream;
+#ifdef WIN32
+	DaoProcess_RaiseException( proc, DAO_ERROR, "Creating stream from a socket is not supported on the current platform" );
+	return;
+#endif
+	stream = DaoStream_New();
+	stream->attribs |= DAO_IO_FILE;
+	stream->file = fdopen( self->id, mode );
+	if ( !stream->file ){
+		char errbuf[MAX_ERRMSG];
+		GetErrorMessage( errbuf, GetError() );
+		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
+		DaoStream_Delete( stream );
+		return;
+	}
+	if( strstr( mode, "+" ) )
+		stream->mode = DAO_IO_WRITE | DAO_IO_READ;
+	else{
+		if( strstr( mode, "r" ) )
+			stream->mode |= DAO_IO_READ;
+		if( strstr( mode, "w" ) || strstr( mode, "a" ) )
+			stream->mode |= DAO_IO_WRITE;
+	}
+	DaoProcess_PutValue( proc, (DaoValue*)stream );
+}
+
 static DaoFuncItem socketMeths[] =
 {
+	/*! Binds the socket to port \a port */
 	{  DaoSocket_Lib_Bind,          "bind( self :socket, port :int )" },
+
+	/*! Listens the socket using \a backlog as the maximum size of the queue of pending connections */
 	{  DaoSocket_Lib_Listen,        "listen( self :socket, backlog=10 )" },
+
+	/*! Accepts connection */
 	{  DaoSocket_Lib_Accept,        "accept( self :socket )=>socket" },
+
+	/*! Connects to address \a host : \a port */
 	{  DaoSocket_Lib_Connect,       "connect( self :socket, host :string, port :int )" },
-	{  DaoSocket_Lib_Send,          "send( self :socket, data :string )=>int" },
+
+	/*! Sends data \a data */
+	{  DaoSocket_Lib_Send,          "send( self :socket, data :string )" },
+
+	/*! Receives at most \a maxlen bytes and returnes the received data */
 	{  DaoSocket_Lib_Receive,       "receive( self :socket, maxlen=512 )=>string" },
-	{  DaoSocket_Lib_SendDao,       "send_dao( self :socket, ... )=>int" },
+
+	/*! Sends data via the internal serialization protocol */
+	{  DaoSocket_Lib_SendDao,       "send_dao( self :socket, ... )" },
+
+	/*! Receives data via the internal serialization protocol */
 	{  DaoSocket_Lib_ReceiveDao,    "receive_dao( self :socket )=>list<int|float|double|complex|string|array>" },
+
+	/*! Peer name */
 	{  DaoSocket_Lib_GetPeerName,   "peername( self :socket )=>string" },
+
+	/*! Socket file descriptor */
 	{  DaoSocket_Lib_Id,            "id( self :socket )=>int" },
+
+	/*! Current socket state */
 	{  DaoSocket_Lib_State,         "state( self :socket )=>enum<closed, bound, listening, connected>" },
+
+	/*! Closes the socket */
 	{  DaoSocket_Lib_Close,         "close( self :socket )" },
+
+	/*! Returns stream with mode \a mode bound to the socket
+	 * \note On Windows, this operation is not supported */
+	{  DaoSocket_Lib_GetStream,     "getstream( self :socket, mode :string )=>io::stream" },
 	{ NULL, NULL }
 };
 
@@ -976,6 +1038,10 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 	for( i = 0; i < DaoList_Size( list1 ); i++ ){
 		value = DaoList_GetItem( list1, i );
 		if( DaoValue_CastStream( value ) ){
+#ifdef WIN32
+			DaoProcess_RaiseException( proc, DAO_ERROR, "Selecting streams not supported on the current platform" );
+			return;
+#endif
 			file = DaoStream_GetFile( DaoValue_CastStream( value ) );
 			if( file == NULL ){
 				DaoProcess_RaiseException( proc, DAO_ERROR, "The read list contains a stream not associated with a file" );
@@ -994,6 +1060,10 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 	for( i = 0; i < DaoList_Size( list2 ); i++ ){
 		value = DaoList_GetItem( list2, i );
 		if( DaoValue_CastStream( value ) ){
+#ifdef WIN32
+			DaoProcess_RaiseException( proc, DAO_ERROR, "Selecting streams not supported on the current platform" );
+			return;
+#endif
 			file = DaoStream_GetFile( DaoValue_CastStream( value ) );
 			if( file == NULL ){
 				DaoProcess_RaiseException( proc, DAO_ERROR, "The write list contains a stream not associated with a file" );
@@ -1042,9 +1112,18 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 
 static DaoFuncItem netMeths[] =
 {
+	/*! Returns socket bound to port \a port */
 	{  DaoNetLib_Bind,          "bind( port :int )=>socket" },
+
+	/*! Returns socket connected to address \a host : \a port */
 	{  DaoNetLib_Connect,       "connect( host :string, port :int )=>socket" },
+
+	/*! Returns name-address information for host \a host */
 	{  DaoNetLib_GetHost,       "gethost( host :string )=>map<string,string>" },
+
+	/*! Waits \a timeout seconds for any object in \a read or \a write list to become available for reading or writing accordingly.
+	 * Returns sub-lists of \a read and \a write containing available objects
+	 * \warning On Windows, selecting streams is not supported	*/
 	{  DaoNetLib_Select,
 		"select( read :list<@X<io::stream|socket>>, write :list<@Y<io::stream|socket>>, timeout :float )=>tuple<read :list<@X>, write :list<@Y>>" },
 	{ NULL, NULL }
