@@ -28,6 +28,7 @@
 #include"dao.h"
 #include"daoValue.h"
 #include"daoStdtype.h"
+#include"daoNumtype.h"
 #include"daoStream.h"
 #include"dao_sys.h"
 
@@ -63,10 +64,7 @@ static void DaoBinary_ReadArr( DaoProcess *proc, DaoValue *p[], int N )
 	DaoArray *arr = &p[1]->xArray;
 	size_t count =  p[2]->xInteger.value;
 	size_t size;
-	if( arr->original && arr->slices ){
-		DaoProcess_RaiseException( proc, DAO_ERROR, "Array slices not supported" );
-		return;
-	}
+	DaoArray_Sliced( arr );
 	if( !file ){
 		DaoProcess_RaiseException( proc, DAO_ERROR, "The stream is not a file" );
 		return;
@@ -94,10 +92,7 @@ static void DaoBinary_Unpack( DaoProcess *proc, DaoValue *p[], int N )
 	size_t sizes[] = {1, 2, 4};
 	size_t size =  sizes[p[2]->xEnum.value];
 	size_t count =  p[3]->xInteger.value;
-	if( arr->original && arr->slices ){
-		DaoProcess_RaiseException( proc, DAO_ERROR, "Array slices not supported" );
-		return;
-	}
+	DaoArray_Sliced( arr );
 	if( !file ){
 		DaoProcess_RaiseException( proc, DAO_ERROR, "The stream is not a file" );
 		return;
@@ -170,10 +165,7 @@ static void DaoBinary_Pack( DaoProcess *proc, DaoValue *p[], int N )
 	size_t size =  sizes[p[2]->xEnum.value];
 	size_t count =  p[3]->xInteger.value;
 	size_t i;
-	if( arr->original && arr->slices ){
-		DaoProcess_RaiseException( proc, DAO_ERROR, "Array slices not supported" );
-		return;
-	}
+	DaoArray_Sliced( arr );
 	if( !file ){
 		DaoProcess_RaiseException( proc, DAO_ERROR, "The stream is not a file" );
 		return;
@@ -223,10 +215,7 @@ static void DaoBinary_WriteArr( DaoProcess *proc, DaoValue *p[], int N )
 	DaoArray *arr = &p[1]->xArray;
 	size_t count =  p[2]->xInteger.value;
 	size_t size = 0;
-	if( arr->original && arr->slices ){
-		DaoProcess_RaiseException( proc, DAO_ERROR, "Array slices not supported" );
-		return;
-	}
+	DaoArray_Sliced( arr );
 	if( !file ){
 		DaoProcess_RaiseException( proc, DAO_ERROR, "The stream is not a file" );
 		return;
