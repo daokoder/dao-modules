@@ -81,10 +81,10 @@ static void DaoScanner_SetPos( DaoProcess *proc, DaoValue *p[], int N )
 	self->pos = ( pos > self->context->size )? self->context->size : pos;
 }
 
-static void DaoScanner_AtEnd( DaoProcess *proc, DaoValue *p[], int N )
+static void DaoScanner_Rest( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
-	DaoProcess_PutInteger( proc, self->pos == self->context->size );
+	DaoProcess_PutInteger( proc, self->context->size - self->pos );
 }
 
 static void DaoScanner_Append( DaoProcess *proc, DaoValue *p[], int N )
@@ -93,7 +93,7 @@ static void DaoScanner_Append( DaoProcess *proc, DaoValue *p[], int N )
 	DString_Append( self->context, p[1]->xString.data );
 }
 
-static void DaoScanner_Fetch( DaoProcess *proc, DaoValue *p[], int N )
+static void DaoScanner_FetchPeek( DaoProcess *proc, DaoValue *p[], int fetch )
 {
 	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
 	daoint count = p[1]->xInteger.value;
@@ -107,10 +107,21 @@ static void DaoScanner_Fetch( DaoProcess *proc, DaoValue *p[], int N )
 		if ( self->pos + count > self->context->size )
 			count = self->context->size - self->pos;
 		DString_SubString( self->context, sub, self->pos, count );
-		self->pos += count;
+		if ( fetch )
+			self->pos += count;
 	}
 	DaoProcess_PutString( proc, sub );
 	DString_Delete( sub );
+}
+
+static void DaoScanner_Fetch( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoScanner_FetchPeek( proc, p, 1 );
+}
+
+static void DaoScanner_Peek( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoScanner_FetchPeek( proc, p, 0 );
 }
 
 static void DaoScanner_ScanSeek( DaoProcess *proc, DaoValue *p[], int seek )
@@ -183,10 +194,10 @@ static void DaoScanner_MatchedAt( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
 	daoint group = p[1]->xInteger.value;
-	DaoTuple *res = DaoProcess_PutTuple( proc, 2 );
-	res->items[0]->xInteger.value = -1;
-	res->items[1]->xInteger.value = self->context->size;
 	if ( self->regex && self->start >= 0 ){
+		DaoTuple *res = DaoProcess_PutTuple( proc, 2 );
+		res->items[0]->xInteger.value = -1;
+		res->items[1]->xInteger.value = self->context->size;
 		if ( group ){
 			daoint start = self->start, end = self->end;
 			if ( DaoRegex_SubMatch( self->regex, group, &start, &end ) ){
@@ -199,6 +210,8 @@ static void DaoScanner_MatchedAt( DaoProcess *proc, DaoValue *p[], int N )
 			res->items[1]->xInteger.value = self->end;
 		}
 	}
+	else
+		DaoProcess_PutNone( proc );
 }
 
 static void DaoScanner_Line( DaoProcess *proc, DaoValue *p[], int N )
@@ -286,20 +299,50 @@ static void DaoScanner_Precedes( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem scannerMeths[] =
 {
+	/*! Constructs scanner operating on string \a context starting at position \a pos */
 	{ DaoScanner_Create,	"scanner(context: string, pos = 0) => scanner" },
+
+	/*! Scanned string */
 	{ DaoScanner_Context,	"context(self: scanner) => string" },
+
+	/*! Current position */
 	{ DaoScanner_Position,	"pos(self: scanner) => int" },
 	{ DaoScanner_SetPos,	"pos(self: scanner, pos: int)" },
-	{ DaoScanner_AtEnd,		"at_end(self: scanner) => int" },
+
+	/*! Number of characters in the remaining string (starting from the current position) */
+	{ DaoScanner_Rest,		"rest(self: scanner) => int" },
+
+	/*! Appends \a context to the context of the scanner */
 	{ DaoScanner_Append,	"append(self: scanner, context: string)" },
+
+	/*! Returns \a count characters starting from the current position and advances the scanner */
 	{ DaoScanner_Fetch,		"fetch(self: scanner, count: int) => string" },
-	{ DaoScanner_Scan,		"scan(self: scanner, pt: string) => int" },
-	{ DaoScanner_Seek,		"seek(self: scanner, pt: string) => int" },
+
+	/*! Returns \a count characters starting from the current position without advancing the scanner */
+	{ DaoScanner_Peek,		"peek(self: scanner, count: int) => string" },
+
+	/*! Mathes pattern \a pattern immediately at the current position; on success, the scanner is advanced and its last match information is updated.
+	 * Returns the number of characters the scanner has advanced through */
+	{ DaoScanner_Scan,		"scan(self: scanner, pattern: string) => int" },
+
+	/*! Mathes pattern \a pattern anywhere in the string after the current position; on success, the scanner is advanced and its last match
+	 * information is updated. Returns the number of characters the scanner has advanced through */
+	{ DaoScanner_Seek,		"seek(self: scanner, pattern: string) => int" },
+
+	/*! Last matched sub-string or its group \a group (if \a group is greater then zero) */
 	{ DaoScanner_Matched,	"matched(self: scanner, group = 0) => string" },
-	{ DaoScanner_MatchedAt,	"matched_at(self: scanner, group = 0) => tuple<start: int, end: int>" },
+
+	/*! Position of last matched sub-string or its group \a group (if \a group is greater then zero) */
+	{ DaoScanner_MatchedAt,	"matched_pos(self: scanner, group = 0) => tuple<start: int, end: int>|none" },
+
+	/*! Line number at the current position */
 	{ DaoScanner_Line,		"line(self: scanner) => int" },
-	{ DaoScanner_Follows,	"follows(self: scanner, pt: string) => int" },
-	{ DaoScanner_Precedes,	"precedes(self: scanner, pt: string) => int" },
+
+	/*! Matches pattern \a pattern immediately before the current position without affecting the state of the scanner */
+	{ DaoScanner_Follows,	"follows(self: scanner, pattern: string) => int" },
+
+	/*! Matches pattern \a pattern immediately after the current position without affecting the state of the scanner */
+	{ DaoScanner_Precedes,	"precedes(self: scanner, pattern: string) => int" },
 	{ NULL, NULL }
 };
 
