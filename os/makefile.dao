@@ -5,6 +5,8 @@ daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
 
 if( daovm == none ) return
 
+if( DaoMake::IsMinGW() ) project.AddDefinition( "MINGW" );
+
 project.UseImportLibrary( daovm, "dao" )
 
 dao_fs_objs = project.AddObjects( { "fs/dao_fs.c" } )

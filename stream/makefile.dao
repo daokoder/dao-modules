@@ -8,7 +8,7 @@ if( daovm == none or daosys == none ) return
 
 project.UseImportLibrary( daovm, "dao" )
 
-dao_binary_objs  = project.AddObjects( { "buffer/dao_binary.c" } )
+dao_binary_objs  = project.AddObjects( { "binary/dao_binary.c" } )
 dao_clprint_objs = project.AddObjects( { "clprint/dao_clprint.c" } )
 
 dao_binary_objs.UseImportLibrary( daosys )

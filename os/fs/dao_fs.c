@@ -82,6 +82,11 @@ DMutex fs_mtx;
 
 #define MAX_ERRMSG 100
 
+/* Not available in MinGW for Windows: */
+#ifndef ELOOP
+#define ELOOP  62
+#endif
+
 struct DInode
 {
 	char *path;
@@ -487,12 +492,17 @@ int DInode_GetOwner( DInode *self, DString *name )
 
 int DInode_Resize( DInode *self, daoint size )
 {
-	int res;
+	int res = 0;
 #ifdef WIN32
 	int fd = _open( self->path, _O_RDWR );
 	if ( fd == -1 )
 		return errno;
+#ifdef MINGW
+	/* _chsize_s() not available on MinGW: */
+#warning "DInode_Resize() needs fixings!"
+#else
 	res = _chsize_s( fd, size );
+#endif
 	_close( fd );
 #else
 	res = truncate64( self->path, size );

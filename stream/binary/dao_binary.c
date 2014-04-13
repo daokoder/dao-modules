@@ -129,8 +129,8 @@ static void DaoBinary_ReadBuf( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseException( proc, DAO_ERROR, "The stream is not readable" );
 		return;
 	}
-	if( count == 0 )
-		count = SIZE_MAX;
+	/* max of int is too big, also SIZE_MAX not available on Mac: */
+	if( count == 0 ) count = 1<<24;
 	buffer = Dao_Buffer_New( count );
 	count = fread( buffer->buffer.pVoid, 1, count, file );
 	Dao_Buffer_Resize( buffer, count );
@@ -254,8 +254,7 @@ static DaoFuncItem binMeths[] =
 	 * chunk. If \a count is zero, or greater than \a dest size, \a dest size is assumed */
 	{ DaoBinary_Pack,		"pack(self: io::stream, source: array<int>, size: enum<byte,word,dword>, count = 0)" },
 
-	/*! Reads \a count bytes from the stream and returns them as a buffer. If \a count is zero, maximum value of int
-	 * type is assumed */
+	/*! Reads \a count bytes from the stream and returns them as a buffer. If \a count is zero, 2^24 is assumed */
 	{ DaoBinary_ReadBuf,	"readbin(self: io::stream, count = 0) => buffer" },
 
 	/*! Writes \a count bytes from \a source into the stream.  If \a count is zero, or greater than \a source size,
