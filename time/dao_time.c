@@ -281,20 +281,26 @@ Clean:
 static void DaoTime_Set( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*)DaoValue_TryGetCdata( p[0] );
-	daoint year = p[1]->xInteger.value;
-	daoint month = p[2]->xInteger.value;
-	daoint day = p[3]->xInteger.value;
-	daoint hour = p[4]->xInteger.value;
-	daoint minute = p[5]->xInteger.value;
-	daoint second = p[6]->xInteger.value;
+	daoint i;
 	time_t value;
 	struct tm old = self->parts;
-	if ( year >= 0 ) self->parts.tm_year = year - 1900;
-	if ( month > 0 ) self->parts.tm_mon = month - 1;
-	if ( day > 0 ) self->parts.tm_mday = day;
-	if ( hour >= 0 ) self->parts.tm_hour = hour;
-	if ( minute >= 0 ) self->parts.tm_min = minute;
-	if ( second >= 0 ) self->parts.tm_sec = second;
+	for ( i = 1; i < N; i++ ){
+		DString *name = p[i]->xNameValue.name;
+		daoint val = p[i]->xNameValue.value->xInteger.value;
+		DString_ToMBS(name);
+		if ( strstr( name->mbs, "year" ) )
+			self->parts.tm_year = val - 1900;
+		else if ( strstr( name->mbs, "month" ) )
+			self->parts.tm_mon = val - 1;
+		else if ( strstr( name->mbs, "day" ) )
+			self->parts.tm_mday = val;
+		else if ( strstr( name->mbs, "hour" ) )
+			self->parts.tm_hour = val;
+		else if ( strstr( name->mbs, "min" ) )
+			self->parts.tm_min = val;
+		else if ( strstr( name->mbs, "sec" ) )
+			self->parts.tm_sec = val;
+	}
 	value = mktime( &self->parts );
 	if ( value == (time_t)-1){
 		self->parts = old;
@@ -624,34 +630,72 @@ static void DaoTime_Add( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem timeMeths[] =
 {
-	{ DaoTime_Get,		"time(type: enum<local, utc> = $local) => time" },
-	{ DaoTime_Time,		"time(value: int, type: enum<local, utc> = $local) => time" },
+	/*! Returns current time of kind \a kind */
+	{ DaoTime_Get,		"time(kind: enum<local, utc> = $local) => time" },
+
+	/*! Returns time with \c time_t value \a value and kind \a kind */
+	{ DaoTime_Time,		"time(value: int, kind: enum<local, utc> = $local) => time" },
+
+	/*! Returns local time composing of the specified \a year, \a month, \a day, \a hour, \a min and \a sec */
 	{ DaoTime_MakeTime,	"time(year: int, month: int, day: int, hour = 0, min = 0, sec = 0) => time" },
+
+	/*! Returns local time parsed from string \a value, which should contain date ('YYYY-MM-DD', 'YYYY-MM' or 'MM-DD')
+	 * and/or time ('HH:MM:SS' or 'HH:MM') separated by ' ' */
 	{ DaoTime_Parse,	"time(value: string) => time" },
+
+	/*! Copy constructor */
 	{ DaoTime_Copy,		"time(other: time) => time" },
 
-	{ DaoTime_Set,		"set(self: time, year = -1, month = -1, day = -1, hour = -1, min = -1, sec = -1)" },
+	/*! Sets one or more time parts using named parameters */
+	{ DaoTime_Set,		"set(self: time, ...: var<year:int>|var<month:int>|var<day:int>|var<hour:int>|var<min:int>|var<sec:int>)" },
+
+	/*! Returns time_t value */
 	{ DaoTime_Value,	"value(self: time) => int" },
-	{ DaoTime_Type,		"type(self: time) => enum<local, utc>" },
+
+	/*! Returns time kind (UTC or local) */
+	{ DaoTime_Type,		"kind(self: time) => enum<local, utc>" },
+
+	/*! Converts local time to UTC or vice versa */
 	{ DaoTime_Convert,	"convert(self: time, type: enum<local, utc>)" },
+
+	/*! Returns time part */
 	{ DaoTime_Second,	"sec(self: time) => int" },
 	{ DaoTime_Minute,	"min(self: time) => int" },
 	{ DaoTime_Hour,		"hour(self: time) => int" },
 	{ DaoTime_Day,		"day(self: time) => int" },
 	{ DaoTime_Month,	"month(self: time) => int" },
 	{ DaoTime_Year,		"year(self: time) => int" },
+
+	/*! Returns day of week */
 	{ DaoTime_WeekDay,	"wday(self: time) => int" },
+
+	/*! Returns day of year */
 	{ DaoTime_YearDay,	"yday(self: time) => int" },
+
+	/*! Returns time formatted to string using template \a format, which follows the rules for C \c strftime() */
 	{ DaoTime_Format,	"format(self: time, format = '') => string" },
+
+	/*! Returns time formatted to string using template \a format. \a names can specify custome names for months
+	 * ('month' => {<12 names>}), days of week ('week' => {<7 names>}), days of year ('day' => {<365/366 names>}) or
+	 * halfday names ('halfday' => {<2 names>}) */
 	{ DaoTime_Format2,	"format(self: time, names: map<string, list<string>>, format = '%Y-%M-%D, %H:%I:%S' ) => string" },
+
+	/*! Returns the number of day in the month or year of the given time depending on the \a period parameter */
 	{ DaoTime_Days,		"days(self: time, period: enum<month, year>) => int" },
+
+	/*! Adds the specified number of \a years, \a months and \a days to the given time */
 	{ DaoTime_Add,		"add(self: time, years = 0, months = 0, days = 0)" },
 
+	/*! Time comparison */
 	{ DaoTime_Equal,	"==(a: time, b: time) => int" },
 	{ DaoTime_NotEqual,	"!=(a: time, b: time) => int" },
 	{ DaoTime_Lesser,	"<(a: time, b: time) => int" },
 	{ DaoTime_LessOrEq,	"<=(a: time, b: time) => int" },
+
+	/*! Returns the difference between \a start and \a end time in days and seconds */
 	{ DaoTime_Diff,		"diff(start: time, end: time) => tuple<days: int, seconds: double>" },
+
+	/*! Returns the current time zone (is Daylight Saving Time (DST) used, shift in seconds from GMT, zone name, DST zone name) */
 	{ DaoTime_Zone,		"zone() => tuple<dst: int, shift: int, name: string, dst_name: string>" },
 	{ NULL, NULL }
 };
