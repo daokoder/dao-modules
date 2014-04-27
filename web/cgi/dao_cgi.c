@@ -87,7 +87,8 @@ static void ParseKeyValueString( DaoProcess *proc, DaoMap *mulmap, DaoMap *map, 
 		}else if( *data == '&' || *data == ';' ){
 			buffer->mbs[ buffer->size ] = 0;
 			InsertKeyValue( proc, mulmap, map, vk, vv );
-			key->size = value->size = 0;
+			DString_Reset( key, 0 );   /* also detaching shared memory; */
+			DString_Reset( value, 0 ); /* also detaching shared memory; */
 			buffer = key;
 		}else if( *data != ' ' ){
 			if( *data == '%' ){

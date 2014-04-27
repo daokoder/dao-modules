@@ -5,7 +5,7 @@ daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
 
 if( daovm == none ) return
 
-if( DaoMake::IsMinGW() ) project.AddDefinition( "MINGW" );
+if( DaoMake::IsPlatform( "MINGW" ) ) project.AddDefinition( "MINGW" );
 
 project.UseImportLibrary( daovm, "dao" )
 

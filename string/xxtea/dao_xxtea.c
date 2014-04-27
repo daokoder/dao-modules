@@ -165,8 +165,8 @@ static void DaoSTR_Decrypt( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutReference( proc, p[0] );
 }
 
-const char *enc = "encrypt( self :string, key :string, format :enum<regular,hex> = $regular )=>string";
-const char *dec = "decrypt( self :string, key :string, format :enum<regular,hex> = $regular )=>string";
+const char *enc = "encrypt( source :string, key :string, format :enum<regular,hex> = $regular )=>string";
+const char *dec = "decrypt( source :string, key :string, format :enum<regular,hex> = $regular )=>string";
 
 DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
