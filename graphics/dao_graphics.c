@@ -236,7 +236,7 @@ static void GRAD_AddStop( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxColorGradient *self = (DaoxColorGradient*) p[0];
 	DaoxColor color = {0.0,0.0,0.0,0.0};
-	DaoxColor_FromDaoValues( & color, p[2]->xTuple.items );
+	DaoxColor_FromDaoValues( & color, p[2]->xTuple.values );
 	DaoxColorGradient_Add( self, p[1]->xFloat.value, color );
 }
 static void GRAD_AddStops( DaoProcess *proc, DaoValue *p[], int N )
@@ -247,8 +247,8 @@ static void GRAD_AddStops( DaoProcess *proc, DaoValue *p[], int N )
 	for(i=0; i<n; ++i){
 		DaoTuple *item = (DaoTuple*) DaoList_GetItem( stops, i );
 		DaoxColor color = {0.0,0.0,0.0,0.0};
-		DaoxColor_FromDaoValues( & color, item->items[1]->xTuple.items );
-		DaoxColorGradient_Add( self, item->items[0]->xFloat.value, color );
+		DaoxColor_FromDaoValues( & color, item->values[1]->xTuple.values );
+		DaoxColorGradient_Add( self, item->values[0]->xFloat.value, color );
 	}
 }
 

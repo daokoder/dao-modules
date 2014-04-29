@@ -670,7 +670,7 @@ void DaoJIT_MOVE_SS( DaoValue *dA, DaoValue **dC2 )
 {
 	DaoValue *dC = *dC2;
 	if( dC && dC->type == DAO_STRING ){
-		DString_Assign( dC->xString.data, dA->xString.data );
+		DString_Assign( dC->xString.value, dA->xString.value );
 	}else{
 		DaoString *S = DaoString_Copy( (DaoString*) dA );
 		GC_ShiftRC( S, dC );
@@ -681,70 +681,68 @@ void DaoJIT_ADD_SS( DaoValue *dA, DaoValue *dB, DaoValue **dC2 )
 {
 	DaoValue *dC = *dC2;
 	if( dA == dC ){
-		DString_Append( dA->xString.data, dB->xString.data );
+		DString_Append( dA->xString.value, dB->xString.value );
 	}else if( dB == dC ){
-		DString_Insert( dB->xString.data, dA->xString.data, 0, 0, 0 );
+		DString_Insert( dB->xString.value, dA->xString.value, 0, 0, 0 );
 	}else{
 		if( dC && dC->type == DAO_STRING ){
-			DString_Assign( dC->xString.data, dA->xString.data );
+			DString_Assign( dC->xString.value, dA->xString.value );
 		}else{
 			DaoString *S = DaoString_Copy( (DaoString*) dA );
 			GC_ShiftRC( S, dC );
 			*dC2 = (DaoValue*) S;
 		}
-		DString_Append( dC->xString.data, dB->xString.data );
+		DString_Append( dC->xString.value, dB->xString.value );
 	}
 }
 void DaoJIT_ADD_LT( DaoValue *dA, DaoValue *dB, DaoValue *dC )
 {
-	dC->xInteger.value = (DString_Compare( dA->xString.data, dB->xString.data ) <0);
+	dC->xInteger.value = (DString_Compare( dA->xString.value, dB->xString.value ) <0);
 }
 void DaoJIT_ADD_LE( DaoValue *dA, DaoValue *dB, DaoValue *dC )
 {
-	dC->xInteger.value = (DString_Compare( dA->xString.data, dB->xString.data ) <=0);
+	dC->xInteger.value = (DString_Compare( dA->xString.value, dB->xString.value ) <=0);
 }
 void DaoJIT_ADD_EQ( DaoValue *dA, DaoValue *dB, DaoValue *dC )
 {
-	dC->xInteger.value = (DString_Compare( dA->xString.data, dB->xString.data ) ==0);
+	dC->xInteger.value = (DString_Compare( dA->xString.value, dB->xString.value ) ==0);
 }
 void DaoJIT_ADD_NE( DaoValue *dA, DaoValue *dB, DaoValue *dC )
 {
-	dC->xInteger.value = (DString_Compare( dA->xString.data, dB->xString.data ) !=0);
+	dC->xInteger.value = (DString_Compare( dA->xString.value, dB->xString.value ) !=0);
 }
 // instruction index is passed in as estatus:
 daoint DaoJIT_GETI_SI( DaoValue *dA, daoint id, int *estatus )
 {
-	DString *string = dA->xString.data;
-	wchar_t *wcs = string->wcs;
-	char *mbs = string->mbs;
+	DString *string = dA->xString.value;
+	char *mbs = string->bytes;
 	if( id <0 ) id += string->size;
 	if( id <0 || id >= string->size ){
 		*estatus |= (DAO_ERROR_INDEX<<16);
 		return 0;
 	}
-	return mbs ? mbs[id] : wcs[id];
+	return mbs[id];
 }
 void DaoJIT_SETI_SII( daoint ch, daoint id, DaoValue *dC, int *estatus )
 {
-	DString *string = dC->xString.data;
-	wchar_t *wcs = string->wcs;
-	char *mbs = string->mbs;
+	DString *string = dC->xString.value;
+	char *mbs = string->bytes;
 	if( id <0 ) id += string->size;
 	if( id <0 || id >= string->size ){
 		*estatus |= (DAO_ERROR_INDEX<<16);
 		return;
 	}
-	if( mbs ) mbs[id] = ch; else wcs[id] = ch;
+	mbs[id] = ch;
 }
 void DaoJIT_SETI_LI( DaoValue *dA, daoint id, DaoValue *dC, int *estatus )
 {
 	DaoList *list = (DaoList*) dC;
-	if( id <0 ) id += list->items.size;
-	if( id <0 || id >= list->items.size ){
+	if( id <0 ) id += list->value->size;
+	if( id <0 || id >= list->value->size ){
 		*estatus = DAO_ERROR_INDEX;
 		return;
 	}
-	DaoValue_Copy( dA, list->items.items.pValue + id );
+	DaoValue_Copy( dA, list->value->items.pValue + id );
 }
 void DaoJIT_SETI_TI( DaoValue *dA, daoint id, DaoValue *dC, int *estatus )
 {
@@ -756,13 +754,13 @@ void DaoJIT_SETI_TI( DaoValue *dA, daoint id, DaoValue *dC, int *estatus )
 	}
 	type = tuple->ctype->nested->items.pType[id];
 	if( type->tid == DAO_PAR_NAMED ) type = & type->aux->xType;
-	if( DaoValue_Move( dA, tuple->items + id, type ) ==0 ) *estatus = DAO_ERROR_VALUE;
+	if( DaoValue_Move( dA, tuple->values + id, type ) ==0 ) *estatus = DAO_ERROR_VALUE;
 }
 void DaoJIT_SETF_TPP( DaoValue *dA, int id, DaoValue *dC, int *estatus )
 {
 	DaoTuple *tuple = (DaoTuple*) dC;
-	GC_ShiftRC( dA, tuple->items[id] );
-	tuple->items[id] = dA;
+	GC_ShiftRC( dA, tuple->values[id] );
+	tuple->values[id] = dA;
 }
 }
 
@@ -854,10 +852,9 @@ void DaoJIT_Init( DaoVmSpace *vms, DaoJIT *jit )
 	int32_type_p = PointerType::getUnqual( int32_type );
 
 	std::vector<Type*> field_types( 6, string_size_type );
-	field_types[1] = int1_type;
-	field_types[3] = int1_type;
-	field_types[4] = PointerType::getUnqual( int8_type );
-	field_types[5] = PointerType::getUnqual( int32_type );
+	field_types[0] = PointerType::getUnqual( int8_type );
+	field_types[2] = int1_type;
+	field_types[4] = int1_type;
 
 	dstring_type = StructType::get( *llvm_context, field_types );
 	dstring_type_p = PointerType::getUnqual( dstring_type );
@@ -1290,7 +1287,7 @@ Function* DaoJitHandle::NewFunction( DaoRoutine *routine, int id )
 {
 	int i;
 	char buf[100];
-	std::string name = routine->routName->mbs;
+	std::string name = routine->routName->bytes;
 	sprintf( buf, "_daojit_%p_%i", routine, id );
 	name += buf;
 
@@ -1385,7 +1382,7 @@ void DaoJIT_Free( void *jitdata )
 }
 static bool CompilableSETI( DaoVmCodeX *vmc, DaoType **types )
 {
-	//printf("%s %s %s\n",types[vmc->a]->name->mbs,types[vmc->b]->name->mbs,types[vmc->c]->name->mbs);
+	//printf("%s %s %s\n",types[vmc->a]->name->bytes,types[vmc->b]->name->bytes,types[vmc->c]->name->bytes);
 	if( types[vmc->c]->tid != DAO_ARRAY ) return false;
 	if( types[vmc->b]->tid != DAO_NONE && types[vmc->b]->tid != DAO_VALTYPE ) return false;
 	if( types[vmc->b]->tid == DAO_VALTYPE && types[vmc->b]->value->type != DAO_NONE ) return false;
@@ -1396,7 +1393,7 @@ static bool CompilableArrayBinOp( DaoVmCodeX *vmc, DaoType **types )
 {
 	DaoType *at = types[vmc->a];
 	DaoType *bt = types[vmc->b];
-	//printf("%s %s %s\n",types[vmc->a]->name->mbs,types[vmc->b]->name->mbs,types[vmc->c]->name->mbs);
+	//printf("%s %s %s\n",types[vmc->a]->name->bytes,types[vmc->b]->name->bytes,types[vmc->c]->name->bytes);
 	if( types[vmc->c]->tid != DAO_ARRAY ) return false;
 	if( at->tid != DAO_ARRAY && (at->tid < DAO_INTEGER || at->tid > DAO_COMPLEX) ) return false;
 	if( bt->tid != DAO_ARRAY && (bt->tid < DAO_INTEGER || bt->tid > DAO_COMPLEX) ) return false;
@@ -1410,7 +1407,7 @@ void DaoJIT_SearchCompilable( DaoRoutine *routine, std::vector<IndexRange> & seg
 {
 	std::map<IndexRange,int> ranges;
 	std::map<IndexRange,int>::iterator it;
-	DaoValue **routConsts = routine->routConsts->items.items.pValue;
+	DaoValue **routConsts = routine->routConsts->value->items.pValue;
 	DaoType **types = routine->body->regType->items.pType;
 	DaoVmCodeX *vmc, **vmcs = routine->body->annotCodes->items.pVmc;
 	int i, j, m, jump, N = routine->body->annotCodes->size;
@@ -1827,7 +1824,7 @@ Value* DaoJitHandle::GetTupleItems( int reg )
 	value = GetLocalValue( reg );
 	SetInsertPoint( block );
 	value = CreatePointerCast( value, daojit_tuple_type_p ); // DaoTuple*
-	value = CreateConstGEP2_32( value, 0, 8 ); // tuple->items: DaoValue*[]*
+	value = CreateConstGEP2_32( value, 0, 8 ); // tuple->values: DaoValue*[]*
 	if( k == 1 ) dataItems[reg] = std::pair<Value*,BasicBlock*>( value, block );
 	return value;
 }
@@ -2031,8 +2028,8 @@ Value* DaoJitHandle::GetListItem( int reg, int index, int vmc )
 	Value *size = CreateConstGEP2_32( value, 0, 1 );
 	id = AddIndexChecking( id, size, vmc );
 
-	value = CreateConstGEP2_32( value, 0, 0 ); // list->items.items.pValue: DaoValue*[]**
-	value = Dereference( value ); // list->items.items.pValue: DaoValue*[]*
+	value = CreateConstGEP2_32( value, 0, 0 ); // list->value->items.pValue: DaoValue*[]**
+	value = Dereference( value ); // list->value->items.pValue: DaoValue*[]*
 	std::vector<Value*> ids;
 	ids.push_back( zero );
 	ids.push_back( id );
@@ -2230,7 +2227,7 @@ Value* DaoJitHandle::MoveValue( Value *dA, Value *dC, Type *type )
 Function* DaoJitHandle::Compile( int start, int end )
 {
 	DaoCnode *node, **nodes = optimizer->nodes->items.pCnode;
-	DaoValue **routConsts = routine->routConsts->items.items.pValue;
+	DaoValue **routConsts = routine->routConsts->value->items.pValue;
 	DaoType *at, *bt, *ct, **types = routine->body->regType->items.pType;
 	DaoVmCodeX *vmc, **vmcs = routine->body->annotCodes->items.pVmc;
 	Function *jitfunc = NewFunction( routine, start );
@@ -3298,7 +3295,7 @@ Function* DaoJitHandle::Compile( int start, int end )
 	}
 	return jitfunc;
 Failed:
-	printf( "failed compiling: %s %4i %4i\n", routine->routName->mbs, start, end );
+	printf( "failed compiling: %s %4i %4i\n", routine->routName->bytes, start, end );
 	jitfunc->eraseFromParent();
 	return NULL;
 }

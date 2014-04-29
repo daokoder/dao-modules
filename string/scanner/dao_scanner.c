@@ -50,12 +50,11 @@ void DaoScanner_Delete( DaoScanner *self )
 static void DaoScanner_Create( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoScanner *self = DaoScanner_New();
-	DString *str = p[0]->xString.data;
+	DString *str = p[0]->xString.value;
 	daoint pos = p[1]->xInteger.value;
-	if ( pos < 0 )
-		pos = str->size + pos;
+	if ( pos < 0 ) pos = str->size + pos;
 	self->pos = ( pos > str->size )? str->size : pos;
-	self->context = DString_New( str->mbs != NULL );
+	self->context = DString_New();
 	DString_Assign( self->context, str );
 	DaoProcess_PutCdata( proc, self, daox_type_scanner );
 }
@@ -90,7 +89,7 @@ static void DaoScanner_Rest( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoScanner_Append( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
-	DString_Append( self->context, p[1]->xString.data );
+	DString_Append( self->context, p[1]->xString.value );
 }
 
 static void DaoScanner_FetchPeek( DaoProcess *proc, DaoValue *p[], int fetch )
@@ -127,22 +126,19 @@ static void DaoScanner_Peek( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoScanner_ScanSeek( DaoProcess *proc, DaoValue *p[], int seek )
 {
 	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
-	DString *pt = p[1]->xString.data;
+	DString *pt = p[1]->xString.value;
 	int del = 0;
 	daoint res = 0;
 	if ( !seek && pt->size ){
 		int i;
-		if ( pt->mbs )
-			for ( i = 0; i < pt->size && isspace( pt->mbs[i] ); i++ );
-		else
-			for ( i = 0; i < pt->size && iswspace( pt->wcs[i] ); i++ );
-		if ( i >= pt->size || pt->mbs? ( pt->mbs[i] != '^' ) : ( pt->wcs[i] != L'^' ) ){
-			pt = pt->mbs? DString_NewMBS( "^" ) : DString_NewWCS( L"^" );
-			DString_Append( pt, p[1]->xString.data );
+		for ( i = 0; i < pt->size && isspace( pt->bytes[i] ); i++ );
+		if ( i >= pt->size || pt->bytes[i] != '^' ){
+			pt = DString_NewChars( "^" );
+			DString_Append( pt, p[1]->xString.value );
 			del = 1;
 		}
 	}
-	self->regex = DaoProcess_MakeRegex( proc, pt, self->context->mbs != NULL );
+	self->regex = DaoProcess_MakeRegex( proc, pt );
 	if ( del )
 		DString_Delete( pt );
 	if ( self->regex == NULL )
@@ -176,7 +172,7 @@ static void DaoScanner_Matched( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
 	daoint group = p[1]->xInteger.value;
-	DString *res = DString_New( self->context->mbs != NULL );
+	DString *res = DString_New();
 	if ( self->regex && self->start >= 0 ){
 		if ( group ){
 			daoint start = self->start, end = self->end;
@@ -196,18 +192,18 @@ static void DaoScanner_MatchedAt( DaoProcess *proc, DaoValue *p[], int N )
 	daoint group = p[1]->xInteger.value;
 	if ( self->regex && self->start >= 0 ){
 		DaoTuple *res = DaoProcess_PutTuple( proc, 2 );
-		res->items[0]->xInteger.value = -1;
-		res->items[1]->xInteger.value = self->context->size;
+		res->values[0]->xInteger.value = -1;
+		res->values[1]->xInteger.value = self->context->size;
 		if ( group ){
 			daoint start = self->start, end = self->end;
 			if ( DaoRegex_SubMatch( self->regex, group, &start, &end ) ){
-				res->items[0]->xInteger.value = start;
-				res->items[1]->xInteger.value = end;
+				res->values[0]->xInteger.value = start;
+				res->values[1]->xInteger.value = end;
 			}
 		}
 		else {
-			res->items[0]->xInteger.value = self->start;
-			res->items[1]->xInteger.value = self->end;
+			res->values[0]->xInteger.value = self->start;
+			res->values[1]->xInteger.value = self->end;
 		}
 	}
 	else
@@ -218,15 +214,9 @@ static void DaoScanner_Line( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
 	daoint res = 1, i;
-	if ( self->context->mbs ){
-		for ( i = 0; i < self->pos; i++ )
-			if ( self->context->mbs[i] == '\n' )
-				res++;
-	}
-	else
-		for ( i = 0; i < self->pos; i++ )
-			if ( self->context->wcs[i] == L'\n' )
-				res++;
+	for ( i = 0; i < self->pos; i++ )
+		if ( self->context->bytes[i] == '\n' )
+			res++;
 	DaoProcess_PutInteger( proc, res );
 }
 
@@ -234,25 +224,19 @@ static void DaoScanner_Follows( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
 	DaoRegex *reg;
-	DString *pt = p[1]->xString.data;
+	DString *pt = p[1]->xString.value;
 	int del = 0;
 	daoint res = 0;
 	if ( pt->size ){
 		int i;
-		if ( pt->mbs )
-			for ( i = pt->size - 1; i >= 0 && isspace( pt->mbs[i] ); i-- );
-		else
-			for ( i = pt->size - 1; i >= 0 && iswspace( pt->wcs[i] ); i-- );
-		if ( i < 0 || pt->mbs? ( pt->mbs[i] != '$' ) : ( pt->wcs[i] != L'$' ) ){
+		for ( i = pt->size - 1; i >= 0 && isspace( pt->bytes[i] ); i-- );
+		if ( i < 0 || pt->bytes[i] != '$' ){
 			pt = DString_Copy( pt );
-			if ( pt->mbs )
-				DString_AppendChar( pt, '$' );
-			else
-				DString_AppendWChar( pt, L'$' );
+			DString_AppendChar( pt, '$' );
 			del = 1;
 		}
 	}
-	reg = DaoProcess_MakeRegex( proc, pt, self->context->mbs != NULL );
+	reg = DaoProcess_MakeRegex( proc, pt );
 	if ( del )
 		DString_Delete( pt );
 	if ( self->regex == NULL )
@@ -269,22 +253,19 @@ static void DaoScanner_Precedes( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
 	DaoRegex *reg;
-	DString *pt = p[1]->xString.data;
+	DString *pt = p[1]->xString.value;
 	int del = 0;
 	daoint res = 0;
 	if ( pt->size ){
 		int i;
-		if ( pt->mbs )
-			for ( i = 0; i < pt->size && isspace( pt->mbs[i] ); i++ );
-		else
-			for ( i = 0; i < pt->size && iswspace( pt->wcs[i] ); i++ );
-		if ( i >= pt->size || pt->mbs? ( pt->mbs[i] != '^' ) : ( pt->wcs[i] != L'^' ) ){
-			pt = pt->mbs? DString_NewMBS( "^" ) : DString_NewWCS( L"^" );
-			DString_Append( pt, p[1]->xString.data );
+		for ( i = 0; i < pt->size && isspace( pt->bytes[i] ); i++ );
+		if ( i >= pt->size || pt->bytes[i] != '^' ){
+			pt = DString_NewChars( "^" );
+			DString_Append( pt, p[1]->xString.value );
 			del = 1;
 		}
 	}
-	reg = DaoProcess_MakeRegex( proc, pt, self->context->mbs != NULL );
+	reg = DaoProcess_MakeRegex( proc, pt );
 	if ( del )
 		DString_Delete( pt );
 	if ( self->regex == NULL )

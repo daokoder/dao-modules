@@ -84,18 +84,16 @@ static int STR_Cipher( DString *self, DString *key, int hex, int flag )
 	size_t size = 0;
 	int i;
 	DString_Detach( self, self->size );
-	DString_ToMBS( self );
 	if( self->size == 0 ) return 0;
-	DString_ToMBS( key );
 	if( key->size >= 32 ){
 		for(i=0; i<16; i++){
-			signed char c1 = HexDigit( key->mbs[2*i] );
-			signed char c2 = HexDigit( key->mbs[2*i+1] );
+			signed char c1 = HexDigit( key->bytes[2*i] );
+			signed char c2 = HexDigit( key->bytes[2*i+1] );
 			if( c1 <0 || c2 <0 ) return 1;
 			ks[i] = 16 * c1 + c2;
 		}
 	}else if( key->size >= 16 ){
-		memcpy( ks, key->mbs, 16 );
+		memcpy( ks, key->bytes, 16 );
 	}else{
 		return 1;
 	}
@@ -104,23 +102,23 @@ static int STR_Cipher( DString *self, DString *key, int hex, int flag )
 		i = size % 4;
 		if( i ) i = 4 - i;
 		DString_Resize( self, size + 4 + i );
-		memmove( self->mbs + 4, self->mbs, size );
-		*(int*) self->mbs = size;
-		data = (unsigned char*) self->mbs;
-		btea( (int*)self->mbs, self->size / 4, (int*) ks );
+		memmove( self->bytes + 4, self->bytes, size );
+		*(int*) self->bytes = size;
+		data = (unsigned char*) self->bytes;
+		btea( (int*)self->bytes, self->size / 4, (int*) ks );
 		if( hex ){
 			size = self->size;
 			DString_Resize( self, 2 * size );
-			data = (unsigned char*) self->mbs;
+			data = (unsigned char*) self->bytes;
 			for(i=size-1; i>=0; i--){
-				self->mbs[2*i+1] = dec2hex[ data[i] % 16 ];
-				self->mbs[2*i] = dec2hex[ data[i] / 16 ];
+				self->bytes[2*i+1] = dec2hex[ data[i] % 16 ];
+				self->bytes[2*i] = dec2hex[ data[i] / 16 ];
 			}
 		}
 	}else{
 		if( hex ){
 			if( self->size % 2 ) return 1;
-			data = (unsigned char*) self->mbs;
+			data = (unsigned char*) self->bytes;
 			size = self->size / 2;
 			for(i=0; i<size; i++){
 				char c1 = HexDigit( data[2*i] );
@@ -130,8 +128,8 @@ static int STR_Cipher( DString *self, DString *key, int hex, int flag )
 			}
 			DString_Resize( self, size );
 		}
-		btea( (int*)self->mbs, - (int)(self->size / 4), (int*) ks );
-		size = *(int*) self->mbs;
+		btea( (int*)self->bytes, - (int)(self->size / 4), (int*) ks );
+		size = *(int*) self->bytes;
 		if( size > self->size ) return 2;
 		DString_Erase( self, 0, 4 );
 		self->size = size;
@@ -154,13 +152,13 @@ static const char *errmsg[2] =
 };
 static void DaoSTR_Encrypt( DaoProcess *proc, DaoValue *p[], int N )
 {
-	int rc = DString_Encrypt( p[0]->xString.data, p[1]->xString.data, p[2]->xEnum.value );
+	int rc = DString_Encrypt( p[0]->xString.value, p[1]->xString.value, p[2]->xEnum.value );
 	if( rc ) DaoProcess_RaiseException( proc, DAO_ERROR, errmsg[rc-1] );
 	DaoProcess_PutReference( proc, p[0] );
 }
 static void DaoSTR_Decrypt( DaoProcess *proc, DaoValue *p[], int N )
 {
-	int rc = DString_Decrypt( p[0]->xString.data, p[1]->xString.data, p[2]->xEnum.value );
+	int rc = DString_Decrypt( p[0]->xString.value, p[1]->xString.value, p[2]->xEnum.value );
 	if( rc ) DaoProcess_RaiseException( proc, DAO_ERROR, errmsg[rc-1] );
 	DaoProcess_PutReference( proc, p[0] );
 }

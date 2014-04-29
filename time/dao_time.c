@@ -186,13 +186,12 @@ static int GetNum( char *str, int len )
 
 static void DaoTime_Parse( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DString *str = DString_Copy( p[0]->xString.data );
+	DString *str = DString_Copy( p[0]->xString.value );
 	DString *sdate = NULL, *stime = NULL;
 	DaoTime *self = DaoTime_New();
 	daoint pos;
 	int del = 0;
 	DString_Trim( str );
-	DString_ToMBS( str );
 	pos = DString_FindChar( str, ' ', 0 );
 	if ( pos >= 0 ){
 		sdate = DString_New( 1 );
@@ -216,38 +215,38 @@ static void DaoTime_Parse( DaoProcess *proc, DaoValue *p[], int N )
 	self->parts.tm_isdst = -1;
 	if ( sdate ){
 		/* YYYY-MM-DD */
-		if ( sdate->size == 10 && IsNum( sdate->mbs, 4 ) && IsNum( sdate->mbs + 5, 2 ) && IsNum( sdate->mbs + 8, 2 ) &&
-			 sdate->mbs[4] == '-' && sdate->mbs[7] == '-' ){
-			self->parts.tm_year = GetNum( sdate->mbs, 4 ) - 1900;
-			self->parts.tm_mon = GetNum( sdate->mbs + 5, 2 ) - 1;
-			self->parts.tm_mday = GetNum( sdate->mbs + 8, 2 );
+		if ( sdate->size == 10 && IsNum( sdate->bytes, 4 ) && IsNum( sdate->bytes + 5, 2 ) && IsNum( sdate->bytes + 8, 2 ) &&
+			 sdate->bytes[4] == '-' && sdate->bytes[7] == '-' ){
+			self->parts.tm_year = GetNum( sdate->bytes, 4 ) - 1900;
+			self->parts.tm_mon = GetNum( sdate->bytes + 5, 2 ) - 1;
+			self->parts.tm_mday = GetNum( sdate->bytes + 8, 2 );
 		}
 		/* YYYY-MM */
-		else if ( sdate->size == 7 && IsNum( sdate->mbs, 4 ) && IsNum( sdate->mbs + 5, 2 ) && sdate->mbs[4] == '-' ){
-			self->parts.tm_year = GetNum( sdate->mbs, 4 ) - 1900;
-			self->parts.tm_mon = GetNum( sdate->mbs + 5, 2 ) - 1;
+		else if ( sdate->size == 7 && IsNum( sdate->bytes, 4 ) && IsNum( sdate->bytes + 5, 2 ) && sdate->bytes[4] == '-' ){
+			self->parts.tm_year = GetNum( sdate->bytes, 4 ) - 1900;
+			self->parts.tm_mon = GetNum( sdate->bytes + 5, 2 ) - 1;
 			self->parts.tm_mday = 1;
 		}
 		/* MM-DD */
-		else if ( sdate->size == 5 && IsNum( sdate->mbs, 2 ) && IsNum( sdate->mbs + 3, 2 ) && sdate->mbs[2] == '-' ){
-			self->parts.tm_mon = GetNum( sdate->mbs, 2 ) - 1;
-			self->parts.tm_mday = GetNum( sdate->mbs + 3, 2 );
+		else if ( sdate->size == 5 && IsNum( sdate->bytes, 2 ) && IsNum( sdate->bytes + 3, 2 ) && sdate->bytes[2] == '-' ){
+			self->parts.tm_mon = GetNum( sdate->bytes, 2 ) - 1;
+			self->parts.tm_mday = GetNum( sdate->bytes + 3, 2 );
 		}
 		else
 			goto Error;
 	}
 	if ( stime ){
 		/* HH:MM:SS */
-		if ( stime->size == 8 && IsNum( stime->mbs, 2 ) && IsNum( stime->mbs + 3, 2 ) && IsNum( stime->mbs + 6, 2 ) && stime->mbs[2] == ':' &&
-			 stime->mbs[5] == ':'){
-			self->parts.tm_hour = GetNum( stime->mbs, 2 );
-			self->parts.tm_min = GetNum( stime->mbs + 3, 2 );
-			self->parts.tm_sec = GetNum( stime->mbs + 6, 2 );
+		if ( stime->size == 8 && IsNum( stime->bytes, 2 ) && IsNum( stime->bytes + 3, 2 ) && IsNum( stime->bytes + 6, 2 ) && stime->bytes[2] == ':' &&
+			 stime->bytes[5] == ':'){
+			self->parts.tm_hour = GetNum( stime->bytes, 2 );
+			self->parts.tm_min = GetNum( stime->bytes + 3, 2 );
+			self->parts.tm_sec = GetNum( stime->bytes + 6, 2 );
 		}
 		/* HH:MM */
-		else if ( stime->size == 5 && IsNum( stime->mbs, 2 ) && IsNum( stime->mbs + 3, 2 ) && stime->mbs[2] == ':'){
-			 self->parts.tm_hour = GetNum( stime->mbs, 2 );
-			 self->parts.tm_min = GetNum( stime->mbs + 3, 2 );
+		else if ( stime->size == 5 && IsNum( stime->bytes, 2 ) && IsNum( stime->bytes + 3, 2 ) && stime->bytes[2] == ':'){
+			 self->parts.tm_hour = GetNum( stime->bytes, 2 );
+			 self->parts.tm_min = GetNum( stime->bytes + 3, 2 );
 			 self->parts.tm_sec = 0;
 		 }
 		else
@@ -287,18 +286,17 @@ static void DaoTime_Set( DaoProcess *proc, DaoValue *p[], int N )
 	for ( i = 1; i < N; i++ ){
 		DString *name = p[i]->xNameValue.name;
 		daoint val = p[i]->xNameValue.value->xInteger.value;
-		DString_ToMBS(name);
-		if ( strstr( name->mbs, "year" ) )
+		if ( strstr( name->bytes, "year" ) )
 			self->parts.tm_year = val - 1900;
-		else if ( strstr( name->mbs, "month" ) )
+		else if ( strstr( name->bytes, "month" ) )
 			self->parts.tm_mon = val - 1;
-		else if ( strstr( name->mbs, "day" ) )
+		else if ( strstr( name->bytes, "day" ) )
 			self->parts.tm_mday = val;
-		else if ( strstr( name->mbs, "hour" ) )
+		else if ( strstr( name->bytes, "hour" ) )
 			self->parts.tm_hour = val;
-		else if ( strstr( name->mbs, "min" ) )
+		else if ( strstr( name->bytes, "min" ) )
 			self->parts.tm_min = val;
-		else if ( strstr( name->mbs, "sec" ) )
+		else if ( strstr( name->bytes, "sec" ) )
 			self->parts.tm_sec = val;
 	}
 	value = mktime( &self->parts );
@@ -394,34 +392,25 @@ static void DaoTime_Zone( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTuple *res = DaoProcess_PutTuple( proc, 4 );
 	tzset();
-	res->items[0]->xInteger.value = daylight;
-	res->items[1]->xInteger.value = timezone;
-	DaoString_SetMBS( &res->items[2]->xString, tzname[0] );
-	DaoString_SetMBS( &res->items[3]->xString, tzname[1] );
+	res->values[0]->xInteger.value = daylight;
+	res->values[1]->xInteger.value = timezone;
+	DaoString_SetChars( &res->values[2]->xString, tzname[0] );
+	DaoString_SetChars( &res->values[3]->xString, tzname[1] );
 }
 
 static void DaoTime_Format( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*)DaoValue_TryGetCdata( p[0] );
-	DString *fmt = p[1]->xString.data;
+	DString *fmt = p[1]->xString.value;
 	if ( fmt->size ){
-		if ( fmt->mbs ){
-			char buf[100];
-			if ( strftime( buf, sizeof(buf), fmt->mbs, &self->parts ))
-				DaoProcess_PutMBString( proc, buf );
-			else
-				DaoProcess_RaiseException( proc, DAO_ERROR, "Invalid format" );
-		}
-		else {
-			wchar_t buf[100];
-			if ( wcsftime( buf, sizeof(buf),fmt->wcs, &self->parts ))
-				DaoProcess_PutWCString( proc, buf );
-			else
-				DaoProcess_RaiseException( proc, DAO_ERROR, "Invalid format" );
-		}
+		char buf[100];
+		if ( strftime( buf, sizeof(buf), fmt->bytes, &self->parts ))
+			DaoProcess_PutChars( proc, buf );
+		else
+			DaoProcess_RaiseException( proc, DAO_ERROR, "Invalid format" );
 	}
 	else
-		DaoProcess_PutMBString( proc, asctime( &self->parts ) );
+		DaoProcess_PutChars( proc, asctime( &self->parts ) );
 }
 
 static int addStringFromMap( DaoValue *self, DString *S, DaoMap *sym, const char *key, int id )
@@ -429,14 +418,14 @@ static int addStringFromMap( DaoValue *self, DString *S, DaoMap *sym, const char
 	DNode *node;
 
 	if( S==NULL || sym==NULL ) return 0;
-	DString_SetMBS( self->xString.data, key );
-	node = DMap_Find( sym->items, & self );
+	DString_SetChars( self->xString.value, key );
+	node = DMap_Find( sym->value, & self );
 	if( node ){
 		DaoList *list = & node->value.pValue->xList;
-		if( list->type == DAO_LIST && list->items.size > id ){
-			DaoValue *p = list->items.items.pValue[ id ];
+		if( list->type == DAO_LIST && list->value->size > id ){
+			DaoValue *p = list->value->items.pValue[ id ];
 			if( p->type == DAO_STRING ){
-				DString_Append( S, p->xString.data );
+				DString_Append( S, p->xString.value );
 				return 1;
 			}
 		}
@@ -448,8 +437,8 @@ static void DaoTime_Format2( DaoProcess *proc, DaoValue *p[], int N )
 {
 	int  i;
 	int halfday = 0;
-	const int size = p[2]->xString.data->size;
-	const char *format = DString_GetMBS( p[2]->xString.data );
+	const int size = p[2]->xString.value->size;
+	const char *format = DString_GetData( p[2]->xString.value );
 	char buf[100];
 	char *p1 = buf+1;
 	char *p2;
@@ -460,8 +449,8 @@ static void DaoTime_Format2( DaoProcess *proc, DaoValue *p[], int N )
 	DaoTime *self = (DaoTime*)DaoValue_TryGetCdata( p[0] );
 	struct tm *ctime = &self->parts;
 
-	if( sym->items->size == 0 ) sym = NULL;
-	S = DaoProcess_PutMBString( proc, "" );
+	if( sym->value->size == 0 ) sym = NULL;
+	S = DaoProcess_PutChars( proc, "" );
 
 	for( i=0; i+1<size; i++ ){
 		if( format[i] == '%' && ( format[i+1] == 'a' || format[i+1] == 'A' ) ){
@@ -536,7 +525,7 @@ static void DaoTime_Format2( DaoProcess *proc, DaoValue *p[], int N )
 				break;
 			default : break;
 			}
-			if( p2 ) DString_AppendMBS( S, p2 );
+			if( p2 ) DString_AppendChars( S, p2 );
 			i ++;
 		}else{
 			DString_AppendChar( S, format[i] );
@@ -551,8 +540,8 @@ static void DaoTime_Diff( DaoProcess *proc, DaoValue *p[], int N )
 	DaoTime *self = (DaoTime*)DaoValue_TryGetCdata( p[0] );
 	DaoTime *other = (DaoTime*)DaoValue_TryGetCdata( p[1] );
 	DaoTuple *res = DaoProcess_PutTuple( proc, 2 );
-	res->items[0]->xInteger.value = other->jday - self->jday;
-	res->items[1]->xDouble.value = difftime( other->value, self->value );
+	res->values[0]->xInteger.value = other->jday - self->jday;
+	res->values[1]->xDouble.value = difftime( other->value, self->value );
 }
 
 static void DaoTime_Days( DaoProcess *proc, DaoValue *p[], int N )

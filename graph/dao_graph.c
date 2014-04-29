@@ -709,11 +709,11 @@ void DaoxGraphData_Reset( DaoxGraphData *self, DaoxGraph *graph, int nodeSize, i
 	M = graph->edges->size;
 	DString_Reserve( self->nodeData, N * nodeSize );
 	DString_Reserve( self->edgeData, M * edgeSize );
-	for(i=0, data=self->nodeData->mbs;  i<N;  i++, data+=nodeSize){
+	for(i=0, data=self->nodeData->bytes;  i<N;  i++, data+=nodeSize){
 		DaoxNode *node = (DaoxNode*) graph->nodes->items.pValue[i];
 		node->X.Void = data;
 	}
-	for(i=0, data=self->edgeData->mbs;  i<M;  i++, data+=edgeSize){
+	for(i=0, data=self->edgeData->bytes;  i<M;  i++, data+=edgeSize){
 		DaoxEdge *edge = (DaoxEdge*) graph->edges->items.pValue[i];
 		edge->X.Void = data;
 	}

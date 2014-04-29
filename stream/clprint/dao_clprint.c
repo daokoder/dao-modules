@@ -108,20 +108,11 @@ int SetCharForeground( DaoStream *stream, int color, int mbs )
 {
 	char buf[20];
 	wchar_t wbuf[20];
-	if( mbs ){
-		if( color == -2 )
-			snprintf( buf, sizeof( buf ), CSI_RESET );
-		else
-			snprintf( buf, sizeof( buf ), CSI_FCOLOR, color );
-		DaoStream_WriteMBS( stream, buf );
-	}
-	else{
-		if( color == -2 )
-			swprintf( wbuf, sizeof( wbuf ), CSI_LRESET );
-		else
-			swprintf( wbuf, sizeof( wbuf ), CSI_LFCOLOR, color );
-		DaoStream_WriteWCS( stream, wbuf );
-	}
+	if( color == -2 )
+		snprintf( buf, sizeof( buf ), CSI_RESET );
+	else
+		snprintf( buf, sizeof( buf ), CSI_FCOLOR, color );
+	DaoStream_WriteChars( stream, buf );
 	return -2;
 }
 
@@ -129,20 +120,11 @@ int SetCharBackground( DaoStream *stream, int color, int mbs )
 {
 	char buf[20];
 	wchar_t wbuf[20];
-	if( mbs ){
-		if( color == -2 )
-			snprintf( buf, sizeof( buf ), CSI_RESET );
-		else
-			snprintf( buf, sizeof( buf ), CSI_BCOLOR, color );
-		DaoStream_WriteMBS( stream, buf );
-	}
-	else{
-		if( color == -2 )
-			swprintf( wbuf, sizeof( wbuf ), CSI_LRESET );
-		else
-			swprintf( wbuf, sizeof( wbuf ), CSI_LBCOLOR, color );
-		DaoStream_WriteWCS( stream, wbuf );
-	}
+	if( color == -2 )
+		snprintf( buf, sizeof( buf ), CSI_RESET );
+	else
+		snprintf( buf, sizeof( buf ), CSI_BCOLOR, color );
+	DaoStream_WriteChars( stream, buf );
 	return -2;
 }
 
@@ -182,128 +164,66 @@ static void DaoColorPrint( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoStream *stream = DaoValue_CastStream( p[0] );
 	DString *fmt = DaoString_Get( DaoValue_CastString( p[1] ) );
-	DString *str = DString_New( DString_IsMBS( fmt )? 1 : 0 );
+	DString *str = DString_New();
 	int pos, prevpos, colorf, colorb, pos2;
 	char *mbs;
 	wchar_t *wcs;
-	if( DString_IsMBS( fmt ) ){
-		/*MBS*/
-		mbs = DString_GetMBS( fmt );
-		for( pos = 0; pos < DString_Size( fmt ); pos += 2 ){
-			colorf = colorb = 0;
-			prevpos = pos;
-			pos = DString_FindChar( fmt, '#', pos );
-			if( pos == -1 ){
-				DString_SetDataMBS( str, mbs + prevpos, DString_Size( fmt ) - prevpos );
-				DaoStream_WriteString( stream, str );
-				break;
-			}
-			else{
-				DString_SetDataMBS( str, mbs + prevpos, pos - prevpos );
-				DaoStream_WriteString( stream, str );
-				if( mbs[pos + 1] == '#' ){
-					DaoStream_WriteMBS( stream, "#" );
-					continue;
-				}
-				prevpos = DString_FindChar( fmt, '(', pos + 1 );
-				if( prevpos == -1 ){
-					DaoProcess_RaiseException( proc, DAO_WARNING, "Colored block: opening bracket not found!" );
-					break;
-				}
-				pos2 = DString_FindChar( fmt, ':', pos + 1 );
-				if( pos2 >= 0 && pos2 < prevpos ){
-					if( pos2 == pos + 1 )
-						colorf = -1;
-					if( pos2 == prevpos - 1 )
-						colorb = -1;
-				}
-				else{
-					pos2 = prevpos;
-					colorb = -1;
-				}
-				if( colorf != -1 )
-					colorf = ParseColor( proc, mbs + pos + 1, pos2 - pos - 1 );
-				if( colorb != -1 )
-					colorb = ParseColor( proc, mbs + pos2 + 1, prevpos - pos2 - 1 );
-				prevpos++;
-				pos = DString_FindMBS( fmt, ")#", prevpos );
-				if( pos == -1 ){
-					DaoProcess_RaiseException( proc, DAO_WARNING, "Colored block: bracket not closed!" );
-					break;
-				}
-				else if( pos == prevpos )
-					continue;
-				if( colorf != -1 )
-					colorf = SetCharForeground( stream, colorf, 1 );
-				if( colorb != -1 )
-					colorb = SetCharBackground( stream, colorb, 1 );
-				DString_SetDataMBS( str, mbs + prevpos, pos - prevpos );
-				DaoStream_WriteString( stream, str );
-				if( colorb != -1 )
-					colorb = SetCharBackground( stream, colorb, 1 );
-				if( colorf != -1 )
-					colorf = SetCharForeground( stream, colorf, 1 );
-			}
+	/*MBS*/
+	mbs = DString_GetData( fmt );
+	for( pos = 0; pos < DString_Size( fmt ); pos += 2 ){
+		colorf = colorb = 0;
+		prevpos = pos;
+		pos = DString_FindChar( fmt, '#', pos );
+		if( pos == -1 ){
+			DString_SetBytes( str, mbs + prevpos, DString_Size( fmt ) - prevpos );
+			DaoStream_WriteString( stream, str );
+			break;
 		}
-	}
-	else{
-		/*WCS*/
-		wcs = DString_GetWCS( fmt );
-		for( pos = 0; pos < DString_Size( fmt ); pos += 2 ){
-			colorf = colorb = 0;
-			prevpos = pos;
-			pos = DString_FindWChar( fmt, L'#', pos );
-			if( pos == -1 ){
-				DString_SetDataWCS( str, wcs + prevpos, DString_Size( fmt ) - prevpos );
-				DaoStream_WriteString( stream, str );
+		else{
+			DString_SetBytes( str, mbs + prevpos, pos - prevpos );
+			DaoStream_WriteString( stream, str );
+			if( mbs[pos + 1] == '#' ){
+				DaoStream_WriteChars( stream, "#" );
+				continue;
+			}
+			prevpos = DString_FindChar( fmt, '(', pos + 1 );
+			if( prevpos == -1 ){
+				DaoProcess_RaiseException( proc, DAO_WARNING, "Colored block: opening bracket not found!" );
 				break;
 			}
-			else{
-				DString_SetDataWCS( str, wcs + prevpos, pos - prevpos );
-				DaoStream_WriteString( stream, str );
-				if( wcs[pos + 1] == L'#' ){
-					DaoStream_WriteWCS( stream, L"#" );
-					continue;
-				}
-				prevpos = DString_FindWChar( fmt, L'(', pos + 1 );
-				if( prevpos == -1 ){
-					DaoProcess_RaiseException( proc, DAO_WARNING, "Colored block: opening bracket not found!" );
-					break;
-				}
-				pos2 = DString_FindWChar( fmt, L':', pos + 1 );
-				if( pos2 >= 0 && pos2 < prevpos ){
-					if( pos2 == pos + 1 )
-						colorf = -1;
-					if( pos2 == prevpos - 1 )
-						colorb = -1;
-				}
-				else{
-					pos2 = prevpos;
+			pos2 = DString_FindChar( fmt, ':', pos + 1 );
+			if( pos2 >= 0 && pos2 < prevpos ){
+				if( pos2 == pos + 1 )
+					colorf = -1;
+				if( pos2 == prevpos - 1 )
 					colorb = -1;
-				}
-				if( colorf != -1 )
-					colorf = ParseColorW( proc, wcs + pos + 1, pos2 - pos - 1 );
-				if( colorb != -1 )
-					colorb = ParseColorW( proc, wcs + pos2 + 1, prevpos - pos2 - 1 );
-				prevpos++;
-				pos = DString_FindMBS( fmt, ")#", prevpos );
-				if( pos == -1 ){
-					DaoProcess_RaiseException( proc, DAO_WARNING, "Colored block: bracket not closed!" );
-					break;
-				}
-				else if( pos == prevpos )
-					continue;
-				if( colorf != -1 )
-					colorf = SetCharForeground( stream, colorf, 0 );
-				if( colorb != -1 )
-					colorb = SetCharBackground( stream, colorb, 0 );
-				DString_SetDataWCS( str, wcs + prevpos, pos - prevpos );
-				DaoStream_WriteString( stream, str );
-				if( colorb != -1 )
-					colorb = SetCharBackground( stream, colorb, 0 );
-				if( colorf != -1 )
-					colorf = SetCharForeground( stream, colorf, 0 );
 			}
+			else{
+				pos2 = prevpos;
+				colorb = -1;
+			}
+			if( colorf != -1 )
+				colorf = ParseColor( proc, mbs + pos + 1, pos2 - pos - 1 );
+			if( colorb != -1 )
+				colorb = ParseColor( proc, mbs + pos2 + 1, prevpos - pos2 - 1 );
+			prevpos++;
+			pos = DString_FindChars( fmt, ")#", prevpos );
+			if( pos == -1 ){
+				DaoProcess_RaiseException( proc, DAO_WARNING, "Colored block: bracket not closed!" );
+				break;
+			}
+			else if( pos == prevpos )
+				continue;
+			if( colorf != -1 )
+				colorf = SetCharForeground( stream, colorf, 1 );
+			if( colorb != -1 )
+				colorb = SetCharBackground( stream, colorb, 1 );
+			DString_SetBytes( str, mbs + prevpos, pos - prevpos );
+			DaoStream_WriteString( stream, str );
+			if( colorb != -1 )
+				colorb = SetCharBackground( stream, colorb, 1 );
+			if( colorf != -1 )
+				colorf = SetCharForeground( stream, colorf, 1 );
 		}
 	}
 	DString_Delete( str );

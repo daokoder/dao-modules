@@ -250,15 +250,14 @@ int LoopReceive( int sockfd, char *buf, int size, int flags )
 }
 int DaoNetwork_Send( int sockfd, DString *buf )
 {
-	return LoopSend( sockfd, DString_GetMBS( buf ), DString_Size( buf ), 0);
+	return LoopSend( sockfd, DString_GetData( buf ), DString_Size( buf ), 0);
 }
 int DaoNetwork_Receive( int sockfd, DString *buf, int max )
 {
 	int numbytes;
 	if( max <=0 || max >= 1E4 ) max = 1E4;
-	DString_ToMBS( buf );
 	DString_Resize( buf, max );
-	numbytes = LoopReceive( sockfd, (char*)DString_GetMBS( buf ), max, 0 );
+	numbytes = LoopReceive( sockfd, (char*)DString_GetData( buf ), max, 0 );
 	if( numbytes >=0 ) DString_Resize( buf, numbytes );
 	/* if( numbytes >=0 ) buf->size = numbytes; */
 	return numbytes;
@@ -396,8 +395,7 @@ static int DaoNetwork_SendChars( int sockfd, const char *mbs, int len )
 }
 static int DaoNetwork_SendString( int sockfd, DString *str )
 {
-	DString_ToMBS( str );
-	return DaoNetwork_SendChars( sockfd, DString_GetMBS( str ), DString_Size( str ) );
+	return DaoNetwork_SendChars( sockfd, DString_GetData( str ), DString_Size( str ) );
 }
 static int DaoNetwork_SendComplex( int sockfd, complex16 data )
 {
@@ -581,8 +579,8 @@ int DaoNetwork_ReceiveExt( DaoProcess *proc, int sockfd, DaoList *data )
 				break;
 			case DAO_STRING :
 				if( inpack->tag == 0 ) DString_Clear( str );
-				DString_AppendMBS( str, inpack->data );
-				item = (DaoValue*) DaoProcess_NewMBString( proc, NULL, 0);
+				DString_AppendChars( str, inpack->data );
+				item = (DaoValue*) DaoProcess_NewChars( proc, NULL, 0);
 				DaoString_Set( DaoValue_CastString( item ), str );
 				/* printf( "string: %s\n", inpack->data ); */
 				if( inpack->tag ==2 || size <= MAX_DATA ) DaoList_PushBack( data, item );
@@ -702,7 +700,7 @@ static int DaoSocket_Bind( DaoSocket *self, int port )
 static int DaoSocket_Connect( DaoSocket *self, DString *host, int port )
 {
 	DaoSocket_Close( self );
-	self->id = DaoNetwork_Connect( DString_GetMBS( host ), port );
+	self->id = DaoNetwork_Connect( DString_GetData( host ), port );
 	if( self->id != -1 )
 		self->state = SOCKET_CONNECTED;
 	return self->id;
@@ -793,7 +791,7 @@ static void DaoSocket_Lib_Receive( DaoProcess *proc, DaoValue *par[], int N  )
 		DaoProcess_RaiseException( proc, DAO_ERROR, "The socket is not connected" );
 		return;
 	}
-	DString *mbs = DaoProcess_PutMBString( proc, "" );
+	DString *mbs = DaoProcess_PutChars( proc, "" );
 	if( DaoNetwork_Receive( self->id, mbs, DaoValue_TryGetInteger( par[1] ) ) == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
@@ -853,8 +851,9 @@ static void DaoSocket_Lib_State( DaoProcess *proc, DaoValue *par[], int N  )
 
 static void DaoSocket_Lib_GetPeerName( DaoProcess *proc, DaoValue *par[], int N  )
 {
-	char errbuf[MAX_ERRMSG];
+	DString *res;
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	char errbuf[MAX_ERRMSG];
 	struct sockaddr_in addr;
 #ifdef WIN32
 	int size = sizeof( struct sockaddr_in );
@@ -870,14 +869,14 @@ static void DaoSocket_Lib_GetPeerName( DaoProcess *proc, DaoValue *par[], int N 
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
 		return;
 	}
-	DString *res = DaoProcess_PutMBString( proc, "" );
-	DString_SetMBS( res, inet_ntoa( addr.sin_addr ) );
+	res = DaoProcess_PutChars( proc, "" );
+	DString_SetChars( res, inet_ntoa( addr.sin_addr ) );
 }
 
 static void DaoSocket_Lib_GetStream( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
-	const char *mode = DString_GetMBS( DaoValue_TryGetString( par[1] ) );
+	const char *mode = DString_GetData( DaoValue_TryGetString( par[1] ) );
 	DaoStream *stream;
 #ifdef WIN32
 	DaoProcess_RaiseException( proc, DAO_ERROR, "Creating stream from a socket is not supported on the current platform" );
@@ -981,7 +980,7 @@ static void DaoNetLib_GetHost( DaoProcess *proc, DaoValue *par[], int N  )
 	struct sockaddr_in addr;
 	struct in_addr id;
 	size_t size = sizeof( struct sockaddr_in );
-	const char *host = DaoString_GetMBS( DaoValue_CastString( par[0] ) );
+	const char *host = DaoString_GetChars( DaoValue_CastString( par[0] ) );
 	DaoMap *res = DaoProcess_PutMap( proc, 0 );
 	DaoValue *value;
 	if( DaoString_Size( DaoValue_CastString( par[0] ) ) ==0 ) return;
@@ -1007,8 +1006,8 @@ static void DaoNetLib_GetHost( DaoProcess *proc, DaoValue *par[], int N  )
 		char **p = hent->h_aliases;
 		char **q = hent->h_addr_list;
 		while( *p ){
-			value = (DaoValue*) DaoProcess_NewMBString( proc, inet_ntoa( *(struct in_addr*) (*q) ), 0 );
-			DaoMap_InsertMBS( res, *p, value );
+			value = (DaoValue*) DaoProcess_NewChars( proc, inet_ntoa( *(struct in_addr*) (*q) ), 0 );
+			DaoMap_InsertChars( res, *p, value );
 			p ++;
 			q ++;
 		}

@@ -435,9 +435,9 @@ static void TRIA_Get( DaoProcess *proc, DaoValue *p[], int N )
 	daoint index = p[1]->xInteger.value;
 	if( index < 0 || 3*index >= self->triangles->size ) return;
 	indeces += 3 * index;
-	tuple->items[0]->xInteger.value = indeces[0];
-	tuple->items[1]->xInteger.value = indeces[1];
-	tuple->items[2]->xInteger.value = indeces[2];
+	tuple->values[0]->xInteger.value = indeces[0];
+	tuple->values[1]->xInteger.value = indeces[1];
+	tuple->values[2]->xInteger.value = indeces[2];
 }
 static DaoFuncItem DaoxTriangulatorMeths[]=
 {

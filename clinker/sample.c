@@ -33,7 +33,7 @@ DAO_DLL_EXPORT void test_array_double( double *array )
 }
 DAO_DLL_EXPORT void test_dao_list( DaoList *list )
 {
-	printf( "list size = %i\n", (int) list->items.size );
+	printf( "list size = %i\n", (int) list->value->size );
 }
 DAO_DLL_EXPORT void test_stream( FILE *fout )
 {

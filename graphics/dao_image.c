@@ -83,7 +83,7 @@ int DaoxImage_LoadBMP( DaoxImage *self, const char *file )
 
 	if( fin == NULL ) goto Failed;
 	DaoFile_ReadAll( fin, mbs, 1 );
-	data = (uchar_t*) mbs->mbs;
+	data = (uchar_t*) mbs->bytes;
 
 	if( data[0x0] != 'B' || data[0x1] != 'M' ) goto Failed; /* Not a BMP image; */
 	if( dao_read_int( data + 0xE ) != 40 ) goto Failed; /* Format not supported; */

@@ -71,8 +71,8 @@ static void InsertKeyValue( DaoProcess *proc, DaoMap *mulmap, DaoMap *map, DaoVa
 static void ParseKeyValueString( DaoProcess *proc, DaoMap *mulmap, DaoMap *map, const char *data )
 {
 	const char *end = data + strlen( data );
-	DaoValue *vk = (DaoValue*) DaoProcess_NewMBString( proc, NULL, 0 );
-	DaoValue *vv = (DaoValue*) DaoProcess_NewMBString( proc, NULL, 0 );
+	DaoValue *vk = (DaoValue*) DaoProcess_NewChars( proc, NULL, 0 );
+	DaoValue *vv = (DaoValue*) DaoProcess_NewChars( proc, NULL, 0 );
 	DString *key = DaoString_Get( DaoValue_CastString( vk ) );
 	DString *value = DaoString_Get( DaoValue_CastString( vv ) );
 	DString *buffer = key;
@@ -81,11 +81,11 @@ static void ParseKeyValueString( DaoProcess *proc, DaoMap *mulmap, DaoMap *map, 
 	for(; data < end; ++data){
 		if( buffer->size >= buffer->bufSize ) DString_Reserve( buffer, 1.5*buffer->size + 8 );
 		if( *data == '=' ){
-			buffer->mbs[ buffer->size ] = 0;
+			buffer->bytes[ buffer->size ] = 0;
 			buffer = value;
 			buffer->size = 0;
 		}else if( *data == '&' || *data == ';' ){
-			buffer->mbs[ buffer->size ] = 0;
+			buffer->bytes[ buffer->size ] = 0;
 			InsertKeyValue( proc, mulmap, map, vk, vv );
 			DString_Reset( key, 0 );   /* also detaching shared memory; */
 			DString_Reset( value, 0 ); /* also detaching shared memory; */
@@ -94,12 +94,12 @@ static void ParseKeyValueString( DaoProcess *proc, DaoMap *mulmap, DaoMap *map, 
 			if( *data == '%' ){
 				char a = tolower( data[1] );
 				char b = tolower( data[2] );
-				buffer->mbs[ buffer->size ++ ] = (char) ((HEXTOI(a) << 4) | HEXTOI(b));
+				buffer->bytes[ buffer->size ++ ] = (char) ((HEXTOI(a) << 4) | HEXTOI(b));
 				data += 2;
 			}else if( *data == '+' ){
-				buffer->mbs[ buffer->size ++ ] = ' ';
+				buffer->bytes[ buffer->size ++ ] = ' ';
 			}else{
-				buffer->mbs[ buffer->size ++ ] = *data;
+				buffer->bytes[ buffer->size ++ ] = *data;
 			}
 		}
 	}
@@ -110,8 +110,8 @@ static void ParseKeyValueStringArray( DaoProcess *proc, DaoMap *map, char **p )
 	int nc = 0;
 	char buffer[ LOCAL_BUF_SIZE + 1 ];
 	
-	DaoValue *vk = (DaoValue*) DaoProcess_NewMBString( proc, NULL, 0 );
-	DaoValue *vv = (DaoValue*) DaoProcess_NewMBString( proc, NULL, 0 );
+	DaoValue *vk = (DaoValue*) DaoProcess_NewChars( proc, NULL, 0 );
+	DaoValue *vv = (DaoValue*) DaoProcess_NewChars( proc, NULL, 0 );
 	DString *key = DaoString_Get( DaoValue_CastString( vk ) );
 	DString *value = DaoString_Get( DaoValue_CastString( vv ) );
 	while( *p != NULL ){
@@ -120,7 +120,7 @@ static void ParseKeyValueStringArray( DaoProcess *proc, DaoMap *map, char **p )
 		while( *c != '=' ){
 			if( nc >= LOCAL_BUF_SIZE ){
 				buffer[ nc ] = 0;
-				DString_AppendMBS( key, buffer );
+				DString_AppendChars( key, buffer );
 				nc = 0;
 			}
 			buffer[ nc ] = *c;
@@ -128,9 +128,9 @@ static void ParseKeyValueStringArray( DaoProcess *proc, DaoMap *map, char **p )
 			c ++;
 		}
 		buffer[ nc ] = 0;
-		DString_AppendMBS( key, buffer );
+		DString_AppendChars( key, buffer );
 		c ++;
-		DString_AppendMBS( value, c );
+		DString_AppendChars( value, c );
 		DaoMap_Insert( map, vk, vv );
 		DString_Clear( key );
 		DString_Clear( value );
@@ -166,8 +166,8 @@ static void PreparePostData( DaoProcess *proc, DaoMap *httpPOSTS, DaoMap *httpPO
 {
 	DString *fname;
 	DString *buffer = DString_New(1);
-	DaoValue *vk = (DaoValue*) DaoProcess_NewMBString( proc, NULL, 0 );
-	DaoValue *vv = (DaoValue*) DaoProcess_NewMBString( proc, NULL, 0 );
+	DaoValue *vk = (DaoValue*) DaoProcess_NewChars( proc, NULL, 0 );
+	DaoValue *vv = (DaoValue*) DaoProcess_NewChars( proc, NULL, 0 );
 	DString *key = DaoString_Get( DaoValue_CastString( vk ) );
 	DString *value = DaoString_Get( DaoValue_CastString( vv ) );
 	char *content_length = getenv( "CONTENT_LENGTH" );
@@ -183,10 +183,10 @@ static void PreparePostData( DaoProcess *proc, DaoMap *httpPOSTS, DaoMap *httpPO
 	if( content_type == NULL || strstr( content_type, "multipart/form-data" ) == NULL ){
 		postlen = fread( postbuf, 1, sizeof(postbuf), stdin );
 		while( postlen ){
-			DString_AppendDataMBS( buffer, postbuf, postlen );
+			DString_AppendBytes( buffer, postbuf, postlen );
 			postlen = fread( postbuf, 1, sizeof(postbuf), stdin );
 		}
-		ParseKeyValueString( proc, httpPOSTS, httpPOST, buffer->mbs );
+		ParseKeyValueString( proc, httpPOSTS, httpPOST, buffer->bytes );
 		DString_Delete( buffer );
 		return;
 	}
@@ -199,40 +199,40 @@ static void PreparePostData( DaoProcess *proc, DaoMap *httpPOSTS, DaoMap *httpPO
 		postlen = fread( postbuf, 1, sizeof(postbuf), stdin );
 		if( postlen == 0 && buffer->size < boundarylen ) break;
 
-		DString_AppendDataMBS( buffer, postbuf, postlen );
-		while( strstr( buffer->mbs, "\r\n\r\n" ) == 0 && postlen != 0 ){
+		DString_AppendBytes( buffer, postbuf, postlen );
+		while( strstr( buffer->bytes, "\r\n\r\n" ) == 0 && postlen != 0 ){
 			postlen = fread( postbuf, 1, sizeof(postbuf), stdin );
-			DString_AppendDataMBS( buffer, postbuf, postlen );
+			DString_AppendBytes( buffer, postbuf, postlen );
 		}
-		//printf( "###############\n%s\n", buffer->mbs );
+		//printf( "###############\n%s\n", buffer->bytes );
 
 		key->size = 0;
 		fname->size = 0;
-		pos = DString_FindMBS( buffer, "name=", 20 ); /* Skip: Content-Disposition: ; */
+		pos = DString_FindChars( buffer, "name=", 20 ); /* Skip: Content-Disposition: ; */
 		pos2 = DString_FindChar( buffer, '\"', pos+6 );
 		DString_SubString( buffer, key, pos + 6, pos2 - pos - 6 );
 
-		pos_rnrn = DString_FindMBS( buffer, "\r\n\r\n", pos2 );
-		pos = DString_FindMBS( buffer, "filename=", pos2 );
-		if( pos != MAXSIZE && pos < pos_rnrn ){
+		pos_rnrn = DString_FindChars( buffer, "\r\n\r\n", pos2 );
+		pos = DString_FindChars( buffer, "filename=", pos2 );
+		if( pos != DAO_NULLPOS && pos < pos_rnrn ){
 			daoint pos3 = DString_FindChar( buffer, '\"', pos+10 );
 			DString_SubString( buffer, fname, pos + 10, pos3 - pos - 10 );
 		}
 
 		buffer->size -= pos_rnrn + 4;
-		memmove( buffer->mbs, buffer->mbs + pos_rnrn + 4, buffer->size );
+		memmove( buffer->bytes, buffer->bytes + pos_rnrn + 4, buffer->size );
 		if( fname->size == 0 ){
 			offset = 0;
-			while( (pos2 = DString_FindMBS( buffer, boundary, offset )) == MAXSIZE ){
+			while( (pos2 = DString_FindChars( buffer, boundary, offset )) == DAO_NULLPOS ){
 				offset = buffer->size - boundarylen;
 				if( offset < 0 ) offset = 0;
 				postlen = fread( postbuf, 1, sizeof(postbuf), stdin );
-				DString_AppendDataMBS( buffer, postbuf, postlen );
+				DString_AppendBytes( buffer, postbuf, postlen );
 			}
 			DString_SubString( buffer, value, 0, pos2 - 4 ); /* \r\n-- */
 			DaoMap_Insert( httpPOST, (DaoValue*) vk, (DaoValue*) vv );
 			buffer->size -= pos2 + boundarylen;
-			memmove( buffer->mbs, buffer->mbs + pos2 + boundarylen, buffer->size );
+			memmove( buffer->bytes, buffer->bytes + pos2 + boundarylen, buffer->size );
 		}else{
 			DaoInteger isize = {DAO_INTEGER,0,0,0,0,0};
 			DaoStream *stream = DaoStream_New();
@@ -247,21 +247,21 @@ static void PreparePostData( DaoProcess *proc, DaoMap *httpPOSTS, DaoMap *httpPO
 			DaoMap_Insert( httpFILE, (DaoValue*) vk, (DaoValue*) tuple );
 
 			offset = 0;
-			while( (pos2 = DString_FindMBS( buffer, boundary, 0 )) == MAXSIZE ){
+			while( (pos2 = DString_FindChars( buffer, boundary, 0 )) == DAO_NULLPOS ){
 				offset = buffer->size - boundarylen;
 				if( offset > 0 ){
 					isize.value += offset;
-					fwrite( buffer->mbs, 1, offset, file );
+					fwrite( buffer->bytes, 1, offset, file );
 					buffer->size -= offset;
-					memmove( buffer->mbs, buffer->mbs + offset, buffer->size );
+					memmove( buffer->bytes, buffer->bytes + offset, buffer->size );
 				}
 				postlen = fread( postbuf, 1, sizeof(postbuf), stdin );
-				DString_AppendDataMBS( buffer, postbuf, postlen );
+				DString_AppendBytes( buffer, postbuf, postlen );
 			}
 			isize.value += pos2 - 4;
-			fwrite( buffer->mbs, 1, pos2 - 4, file );  /* \r\n-- */
+			fwrite( buffer->bytes, 1, pos2 - 4, file );  /* \r\n-- */
 			buffer->size -= pos2 + boundarylen;
-			memmove( buffer->mbs, buffer->mbs + pos2 + boundarylen, buffer->size );
+			memmove( buffer->bytes, buffer->bytes + pos2 + boundarylen, buffer->size );
 			rewind( file );
 			DaoTuple_SetItem( tuple, (DaoValue*) & isize, 1 );
 		}
@@ -275,7 +275,7 @@ void DaoCGI_RandomString( DaoProcess *proc, DaoValue *p[], int N )
 	int len = DaoValue_TryGetInteger( p[0] );
 	int alnum = DaoValue_TryGetInteger( p[1] );
 	int i;
-	DString *res = DaoProcess_PutMBString( proc, "" );
+	DString *res = DaoProcess_PutChars( proc, "" );
 	if( alnum ){
 		for(i=0; i<len; i++)
 			DString_AppendChar( res, alnumChars[ (int)(62 * (rand()/(RAND_MAX+1.0)) ) ] );
@@ -292,18 +292,18 @@ void DaoCGI_SendFile( DaoProcess *proc, DaoValue *p[], int N )
 	DString *mime = DaoValue_TryGetString( p[1] );
 	DString *notfound = DaoValue_TryGetString( p[2] );
 	char buf[IO_BUF_SIZE];
-	FILE *fin = fopen( DString_GetMBS( file ), "r" );
+	FILE *fin = fopen( DString_GetData( file ), "r" );
 	if( fin == NULL ){
-		printf( "%s", DString_GetMBS( notfound ) );
+		printf( "%s", DString_GetData( notfound ) );
 		return;
 	}
 	mbs = DString_New(1);
-	printf( "Content-Type: %s\n\n", DString_GetMBS( mime ) );
+	printf( "Content-Type: %s\n\n", DString_GetData( mime ) );
 	while(1){
 		size_t count = fread( buf, 1, IO_BUF_SIZE, fin );
 		if( count ==0 ) break;
 		DString_Reset( mbs, 0 );
-		DString_AppendDataMBS( mbs, buf, count );
+		DString_AppendBytes( mbs, buf, count );
 		DaoFile_WriteString( stdout, mbs );
 	}
 	fclose( fin );
