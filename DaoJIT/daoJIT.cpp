@@ -955,7 +955,7 @@ void DaoJIT_Init( DaoVmSpace *vms, DaoJIT *jit )
 
 	field_types.erase( field_types.begin()+6, field_types.end() );
 	field_types.push_back( daojit_type_type_p ); // ctype
-	field_types.push_back( darray_value_type ); // items
+	field_types.push_back( darray_value_type_p ); // value
 	daojit_list_type = StructType::get( *llvm_context, field_types );
 	daojit_list_type_p = PointerType::getUnqual( daojit_list_type );
 	daojit_list_type_pp = PointerType::getUnqual( daojit_list_type_p );
@@ -963,7 +963,7 @@ void DaoJIT_Init( DaoVmSpace *vms, DaoJIT *jit )
 	field_types.erase( field_types.begin()+6, field_types.end() );
 	field_types.push_back( int32_type ); // size
 	field_types.push_back( daojit_type_type_p ); // ctype
-	field_types.push_back( daojit_value_ptr_array_type ); // items
+	field_types.push_back( daojit_value_ptr_array_type ); // values
 	daojit_tuple_type = StructType::get( *llvm_context, field_types );
 	daojit_tuple_type_p = PointerType::getUnqual( daojit_tuple_type );
 	daojit_tuple_type_pp = PointerType::getUnqual( daojit_tuple_type_p );
@@ -2023,7 +2023,8 @@ Value* DaoJitHandle::GetListItem( int reg, int index, int vmc )
 	Value *id = GetNumberOperand( index );
 	SetInsertPoint( current );
 	value = CreatePointerCast( value, daojit_list_type_p );
-	value = CreateConstGEP2_32( value, 0, 7 ); // list->items: DArray*
+	value = CreateConstGEP2_32( value, 0, 7 ); // list->items: DArray**
+	value = Dereference( value ); // list->items: DArray*
 
 	Value *size = CreateConstGEP2_32( value, 0, 1 );
 	id = AddIndexChecking( id, size, vmc );
