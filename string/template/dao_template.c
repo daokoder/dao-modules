@@ -179,8 +179,8 @@ void DaoxTemplateNode_ParseMBS( DaoxTemplateNode *self, DString *template, daoin
 			if( ! isspace( template->bytes[pos] ) ){
 			}
 		}
-		node->keyPathMBS = DArray_New(D_STRING);
-		node->keyPathWCS = DArray_New(D_STRING);
+		node->keyPathMBS = DArray_New(DAO_DATA_STRING);
+		node->keyPathWCS = DArray_New(DAO_DATA_STRING);
 		while( pos < pos2 ){
 			while( isspace( template->bytes[pos] ) ) pos += 1;
 			if( pos >= pos2 ) break;
@@ -275,7 +275,7 @@ void DaoxTemplateNode_Generate( DaoxTemplateNode *self, DaoValue *value, DMap *v
 		DNode *it;
 		if( strcmp( self->command->bytes, "each" ) == 0 ){
 			if( field == NULL ) return;
-			vars2 = vars ? DMap_Copy( vars ) : DMap_New(D_STRING,D_VALUE);
+			vars2 = vars ? DMap_Copy( vars ) : DMap_New(DAO_DATA_STRING,DAO_DATA_VALUE);
 			if( field->type == DAO_LIST ){
 				DaoList *list = (DaoList*) field;
 				daoint i, n = DaoList_Size( list );
@@ -336,7 +336,7 @@ void DaoxTemplateNode_Generate( DaoxTemplateNode *self, DaoValue *value, DMap *v
 			case DAO_TUPLE : count = field->xTuple.size; break;
 			}
 			if( count > 0 ){
-				vars2 = vars ? DMap_Copy( vars ) : DMap_New(D_STRING,D_VALUE);
+				vars2 = vars ? DMap_Copy( vars ) : DMap_New(DAO_DATA_STRING,DAO_DATA_VALUE);
 				index->value = count;
 				DMap_Insert( vars2, & scount, (DaoValue*) index );
 				DaoxTemplateNodes_Generate( self->children, value, vars2, output );
@@ -407,7 +407,7 @@ static void DaoTemplate( DaoProcess *proc, DaoValue *p[], int N )
 	DMap *temps = (DMap*) DaoProcess_GetAuxData( proc, DaoxTemplates_Delete );
 	DaoxTemplateNode *temp;
 	if( temps == NULL ){
-		temps = DHash_New(D_STRING,0);
+		temps = DHash_New(DAO_DATA_STRING,0);
 		DaoProcess_SetAuxData( proc, DaoxTemplates_Delete, temps );
 	}
 	output = DaoProcess_PutString( proc, source );

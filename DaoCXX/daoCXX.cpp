@@ -515,7 +515,7 @@ static int dao_cxx_source( DaoNamespace *NS, DString *VT, DArray *markers, DStri
 	DString *mbs = DString_New();
 	DString *call = DString_New();
 	DString *cproto = DString_New();
-	DArray *wraps = DArray_New(D_STRING);
+	DArray *wraps = DArray_New(DAO_DATA_STRING);
 	DArray *funcs = DArray_New(0);
 	InputKind kind = IK_CXX;
 	char name[200];
@@ -580,7 +580,7 @@ static int dao_cxx_source( DaoNamespace *NS, DString *VT, DArray *markers, DStri
 static int dao_cxx_inliner( DaoNamespace *NS, DString *mode, DString *verbatim, DString *out, int line )
 {
 	DString *source = DString_New();
-	DArray *markers = DArray_New(D_STRING);
+	DArray *markers = DArray_New(DAO_DATA_STRING);
 	int retc = 1;
 
 	dao_cxx_parse( verbatim, source, markers );
@@ -622,7 +622,7 @@ static int dao_cxx_loader( DaoNamespace *NS, DString *file, DString *emsg )
 		return 1;
 	}
 	marker = DString_New();
-	markers = DArray_New(D_STRING);
+	markers = DArray_New(DAO_DATA_STRING);
 	while( start < source->size && source->bytes[start] == '@' ){
 		daoint end = DString_FindChar( source, '\n', start );
 		if( end == -1 ) break;

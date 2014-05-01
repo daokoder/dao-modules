@@ -74,8 +74,8 @@ DaoxGraph* DaoxGraph_New( DaoType *type, int directed )
 {
 	DaoxGraph *self = (DaoxGraph*) dao_calloc( 1, sizeof(DaoxGraph) );
 	DaoCstruct_Init( (DaoCstruct*) self, type );
-	self->nodes = DArray_New(D_VALUE);
-	self->edges = DArray_New(D_VALUE);
+	self->nodes = DArray_New(DAO_DATA_VALUE);
+	self->edges = DArray_New(DAO_DATA_VALUE);
 	self->directed = directed;
 	self->nodeType = NULL;
 	self->edgeType = NULL;
@@ -110,7 +110,7 @@ DaoxEdge* DaoxGraph_AddEdge( DaoxGraph *self, DaoxNode *first, DaoxNode *second 
 	DaoxEdge *edge = DaoxEdge_New( self );
 	DArray_PushFront( first->outs, edge );
 	if( self->directed ){
-		if( second->ins == NULL ) second->ins = DArray_New(D_VALUE);
+		if( second->ins == NULL ) second->ins = DArray_New(DAO_DATA_VALUE);
 		DArray_PushBack( second->ins, edge );
 	}else{
 		DArray_PushBack( second->outs, edge );
