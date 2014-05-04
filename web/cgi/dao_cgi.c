@@ -81,11 +81,11 @@ static void ParseKeyValueString( DaoProcess *proc, DaoMap *mulmap, DaoMap *map, 
 	for(; data < end; ++data){
 		if( buffer->size >= buffer->bufSize ) DString_Reserve( buffer, 1.5*buffer->size + 8 );
 		if( *data == '=' ){
-			buffer->bytes[ buffer->size ] = 0;
+			buffer->chars[ buffer->size ] = 0;
 			buffer = value;
 			buffer->size = 0;
 		}else if( *data == '&' || *data == ';' ){
-			buffer->bytes[ buffer->size ] = 0;
+			buffer->chars[ buffer->size ] = 0;
 			InsertKeyValue( proc, mulmap, map, vk, vv );
 			DString_Reset( key, 0 );   /* also detaching shared memory; */
 			DString_Reset( value, 0 ); /* also detaching shared memory; */
@@ -94,12 +94,12 @@ static void ParseKeyValueString( DaoProcess *proc, DaoMap *mulmap, DaoMap *map, 
 			if( *data == '%' ){
 				char a = tolower( data[1] );
 				char b = tolower( data[2] );
-				buffer->bytes[ buffer->size ++ ] = (char) ((HEXTOI(a) << 4) | HEXTOI(b));
+				buffer->chars[ buffer->size ++ ] = (char) ((HEXTOI(a) << 4) | HEXTOI(b));
 				data += 2;
 			}else if( *data == '+' ){
-				buffer->bytes[ buffer->size ++ ] = ' ';
+				buffer->chars[ buffer->size ++ ] = ' ';
 			}else{
-				buffer->bytes[ buffer->size ++ ] = *data;
+				buffer->chars[ buffer->size ++ ] = *data;
 			}
 		}
 	}
@@ -186,7 +186,7 @@ static void PreparePostData( DaoProcess *proc, DaoMap *httpPOSTS, DaoMap *httpPO
 			DString_AppendBytes( buffer, postbuf, postlen );
 			postlen = fread( postbuf, 1, sizeof(postbuf), stdin );
 		}
-		ParseKeyValueString( proc, httpPOSTS, httpPOST, buffer->bytes );
+		ParseKeyValueString( proc, httpPOSTS, httpPOST, buffer->chars );
 		DString_Delete( buffer );
 		return;
 	}
@@ -200,11 +200,11 @@ static void PreparePostData( DaoProcess *proc, DaoMap *httpPOSTS, DaoMap *httpPO
 		if( postlen == 0 && buffer->size < boundarylen ) break;
 
 		DString_AppendBytes( buffer, postbuf, postlen );
-		while( strstr( buffer->bytes, "\r\n\r\n" ) == 0 && postlen != 0 ){
+		while( strstr( buffer->chars, "\r\n\r\n" ) == 0 && postlen != 0 ){
 			postlen = fread( postbuf, 1, sizeof(postbuf), stdin );
 			DString_AppendBytes( buffer, postbuf, postlen );
 		}
-		//printf( "###############\n%s\n", buffer->bytes );
+		//printf( "###############\n%s\n", buffer->chars );
 
 		key->size = 0;
 		fname->size = 0;
@@ -220,7 +220,7 @@ static void PreparePostData( DaoProcess *proc, DaoMap *httpPOSTS, DaoMap *httpPO
 		}
 
 		buffer->size -= pos_rnrn + 4;
-		memmove( buffer->bytes, buffer->bytes + pos_rnrn + 4, buffer->size );
+		memmove( buffer->chars, buffer->chars + pos_rnrn + 4, buffer->size );
 		if( fname->size == 0 ){
 			offset = 0;
 			while( (pos2 = DString_FindChars( buffer, boundary, offset )) == DAO_NULLPOS ){
@@ -232,7 +232,7 @@ static void PreparePostData( DaoProcess *proc, DaoMap *httpPOSTS, DaoMap *httpPO
 			DString_SubString( buffer, value, 0, pos2 - 4 ); /* \r\n-- */
 			DaoMap_Insert( httpPOST, (DaoValue*) vk, (DaoValue*) vv );
 			buffer->size -= pos2 + boundarylen;
-			memmove( buffer->bytes, buffer->bytes + pos2 + boundarylen, buffer->size );
+			memmove( buffer->chars, buffer->chars + pos2 + boundarylen, buffer->size );
 		}else{
 			DaoInteger isize = {DAO_INTEGER,0,0,0,0,0};
 			DaoStream *stream = DaoStream_New();
@@ -251,17 +251,17 @@ static void PreparePostData( DaoProcess *proc, DaoMap *httpPOSTS, DaoMap *httpPO
 				offset = buffer->size - boundarylen;
 				if( offset > 0 ){
 					isize.value += offset;
-					fwrite( buffer->bytes, 1, offset, file );
+					fwrite( buffer->chars, 1, offset, file );
 					buffer->size -= offset;
-					memmove( buffer->bytes, buffer->bytes + offset, buffer->size );
+					memmove( buffer->chars, buffer->chars + offset, buffer->size );
 				}
 				postlen = fread( postbuf, 1, sizeof(postbuf), stdin );
 				DString_AppendBytes( buffer, postbuf, postlen );
 			}
 			isize.value += pos2 - 4;
-			fwrite( buffer->bytes, 1, pos2 - 4, file );  /* \r\n-- */
+			fwrite( buffer->chars, 1, pos2 - 4, file );  /* \r\n-- */
 			buffer->size -= pos2 + boundarylen;
-			memmove( buffer->bytes, buffer->bytes + pos2 + boundarylen, buffer->size );
+			memmove( buffer->chars, buffer->chars + pos2 + boundarylen, buffer->size );
 			rewind( file );
 			DaoTuple_SetItem( tuple, (DaoValue*) & isize, 1 );
 		}

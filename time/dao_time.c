@@ -215,38 +215,38 @@ static void DaoTime_Parse( DaoProcess *proc, DaoValue *p[], int N )
 	self->parts.tm_isdst = -1;
 	if ( sdate ){
 		/* YYYY-MM-DD */
-		if ( sdate->size == 10 && IsNum( sdate->bytes, 4 ) && IsNum( sdate->bytes + 5, 2 ) && IsNum( sdate->bytes + 8, 2 ) &&
-			 sdate->bytes[4] == '-' && sdate->bytes[7] == '-' ){
-			self->parts.tm_year = GetNum( sdate->bytes, 4 ) - 1900;
-			self->parts.tm_mon = GetNum( sdate->bytes + 5, 2 ) - 1;
-			self->parts.tm_mday = GetNum( sdate->bytes + 8, 2 );
+		if ( sdate->size == 10 && IsNum( sdate->chars, 4 ) && IsNum( sdate->chars + 5, 2 ) && IsNum( sdate->chars + 8, 2 ) &&
+			 sdate->chars[4] == '-' && sdate->chars[7] == '-' ){
+			self->parts.tm_year = GetNum( sdate->chars, 4 ) - 1900;
+			self->parts.tm_mon = GetNum( sdate->chars + 5, 2 ) - 1;
+			self->parts.tm_mday = GetNum( sdate->chars + 8, 2 );
 		}
 		/* YYYY-MM */
-		else if ( sdate->size == 7 && IsNum( sdate->bytes, 4 ) && IsNum( sdate->bytes + 5, 2 ) && sdate->bytes[4] == '-' ){
-			self->parts.tm_year = GetNum( sdate->bytes, 4 ) - 1900;
-			self->parts.tm_mon = GetNum( sdate->bytes + 5, 2 ) - 1;
+		else if ( sdate->size == 7 && IsNum( sdate->chars, 4 ) && IsNum( sdate->chars + 5, 2 ) && sdate->chars[4] == '-' ){
+			self->parts.tm_year = GetNum( sdate->chars, 4 ) - 1900;
+			self->parts.tm_mon = GetNum( sdate->chars + 5, 2 ) - 1;
 			self->parts.tm_mday = 1;
 		}
 		/* MM-DD */
-		else if ( sdate->size == 5 && IsNum( sdate->bytes, 2 ) && IsNum( sdate->bytes + 3, 2 ) && sdate->bytes[2] == '-' ){
-			self->parts.tm_mon = GetNum( sdate->bytes, 2 ) - 1;
-			self->parts.tm_mday = GetNum( sdate->bytes + 3, 2 );
+		else if ( sdate->size == 5 && IsNum( sdate->chars, 2 ) && IsNum( sdate->chars + 3, 2 ) && sdate->chars[2] == '-' ){
+			self->parts.tm_mon = GetNum( sdate->chars, 2 ) - 1;
+			self->parts.tm_mday = GetNum( sdate->chars + 3, 2 );
 		}
 		else
 			goto Error;
 	}
 	if ( stime ){
 		/* HH:MM:SS */
-		if ( stime->size == 8 && IsNum( stime->bytes, 2 ) && IsNum( stime->bytes + 3, 2 ) && IsNum( stime->bytes + 6, 2 ) && stime->bytes[2] == ':' &&
-			 stime->bytes[5] == ':'){
-			self->parts.tm_hour = GetNum( stime->bytes, 2 );
-			self->parts.tm_min = GetNum( stime->bytes + 3, 2 );
-			self->parts.tm_sec = GetNum( stime->bytes + 6, 2 );
+		if ( stime->size == 8 && IsNum( stime->chars, 2 ) && IsNum( stime->chars + 3, 2 ) && IsNum( stime->chars + 6, 2 ) && stime->chars[2] == ':' &&
+			 stime->chars[5] == ':'){
+			self->parts.tm_hour = GetNum( stime->chars, 2 );
+			self->parts.tm_min = GetNum( stime->chars + 3, 2 );
+			self->parts.tm_sec = GetNum( stime->chars + 6, 2 );
 		}
 		/* HH:MM */
-		else if ( stime->size == 5 && IsNum( stime->bytes, 2 ) && IsNum( stime->bytes + 3, 2 ) && stime->bytes[2] == ':'){
-			 self->parts.tm_hour = GetNum( stime->bytes, 2 );
-			 self->parts.tm_min = GetNum( stime->bytes + 3, 2 );
+		else if ( stime->size == 5 && IsNum( stime->chars, 2 ) && IsNum( stime->chars + 3, 2 ) && stime->chars[2] == ':'){
+			 self->parts.tm_hour = GetNum( stime->chars, 2 );
+			 self->parts.tm_min = GetNum( stime->chars + 3, 2 );
 			 self->parts.tm_sec = 0;
 		 }
 		else
@@ -286,17 +286,17 @@ static void DaoTime_Set( DaoProcess *proc, DaoValue *p[], int N )
 	for ( i = 1; i < N; i++ ){
 		DString *name = p[i]->xNameValue.name;
 		daoint val = p[i]->xNameValue.value->xInteger.value;
-		if ( strstr( name->bytes, "year" ) )
+		if ( strstr( name->chars, "year" ) )
 			self->parts.tm_year = val - 1900;
-		else if ( strstr( name->bytes, "month" ) )
+		else if ( strstr( name->chars, "month" ) )
 			self->parts.tm_mon = val - 1;
-		else if ( strstr( name->bytes, "day" ) )
+		else if ( strstr( name->chars, "day" ) )
 			self->parts.tm_mday = val;
-		else if ( strstr( name->bytes, "hour" ) )
+		else if ( strstr( name->chars, "hour" ) )
 			self->parts.tm_hour = val;
-		else if ( strstr( name->bytes, "min" ) )
+		else if ( strstr( name->chars, "min" ) )
 			self->parts.tm_min = val;
-		else if ( strstr( name->bytes, "sec" ) )
+		else if ( strstr( name->chars, "sec" ) )
 			self->parts.tm_sec = val;
 	}
 	value = mktime( &self->parts );
@@ -404,7 +404,7 @@ static void DaoTime_Format( DaoProcess *proc, DaoValue *p[], int N )
 	DString *fmt = p[1]->xString.value;
 	if ( fmt->size ){
 		char buf[100];
-		if ( strftime( buf, sizeof(buf), fmt->bytes, &self->parts ))
+		if ( strftime( buf, sizeof(buf), fmt->chars, &self->parts ))
 			DaoProcess_PutChars( proc, buf );
 		else
 			DaoProcess_RaiseException( proc, DAO_ERROR, "Invalid format" );

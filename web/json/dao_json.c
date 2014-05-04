@@ -65,7 +65,7 @@ int JSON_SerializeValue( DaoValue *value, DString *text, int indent )
 		DString_AppendChar( text, '"' );
 		str = DString_Copy( value->xString.value );
 		for ( i = 0; i < str->size; i++ )
-			switch ( str->bytes[i] ){
+			switch ( str->chars[i] ){
 			case '\"': DString_AppendChars( text, "\\\"" ); break;
 			case '\\': DString_AppendChars( text, "\\\\" ); break;
 			case '/':  DString_AppendChars( text, "\\/" ); break;
@@ -74,7 +74,7 @@ int JSON_SerializeValue( DaoValue *value, DString *text, int indent )
 			case '\n': DString_AppendChars( text, "\\n" ); break;
 			case '\r': DString_AppendChars( text, "\\r" ); break;
 			case '\t': DString_AppendChars( text, "\\t" ); break;
-			default:   DString_AppendChar( text, str->bytes[i] );
+			default:   DString_AppendChar( text, str->chars[i] );
 			}
 		DString_AppendWChar( text, '"' );
 		DString_Delete( str );
@@ -196,8 +196,8 @@ DaoValue* JSON_ParseString( DaoProcess *process, char* *text )
 			*text = end + 1;
 			str = value->xString.value;
 			for ( i = 0; i < str->size - 1; i++ )
-				if ( str->bytes[i] == '\\' )
-					switch ( str->bytes[i + 1] ){
+				if ( str->chars[i] == '\\' )
+					switch ( str->chars[i + 1] ){
 					case '\"': DString_InsertChars( str, "\"", i, 2, 1 ); break;
 					case '\\': DString_InsertChars( str, "\\", i, 2, 1 ); break;
 					case '/':  DString_InsertChars( str, "/", i, 2, 1 ); break;
@@ -209,7 +209,7 @@ DaoValue* JSON_ParseString( DaoProcess *process, char* *text )
 					case 'u':
 						if ( i < str->size - 5 ){
 							DString_Erase( str, i + 1, 5 );
-							str->bytes[i] = (char)strtol( str->bytes, NULL, 16 );
+							str->chars[i] = (char)strtol( str->chars, NULL, 16 );
 						}
 						break;
 					}

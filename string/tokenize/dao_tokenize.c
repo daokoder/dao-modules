@@ -41,7 +41,7 @@ static void DaoSTR_Tokenize( DaoProcess *proc, DaoValue *p[], int N )
 	DaoList *list = DaoProcess_PutList( proc );
 	DaoValue *value = (DaoValue*) DaoString_New();
 	DString *str = value->xString.value;
-	char *s = self->bytes;
+	char *s = self->chars;
 	while( *s ){
 		if( bkslash && *s == '\\' ){
 			DString_AppendChar( str, *s );
@@ -49,7 +49,7 @@ static void DaoSTR_Tokenize( DaoProcess *proc, DaoValue *p[], int N )
 			s += 2;
 			continue;
 		}
-		if( ( bkslash == 0 || s == self->bytes || *(s-1) !='\\' )
+		if( ( bkslash == 0 || s == self->chars || *(s-1) !='\\' )
 				&& DString_FindChar( quotes, *s, 0 ) != DAO_NULLPOS ){
 			DString_AppendChar( str, *s );
 			s ++;
@@ -70,7 +70,7 @@ static void DaoSTR_Tokenize( DaoProcess *proc, DaoValue *p[], int N )
 			continue;
 		}
 		if( DString_FindChar( delms, *s, 0 ) != DAO_NULLPOS ){
-			if( s != self->bytes && *(s-1)=='\\' ){
+			if( s != self->chars && *(s-1)=='\\' ){
 				DString_AppendChar( str, *s );
 				s ++;
 				continue;

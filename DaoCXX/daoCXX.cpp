@@ -98,16 +98,16 @@ static void dao_cxx_parse( DString *VT, DString *source, DArray *markers )
 {
 	DString *marker = NULL;
 	daoint start = 0, rb = DString_FindChar( VT, ']', 0 );
-	DString_SetBytes( source, VT->bytes + rb + 1, VT->size - 2*(rb + 1) );
-	while( start < source->size && isspace( source->bytes[start] ) ) start += 1;
-	while( start < source->size && source->bytes[start] == '@' ){
+	DString_SetBytes( source, VT->chars + rb + 1, VT->size - 2*(rb + 1) );
+	while( start < source->size && isspace( source->chars[start] ) ) start += 1;
+	while( start < source->size && source->chars[start] == '@' ){
 		daoint end = DString_FindChar( source, '\n', start );
 		if( end == -1 ) break;
 		if( marker == NULL ) marker = DString_New();
-		DString_SetBytes( marker, source->bytes + start, end - start );
+		DString_SetBytes( marker, source->chars + start, end - start );
 		DArray_Append( markers, marker );
 		start = end + 1;
-		while( start < source->size && isspace( source->bytes[start] ) ) start += 1;
+		while( start < source->size && isspace( source->chars[start] ) ) start += 1;
 	}
 	if( marker ) DString_Delete( marker );
 	DString_Erase( source, 0, start );
@@ -116,9 +116,9 @@ static daoint dao_string_find_paired( DString *mbs, char lb, char rb )
 {
 	daoint i, count = 0, N = mbs->size;
 	for(i=0; i<N; i++){
-		if( mbs->bytes[i] == lb ){
+		if( mbs->chars[i] == lb ){
 			count -= 1;
-		}else if( mbs->bytes[i] == rb ){
+		}else if( mbs->chars[i] == rb ){
 			count += 1;
 			if( count == 0 ) return i;
 		}
@@ -133,10 +133,10 @@ static int dao_markers_get( DArray *markers, const char *name, DString *one, DAr
 		daoint lb = DString_FindChar( marker, '(', 0 );
 		daoint rb = dao_string_find_paired( marker, '(', ')' );
 		if( lb == npos || rb == npos ) continue;
-		DString_SetBytes( one, marker->bytes + 1, lb - 1 );
+		DString_SetBytes( one, marker->chars + 1, lb - 1 );
 		DString_Trim( one );
-		if( strcmp( one->bytes, name ) ) continue;
-		DString_SetBytes( one, marker->bytes + lb + 1, rb - lb - 1 );
+		if( strcmp( one->chars, name ) ) continue;
+		DString_SetBytes( one, marker->chars + lb + 1, rb - lb - 1 );
 		DString_Trim( one );
 		DArray_Erase( markers, i, 1 );
 		i -= 1;
@@ -272,7 +272,7 @@ static int dao_make_wrapper( DString *name, DaoType *routype, DString *cproto, D
 			DString_AppendChars( wrapper, "] );\n" );
 			break;
 		case DAO_CDATA :
-			if( strcmp( type->name->bytes, "cdata" ) == 0 ){
+			if( strcmp( type->name->chars, "cdata" ) == 0 ){
 				DString_Append( cc, pname );
 				DString_AppendChars( cproto, "void *" );
 				DString_Append( cproto, pname );
@@ -342,7 +342,7 @@ static int dao_make_wrapper( DString *name, DaoType *routype, DString *cproto, D
 			DString_AppendChars( wrapper, "DaoProcess_PutChars( _proc, _res );\n" );
 			break;
 		case DAO_CDATA :
-			if( strcmp( type->name->bytes, "cdata" ) == 0 ){
+			if( strcmp( type->name->chars, "cdata" ) == 0 ){
 				DString_InsertChars( cproto, "void* ", 0, 0, 0 );
 				DString_AppendChars( wrapper, "void* " );
 				DString_AppendChars( wrapper, " _res = " );
@@ -367,7 +367,7 @@ static int dao_make_wrapper( DString *name, DaoType *routype, DString *cproto, D
 		}
 	}
 	DString_AppendChars( wrapper, "\n}\n" );
-	//printf( "\n%s\n%s\n", cproto->bytes, wrapper->bytes );
+	//printf( "\n%s\n%s\n", cproto->chars, wrapper->chars );
 	return 0;
 }
 
@@ -392,7 +392,7 @@ static uint_t DaoRotatingHash( DString *text )
 {
 	int i, len = text->size;
 	uint_t hash = text->size;
-	for(i=0; i<len; ++i) hash = ((hash<<4)^(hash>>28)^text->bytes[i])&0x7fffffff;
+	for(i=0; i<len; ++i) hash = ((hash<<4)^(hash>>28)^text->chars[i])&0x7fffffff;
 	return hash;
 }
 static void dao_make_anonymous_name( char *name, DaoNamespace *NS, DString *VT, const char *prefix, const char *suffix )
@@ -419,8 +419,8 @@ static int dao_cxx_block( DaoNamespace *NS, DString *VT, DArray *markers, DStrin
 	DString_AppendChars( source, bytes );
 
 	dao_make_anonymous_name( name, NS, VT, "", ".cxx" );
-	//printf( "%s:\n%s\n", name, source->bytes );
-	DaoCXX_AddVirtualFile( name, source->bytes );
+	//printf( "%s:\n%s\n", name, source->chars );
+	DaoCXX_AddVirtualFile( name, source->chars );
 
 	//action.BeginSourceFile( compiler, FrontendInputFile( name, IK_CXX ) );
 	if( ! compiler.ExecuteAction( action ) ) return error_compile_failed( out );
@@ -437,7 +437,7 @@ static int dao_cxx_block( DaoNamespace *NS, DString *VT, DArray *markers, DStrin
 
 	DString_SetChars( out, name );
 	DString_AppendChars( out, "()" );
-	DaoNamespace_WrapFunction( NS, (DaoCFunction)fp, out->bytes );
+	DaoNamespace_WrapFunction( NS, (DaoCFunction)fp, out->chars );
 	DString_AppendChar( out, ';' );
 	return 0;
 }
@@ -451,7 +451,7 @@ static int dao_cxx_function( DaoNamespace *NS, DString *VT, DArray *markers, DSt
 
 	dao_make_anonymous_name( file, NS, VT, "", ".cxx" );
 	dao_make_anonymous_name( proto2, NS, VT, "", "()" );
-	if( dao_markers_get( markers, "define", mbs, NULL ) ) proto = mbs->bytes;
+	if( dao_markers_get( markers, "define", mbs, NULL ) ) proto = mbs->chars;
 
 	DaoRoutine *func = DaoNamespace_WrapFunction( NS, DaoCXX_Default, proto );
 	if( func == NULL ){
@@ -475,17 +475,17 @@ static int dao_cxx_function( DaoNamespace *NS, DString *VT, DArray *markers, DSt
 	DString_Delete( cproto );
 	DString_Delete( call );
 
-	if( retc ) return error_function_notwrapped( out, func->routName->bytes );
+	if( retc ) return error_function_notwrapped( out, func->routName->chars );
 
-	//printf( "\n%s\n%s\n", file, source->bytes );
-	DaoCXX_AddVirtualFile( file, source->bytes );
+	//printf( "\n%s\n%s\n", file, source->chars );
+	DaoCXX_AddVirtualFile( file, source->chars );
 
 	if( ! compiler.ExecuteAction( action ) ) return error_compile_failed( out );
 
 	llvm::Module *module = action.takeModule();
 	if( module == NULL ) return error_compile_failed( out );
 
-	sprintf( proto2, "dao_%s", func->routName->bytes ); //XXX buffer size
+	sprintf( proto2, "dao_%s", func->routName->chars ); //XXX buffer size
 	Function *Func = module->getFunction( proto2 );
 	if( Func == NULL ) return error_function_notfound( out, proto2 );
 
@@ -503,10 +503,10 @@ static int dao_cxx_header( DaoNamespace *NS, DString *VT, DArray *markers, DStri
 	dao_make_anonymous_name( name, NS, VT, "", ".h" );
 	if( dao_markers_get( markers, "file", mbs, NULL ) ){
 		// TODO: better handling of suffix?
-		if( isalnum( mbs->bytes[0] ) ) DString_InsertChars( mbs, "./", 0, 0, 0 );
-		file = mbs->bytes;
+		if( isalnum( mbs->chars[0] ) ) DString_InsertChars( mbs, "./", 0, 0, 0 );
+		file = mbs->chars;
 	}
-	DaoCXX_AddVirtualFile( file, source->bytes );
+	DaoCXX_AddVirtualFile( file, source->chars );
 	DString_Delete( mbs );
 	return 0;
 }
@@ -525,7 +525,7 @@ static int dao_cxx_source( DaoNamespace *NS, DString *VT, DArray *markers, DStri
 	dao_make_anonymous_name( name, NS, VT, "", ".cxx" );
 	dao_markers_get( markers, "wrap", mbs, wraps );
 	if( dao_markers_get( markers, "file", mbs, NULL ) ){
-		file = mbs->bytes;
+		file = mbs->chars;
 		// TODO: better handling of suffix?
 		if( DString_FindChars( mbs, ".c", 0 ) == mbs->size - 2 ) kind = IK_C;
 		if( DString_FindChars( mbs, ".C", 0 ) == mbs->size - 2 ) kind = IK_C;
@@ -536,9 +536,9 @@ static int dao_cxx_source( DaoNamespace *NS, DString *VT, DArray *markers, DStri
 	DString_AppendChars( source, "\nextern \"C\"{\n" );
 	for(i=0; i<wraps->size; i++){
 		DString *daoproto = wraps->items.pString[i];
-		DaoRoutine *func = DaoNamespace_WrapFunction( NS, DaoCXX_Default, daoproto->bytes );
+		DaoRoutine *func = DaoNamespace_WrapFunction( NS, DaoCXX_Default, daoproto->chars );
 		if( func == NULL || dao_make_wrapper( func->routName, func->routType, cproto, source, call ) ){
-			DString_AppendChars( out, daoproto->bytes );
+			DString_AppendChars( out, daoproto->chars );
 			DString_AppendChars( out, "\n" );
 			failed += 1;
 			continue;
@@ -547,8 +547,8 @@ static int dao_cxx_source( DaoNamespace *NS, DString *VT, DArray *markers, DStri
 	}
 	DString_AppendChars( source, "}\n" );
 
-	//printf( "\n%s\n%s\n", file, source->bytes );
-	if( failed == 0 ) DaoCXX_AddVirtualFile( file, source->bytes );
+	//printf( "\n%s\n%s\n", file, source->chars );
+	if( failed == 0 ) DaoCXX_AddVirtualFile( file, source->chars );
 	DString_Delete( mbs );
 	DString_Delete( call );
 	DString_Delete( cproto );
@@ -565,7 +565,7 @@ static int dao_cxx_source( DaoNamespace *NS, DString *VT, DArray *markers, DStri
 
 	for(i=0; i<funcs->size; i++){
 		DaoRoutine *func = funcs->items.pRoutine[i];
-		sprintf( name, "dao_%s", func->routName->bytes ); //XXX buffer size
+		sprintf( name, "dao_%s", func->routName->chars ); //XXX buffer size
 
 		Function *Func = module->getFunction( name );
 		if( Func == NULL ) return error_function_notfound( out, name );
@@ -585,13 +585,13 @@ static int dao_cxx_inliner( DaoNamespace *NS, DString *mode, DString *verbatim, 
 
 	dao_cxx_parse( verbatim, source, markers );
 
-	if( mode->size == 0 || strcmp( mode->bytes, "block" ) ==0 ){
+	if( mode->size == 0 || strcmp( mode->chars, "block" ) ==0 ){
 		retc = dao_cxx_block( NS, verbatim, markers, source, out );
-	}else if( strcmp( mode->bytes, "function" ) ==0 ){
+	}else if( strcmp( mode->chars, "function" ) ==0 ){
 		retc = dao_cxx_function( NS, verbatim, markers, source, out );
-	}else if( strcmp( mode->bytes, "header" ) ==0 ){
+	}else if( strcmp( mode->chars, "header" ) ==0 ){
 		retc = dao_cxx_header( NS, verbatim, markers, source, out );
-	}else if( strcmp( mode->bytes, "source" ) ==0 ){
+	}else if( strcmp( mode->chars, "source" ) ==0 ){
 		retc = dao_cxx_source( NS, verbatim, markers, source, out );
 	}else{
 		DString_SetChars( out, "Invalid inline mode" );
@@ -617,19 +617,19 @@ static int dao_cxx_loader( DaoNamespace *NS, DString *file, DString *emsg )
 	int retc = 0;
 
 	source = DString_New();
-	if( DaoFile_ReadAll( fopen( file->bytes, "r" ), source, 1 ) == 0 ){
+	if( DaoFile_ReadAll( fopen( file->chars, "r" ), source, 1 ) == 0 ){
 		DString_Delete( source );
 		return 1;
 	}
 	marker = DString_New();
 	markers = DArray_New(DAO_DATA_STRING);
-	while( start < source->size && source->bytes[start] == '@' ){
+	while( start < source->size && source->chars[start] == '@' ){
 		daoint end = DString_FindChar( source, '\n', start );
 		if( end == -1 ) break;
-		DString_SetBytes( marker, source->bytes + start, end - start );
+		DString_SetBytes( marker, source->chars + start, end - start );
 		DArray_Append( markers, marker );
 		start = end + 1;
-		while( start < source->size && isspace( source->bytes[start] ) ) start += 1;
+		while( start < source->size && isspace( source->chars[start] ) ) start += 1;
 	}
 	DString_Erase( source, 0, start );
 	retc = dao_cxx_source( NS, file, markers, source, emsg );
@@ -673,13 +673,13 @@ DAO_DLL int DaoCxx_OnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 	clang::HeaderSearchOptions & headers = compiler.getHeaderSearchOpts();
 	DString_SetChars( mbs, DaoVmSpace_CurrentLoadingPath( vms ) );
 	DString_AppendChars( mbs, "/../" ); // /usr/local/dao relative to /usr/local/dao/lib
-	headers.AddPath( mbs->bytes, clang::frontend::System, false, false, true );
+	headers.AddPath( mbs->chars, clang::frontend::System, false, false, true );
 #ifdef DAO_DIR
 	headers.AddPath( DAO_DIR "/include", clang::frontend::System, false, false, true );
 #endif
 	DString_SetChars( mbs, DaoVmSpace_CurrentLoadingPath( vms ) );
 	DString_AppendChars( mbs, "/../../kernel" ); // at build
-	headers.AddPath( mbs->bytes, clang::frontend::System, false, false, true );
+	headers.AddPath( mbs->chars, clang::frontend::System, false, false, true );
 
 	DString_Delete( mbs );
 

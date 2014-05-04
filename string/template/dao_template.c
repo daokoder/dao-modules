@@ -73,22 +73,22 @@ void DaoxTemplateNode_Delete( DaoxTemplateNode *self )
 int DString_CheckCommandTag( DString *self, DString *cmd, daoint start, daoint end, char prefix )
 {
 	daoint i, pos = start + 2;
-	//printf( "DString_CheckCommandTag(): %s\n", self->bytes + start );
+	//printf( "DString_CheckCommandTag(): %s\n", self->chars + start );
 
-	while( isspace( self->bytes[pos] ) ) pos += 1;
-	if( self->bytes[pos++] != prefix ) return 0;
+	while( isspace( self->chars[pos] ) ) pos += 1;
+	if( self->chars[pos++] != prefix ) return 0;
 	if( cmd->size > (end - pos) ) return 0;
 
 	for(i=0; i<cmd->size; ++i){
-		if( cmd->bytes[i] != self->bytes[pos++] ) return 0;
+		if( cmd->chars[i] != self->chars[pos++] ) return 0;
 	}
-	if( self->bytes[pos] != '}' && ! isspace( self->bytes[pos] ) ) return 0;
+	if( self->chars[pos] != '}' && ! isspace( self->chars[pos] ) ) return 0;
 	for(i=pos; i<end; ++i){
-		if( self->bytes[pos] == '{' || self->bytes[pos] == '}' ) return 0;
+		if( self->chars[pos] == '{' || self->chars[pos] == '}' ) return 0;
 	}
 	if( prefix == '#' ) return pos;
-	while( isspace( self->bytes[pos] ) ) pos += 1;
-	if( self->bytes[pos] != '}' ) return 0;
+	while( isspace( self->chars[pos] ) ) pos += 1;
+	if( self->chars[pos] != '}' ) return 0;
 	return 1;
 }
 daoint DString_FindCommandTag( DString *self, DString *cmd, daoint start, daoint end, char prefix )
@@ -139,7 +139,7 @@ void DaoxTemplateNode_ParseMBS( DaoxTemplateNode *self, DString *template, daoin
 	DString *keyWCS = NULL;
 	daoint pos, pos2, offset = start;
 	self->children = DArray_New(0);
-	while( end > start && isspace(template->bytes[end-1]) ) end --;
+	while( end > start && isspace(template->chars[end-1]) ) end --;
 	while( offset < end ){
 		DaoxTemplateNode *node = DaoxTemplateNode_New();
 		node->contentMBS = DString_New();
@@ -157,46 +157,46 @@ void DaoxTemplateNode_ParseMBS( DaoxTemplateNode *self, DString *template, daoin
 		pos2 = DString_FindChars( template, "}}", pos );
 		if( pos2 == DAO_NULLPOS ) break; // XXX: error;
 		pos += 2;
-		while( isspace( template->bytes[pos] ) ) pos += 1;
-		if( template->bytes[pos] == '!' ){
+		while( isspace( template->chars[pos] ) ) pos += 1;
+		if( template->chars[pos] == '!' ){
 			offset = pos2 + 2;
 			continue;
 		}
-		if( template->bytes[pos] == '/' ){
+		if( template->chars[pos] == '/' ){
 			offset = pos2 + 2;
 			continue;
 		}
 
 		node = DaoxTemplateNode_New();
 		DArray_Append( self->children, node );
-		if( template->bytes[pos] == '#' ){
+		if( template->chars[pos] == '#' ){
 			node->command = DString_New();
 			pos += 1;
-			while( isalnum( template->bytes[pos] ) || template->bytes[pos] == '_' ){
-				DString_AppendChar( node->command, template->bytes[pos] );
+			while( isalnum( template->chars[pos] ) || template->chars[pos] == '_' ){
+				DString_AppendChar( node->command, template->chars[pos] );
 				pos += 1;
 			}
-			if( ! isspace( template->bytes[pos] ) ){
+			if( ! isspace( template->chars[pos] ) ){
 			}
 		}
 		node->keyPathMBS = DArray_New(DAO_DATA_STRING);
 		node->keyPathWCS = DArray_New(DAO_DATA_STRING);
 		while( pos < pos2 ){
-			while( isspace( template->bytes[pos] ) ) pos += 1;
+			while( isspace( template->chars[pos] ) ) pos += 1;
 			if( pos >= pos2 ) break;
 			if( keyMBS == NULL ){
 				keyMBS = DString_New();
 				keyWCS = DString_New();
 			}
 			DString_Reset( keyMBS, 0 );
-			if( node->keyPathMBS->size == 0 && template->bytes[pos] == '@' ){
-				DString_AppendChar( keyMBS, template->bytes[pos++] );
+			if( node->keyPathMBS->size == 0 && template->chars[pos] == '@' ){
+				DString_AppendChar( keyMBS, template->chars[pos++] );
 			}
-			while( isalnum( template->bytes[pos] ) || template->bytes[pos] == '_' ){
-				DString_AppendChar( keyMBS, template->bytes[pos] );
+			while( isalnum( template->chars[pos] ) || template->chars[pos] == '_' ){
+				DString_AppendChar( keyMBS, template->chars[pos] );
 				pos += 1;
 			}
-			if( template->bytes[pos] == '.' ) pos += 1;
+			if( template->chars[pos] == '.' ) pos += 1;
 			DString_Reset( keyWCS, 0 );
 			DString_Append( keyWCS, keyMBS );
 			DArray_Append( node->keyPathMBS, keyMBS );
@@ -221,8 +221,8 @@ void DaoxTemplateNode_ParseMBS( DaoxTemplateNode *self, DString *template, daoin
 		daoint i;
 		for(i=0; i<self->children->size; ++i){
 			DaoxTemplateNode *node = (DaoxTemplateNode*) self->children->items.pVoid[i];
-			printf( "command = %s; path = %s\n", node->command ? node->command->bytes : "",
-					node->keypath ? node->keypath->items.pString[0]->bytes : "" );
+			printf( "command = %s; path = %s\n", node->command ? node->command->chars : "",
+					node->keypath ? node->keypath->items.pString[0]->chars : "" );
 		}
 	}
 #endif
@@ -235,7 +235,7 @@ DaoValue* DaoxTemplateNode_GetPath( DaoxTemplateNode *self, DaoValue *container,
 	DNode *it;
 	if( path->size >= 1 && i == 0 ){
 		DString *name = path->items.pString[0];
-		if( name->bytes[0] == '@' ){
+		if( name->chars[0] == '@' ){
 			if( vars == NULL ) return NULL;
 			it = DMap_Find( vars, name );
 			if( it ) return it->value.pValue;
@@ -246,8 +246,8 @@ DaoValue* DaoxTemplateNode_GetPath( DaoxTemplateNode *self, DaoValue *container,
 	if( i >= path->size ) return container;
 	if( container->type == DAO_MAP ){
 		DaoMap *map = (DaoMap*) container;
-		value = DaoMap_GetValueChars( map, path->items.pString[i]->bytes );
-		if( value == NULL ) value = DaoMap_GetValueChars( map, path2->items.pString[i]->bytes );
+		value = DaoMap_GetValueChars( map, path->items.pString[i]->chars );
+		if( value == NULL ) value = DaoMap_GetValueChars( map, path2->items.pString[i]->chars );
 		return DaoxTemplateNode_GetPath( self, value, NULL, i+1 );
 	}else if( container->type == DAO_TUPLE ){
 		DaoTuple *tup = (DaoTuple*) container;
@@ -273,7 +273,7 @@ void DaoxTemplateNode_Generate( DaoxTemplateNode *self, DaoValue *value, DMap *v
 		DaoString *key = & key0;
 		DMap *vars2;
 		DNode *it;
-		if( strcmp( self->command->bytes, "each" ) == 0 ){
+		if( strcmp( self->command->chars, "each" ) == 0 ){
 			if( field == NULL ) return;
 			vars2 = vars ? DMap_Copy( vars ) : DMap_New(DAO_DATA_STRING,DAO_DATA_VALUE);
 			if( field->type == DAO_LIST ){
@@ -315,7 +315,7 @@ void DaoxTemplateNode_Generate( DaoxTemplateNode *self, DaoValue *value, DMap *v
 				DArray_Delete( names );
 			}
 			DMap_Delete( vars2 );
-		}else if( strcmp( self->command->bytes, "empty" ) == 0 ){
+		}else if( strcmp( self->command->chars, "empty" ) == 0 ){
 			int count = 1;
 			if( field == NULL ){
 				DaoxTemplateNodes_Generate( self->children, value, vars, output );
@@ -327,7 +327,7 @@ void DaoxTemplateNode_Generate( DaoxTemplateNode *self, DaoValue *value, DMap *v
 			case DAO_TUPLE : count = field->xTuple.size; break;
 			}
 			if( count == 0 ) DaoxTemplateNodes_Generate( self->children, value, vars, output );
-		}else if( strcmp( self->command->bytes, "not_empty" ) == 0 ){
+		}else if( strcmp( self->command->chars, "not_empty" ) == 0 ){
 			int count = 0;
 			if( field == NULL ) return;
 			switch( field->type ){
@@ -342,19 +342,19 @@ void DaoxTemplateNode_Generate( DaoxTemplateNode *self, DaoValue *value, DMap *v
 				DaoxTemplateNodes_Generate( self->children, value, vars2, output );
 				DMap_Delete( vars2 );
 			}
-		}else if( strcmp( self->command->bytes, "contain" ) == 0 ){
+		}else if( strcmp( self->command->chars, "contain" ) == 0 ){
 			if( field != NULL ) DaoxTemplateNodes_Generate( self->children, value, vars, output );
-		}else if( strcmp( self->command->bytes, "not_contain" ) == 0 ){
+		}else if( strcmp( self->command->chars, "not_contain" ) == 0 ){
 			if( field == NULL ) DaoxTemplateNodes_Generate( self->children, value, vars, output );
 		}
 	}else if( self->keyPathMBS ){
-		DString *tmp = DString_New(output->bytes!=NULL);
+		DString *tmp = DString_New(output->chars!=NULL);
 		DaoValue *field = DaoxTemplateNode_GetPath( self, value, vars, 0 );
 		if( field ) DaoValue_GetString( field, tmp );
 		DString_Append( output, tmp );
 		DString_Delete( tmp );
 	}else if( self->contentMBS ){
-		if( output->bytes ){
+		if( output->chars ){
 			DString_Append( output, self->contentMBS );
 		}else{
 			DString_Append( output, self->contentWCS );
@@ -378,7 +378,7 @@ void DaoxTemplates_Delete( DMap *self )
 {
 	DNode *it;
 	for(it=DMap_First(self); it; it=DMap_Next(self,it)){
-		if( it->key.pString->bytes ) DaoxTemplateNode_Delete( (DaoxTemplateNode*) it->value.pVoid );
+		if( it->key.pString->chars ) DaoxTemplateNode_Delete( (DaoxTemplateNode*) it->value.pVoid );
 	}
 	DMap_Delete( self );
 }

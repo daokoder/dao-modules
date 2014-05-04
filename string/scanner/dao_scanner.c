@@ -131,8 +131,8 @@ static void DaoScanner_ScanSeek( DaoProcess *proc, DaoValue *p[], int seek )
 	daoint res = 0;
 	if ( !seek && pt->size ){
 		int i;
-		for ( i = 0; i < pt->size && isspace( pt->bytes[i] ); i++ );
-		if ( i >= pt->size || pt->bytes[i] != '^' ){
+		for ( i = 0; i < pt->size && isspace( pt->chars[i] ); i++ );
+		if ( i >= pt->size || pt->chars[i] != '^' ){
 			pt = DString_NewChars( "^" );
 			DString_Append( pt, p[1]->xString.value );
 			del = 1;
@@ -215,7 +215,7 @@ static void DaoScanner_Line( DaoProcess *proc, DaoValue *p[], int N )
 	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
 	daoint res = 1, i;
 	for ( i = 0; i < self->pos; i++ )
-		if ( self->context->bytes[i] == '\n' )
+		if ( self->context->chars[i] == '\n' )
 			res++;
 	DaoProcess_PutInteger( proc, res );
 }
@@ -229,8 +229,8 @@ static void DaoScanner_Follows( DaoProcess *proc, DaoValue *p[], int N )
 	daoint res = 0;
 	if ( pt->size ){
 		int i;
-		for ( i = pt->size - 1; i >= 0 && isspace( pt->bytes[i] ); i-- );
-		if ( i < 0 || pt->bytes[i] != '$' ){
+		for ( i = pt->size - 1; i >= 0 && isspace( pt->chars[i] ); i-- );
+		if ( i < 0 || pt->chars[i] != '$' ){
 			pt = DString_Copy( pt );
 			DString_AppendChar( pt, '$' );
 			del = 1;
@@ -258,8 +258,8 @@ static void DaoScanner_Precedes( DaoProcess *proc, DaoValue *p[], int N )
 	daoint res = 0;
 	if ( pt->size ){
 		int i;
-		for ( i = 0; i < pt->size && isspace( pt->bytes[i] ); i++ );
-		if ( i >= pt->size || pt->bytes[i] != '^' ){
+		for ( i = 0; i < pt->size && isspace( pt->chars[i] ); i++ );
+		if ( i >= pt->size || pt->chars[i] != '^' ){
 			pt = DString_NewChars( "^" );
 			DString_Append( pt, p[1]->xString.value );
 			del = 1;

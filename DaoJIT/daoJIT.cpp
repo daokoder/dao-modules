@@ -715,7 +715,7 @@ void DaoJIT_ADD_NE( DaoValue *dA, DaoValue *dB, DaoValue *dC )
 daoint DaoJIT_GETI_SI( DaoValue *dA, daoint id, int *estatus )
 {
 	DString *string = dA->xString.value;
-	char *mbs = string->bytes;
+	char *mbs = string->chars;
 	if( id <0 ) id += string->size;
 	if( id <0 || id >= string->size ){
 		*estatus |= (DAO_ERROR_INDEX<<16);
@@ -726,7 +726,7 @@ daoint DaoJIT_GETI_SI( DaoValue *dA, daoint id, int *estatus )
 void DaoJIT_SETI_SII( daoint ch, daoint id, DaoValue *dC, int *estatus )
 {
 	DString *string = dC->xString.value;
-	char *mbs = string->bytes;
+	char *mbs = string->chars;
 	if( id <0 ) id += string->size;
 	if( id <0 || id >= string->size ){
 		*estatus |= (DAO_ERROR_INDEX<<16);
@@ -1287,7 +1287,7 @@ Function* DaoJitHandle::NewFunction( DaoRoutine *routine, int id )
 {
 	int i;
 	char buf[100];
-	std::string name = routine->routName->bytes;
+	std::string name = routine->routName->chars;
 	sprintf( buf, "_daojit_%p_%i", routine, id );
 	name += buf;
 
@@ -1382,7 +1382,7 @@ void DaoJIT_Free( void *jitdata )
 }
 static bool CompilableSETI( DaoVmCodeX *vmc, DaoType **types )
 {
-	//printf("%s %s %s\n",types[vmc->a]->name->bytes,types[vmc->b]->name->bytes,types[vmc->c]->name->bytes);
+	//printf("%s %s %s\n",types[vmc->a]->name->chars,types[vmc->b]->name->chars,types[vmc->c]->name->chars);
 	if( types[vmc->c]->tid != DAO_ARRAY ) return false;
 	if( types[vmc->b]->tid != DAO_NONE && types[vmc->b]->tid != DAO_VALTYPE ) return false;
 	if( types[vmc->b]->tid == DAO_VALTYPE && types[vmc->b]->value->type != DAO_NONE ) return false;
@@ -1393,7 +1393,7 @@ static bool CompilableArrayBinOp( DaoVmCodeX *vmc, DaoType **types )
 {
 	DaoType *at = types[vmc->a];
 	DaoType *bt = types[vmc->b];
-	//printf("%s %s %s\n",types[vmc->a]->name->bytes,types[vmc->b]->name->bytes,types[vmc->c]->name->bytes);
+	//printf("%s %s %s\n",types[vmc->a]->name->chars,types[vmc->b]->name->chars,types[vmc->c]->name->chars);
 	if( types[vmc->c]->tid != DAO_ARRAY ) return false;
 	if( at->tid != DAO_ARRAY && (at->tid < DAO_INTEGER || at->tid > DAO_COMPLEX) ) return false;
 	if( bt->tid != DAO_ARRAY && (bt->tid < DAO_INTEGER || bt->tid > DAO_COMPLEX) ) return false;
@@ -3296,7 +3296,7 @@ Function* DaoJitHandle::Compile( int start, int end )
 	}
 	return jitfunc;
 Failed:
-	printf( "failed compiling: %s %4i %4i\n", routine->routName->bytes, start, end );
+	printf( "failed compiling: %s %4i %4i\n", routine->routName->chars, start, end );
 	jitfunc->eraseFromParent();
 	return NULL;
 }

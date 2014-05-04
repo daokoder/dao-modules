@@ -699,7 +699,7 @@ static void FSNode_Rename( DaoProcess *proc, DaoValue *p[], int N )
 	int res;
 	char errbuf[MAX_ERRMSG];
 	DString *path = DString_Copy( p[1]->xString.value );
-	if ( (res = DInode_Rename( self, path->bytes ) ) != 0 ){
+	if ( (res = DInode_Rename( self, path->chars ) ) != 0 ){
 		if( res == -1 )
 			strcpy( errbuf, "Renaming root directory" );
 		else
@@ -741,7 +741,7 @@ int InitPermissions( DString *mode, int *r, int *w, int *x )
 	daoint i;
 	*r = *w = *x = 0;
 	for ( i = 0; i < mode->size; i++ )
-		switch ( mode->bytes[i] ){
+		switch ( mode->chars[i] ){
 		case 'r': if ( *r ) return 0; *r = 1; break;
 		case 'w': if ( *w ) return 0; *w = 1; break;
 		case 'x': if ( *x ) return 0; *x = 1; break;
@@ -790,7 +790,7 @@ static void FSNode_Makefile( DaoProcess *proc, DaoValue *p[], int N )
 		return;
 	}
 	child = DInode_New();
-	if( ( res = DInode_SubInode( self, path->bytes, 0, child, 0 ) ) != 0 ){
+	if( ( res = DInode_SubInode( self, path->chars, 0, child, 0 ) ) != 0 ){
 		char errbuf[MAX_ERRMSG];
 		DInode_Delete( child );
 		if( res == -1 )
@@ -816,7 +816,7 @@ static void FSNode_Makedir( DaoProcess *proc, DaoValue *p[], int N )
 		return;
 	}
 	child = DInode_New();
-	if( ( res = DInode_SubInode( self, path->bytes, 1, child, 0 ) ) != 0 ){
+	if( ( res = DInode_SubInode( self, path->chars, 1, child, 0 ) ) != 0 ){
 		char errbuf[MAX_ERRMSG];
 		DInode_Delete( child );
 		if( res == -1 )
@@ -841,7 +841,7 @@ static void FSNode_Exists( DaoProcess *proc, DaoValue *p[], int N )
 		return;
 	}
 	child = DInode_New();
-	DaoProcess_PutInteger( proc, DInode_SubInode( self, path->bytes, 0, child, 1 ) == 0 );
+	DaoProcess_PutInteger( proc, DInode_SubInode( self, path->chars, 0, child, 1 ) == 0 );
 	DString_Delete( path );
 	DInode_Delete( child );
 }
@@ -868,7 +868,7 @@ static void FSNode_Child( DaoProcess *proc, DaoValue *p[], int N )
 		DInode_Delete( child );
 		goto Exit;
 	}
-	if( ( res = DInode_Open( child, path->bytes ) ) != 0 ){
+	if( ( res = DInode_Open( child, path->chars ) ) != 0 ){
 		char errbuf[MAX_ERRMSG];
 		DInode_Delete( child );
 		if( res == -1 )
@@ -1011,17 +1011,17 @@ static void FSNode_Copy( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseException( proc, DAO_ERROR, buf );
 		goto Exit;
 	}
-	if ( IS_PATH_SEP( path->bytes[path->size - 1] ) ){
+	if ( IS_PATH_SEP( path->chars[path->size - 1] ) ){
 		int i;
 		for (i = strlen( self->path ) - 1; i > 0; i--)
 			if( IS_PATH_SEP( self->path[i] ) )
 				break;
 		DString_AppendChars( path, self->path + i );
 	}
-	dest = fopen( path->bytes, "w" );
+	dest = fopen( path->chars, "w" );
 	if ( !dest ){
 		char errbuf[MAX_ERRMSG + MAX_PATH + 3];
-		snprintf( errbuf, sizeof(errbuf), "Unable to write file: %s;", path->bytes );
+		snprintf( errbuf, sizeof(errbuf), "Unable to write file: %s;", path->chars );
 		GetErrorMessage( errbuf + strlen( errbuf ), errno, 0 );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
 		goto Exit;
@@ -1031,7 +1031,7 @@ static void FSNode_Copy( DaoProcess *proc, DaoValue *p[], int N )
 		fwrite( buf, sizeof(char), count, dest );
 	}
 	copy = DInode_New();
-	if ( ( res = DInode_Open( copy, path->bytes ) ) != 0 ){
+	if ( ( res = DInode_Open( copy, path->chars ) ) != 0 ){
 		char errbuf[MAX_ERRMSG];
 		DInode_Delete( copy );
 		GetErrorMessage( errbuf, res, 0 );
@@ -1066,7 +1066,7 @@ static void FSNode_Mktemp( DaoProcess *proc, DaoValue *p[], int N )
 	if ( self->type != 0 )
 		DaoProcess_RaiseException( proc, DAO_ERROR, "File object is not a directory" );
 	else {
-		res = MakeTmpFile( self->path, pref->bytes, buf );
+		res = MakeTmpFile( self->path, pref->chars, buf );
 		DInode *fsnode = DInode_New();
 		if ( res || ( res = DInode_Open( fsnode, buf ) ) != 0 ){
 			char errbuf[MAX_ERRMSG];
@@ -1090,7 +1090,7 @@ static void FSNode_New( DaoProcess *proc, DaoValue *p[], int N )
 	DInode *fsnode = DInode_New();
 	int res;
 	DString *path = DString_Copy( p[0]->xString.value );
-	if( ( res = DInode_Open( fsnode, path->bytes ) ) != 0 ){
+	if( ( res = DInode_Open( fsnode, path->chars ) ) != 0 ){
 		char errbuf[MAX_ERRMSG + MAX_PATH + 3];
 		DInode_Delete( fsnode );
 		if( res == -1 )
@@ -1098,7 +1098,7 @@ static void FSNode_New( DaoProcess *proc, DaoValue *p[], int N )
 		else
 			GetErrorMessage( errbuf, res, 0 );
 		if( res == -1 || res == ENOENT )
-			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", path->bytes );
+			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", path->chars );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
 	}
 	else
@@ -1165,13 +1165,13 @@ static void FS_SetCWD2( DaoProcess *proc, DaoValue *p[], int N )
 	DString *path = DString_Copy( p[0]->xString.value );
 	int res;
 	DInode *fsnode = DInode_New();
-	if( ( res = DInode_Open( fsnode, path->bytes ) ) == 0 && fsnode->type == 0 )
+	if( ( res = DInode_Open( fsnode, path->chars ) ) == 0 && fsnode->type == 0 )
 		FS_TRANS( res = chdir( fsnode->path ) );
 	if ( res ) {
 		char errbuf[MAX_ERRMSG + MAX_PATH + 3];
 		GetErrorMessage( errbuf, errno, 0 );
 		if( res == -1 || res == ENOENT )
-			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", path->bytes );
+			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", path->chars );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
 	}
 	DString_Delete( path );
@@ -1183,13 +1183,13 @@ static void FS_NormPath( DaoProcess *proc, DaoValue *p[], int N )
 	DString *path = DString_Copy( p[0]->xString.value );
 	int res;
 	DInode *fsnode = DInode_New();
-	if ( ( res = DInode_Open( fsnode, path->bytes ) ) == 0 )
+	if ( ( res = DInode_Open( fsnode, path->chars ) ) == 0 )
 		DaoProcess_PutChars( proc, fsnode->path );
 	else {
 		char errbuf[MAX_ERRMSG + MAX_PATH + 3];
 		GetErrorMessage( errbuf, res, 0 );
 		if( res == -1 || res == ENOENT )
-			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", path->bytes );
+			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", path->chars );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
 	}
 	DInode_Delete( fsnode );
@@ -1200,7 +1200,7 @@ static void FS_Exists( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DString *path = DString_Copy( p[0]->xString.value );
 	DInode *fsnode = DInode_New();
-	DaoProcess_PutInteger( proc, DInode_Open( fsnode, path->bytes ) == 0 );
+	DaoProcess_PutInteger( proc, DInode_Open( fsnode, path->chars ) == 0 );
 	DString_Delete( path );
 	DInode_Delete( fsnode );
 }
@@ -1217,7 +1217,7 @@ static void FS_NewFile( DaoProcess *proc, DaoValue *p[], int N )
 	DInode *fsnode = DInode_New();
 	int res;
 	DString *path = DString_Copy( p[0]->xString.value );
-	if( ( res = DInode_Open( fsnode, path->bytes ) ) != 0 ){
+	if( ( res = DInode_Open( fsnode, path->chars ) ) != 0 ){
 		char errbuf[MAX_ERRMSG + MAX_PATH + 3];
 		DInode_Delete( fsnode );
 		if( res == -1 )
@@ -1225,7 +1225,7 @@ static void FS_NewFile( DaoProcess *proc, DaoValue *p[], int N )
 		else
 			GetErrorMessage( errbuf, res, 0 );
 		if( res == -1 || res == ENOENT )
-			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", path->bytes );
+			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", path->chars );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
 	}
 	else if ( fsnode->type == 0 ){
@@ -1242,7 +1242,7 @@ static void FS_NewDir( DaoProcess *proc, DaoValue *p[], int N )
 	DInode *fsnode = DInode_New();
 	int res;
 	DString *path = DString_Copy( p[0]->xString.value );
-	if( ( res = DInode_Open( fsnode, path->bytes ) ) != 0 ){
+	if( ( res = DInode_Open( fsnode, path->chars ) ) != 0 ){
 		char errbuf[MAX_ERRMSG + MAX_PATH + 3];
 		DInode_Delete( fsnode );
 		if( res == -1 )
@@ -1250,7 +1250,7 @@ static void FS_NewDir( DaoProcess *proc, DaoValue *p[], int N )
 		else
 			GetErrorMessage( errbuf, res, 0 );
 		if( res == -1 || res == ENOENT )
-			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", path->bytes );
+			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", path->chars );
 		DaoProcess_RaiseException( proc, DAO_ERROR, errbuf );
 	}
 	else if ( fsnode->type == 1 ){
