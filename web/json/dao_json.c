@@ -76,7 +76,7 @@ int JSON_SerializeValue( DaoValue *value, DString *text, int indent )
 			case '\t': DString_AppendChars( text, "\\t" ); break;
 			default:   DString_AppendChar( text, str->chars[i] );
 			}
-		DString_AppendWChar( text, '"' );
+		DString_AppendChar( text, '"' );
 		DString_Delete( str );
 		break;
 	case DAO_LIST:
@@ -208,8 +208,15 @@ DaoValue* JSON_ParseString( DaoProcess *process, char* *text )
 					case 't':  DString_InsertChars( str, "\t", i, 2, 1 ); break;
 					case 'u':
 						if ( i < str->size - 5 ){
-							DString_Erase( str, i + 1, 5 );
-							str->chars[i] = (char)strtol( str->chars, NULL, 16 );
+							int j;
+							for ( j = 1; j < 5 && isxdigit( str->chars[i + j + 1] ); j++ );
+							if ( j == 5 ){
+								mbstate_t state;
+								int count;
+								mbrlen( NULL, 0, &state );
+								count = wcrtomb( str->chars + i, strtoul( str->chars + i + 2, NULL, 16 ), &state );
+								DString_Erase( str, i + count, 6 - count );
+							}
 						}
 						break;
 					}
