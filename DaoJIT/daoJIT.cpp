@@ -3353,7 +3353,7 @@ void DaoJIT_Execute( DaoProcess *process, DaoJitCallData *data, int jitcode )
 		int vmc = rc & 0xffff;
 		int ec = rc >> 16;
 		process->activeCode = process->topFrame->codes + vmc;
-		DaoProcess_RaiseException( process, ec, "" );
+		DaoProcess_RaiseException( process, DaoException_GetName(ec), "", NULL );
 	}
 }
 

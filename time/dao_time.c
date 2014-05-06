@@ -116,13 +116,13 @@ static void DaoTime_Get( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = DaoTime_New();
 	if ( time( &self->value ) == (time_t)-1 ){
-		DaoProcess_RaiseException( proc, DAO_ERROR, "Failed to get current time" );
+		DaoProcess_RaiseError( proc, NULL, "Failed to get current time" );
 		DaoTime_Delete( self );
 		return;
 	}
 	self->local = ( p[0]->xEnum.value == 0 );
 	if ( !DaoTime_GetTime( self ) ){
-		DaoProcess_RaiseException( proc, DAO_ERROR, "Failed to get current time" );
+		DaoProcess_RaiseError( proc, NULL, "Failed to get current time" );
 		DaoTime_Delete( self );
 		return;
 	}
@@ -136,7 +136,7 @@ static void DaoTime_Time( DaoProcess *proc, DaoValue *p[], int N )
 	self->value = p[0]->xInteger.value;
 	self->local = ( p[1]->xEnum.value == 0 );
 	if ( !DaoTime_GetTime( self ) ){
-		DaoProcess_RaiseException( proc, DAO_ERROR, "Invalid time" );
+		DaoProcess_RaiseError( proc, NULL, "Invalid time" );
 		DaoTime_Delete( self );
 		return;
 	}
@@ -157,7 +157,7 @@ static void DaoTime_MakeTime( DaoProcess *proc, DaoValue *p[], int N )
 	self->parts.tm_sec = p[5]->xInteger.value;
 	self->value = mktime( &self->parts );
 	if ( self->value == (time_t)-1){
-		DaoProcess_RaiseException( proc, DAO_ERROR, "Invalid time" );
+		DaoProcess_RaiseError( proc, NULL, "Invalid time" );
 		DaoTime_Delete( self );
 		return;
 	}
@@ -191,7 +191,7 @@ static void DaoTime_Parse( DaoProcess *proc, DaoValue *p[], int N )
 	DaoTime *self = DaoTime_New();
 	daoint pos;
 	int del = 0;
-	DString_Trim( str );
+	DString_Trim( str, 1, 1, 0 );
 	pos = DString_FindChar( str, ' ', 0 );
 	if ( pos >= 0 ){
 		sdate = DString_New( 1 );
@@ -207,7 +207,7 @@ static void DaoTime_Parse( DaoProcess *proc, DaoValue *p[], int N )
 		goto Error;
 	self->local = 1;
 	if ( time( &self->value ) == (time_t)-1 ){
-		DaoProcess_RaiseException( proc, DAO_ERROR, "Failed to get current time" );
+		DaoProcess_RaiseError( proc, NULL, "Failed to get current time" );
 		DaoTime_Delete( self );
 		return;
 	}
@@ -259,7 +259,7 @@ static void DaoTime_Parse( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	self->value = mktime( &self->parts );
 	if ( self->value == (time_t)-1){
-		DaoProcess_RaiseException( proc, DAO_ERROR, "Invalid time" );
+		DaoProcess_RaiseError( proc, NULL, "Invalid time" );
 		DaoTime_Delete( self );
 		return;
 	}
@@ -267,7 +267,7 @@ static void DaoTime_Parse( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutCdata( proc, self, daox_type_time );
 	goto Clean;
 Error:
-	DaoProcess_RaiseException( proc, DAO_ERROR, "Invalid format ('YYYY-MM-DD HH:MM:SS' or its part is required)" );
+	DaoProcess_RaiseError( proc, NULL, "Invalid format ('YYYY-MM-DD HH:MM:SS' or its part is required)" );
 	DaoTime_Delete( self );
 Clean:
 	DString_Delete( str );
@@ -302,7 +302,7 @@ static void DaoTime_Set( DaoProcess *proc, DaoValue *p[], int N )
 	value = mktime( &self->parts );
 	if ( value == (time_t)-1){
 		self->parts = old;
-		DaoProcess_RaiseException( proc, DAO_ERROR, "Invalid time" );
+		DaoProcess_RaiseError( proc, NULL, "Invalid time" );
 		return;
 	}
 	self->value = value;
@@ -407,7 +407,7 @@ static void DaoTime_Format( DaoProcess *proc, DaoValue *p[], int N )
 		if ( strftime( buf, sizeof(buf), fmt->chars, &self->parts ))
 			DaoProcess_PutChars( proc, buf );
 		else
-			DaoProcess_RaiseException( proc, DAO_ERROR, "Invalid format" );
+			DaoProcess_RaiseError( proc, NULL, "Invalid format" );
 	}
 	else
 		DaoProcess_PutChars( proc, asctime( &self->parts ) );

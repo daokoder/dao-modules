@@ -98,7 +98,7 @@ static void DaoScanner_FetchPeek( DaoProcess *proc, DaoValue *p[], int fetch )
 	daoint count = p[1]->xInteger.value;
 	DString *sub;
 	if ( count < 0 ){
-		DaoProcess_RaiseException( proc, DAO_ERROR, "Invalid number of characters" );
+		DaoProcess_RaiseError( proc, NULL, "Invalid number of characters" );
 		return;
 	}
 	sub = DString_New( 1 );

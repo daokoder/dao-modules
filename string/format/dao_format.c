@@ -422,11 +422,11 @@ static void DaoFormat( DaoProcess *proc, DaoValue *p[], int N )
 				prevpos = pos + 2;
 				pos = DString_FindChar( fmt, ')', prevpos );
 				if( pos == -1 ){
-					DaoProcess_RaiseException( proc, DAO_WARNING, "Placeholder bracket not closed!" );
+					DaoProcess_RaiseWarning( proc, NULL, "Placeholder bracket not closed!" );
 					break;
 				}
 				else if( pos == prevpos ){
-					DaoProcess_RaiseException( proc, DAO_WARNING, "Empty placeholder!" );
+					DaoProcess_RaiseWarning( proc, NULL, "Empty placeholder!" );
 					continue;
 				}
 				if( ( isalpha( mbs[prevpos] ) || mbs[prevpos] == '_' ) && !argend ){
@@ -443,7 +443,7 @@ static void DaoFormat( DaoProcess *proc, DaoValue *p[], int N )
 							break;
 					if( !litera ){
 						sprintf( buf, "Invalid placeholder name (stopped on char '%c')!", mbs[prevpos] );
-						DaoProcess_RaiseException( proc, DAO_WARNING, buf );
+						DaoProcess_RaiseWarning( proc, NULL, buf );
 						pos--;
 						DString_AppendChar( str, '?' );
 						continue;
@@ -454,7 +454,7 @@ static void DaoFormat( DaoProcess *proc, DaoValue *p[], int N )
 						num = num*10 + ( mbs[prevpos] - '0' );
 					else if( mbs[prevpos - 1] == '(' ){
 						sprintf( buf, "Invalid character in placeholder ID ('%c')!", mbs[prevpos] );
-						DaoProcess_RaiseException( proc, DAO_WARNING, buf );
+						DaoProcess_RaiseWarning( proc, NULL, buf );
 						error = 1;
 						break;
 					}
@@ -463,13 +463,13 @@ static void DaoFormat( DaoProcess *proc, DaoValue *p[], int N )
 						prevpos++;
 						if( strchr( ":<>=)", mbs[prevpos] ) ){
 							sprintf( buf, "Empty argument field name!" );
-							DaoProcess_RaiseException( proc, DAO_WARNING, buf );
+							DaoProcess_RaiseWarning( proc, NULL, buf );
 							error = 1;
 							break;
 						}
 						if( !isalpha( mbs[prevpos] ) && mbs[prevpos] != '_' ){
 							sprintf( buf, "Invalid character in argument field name ('%c')!", mbs[prevpos] );
-							DaoProcess_RaiseException( proc, DAO_WARNING, buf );
+							DaoProcess_RaiseWarning( proc, NULL, buf );
 							error = 1;
 							break;
 						}
@@ -479,7 +479,7 @@ static void DaoFormat( DaoProcess *proc, DaoValue *p[], int N )
 							namelen++;
 						if( namelen > 100 ){
 							sprintf( buf, "Argument field name too large (greater than 100 characters)!" );
-							DaoProcess_RaiseException( proc, DAO_WARNING, buf );
+							DaoProcess_RaiseWarning( proc, NULL, buf );
 							error = 1;
 							break;
 						}
@@ -490,18 +490,18 @@ static void DaoFormat( DaoProcess *proc, DaoValue *p[], int N )
 						prevpos++;
 						pos2 = DString_FindChar( fmt, ']', prevpos );
 						if( pos2 == -1 ){
-							DaoProcess_RaiseException( proc, DAO_WARNING, "Index bracket not closed!" );
+							DaoProcess_RaiseWarning( proc, NULL, "Index bracket not closed!" );
 							error = 1;
 							break;
 						}
 						if( prevpos == pos2 ){
-							DaoProcess_RaiseException( proc, DAO_WARNING, "Empty index!" );
+							DaoProcess_RaiseWarning( proc, NULL, "Empty index!" );
 							error = 1;
 							break;
 						}
 						if( mbs[prevpos] == '-' || mbs[prevpos] == '+' ){
 							if( prevpos == pos2 - 1 || mbs[prevpos + 1] == ':' ){
-								DaoProcess_RaiseException( proc, DAO_WARNING, "Missing index number!" );
+								DaoProcess_RaiseWarning( proc, NULL, "Missing index number!" );
 								error = 1;
 								break;
 							}
@@ -522,7 +522,7 @@ static void DaoFormat( DaoProcess *proc, DaoValue *p[], int N )
 								}
 								if( mbs[prevpos] == '-' || mbs[prevpos] == '+' ){
 									if( prevpos == pos2 - 1 ){
-										DaoProcess_RaiseException( proc, DAO_WARNING, "Missing index number!" );
+										DaoProcess_RaiseWarning( proc, NULL, "Missing index number!" );
 										error = 1;
 										break;
 									}
@@ -536,7 +536,7 @@ static void DaoFormat( DaoProcess *proc, DaoValue *p[], int N )
 										index2 = index2*10 + ( mbs[prevpos] - '0' );
 									else{
 										sprintf( buf, "Invalid character in index ('%c')!", mbs[prevpos] );
-										DaoProcess_RaiseException( proc, DAO_WARNING, buf );
+										DaoProcess_RaiseWarning( proc, NULL, buf );
 										sliced = 0;
 										error = 1;
 										break;
@@ -547,7 +547,7 @@ static void DaoFormat( DaoProcess *proc, DaoValue *p[], int N )
 							}
 							else{
 								sprintf( buf, "Invalid character in index ('%c')!", mbs[prevpos] );
-								DaoProcess_RaiseException( proc, DAO_WARNING, buf );
+								DaoProcess_RaiseWarning( proc, NULL, buf );
 								indexed = 0;
 								error = 1;
 								break;
@@ -560,7 +560,7 @@ static void DaoFormat( DaoProcess *proc, DaoValue *p[], int N )
 					else if( strchr( "<>=", mbs[prevpos] ) ){
 						argend = 1;
 						if( prevpos == pos - 1 ){
-							DaoProcess_RaiseException( proc, DAO_WARNING, "Field width not specified!" );
+							DaoProcess_RaiseWarning( proc, NULL, "Field width not specified!" );
 							break;
 						}
 						alignment = ( mbs[prevpos] == '<' )? -1 : 1;
@@ -572,12 +572,12 @@ static void DaoFormat( DaoProcess *proc, DaoValue *p[], int N )
 								width = width*10 + ( mbs[prevpos] - '0' );
 							else{
 								sprintf( buf, "Invalid character in field width ('%c')!", mbs[prevpos] );
-								DaoProcess_RaiseException( proc, DAO_WARNING, buf );
+								DaoProcess_RaiseWarning( proc, NULL, buf );
 								width = 0;
 								break;
 							}
 						if( width > 1000 || width < 0 ){
-							DaoProcess_RaiseException( proc, DAO_WARNING,
+							DaoProcess_RaiseWarning( proc, NULL,
 									"Field width too large (greater than 1000)!" );
 							width = 0;
 						}
@@ -586,7 +586,7 @@ static void DaoFormat( DaoProcess *proc, DaoValue *p[], int N )
 					else if( mbs[prevpos] == ':' ){
 						argend = 1;
 						if( prevpos == pos - 1 || strchr( "<>=", mbs[prevpos + 1] ) ){
-							DaoProcess_RaiseException( proc, DAO_WARNING, "Empty numeric format!" );
+							DaoProcess_RaiseWarning( proc, NULL, "Empty numeric format!" );
 							continue;
 						}
 						prevpos++;
@@ -602,35 +602,35 @@ static void DaoFormat( DaoProcess *proc, DaoValue *p[], int N )
 							notation = mbs[prevpos];
 							if( !strchr( "ixXfgG", notation ) ){
 								sprintf( buf, "Invalid numeric format ('%c')!", mbs[prevpos] );
-								DaoProcess_RaiseException( proc, DAO_WARNING, buf );
+								DaoProcess_RaiseWarning( proc, NULL, buf );
 								notation = 0;
 								continue;
 							}
 							if( sign && ( notation == 'x' || notation == 'X' ) )
-								DaoProcess_RaiseException( proc, DAO_WARNING, "Signed hexadecimal numeric format!" );
+								DaoProcess_RaiseWarning( proc, NULL, "Signed hexadecimal numeric format!" );
 							prevpos++;
 						}
 						if( prevpos != pos && mbs[prevpos] == '.' ){
 							if( prevpos == pos - 1 || mbs[prevpos + 1] == '<'
 									|| mbs[prevpos + 1] == '>' ){
-								DaoProcess_RaiseException( proc, DAO_WARNING, "Empty precision specifier!" );
+								DaoProcess_RaiseWarning( proc, NULL, "Empty precision specifier!" );
 								continue;
 							}
 							for( prevpos++; isdigit( mbs[prevpos] ); prevpos++ )
 								precision = precision*10 + ( mbs[prevpos] - '0' );
 							if( precision > 1000 || precision < 0 ){
-								DaoProcess_RaiseException( proc, DAO_WARNING,
+								DaoProcess_RaiseWarning( proc, NULL,
 										"Precision too large (greater than 1000)" );
 								precision = 0;
 							}
 						}
 						prevpos--;
 						if( ( sign || precision ) && !notation )
-							DaoProcess_RaiseException( proc, DAO_WARNING, "Incomplete numeric format!" );
+							DaoProcess_RaiseWarning( proc, NULL, "Incomplete numeric format!" );
 					}
 					else{
 						sprintf( buf, "Invalid character in placeholder ('%c')!", mbs[prevpos] );
-						DaoProcess_RaiseException( proc, DAO_WARNING, buf );
+						DaoProcess_RaiseWarning( proc, NULL, buf );
 						error = 1;
 						break;
 					}
@@ -643,7 +643,7 @@ static void DaoFormat( DaoProcess *proc, DaoValue *p[], int N )
 			else{
 				if( !isdigit( mbs[pos + 1] ) ){
 					sprintf( buf, "Invalid placeholder index ('%c')!", mbs[pos + 1] );
-					DaoProcess_RaiseException( proc, DAO_WARNING, buf );
+					DaoProcess_RaiseWarning( proc, NULL, buf );
 					DString_AppendChar( str, '?' );
 					continue;
 				}
@@ -665,14 +665,14 @@ static void DaoFormat( DaoProcess *proc, DaoValue *p[], int N )
 					DString_SetBytes( sname, argname, argnamelen );
 					sprintf( buf, "No argument matching placeholder name ('%s')!", DString_GetData( sname ) );
 					DString_Delete( sname );
-					DaoProcess_RaiseException( proc, DAO_WARNING, buf );
+					DaoProcess_RaiseWarning( proc, NULL, buf );
 					DString_AppendChar( str, '?' );
 					continue;
 				}
 			}
 			else if( num > N - 2 || num < 0 ){
 				sprintf( buf, "Placeholder index too large (%i)!", num );
-				DaoProcess_RaiseException( proc, DAO_WARNING, buf );
+				DaoProcess_RaiseWarning( proc, NULL, buf );
 				DString_AppendChar( str, '?' );
 				continue;
 			}
@@ -708,7 +708,7 @@ static void DaoFormat( DaoProcess *proc, DaoValue *p[], int N )
 			default: break;
 			}
 			if( error ){
-				DaoProcess_RaiseException( proc, DAO_WARNING, buf );
+				DaoProcess_RaiseWarning( proc, NULL, buf );
 				if( error != 3 && error != 4 )
 					DString_AppendChar( str, '?' );
 			}

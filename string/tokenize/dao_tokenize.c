@@ -75,14 +75,14 @@ static void DaoSTR_Tokenize( DaoProcess *proc, DaoValue *p[], int N )
 				s ++;
 				continue;
 			}else{
-				if( simplify ) DString_Trim( str );
+				if( simplify ) DString_Trim( str, 1, 1, 0 );
 				if( str->size > 0 ){
 					DArray_Append( list->value, value );
 					DString_Clear( str );
 				}
 				DString_AppendChar( str, *s );
 				s ++;
-				if( simplify ) DString_Trim( str );
+				if( simplify ) DString_Trim( str, 1, 1, 0 );
 				if( str->size > 0 ) DArray_Append( list->value, value );
 				DString_Clear( str );
 				continue;
@@ -91,7 +91,7 @@ static void DaoSTR_Tokenize( DaoProcess *proc, DaoValue *p[], int N )
 		DString_AppendChar( str, *s );
 		s ++;
 	}
-	if( simplify ) DString_Trim( str );
+	if( simplify ) DString_Trim( str, 1, 1, 0 );
 	if( str->size > 0 ) DArray_Append( list->value, value );
 	DaoString_Delete( (DaoString*) value );
 }

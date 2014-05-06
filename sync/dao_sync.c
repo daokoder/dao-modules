@@ -109,7 +109,7 @@ void DSema_SetValue( DSema *self, int n )
 static int DaoMT_PushSectionFrame( DaoProcess *proc )
 {
 	if( DaoProcess_PushSectionFrame( proc ) == NULL ){
-		DaoProcess_RaiseException( proc, DAO_ERROR, "code section not found!" );
+		DaoProcess_RaiseError( proc, NULL, "code section not found!" );
 		return 0;
 	}
 	return 1;
@@ -394,7 +394,7 @@ static void DaoState_Create( DaoProcess *proc, DaoValue *p[], int N )
 	case DAO_ENUM:
 		break;
 	default:
-		DaoProcess_RaiseException( proc, DAO_ERROR, "type not supported" );
+		DaoProcess_RaiseError( proc, NULL, "type not supported" );
 		return;
 	}
 	res = DaoState_New( type, p[0] );
@@ -455,7 +455,7 @@ static void DaoState_FetchAdd( DaoProcess *proc, DaoValue *p[], int N )
 	DaoMutex_Lock( self->lock );
 	if ( p[1]->type != self->state->type ){
 		DaoMutex_Unlock( self->lock );
-		DaoProcess_RaiseException( proc, DAO_ERROR, "types do not match" );
+		DaoProcess_RaiseError( proc, NULL, "types do not match" );
 		return;
 	}
 	DaoValue_Copy( self->state, &old );
@@ -496,7 +496,7 @@ static void DaoState_FetchSub( DaoProcess *proc, DaoValue *p[], int N )
 	DaoMutex_Lock( self->lock );
 	if ( p[1]->type != self->state->type ){
 		DaoMutex_Unlock( self->lock );
-		DaoProcess_RaiseException( proc, DAO_ERROR, "types do not match" );
+		DaoProcess_RaiseError( proc, NULL, "types do not match" );
 		return;
 	}
 	DaoValue_Copy( self->state, &old );
@@ -687,7 +687,7 @@ static void DaoQueue_Merge( DaoProcess *proc, DaoValue *p[], int N )
 	DaoMutex_Unlock( self->mtx );
 	DaoMutex_Unlock( other->mtx );
 	if( !merged )
-		DaoProcess_RaiseException( proc, DAO_ERROR, "Merging exceeds the queue capacity" );
+		DaoProcess_RaiseError( proc, NULL, "Merging exceeds the queue capacity" );
 }
 
 static void DaoQueue_Push( DaoProcess *proc, DaoValue *p[], int N )

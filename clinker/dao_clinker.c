@@ -398,7 +398,7 @@ static void DaoCLoader_Load( DaoProcess *proc, DaoValue *p[], int N )
 	GC_DecRC( dummy );
 	DaoVmSpace_ReleaseParser( vms, parser );
 	DaoVmSpace_ReleaseParser( vms, defparser );
-	if( ok ==0 ) DaoProcess_RaiseException( proc, DAO_ERROR, "loading failed" );
+	if( ok ==0 ) DaoProcess_RaiseError( proc, NULL, "loading failed" );
 }
 
 

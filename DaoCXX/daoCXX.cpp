@@ -74,7 +74,7 @@ static DaoType *dao_type_stream2 = NULL;
 extern "C"{
 static void DaoCXX_Default( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoProcess_RaiseException( proc, DAO_ERROR, "Unsuccessully wrapped function" );
+	DaoProcess_RaiseError( proc, NULL, "Unsuccessully wrapped function" );
 }
 }
 
@@ -134,10 +134,10 @@ static int dao_markers_get( DArray *markers, const char *name, DString *one, DAr
 		daoint rb = dao_string_find_paired( marker, '(', ')' );
 		if( lb == npos || rb == npos ) continue;
 		DString_SetBytes( one, marker->chars + 1, lb - 1 );
-		DString_Trim( one );
+		DString_Trim( one, 1, 1, 0 );
 		if( strcmp( one->chars, name ) ) continue;
 		DString_SetBytes( one, marker->chars + lb + 1, rb - lb - 1 );
-		DString_Trim( one );
+		DString_Trim( one, 1, 1, 0 );
 		DArray_Erase( markers, i, 1 );
 		i -= 1;
 		m += 1;

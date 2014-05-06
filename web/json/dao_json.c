@@ -164,7 +164,7 @@ static void JSON_Serialize( DaoProcess *proc, DaoValue *p[], int N )
 				default:            strcat( buf, "[type not recognized]" );
 			}
 		}
-		DaoProcess_RaiseException( proc, DAO_ERROR, buf );
+		DaoProcess_RaiseError( proc, NULL, buf );
 	}
 }
 
@@ -443,7 +443,7 @@ static void JSON_Deserialize( DaoProcess *proc, DaoValue *p[], int N )
 	DaoValue *value;
 
 	if( text == NULL ){
-		DaoProcess_RaiseException( proc, DAO_ERROR, "JSON data not found" );
+		DaoProcess_RaiseError( proc, NULL, "JSON data not found" );
 		return;
 	}
 	if( *text == '{' )
@@ -451,7 +451,7 @@ static void JSON_Deserialize( DaoProcess *proc, DaoValue *p[], int N )
 	else if( *text == '[' )
 		value = JSON_ParseArray( proc, (DaoValue*)DaoProcess_PutList( proc ), &text, &error, &line );
 	else{
-		DaoProcess_RaiseException( proc, DAO_ERROR, "JSON data is not an object or array" );
+		DaoProcess_RaiseError( proc, NULL, "JSON data is not an object or array" );
 		return;
 	}
 	if( value == NULL ){
@@ -471,11 +471,11 @@ static void JSON_Deserialize( DaoProcess *proc, DaoValue *p[], int N )
 		case JSON_NonStringKey:    strcat( buf, "non-string key in object" ); break;
 		default:                   strcat( buf, "[undefined error]" );
 		}
-		DaoProcess_RaiseException( proc, DAO_ERROR, buf );
+		DaoProcess_RaiseError( proc, NULL, buf );
 		return;
 	}
 	if( JSON_FindData( text, &line ) != NULL )
-		DaoProcess_RaiseException( proc, DAO_ERROR, "JSON data does not form a single structure" );
+		DaoProcess_RaiseError( proc, NULL, "JSON data does not form a single structure" );
 }
 
 DAO_DLL int DaoJSON_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )

@@ -188,7 +188,7 @@ static void DaoColorPrint( DaoProcess *proc, DaoValue *p[], int N )
 			}
 			prevpos = DString_FindChar( fmt, '(', pos + 1 );
 			if( prevpos == -1 ){
-				DaoProcess_RaiseException( proc, DAO_WARNING, "Colored block: opening bracket not found!" );
+				DaoProcess_RaiseWarning( proc, NULL, "Colored block: opening bracket not found!" );
 				break;
 			}
 			pos2 = DString_FindChar( fmt, ':', pos + 1 );
@@ -209,7 +209,7 @@ static void DaoColorPrint( DaoProcess *proc, DaoValue *p[], int N )
 			prevpos++;
 			pos = DString_FindChars( fmt, ")#", prevpos );
 			if( pos == -1 ){
-				DaoProcess_RaiseException( proc, DAO_WARNING, "Colored block: bracket not closed!" );
+				DaoProcess_RaiseWarning( proc, NULL, "Colored block: bracket not closed!" );
 				break;
 			}
 			else if( pos == prevpos )

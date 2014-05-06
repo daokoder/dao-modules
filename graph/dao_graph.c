@@ -727,7 +727,7 @@ void DaoxGraphData_GetGCFields( void *p, DArray *values, DArray *arrays, DArray 
 int DaoxGraphData_IsAssociated( DaoxGraphData *self, DaoxGraph *graph, DaoProcess *proc )
 {
 	if( self->graph == graph ) return 1;
-	DaoProcess_RaiseException( proc, DAO_ERROR, "graph is not associated with the algorithm data!" );
+	DaoProcess_RaiseError( proc, NULL, "graph is not associated with the algorithm data!" );
 	return 0;
 }
 
