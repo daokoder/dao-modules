@@ -671,8 +671,8 @@ void DaoxGraphData_Init( DaoxGraphData *self, DaoType *type )
 {
 	DaoCstruct_Init( (DaoCstruct*) self, type );
 	self->graph = NULL;
-	self->edgeData = DString_New(1);
-	self->nodeData = DString_New(1);
+	self->edgeData = DString_New();
+	self->nodeData = DString_New();
 	DString_SetSharing( self->nodeData, 0 );
 	DString_SetSharing( self->edgeData, 0 );
 }

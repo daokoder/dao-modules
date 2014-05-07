@@ -165,7 +165,7 @@ static void ParseKeyValueStringArray( DaoProcess *proc, DaoMap *map, char **p )
 static void PreparePostData( DaoProcess *proc, DaoMap *httpPOSTS, DaoMap *httpPOST, DaoMap *httpFILE )
 {
 	DString *fname;
-	DString *buffer = DString_New(1);
+	DString *buffer = DString_New();
 	DaoValue *vk = (DaoValue*) DaoProcess_NewChars( proc, NULL, 0 );
 	DaoValue *vv = (DaoValue*) DaoProcess_NewChars( proc, NULL, 0 );
 	DString *key = DaoString_Get( DaoValue_CastString( vk ) );
@@ -193,7 +193,7 @@ static void PreparePostData( DaoProcess *proc, DaoMap *httpPOSTS, DaoMap *httpPO
 	boundary = strstr( content_type, "boundary=" ) + strlen( "boundary=" );
 	boundarylen = strlen( boundary );
 
-	fname = DString_New(1);
+	fname = DString_New();
 	buffer->size = 0;
 	for(;;){
 		postlen = fread( postbuf, 1, sizeof(postbuf), stdin );
@@ -297,7 +297,7 @@ void DaoCGI_SendFile( DaoProcess *proc, DaoValue *p[], int N )
 		printf( "%s", DString_GetData( notfound ) );
 		return;
 	}
-	mbs = DString_New(1);
+	mbs = DString_New();
 	printf( "Content-Type: %s\n\n", DString_GetData( mime ) );
 	while(1){
 		size_t count = fread( buf, 1, IO_BUF_SIZE, fin );

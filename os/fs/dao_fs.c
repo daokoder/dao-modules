@@ -87,6 +87,8 @@ DMutex fs_mtx;
 #define ELOOP  62
 #endif
 
+static const char fserr[] = "Exception::Error::File";
+
 struct DInode
 {
 	char *path;
@@ -360,7 +362,7 @@ int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *des
 		strcpy( buffer + len++, "/*" );
 	handle = _findfirst( buffer, &finfo );
 	if (handle != -1){
-		DString *str = DString_New( 1 );
+		DString *str = DString_New();
 		DaoValue *value;
 		DInode *fsnode;
 		do
@@ -389,7 +391,7 @@ int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *des
 	if( !IS_PATH_SEP( buffer[len - 1] ) )
 		strcpy( buffer + len++, "/" );
 	if( handle ){
-		DString *str = DString_New( 1 );
+		DString *str = DString_New();
 		DaoValue *value;
 		DInode *fsnode;
 		while( ( finfo = readdir( handle ) ) )
@@ -602,7 +604,7 @@ static void FSNode_Update( DaoProcess *proc, DaoValue *p[], int N )
 			GetErrorMessage( errbuf, res, 0 );
 		if( res == -1 || res == ENOENT )
 			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", self->path );
-		DaoProcess_RaiseError( proc, NULL, errbuf );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 }
 
@@ -657,7 +659,7 @@ static void FSNode_Parent( DaoProcess *proc, DaoValue *p[], int N )
 	if( ( res = DInode_Open( par, path ) ) != 0 ){
 		DInode_Delete( par );
 		GetErrorMessage( path, res, 0 );
-		DaoProcess_RaiseError( proc, NULL, path );
+		DaoProcess_RaiseError( proc, fserr, path );
 		return;
 	}
 	DaoProcess_PutCdata( proc, (void*)par, daox_type_fsnode );
@@ -681,7 +683,7 @@ static void FSNode_Resize( DaoProcess *proc, DaoValue *p[], int N )
 	daoint size = p[1]->xInteger.value;
 	int res;
 	if ( self->type == 0 ){
-		DaoProcess_RaiseError( proc, NULL, "Resizing a directory" );
+		DaoProcess_RaiseError( proc, fserr, "Resizing a directory" );
 	}
 	if ( ( res = DInode_Resize( self, size ) ) != 0 ){
 		char errbuf[MAX_ERRMSG];
@@ -689,7 +691,7 @@ static void FSNode_Resize( DaoProcess *proc, DaoValue *p[], int N )
 			strcpy( errbuf, "Failed to resize file" );
 		else
 			GetErrorMessage( errbuf, res, 0 );
-		DaoProcess_RaiseError( proc, NULL, errbuf );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 }
 
@@ -704,7 +706,7 @@ static void FSNode_Rename( DaoProcess *proc, DaoValue *p[], int N )
 			strcpy( errbuf, "Renaming root directory" );
 		else
 			GetErrorMessage( errbuf, res, 0 );
-		DaoProcess_RaiseError( proc, NULL, errbuf );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 	DString_Delete( path );
 }
@@ -716,7 +718,7 @@ static void FSNode_Remove( DaoProcess *proc, DaoValue *p[], int N )
 	char errbuf[MAX_ERRMSG];
 	if ( (res = DInode_Remove( self ) ) != 0 ){
 		GetErrorMessage( errbuf, res, self->type == 0 );
-		DaoProcess_RaiseError( proc, NULL, errbuf );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 }
 
@@ -767,14 +769,14 @@ static void FSNode_SetAccess(DaoProcess *proc, DaoValue *p[], int N)
 	int res = DInode_SetAccess(self, ur, uw, ux, gr, gw, gx, otr, otw, otx);
 	if (res){
 		GetErrorMessage(errbuf, res, 0);
-		DaoProcess_RaiseError( proc, NULL, errbuf );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 	else
 		FSNode_Update(proc, p, N);
 	DString_Delete( mode );
 	return;
 Error:
-	DaoProcess_RaiseError( proc, NULL, "Invalid access mode format" );
+	DaoProcess_RaiseError( proc, fserr, "Invalid access mode format" );
 	DString_Delete( mode );
 }
 
@@ -785,7 +787,7 @@ static void FSNode_Makefile( DaoProcess *proc, DaoValue *p[], int N )
 	DString *path = DString_Copy( p[1]->xString.value );
 	int res;
 	if( self->type != 0 ){
-		DaoProcess_RaiseError( proc, NULL, "File object is not a directory" );
+		DaoProcess_RaiseError( proc, fserr, "File object is not a directory" );
 		DString_Delete( path );
 		return;
 	}
@@ -797,7 +799,7 @@ static void FSNode_Makefile( DaoProcess *proc, DaoValue *p[], int N )
 			strcpy( errbuf, "Invalid file name (EINVAL)" );
 		else
 			GetErrorMessage( errbuf, res, 0 );
-		DaoProcess_RaiseError( proc, NULL, errbuf );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 	else
 		DaoProcess_PutCdata( proc, (void*)child, daox_type_fsnode );
@@ -811,7 +813,7 @@ static void FSNode_Makedir( DaoProcess *proc, DaoValue *p[], int N )
 	DString *path = DString_Copy( p[1]->xString.value );
 	int res;
 	if( self->type != 0 ){
-		DaoProcess_RaiseError( proc, NULL, "File object is not a directory" );
+		DaoProcess_RaiseError( proc, fserr, "File object is not a directory" );
 		DString_Delete( path );
 		return;
 	}
@@ -823,7 +825,7 @@ static void FSNode_Makedir( DaoProcess *proc, DaoValue *p[], int N )
 			strcpy( errbuf, "Invalid directory name (EINVAL)" );
 		else
 			GetErrorMessage( errbuf, res, 0 );
-		DaoProcess_RaiseError( proc, NULL, errbuf );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 	else
 		DaoProcess_PutCdata( proc, (void*)child, daox_type_fsnode );
@@ -836,7 +838,7 @@ static void FSNode_Exists( DaoProcess *proc, DaoValue *p[], int N )
 	DInode *child;
 	DString *path = DString_Copy( p[1]->xString.value );
 	if( self->type != 0 ){
-		DaoProcess_RaiseError( proc, NULL, "File object is not a directory" );
+		DaoProcess_RaiseError( proc, fserr, "File object is not a directory" );
 		DString_Delete( path );
 		return;
 	}
@@ -854,7 +856,7 @@ static void FSNode_Child( DaoProcess *proc, DaoValue *p[], int N )
 	char buf[MAX_PATH + 1];
 	int res;
 	if( self->type != 0 ){
-		DaoProcess_RaiseError( proc, NULL, "File object is not a directory" );
+		DaoProcess_RaiseError( proc, fserr, "File object is not a directory" );
 		goto Exit;
 	}
 	child = DInode_New();
@@ -864,7 +866,7 @@ static void FSNode_Child( DaoProcess *proc, DaoValue *p[], int N )
 	if( strlen( buf ) + path->size > MAX_PATH ){
 		char errbuf[MAX_ERRMSG];
 		GetErrorMessage( errbuf, ENAMETOOLONG, 0 );
-		DaoProcess_RaiseError( proc, NULL, errbuf );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
 		DInode_Delete( child );
 		goto Exit;
 	}
@@ -875,7 +877,7 @@ static void FSNode_Child( DaoProcess *proc, DaoValue *p[], int N )
 			strcpy( errbuf, "File object is not a directory" );
 		else
 			GetErrorMessage( errbuf, res, 0 );
-		DaoProcess_RaiseError( proc, NULL, errbuf );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
 		return;                                  
 	}
 	DaoProcess_PutCdata( proc, (void*)child, daox_type_fsnode );
@@ -891,13 +893,13 @@ static void DInode_Children( DInode *self, DaoProcess *proc, int type, DString *
 	DString *strbuf;
 	DaoRegex *pattern;
 	if( self->type != 0 ){
-		DaoProcess_RaiseError( proc, NULL, "File object is not a directory" );
+		DaoProcess_RaiseError( proc, fserr, "File object is not a directory" );
 		return;
 	}
 	filter = DString_GetData( pat );
 	len = strlen( filter );
 	if( len > MAX_PATH ){
-		DaoProcess_RaiseError( proc, NULL, "Filter is too large" );
+		DaoProcess_RaiseError( proc, fserr, "Filter is too large" );
 		return;
 	}
 	if( ft == 0 ){
@@ -938,7 +940,7 @@ static void DInode_Children( DInode *self, DaoProcess *proc, int type, DString *
 				buffer[j] = filter[i];
 			}
 		if( j >= MAX_PATH - 1 ){
-			DaoProcess_RaiseError( proc, NULL, "Filter is too large" );
+			DaoProcess_RaiseError( proc, fserr, "Filter is too large" );
 			return;
 		}
 		buffer[j] = ')';
@@ -947,7 +949,7 @@ static void DInode_Children( DInode *self, DaoProcess *proc, int type, DString *
 	}
 	else
 		strcpy( buffer, filter );
-	strbuf = DString_New( 1 );
+	strbuf = DString_New();
 	DString_SetChars( strbuf, buffer );
 	pattern = DaoProcess_MakeRegex( proc, strbuf );
     DString_Delete( strbuf );
@@ -957,7 +959,7 @@ static void DInode_Children( DInode *self, DaoProcess *proc, int type, DString *
 	if( ( res = DInode_ChildrenRegex( self, type, proc, list, pattern ) ) != 0 ){
 		char errbuf[MAX_ERRMSG];
 		GetErrorMessage( errbuf, res, 1 );
-		DaoProcess_RaiseError( proc, NULL, errbuf );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
 		return;
 	}
 }
@@ -1001,14 +1003,14 @@ static void FSNode_Copy( DaoProcess *proc, DaoValue *p[], int N )
 	int res;
 	char buf[4096];
 	if ( self->type == 0 ){
-		DaoProcess_RaiseError( proc, NULL, "Copying of directories is not supported" );
+		DaoProcess_RaiseError( proc, fserr, "Copying of directories is not supported" );
 		goto Exit;
 	}
 	src = fopen( self->path, "r" );
 	if ( !src ){
 		char errbuf[MAX_ERRMSG] = "Unable to read file; ";
 		GetErrorMessage( errbuf + strlen( errbuf ), errno, 0 );
-		DaoProcess_RaiseError( proc, NULL, buf );
+		DaoProcess_RaiseError( proc, fserr, buf );
 		goto Exit;
 	}
 	if ( IS_PATH_SEP( path->chars[path->size - 1] ) ){
@@ -1023,7 +1025,7 @@ static void FSNode_Copy( DaoProcess *proc, DaoValue *p[], int N )
 		char errbuf[MAX_ERRMSG + MAX_PATH + 3];
 		snprintf( errbuf, sizeof(errbuf), "Unable to write file: %s;", path->chars );
 		GetErrorMessage( errbuf + strlen( errbuf ), errno, 0 );
-		DaoProcess_RaiseError( proc, NULL, errbuf );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
 		goto Exit;
 	}
 	while ( !feof( src ) ){
@@ -1035,7 +1037,7 @@ static void FSNode_Copy( DaoProcess *proc, DaoValue *p[], int N )
 		char errbuf[MAX_ERRMSG];
 		DInode_Delete( copy );
 		GetErrorMessage( errbuf, res, 0 );
-		DaoProcess_RaiseError( proc, NULL, errbuf );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
 		goto Exit;
 	}
 	DaoProcess_PutCdata( proc, copy, daox_type_fsnode );
@@ -1048,10 +1050,10 @@ Exit:
 static void FSNode_Owner( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
-	DString *name = DString_New( 1 );
+	DString *name = DString_New();
 	int res = DInode_GetOwner( self, name );
 	if ( res )
-		DaoProcess_RaiseError( proc, NULL, "Unable to get information on file owner" );
+		DaoProcess_RaiseError( proc, fserr, "Unable to get information on file owner" );
 	else
 		DaoProcess_PutString( proc, name );
 	DString_Delete( name );
@@ -1064,7 +1066,7 @@ static void FSNode_Mktemp( DaoProcess *proc, DaoValue *p[], int N )
 	char buf[MAX_PATH + 1];
 	int res;
 	if ( self->type != 0 )
-		DaoProcess_RaiseError( proc, NULL, "File object is not a directory" );
+		DaoProcess_RaiseError( proc, fserr, "File object is not a directory" );
 	else {
 		res = MakeTmpFile( self->path, pref->chars, buf );
 		DInode *fsnode = DInode_New();
@@ -1077,7 +1079,7 @@ static void FSNode_Mktemp( DaoProcess *proc, DaoValue *p[], int N )
 				strcpy( errbuf, "Incorrect file prefix" );
 			else
 				GetErrorMessage( errbuf, errno, 0 );
-			DaoProcess_RaiseError( proc, NULL, errbuf );
+			DaoProcess_RaiseError( proc, fserr, errbuf );
 		}
 		else
 			DaoProcess_PutCdata( proc, fsnode, daox_type_fsnode );
@@ -1099,7 +1101,7 @@ static void FSNode_New( DaoProcess *proc, DaoValue *p[], int N )
 			GetErrorMessage( errbuf, res, 0 );
 		if( res == -1 || res == ENOENT )
 			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", path->chars );
-		DaoProcess_RaiseError( proc, NULL, errbuf );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 	else
 		DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_fsnode );
@@ -1116,7 +1118,7 @@ static void FS_CWD( DaoProcess *proc, DaoValue *p[], int N )
 		char errbuf[MAX_ERRMSG];
 		DInode_Delete( fsnode );
 		GetErrorMessage( errbuf, ( res == 0 )? errno : res, 0 );
-		DaoProcess_RaiseError( proc, NULL, errbuf );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 	else
 		DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_fsnode );
@@ -1130,14 +1132,14 @@ static void FS_PWD( DaoProcess *proc, DaoValue *p[], int N )
 	if( !res ){
 		char errbuf[MAX_ERRMSG];
 		GetErrorMessage( errbuf, ( res == 0 )? errno : res, 0 );
-		DaoProcess_RaiseError( proc, NULL, errbuf );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 	else {
 		char buf[MAX_PATH + 1];
 		if ( ( res = NormalizePath( path, buf ) ) != 0 ){
 			char errbuf[MAX_ERRMSG];
 			GetErrorMessage( errbuf, res, 0 );
-			DaoProcess_RaiseError( proc, NULL, errbuf );
+			DaoProcess_RaiseError( proc, fserr, errbuf );
 		}
 		else
 			DaoProcess_PutChars( proc, buf );
@@ -1149,14 +1151,14 @@ static void FS_SetCWD( DaoProcess *proc, DaoValue *p[], int N )
 	DInode *fsnode = (DInode*)DaoValue_TryGetCdata( p[0] );
 	int res;
 	if( fsnode->type != 0 ){
-		DaoProcess_RaiseError( proc, NULL, "File object is not a directory" );
+		DaoProcess_RaiseError( proc, fserr, "File object is not a directory" );
 		return;
 	}
 	FS_TRANS( res = chdir( fsnode->path ) );
 	if( res ){
 		char errbuf[MAX_PATH + 1];
 		GetErrorMessage( errbuf, errno, 0 );
-		DaoProcess_RaiseError( proc, NULL, errbuf );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 }
 
@@ -1172,7 +1174,7 @@ static void FS_SetCWD2( DaoProcess *proc, DaoValue *p[], int N )
 		GetErrorMessage( errbuf, errno, 0 );
 		if( res == -1 || res == ENOENT )
 			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", path->chars );
-		DaoProcess_RaiseError( proc, NULL, errbuf );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 	DString_Delete( path );
 	DInode_Delete( fsnode );
@@ -1190,7 +1192,7 @@ static void FS_NormPath( DaoProcess *proc, DaoValue *p[], int N )
 		GetErrorMessage( errbuf, res, 0 );
 		if( res == -1 || res == ENOENT )
 			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", path->chars );
-		DaoProcess_RaiseError( proc, NULL, errbuf );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 	DInode_Delete( fsnode );
 	DString_Delete( path );
@@ -1209,7 +1211,7 @@ static void FS_Roots( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoList *lst = DaoProcess_PutList( proc );
 	if ( !GetRootDirs( lst ) )
-		DaoProcess_RaiseError( proc, NULL, "Failed to obtain the list of root directories" );
+		DaoProcess_RaiseError( proc, fserr, "Failed to obtain the list of root directories" );
 }
 
 static void FS_NewFile( DaoProcess *proc, DaoValue *p[], int N )
@@ -1226,11 +1228,11 @@ static void FS_NewFile( DaoProcess *proc, DaoValue *p[], int N )
 			GetErrorMessage( errbuf, res, 0 );
 		if( res == -1 || res == ENOENT )
 			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", path->chars );
-		DaoProcess_RaiseError( proc, NULL, errbuf );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 	else if ( fsnode->type == 0 ){
 		DInode_Delete( fsnode );
-		DaoProcess_RaiseError( proc, NULL, "File object is not a file" );
+		DaoProcess_RaiseError( proc, fserr, "File object is not a file" );
 	}
 	else
 		DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_fsnode );
@@ -1251,11 +1253,11 @@ static void FS_NewDir( DaoProcess *proc, DaoValue *p[], int N )
 			GetErrorMessage( errbuf, res, 0 );
 		if( res == -1 || res == ENOENT )
 			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %s", path->chars );
-		DaoProcess_RaiseError( proc, NULL, errbuf );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 	else if ( fsnode->type == 1 ){
 		DInode_Delete( fsnode );
-		DaoProcess_RaiseError( proc, NULL, "File object is not a directory" );
+		DaoProcess_RaiseError( proc, fserr, "File object is not a directory" );
 	}
 	else
 		DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_fsnode );

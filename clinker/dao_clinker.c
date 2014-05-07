@@ -312,8 +312,8 @@ static void DaoCLoader_Load( DaoProcess *proc, DaoValue *p[], int N )
 	void *handle, *fptr;
 	char *chs;
 	int i, j, ok = 1;
-	DString *path = DString_New(1);
-	DString *file = DString_New(1);
+	DString *path = DString_New();
+	DString *file = DString_New();
 	daoint pos;
 
 	pos = lib->size;

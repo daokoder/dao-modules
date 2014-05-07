@@ -75,7 +75,7 @@ short dao_read_short( uchar_t *data )
 
 int DaoxImage_LoadBMP( DaoxImage *self, const char *file )
 {
-	DString *mbs = DString_New(1);
+	DString *mbs = DString_New();
 	FILE *fin = fopen( file, "r+" );
 	int fileSize, pixelArray, pixelBytes, numBytes;
 	int i, j, width, height, pixelBits;

@@ -32,6 +32,8 @@
 #include"dao.h"
 #include"daoValue.h"
 
+static const char jsonerr[] = "Exception::Error::JSON";
+
 void JSON_Indent( DString *text, int indent )
 {
 	int i;
@@ -164,7 +166,7 @@ static void JSON_Serialize( DaoProcess *proc, DaoValue *p[], int N )
 				default:            strcat( buf, "[type not recognized]" );
 			}
 		}
-		DaoProcess_RaiseError( proc, NULL, buf );
+		DaoProcess_RaiseError( proc, jsonerr, buf );
 	}
 }
 
@@ -443,7 +445,7 @@ static void JSON_Deserialize( DaoProcess *proc, DaoValue *p[], int N )
 	DaoValue *value;
 
 	if( text == NULL ){
-		DaoProcess_RaiseError( proc, NULL, "JSON data not found" );
+		DaoProcess_RaiseError( proc, jsonerr, "JSON data not found" );
 		return;
 	}
 	if( *text == '{' )
@@ -451,7 +453,7 @@ static void JSON_Deserialize( DaoProcess *proc, DaoValue *p[], int N )
 	else if( *text == '[' )
 		value = JSON_ParseArray( proc, (DaoValue*)DaoProcess_PutList( proc ), &text, &error, &line );
 	else{
-		DaoProcess_RaiseError( proc, NULL, "JSON data is not an object or array" );
+		DaoProcess_RaiseError( proc, jsonerr, "JSON data is not an object or array" );
 		return;
 	}
 	if( value == NULL ){
@@ -471,11 +473,11 @@ static void JSON_Deserialize( DaoProcess *proc, DaoValue *p[], int N )
 		case JSON_NonStringKey:    strcat( buf, "non-string key in object" ); break;
 		default:                   strcat( buf, "[undefined error]" );
 		}
-		DaoProcess_RaiseError( proc, NULL, buf );
+		DaoProcess_RaiseError( proc, jsonerr, buf );
 		return;
 	}
 	if( JSON_FindData( text, &line ) != NULL )
-		DaoProcess_RaiseError( proc, NULL, "JSON data does not form a single structure" );
+		DaoProcess_RaiseError( proc, jsonerr, "JSON data does not form a single structure" );
 }
 
 DAO_DLL int DaoJSON_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )

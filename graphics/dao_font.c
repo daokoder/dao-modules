@@ -75,7 +75,7 @@ DaoxFont* DaoxFont_New()
 {
 	DaoxFont *self = (DaoxFont*) calloc( 1, sizeof(DaoxFont) );
 	DaoCstruct_Init( (DaoCstruct*)self, daox_type_font );
-	self->buffer = DString_New(0);
+	self->buffer = DString_New();
 	self->glyphs = DMap_New(0,0);
 	self->glyphs2 = DMap_New(0,0);
 	self->triangulator = DaoxTriangulator_New();

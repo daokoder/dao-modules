@@ -98,10 +98,10 @@ static void DaoScanner_FetchPeek( DaoProcess *proc, DaoValue *p[], int fetch )
 	daoint count = p[1]->xInteger.value;
 	DString *sub;
 	if ( count < 0 ){
-		DaoProcess_RaiseError( proc, NULL, "Invalid number of characters" );
+		DaoProcess_RaiseError( proc, NULL, "Invalid number of bytes" );
 		return;
 	}
-	sub = DString_New( 1 );
+	sub = DString_New();
 	if ( self->pos < self->context->size ){
 		if ( self->pos + count > self->context->size )
 			count = self->context->size - self->pos;
@@ -290,24 +290,24 @@ static DaoFuncItem scannerMeths[] =
 	{ DaoScanner_Position,	"pos(self: scanner) => int" },
 	{ DaoScanner_SetPos,	"pos(self: scanner, pos: int)" },
 
-	/*! Number of characters in the remaining string (starting from the current position) */
+	/*! Number of bytes in the remaining string (starting from the current position) */
 	{ DaoScanner_Rest,		"rest(self: scanner) => int" },
 
 	/*! Appends \a context to the context of the scanner */
 	{ DaoScanner_Append,	"append(self: scanner, context: string)" },
 
-	/*! Returns \a count characters starting from the current position and advances the scanner */
+	/*! Returns \a count bytes starting from the current position and advances the scanner */
 	{ DaoScanner_Fetch,		"fetch(self: scanner, count: int) => string" },
 
-	/*! Returns \a count characters starting from the current position without advancing the scanner */
+	/*! Returns \a count bytes starting from the current position without advancing the scanner */
 	{ DaoScanner_Peek,		"peek(self: scanner, count: int) => string" },
 
 	/*! Mathes pattern \a pattern immediately at the current position; on success, the scanner is advanced and its last match information is updated.
-	 * Returns the number of characters the scanner has advanced through */
+	 * Returns the number of bytes the scanner has advanced through */
 	{ DaoScanner_Scan,		"scan(self: scanner, pattern: string) => int" },
 
 	/*! Mathes pattern \a pattern anywhere in the string after the current position; on success, the scanner is advanced and its last match
-	 * information is updated. Returns the number of characters the scanner has advanced through */
+	 * information is updated. Returns the number of bytes the scanner has advanced through */
 	{ DaoScanner_Seek,		"seek(self: scanner, pattern: string) => int" },
 
 	/*! Last matched sub-string or its group \a group (if \a group is greater then zero) */
