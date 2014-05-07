@@ -36,7 +36,7 @@
 #define tzname _tzname
 #endif
 
-static const char timeerr[] = "Exception::Error::Time";
+static const char timeerr[] = "Time";
 static DaoType *daox_type_time = NULL;
 
 int FloorDiv( int a, int b )

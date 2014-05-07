@@ -82,7 +82,7 @@ typedef struct DaoDataPacket
 } DaoDataPacket;
 
 static int offset = (char*) ( & ((DaoDataPacket*)0)->data ) - (char*) ( & ((DaoDataPacket*)0)->type );
-static const char neterr[] = "Exception::Error::Network";
+static const char neterr[] = "Network";
 
 static void GetErrorMessage( char *buffer, int code )
 {

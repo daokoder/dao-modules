@@ -32,7 +32,7 @@
 #include"dao.h"
 #include"daoValue.h"
 
-static const char jsonerr[] = "Exception::Error::JSON";
+static const char jsonerr[] = "JSON";
 
 void JSON_Indent( DString *text, int indent )
 {

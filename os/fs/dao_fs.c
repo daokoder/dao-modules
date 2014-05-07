@@ -87,7 +87,7 @@ DMutex fs_mtx;
 #define ELOOP  62
 #endif
 
-static const char fserr[] = "Exception::Error::File";
+static const char fserr[] = "File";
 
 struct DInode
 {
