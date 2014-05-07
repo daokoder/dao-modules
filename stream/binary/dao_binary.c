@@ -255,21 +255,24 @@ static DaoFuncItem binMeths[] =
 	{ DaoBinary_Pack,		"pack(self: io::stream, source: array<int>, size: enum<byte,word,dword>, count = 0)" },
 
 	/*! Reads \a count bytes from the stream and returns them as a buffer. If \a count is zero, 2^24 is assumed */
-	{ DaoBinary_ReadBuf,	"readbin(self: io::stream, count = 0) => buffer" },
+	{ DaoBinary_ReadBuf,	"read(self: io::stream, count = 0) => buffer" },
 
 	/*! Writes \a count bytes from \a source into the stream.  If \a count is zero, or greater than \a source size,
 	 * \a source size is assumed */
-	{ DaoBinary_WriteBuf,	"writebin(self: io::stream, source: buffer, count = 0)" },
+	{ DaoBinary_WriteBuf,	"write(self: io::stream, source: buffer, count = 0)" },
 
 	/*! Writes \a count elements from \a source into the stream.  If \a count is zero, or greater than \a source size,
 	 * \a source size is assumed */
-	{ DaoBinary_WriteArr,	"writebin(self: io::stream, source: array<@T>, count = 0)" },
+	{ DaoBinary_WriteArr,	"write(self: io::stream, source: array<@T>, count = 0)" },
 	{ NULL, NULL }
 };
 
 DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
+	DaoNamespace *binns;
 	DaoVmSpace_LinkModule( vmSpace, ns, "sys" );
-	DaoNamespace_WrapFunctions( ns, binMeths );
+	binns = DaoVmSpace_GetNamespace( vmSpace, "bin" );
+	DaoNamespace_AddConstValue( ns, "bin", (DaoValue*)binns );
+	DaoNamespace_WrapFunctions( binns, binMeths );
 	return 0;
 }

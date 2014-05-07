@@ -480,11 +480,37 @@ static void JSON_Deserialize( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, jsonerr, "JSON data does not form a single structure" );
 }
 
+static DaoFuncItem jsonMeths[] =
+{
+	/*! Serializes the given map or list to JSON and returns the resulting string. When \a style is \c $pretty, the output includes
+	 * newlines and	indentation for readability, otherwise the result is put on single line.
+	 *
+	 * Serialization of values (Dao => JSON):
+	 * - list => array
+	 * - map  => object
+	 * - int, float, double => number
+	 * - none => null
+	 */
+	{ JSON_Serialize,	"serialize( self: map<string, @V>|list<@V>, style: enum<pretty,compact>=$pretty )=>string" },
+
+	/*! Parses JSON in the given string and returns the corresponding map or list.
+	 *
+	 * Deserialization of values (JSON => Dao):
+	 * - array  => list
+	 * - object => map
+	 * - number => int or double (depending on the presence of decimal separator)
+	 * - null   => none
+	 * - bool   => int
+	 */
+	{ JSON_Deserialize,	"parse( self: string )=>map<string, any>|list<any>" },
+	{ NULL, NULL }
+};
+
 DAO_DLL int DaoJSON_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	DaoNamespace_WrapFunction( ns, (DaoCFunction)JSON_Serialize,
-		"toJSON( self: map<string, @V>|list<@V>, style: enum<pretty,compact>=$pretty )=>string" );
-	DaoNamespace_WrapFunction( ns, (DaoCFunction)JSON_Deserialize,
-		"parseJSON( self: string )=>map<string, any>|list<any>" );
+	DaoNamespace *jsonns;
+	jsonns = DaoVmSpace_GetNamespace( vmSpace, "json" );
+	DaoNamespace_AddConstValue( ns, "json", (DaoValue*)jsonns );
+	DaoNamespace_WrapFunctions( ns, jsonMeths );
 	return 0;
 }
