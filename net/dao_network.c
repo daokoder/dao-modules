@@ -879,7 +879,7 @@ static void DaoSocket_Lib_GetStream( DaoProcess *proc, DaoValue *par[], int N  )
 	const char *mode = DString_GetData( DaoValue_TryGetString( par[1] ) );
 	DaoStream *stream;
 #ifdef WIN32
-	DaoProcess_RaiseError( proc, errtype, "Creating stream from a socket is not supported on the current platform" );
+	DaoProcess_RaiseError( proc, NULL, "Creating stream from a socket is not supported on the current platform" );
 	return;
 #endif
 	stream = DaoStream_New();

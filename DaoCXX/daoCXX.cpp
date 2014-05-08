@@ -358,8 +358,7 @@ static int dao_make_wrapper( DString *name, DaoType *routype, DString *cproto, D
 				return 1;
 			}
 			break;
-		case DAO_VALTYPE :
-			if( type->aux->type != DAO_NONE ) return 1;
+		case DAO_NONE :
 			DString_InsertChars( cproto, "void ", 0, 0, 0 );
 			DString_Append( wrapper, cc );
 			break;
