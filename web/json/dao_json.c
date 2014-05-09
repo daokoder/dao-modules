@@ -166,7 +166,7 @@ static void JSON_Serialize( DaoProcess *proc, DaoValue *p[], int N )
 				default:            strcat( buf, "[type not recognized]" );
 			}
 		}
-		DaoProcess_RaiseError( proc, jsonerr, buf );
+		DaoProcess_RaiseError( proc, "Type", buf );
 	}
 }
 
@@ -482,7 +482,7 @@ static void JSON_Deserialize( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem jsonMeths[] =
 {
-	/*! Serializes the given map or list to JSON and returns the resulting string. When \a style is \c $pretty, the output includes
+	/*! Serializes \a data to JSON and returns the resulting string. When \a style is \c $pretty, the output includes
 	 * newlines and	indentation for readability, otherwise the result is put on single line.
 	 *
 	 * Serialization of values (Dao => JSON):
@@ -491,9 +491,9 @@ static DaoFuncItem jsonMeths[] =
 	 * - int, float, double => number
 	 * - none => null
 	 */
-	{ JSON_Serialize,	"serialize( self: map<string, @V>|list<@V>, style: enum<pretty,compact>=$pretty )=>string" },
+	{ JSON_Serialize,	"serialize(data: map<string,@V>|list<@V>, style: enum<pretty,compact> = $pretty) => string" },
 
-	/*! Parses JSON in the given string and returns the corresponding map or list.
+	/*! Parses JSON in \a str and returns the corresponding map or list.
 	 *
 	 * Deserialization of values (JSON => Dao):
 	 * - array  => list
@@ -502,7 +502,7 @@ static DaoFuncItem jsonMeths[] =
 	 * - null   => none
 	 * - bool   => int
 	 */
-	{ JSON_Deserialize,	"parse( self: string )=>map<string, any>|list<any>" },
+	{ JSON_Deserialize,	"parse(str: string) => map<string,any>|list<any>" },
 	{ NULL, NULL }
 };
 

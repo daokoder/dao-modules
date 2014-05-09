@@ -905,7 +905,7 @@ static void DaoSocket_Lib_GetStream( DaoProcess *proc, DaoValue *par[], int N  )
 
 static DaoFuncItem socketMeths[] =
 {
-	/*! Binds the socket to port \a port */
+	/*! Binds the socket to \a port */
 	{  DaoSocket_Lib_Bind,          "bind( self :socket, port :int )" },
 
 	/*! Listens the socket using \a backlog as the maximum size of the queue of pending connections */
@@ -941,7 +941,7 @@ static DaoFuncItem socketMeths[] =
 	/*! Closes the socket */
 	{  DaoSocket_Lib_Close,         "close( self :socket )" },
 
-	/*! Returns stream with mode \a mode bound to the socket
+	/*! Returns stream with \a mode bound to the socket
 	 * \note On Windows, this operation is not supported */
 	{  DaoSocket_Lib_GetStream,     "getstream( self :socket, mode :string )=>io::stream" },
 	{ NULL, NULL }
@@ -1111,13 +1111,13 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 
 static DaoFuncItem netMeths[] =
 {
-	/*! Returns socket bound to port \a port */
+	/*! Returns socket bound to \a port */
 	{  DaoNetLib_Bind,          "bind( port :int )=>socket" },
 
 	/*! Returns socket connected to address \a host : \a port */
 	{  DaoNetLib_Connect,       "connect( host :string, port :int )=>socket" },
 
-	/*! Returns name-address information for host \a host */
+	/*! Returns name-address information for \a host */
 	{  DaoNetLib_GetHost,       "gethost( host :string )=>map<string,string>" },
 
 	/*! Waits \a timeout seconds for any object in \a read or \a write list to become available for reading or writing accordingly.

@@ -98,7 +98,7 @@ static void DaoScanner_FetchPeek( DaoProcess *proc, DaoValue *p[], int fetch )
 	daoint count = p[1]->xInteger.value;
 	DString *sub;
 	if ( count < 0 ){
-		DaoProcess_RaiseError( proc, NULL, "Invalid number of bytes" );
+		DaoProcess_RaiseError( proc, "Param", "Invalid number of bytes" );
 		return;
 	}
 	sub = DString_New();
@@ -302,11 +302,11 @@ static DaoFuncItem scannerMeths[] =
 	/*! Returns \a count bytes starting from the current position without advancing the scanner */
 	{ DaoScanner_Peek,		"peek(self: scanner, count: int) => string" },
 
-	/*! Mathes pattern \a pattern immediately at the current position; on success, the scanner is advanced and its last match information is updated.
+	/*! Mathes \a pattern immediately at the current position; on success, the scanner is advanced and its last match information is updated.
 	 * Returns the number of bytes the scanner has advanced through */
 	{ DaoScanner_Scan,		"scan(self: scanner, pattern: string) => int" },
 
-	/*! Mathes pattern \a pattern anywhere in the string after the current position; on success, the scanner is advanced and its last match
+	/*! Mathes \a pattern anywhere in the string after the current position; on success, the scanner is advanced and its last match
 	 * information is updated. Returns the number of bytes the scanner has advanced through */
 	{ DaoScanner_Seek,		"seek(self: scanner, pattern: string) => int" },
 
@@ -319,10 +319,10 @@ static DaoFuncItem scannerMeths[] =
 	/*! Line number at the current position */
 	{ DaoScanner_Line,		"line(self: scanner) => int" },
 
-	/*! Matches pattern \a pattern immediately before the current position without affecting the state of the scanner */
+	/*! Matches \a pattern immediately before the current position without affecting the state of the scanner */
 	{ DaoScanner_Follows,	"follows(self: scanner, pattern: string) => int" },
 
-	/*! Matches pattern \a pattern immediately after the current position without affecting the state of the scanner */
+	/*! Matches \a pattern immediately after the current position without affecting the state of the scanner */
 	{ DaoScanner_Precedes,	"precedes(self: scanner, pattern: string) => int" },
 	{ NULL, NULL }
 };

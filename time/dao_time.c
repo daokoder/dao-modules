@@ -268,7 +268,7 @@ static void DaoTime_Parse( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutCdata( proc, self, daox_type_time );
 	goto Clean;
 Error:
-	DaoProcess_RaiseError( proc, timeerr, "Invalid format ('YYYY-MM-DD HH:MM:SS' or its part is required)" );
+	DaoProcess_RaiseError( proc, "Param", "Invalid format ('YYYY-MM-DD HH:MM:SS' or its part is required)" );
 	DaoTime_Delete( self );
 Clean:
 	DString_Delete( str );
@@ -408,7 +408,7 @@ static void DaoTime_Format( DaoProcess *proc, DaoValue *p[], int N )
 		if ( strftime( buf, sizeof(buf), fmt->chars, &self->parts ))
 			DaoProcess_PutChars( proc, buf );
 		else
-			DaoProcess_RaiseError( proc, timeerr, "Invalid format" );
+			DaoProcess_RaiseError( proc, "Param", "Invalid format" );
 	}
 	else
 		DaoProcess_PutChars( proc, asctime( &self->parts ) );
@@ -620,16 +620,16 @@ static void DaoTime_Add( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem timeMeths[] =
 {
-	/*! Returns current time of kind \a kind */
+	/*! Returns current time of the given \a kind */
 	{ DaoTime_Get,		"time(kind: enum<local, utc> = $local) => time" },
 
-	/*! Returns time with \c time_t value \a value and kind \a kind */
+	/*! Returns time with \c time_t value \a value and the given \a kind */
 	{ DaoTime_Time,		"time(value: int, kind: enum<local, utc> = $local) => time" },
 
 	/*! Returns local time composing of the specified \a year, \a month, \a day, \a hour, \a min and \a sec */
 	{ DaoTime_MakeTime,	"time(year: int, month: int, day: int, hour = 0, min = 0, sec = 0) => time" },
 
-	/*! Returns local time parsed from string \a value, which should contain date ('YYYY-MM-DD', 'YYYY-MM' or 'MM-DD')
+	/*! Returns local time parsed from \a value, which should contain date ('YYYY-MM-DD', 'YYYY-MM' or 'MM-DD')
 	 * and/or time ('HH:MM:SS' or 'HH:MM') separated by ' ' */
 	{ DaoTime_Parse,	"time(value: string) => time" },
 
