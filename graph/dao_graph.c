@@ -480,7 +480,6 @@ static void NODE_Search( DaoProcess *proc, DaoValue *p[], int N )
 	DArray_PushBack( nodes, self );
 
 	entry = proc->topFrame->entry;
-	DaoProcess_AcquireCV( proc );
 	while( nodes->size ){
 		DaoxNode *node = NULL;
 		if( method ){
@@ -509,7 +508,6 @@ static void NODE_Search( DaoProcess *proc, DaoValue *p[], int N )
 		}
 	}
 	DaoProcess_PopFrame( proc );
-	DaoProcess_ReleaseCV( proc );
 	DArray_Delete( nodes );
 }
 
@@ -524,7 +522,6 @@ static void GRAPH_FindNodes( DaoProcess *proc, DaoValue *p[], int N )
 	if( sect == NULL ) return;
 	if( DaoProcess_PushSectionFrame( proc ) == NULL ) return;
 	entry = proc->topFrame->entry;
-	DaoProcess_AcquireCV( proc );
 	for(i=0; i<self->nodes->size; i++){
 		DaoxNode *node = (DaoxNode*) self->nodes->items.pVoid[i];
 		if( sect->b >0 ) DaoProcess_SetValue( proc, sect->a, (DaoValue*) node );
@@ -537,7 +534,6 @@ static void GRAPH_FindNodes( DaoProcess *proc, DaoValue *p[], int N )
 		}
 	}
 	DaoProcess_PopFrame( proc );
-	DaoProcess_ReleaseCV( proc );
 }
 static void GRAPH_FindEdges( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -550,7 +546,6 @@ static void GRAPH_FindEdges( DaoProcess *proc, DaoValue *p[], int N )
 	if( sect == NULL ) return;
 	if( DaoProcess_PushSectionFrame( proc ) == NULL ) return;
 	entry = proc->topFrame->entry;
-	DaoProcess_AcquireCV( proc );
 	for(i=0; i<self->edges->size; i++){
 		DaoxEdge *edge = (DaoxEdge*) self->edges->items.pVoid[i];
 		if( sect->b >0 ) DaoProcess_SetValue( proc, sect->a, (DaoValue*) edge );
@@ -563,7 +558,6 @@ static void GRAPH_FindEdges( DaoProcess *proc, DaoValue *p[], int N )
 		}
 	}
 	DaoProcess_PopFrame( proc );
-	DaoProcess_ReleaseCV( proc );
 }
 
 

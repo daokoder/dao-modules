@@ -474,7 +474,7 @@ static void DaoState_FetchAdd( DaoProcess *proc, DaoValue *p[], int N )
 		self->state->xComplex.value.imag += p[1]->xComplex.value.imag;
 		break;
 	case DAO_ENUM:
-		DaoEnum_AddValue( &self->state->xEnum, &p[1]->xEnum, 0 ); //enames ignored?
+		DaoEnum_AddValue( &self->state->xEnum, &p[1]->xEnum );
 		break;
 	}
 	node = DaoMap_First( self->demands );
@@ -515,7 +515,7 @@ static void DaoState_FetchSub( DaoProcess *proc, DaoValue *p[], int N )
 		self->state->xComplex.value.imag -= p[1]->xComplex.value.imag;
 		break;
 	case DAO_ENUM:
-		DaoEnum_RemoveValue( &self->state->xEnum, &p[1]->xEnum, 0 ); //enames ignored?
+		DaoEnum_RemoveValue( &self->state->xEnum, &p[1]->xEnum );
 		break;
 	}
 	node = DaoMap_First( self->demands );
