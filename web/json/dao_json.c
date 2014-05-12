@@ -213,11 +213,10 @@ DaoValue* JSON_ParseString( DaoProcess *process, char* *text )
 							int j;
 							for ( j = 1; j < 5 && isxdigit( str->chars[i + j + 1] ); j++ );
 							if ( j == 5 ){
-								mbstate_t state;
-								int count;
-								mbrlen( NULL, 0, &state );
-								count = wcrtomb( str->chars + i, strtoul( str->chars + i + 2, NULL, 16 ), &state );
-								DString_Erase( str, i + count, 6 - count );
+								DString *buf = DString_New();
+								DString_AppendWChar( buf, strtoul( str->chars + i + 2, NULL, 16 ) );
+								DString_Insert( str, buf, i, 6, buf->size );
+								DString_Delete( buf );
 							}
 						}
 						break;
