@@ -1899,10 +1899,17 @@ static void DaoXMLElement_Insert( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoXMLElement_Drop( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoXMLElement *self = (DaoXMLElement*)DaoValue_TryGetCdata( p[0] );
-	if ( N == 3 ){
+	DaoXMLElement_Normalize( self );
+	if ( p[1]->type == DAO_INTEGER ){
 		daoint index = p[1]->xInteger.value;
 		daoint count = p[2]->xInteger.value;
-		if ( self->kind == XMLElement )
+		if ( index < 0 )
+			index += NodesSize( self->c.children );
+		if ( index < 0 || index >= NodesSize( self->c.children ) )
+			DaoProcess_RaiseError( proc, "Index::Range", "" );
+		else if ( count < 0 )
+			DaoProcess_RaiseError( proc, "Param", "Invalid number of elements" );
+		else
 			EraseFromNodes( self->c.children, index, count );
 	}
 	else {
@@ -2601,7 +2608,7 @@ static DaoFuncItem xmlElemMeths[] =
 	/*! Inserts \a item in the list of children at index \a at */
 	{ DaoXMLElement_Insert,		"insert(self: element, item: element|instruction|chardata, at: int)" },
 
-	/*! Removes \a count children at index \a at in the list of children */
+	/*! Removes at most \a count children at index \a at in the list of children */
 	{ DaoXMLElement_Drop,		"drop(self: element, at: int, count = 1)" },
 
 	/*! Removes \a child from the list of children */
