@@ -863,6 +863,22 @@ int DaoXMLElement_AddChild( DaoXMLElement *self, DaoXMLNode *child, int inc_refs
 	return 1;
 }
 
+int DaoXMLElement_InsertChild( DaoXMLElement *self, DaoXMLNode *child, int inc_refs, daoint index )
+{
+	int res = DaoXMLNode_SetParent( child, self, inc_refs );
+	if ( res != 1 )
+		return res;
+	if ( self->kind == XMLEmptyElement )
+		self->kind = XMLElement;
+	else
+		DaoXMLElement_Normalize( self );
+	if ( index == -1 || ( index == 0 && NodesSize( self->c.children ) == 0 ) )
+		AppendToNodes( &self->c.children, child );
+	else if ( !self->c.children || !InsertToNodes( self->c.children, index, child ) )
+		return -2;
+	return 1;
+}
+
 xml_error DaoXMLElement_ParseContent( DaoXMLElement *self, XMLContext *ctx, DMap *namepool )
 {
 	DaoXMLInstruction *in;
@@ -1288,6 +1304,24 @@ int AdoptChild( DaoProcess *proc, DaoXMLNode *node, DaoXMLElement *parent )
 	}
 	if ( res == -1 ){
 		DaoProcess_RaiseError( proc, xmlerr, "Trying to make element a child of itself" );
+		return 0;
+	}
+	return 1;
+}
+
+int AdoptChildAt( DaoProcess *proc, DaoXMLNode *node, DaoXMLElement *parent, daoint index )
+{
+	int res = DaoXMLElement_InsertChild( parent, node, 1, index );
+	if ( res == 0 ){
+		DaoProcess_RaiseError( proc, xmlerr, "Item already has parent" );
+		return 0;
+	}
+	if ( res == -1 ){
+		DaoProcess_RaiseError( proc, xmlerr, "Trying to make element a child of itself" );
+		return 0;
+	}
+	if ( res == -2 ){
+		DaoProcess_RaiseError( proc, "Index::Range", "" );
 		return 0;
 	}
 	return 1;
@@ -1858,16 +1892,8 @@ static void DaoXMLElement_Insert( DaoProcess *proc, DaoValue *p[], int N )
 	DaoXMLNode *item = (DaoXMLNode*)DaoValue_TryGetCdata( p[1] );
 	daoint index = p[2]->xInteger.value;
 	DaoXMLElement_Normalize( self );
-	if ( index < 0 )
-		index += NodesSize( self->c.children );
-	if ( index >= NodesSize( self->c.children ) )
-		DaoProcess_RaiseError( proc, "Index::Range", "" );
-	else {
-		if ( !AdoptChild( proc, item, self ) )
-			return;
-		InsertToNodes( self->c.children, index, item );
-		self->kind = XMLElement;
-	}
+	if ( !AdoptChildAt( proc, item, self, index ) )
+		return;
 }
 
 static void DaoXMLElement_Drop( DaoProcess *proc, DaoValue *p[], int N )
@@ -2101,8 +2127,7 @@ DaoXMLElement* ResolvePath( DaoXMLElement *el, DString *path, DString *endtag )
 		else
 			break;
 	}
-	if ( prev >= 0 )
-		DString_SubString( path, endtag, prev + 1, path->size - prev - 1 );
+	DString_SubString( path, endtag, prev + 1, path->size - prev - 1 );
 	return el;
 }
 
