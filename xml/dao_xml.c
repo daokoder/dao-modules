@@ -663,7 +663,7 @@ DaoXMLElement* DaoXMLElement_New()
 
 daoint NodesSize( DVector *nodes )
 {
-	return nodes? nodes->size/sizeof(daoint) : 0;
+	return nodes? nodes->size : 0;
 }
 
 DaoXMLNode* GetNode( DVector *nodes, daoint i )
@@ -675,19 +675,15 @@ DaoXMLNode* GetNode( DVector *nodes, daoint i )
 
 void AppendToNodes( DVector **nodes, DaoXMLNode *node )
 {
-	DVector *vt;
 	if ( !*nodes )
-		*nodes = DVector_New( 1 );
-	vt = *nodes;
-	DVector_Reserve( vt, vt->size + sizeof(daoint) );
-	vt->size += sizeof(daoint);
-	vt->data.daoints[NodesSize( vt ) - 1] = (daoint)node;
+		*nodes = DVector_New( sizeof(daoint) );
+	DVector_PushDaoInt( *nodes, (daoint)node );
 }
 
 int InsertToNodes( DVector *nodes, daoint i, DaoXMLNode *node )
 {
 	daoint *pos;
-	pos = DVector_Insert( nodes, i*sizeof(daoint), sizeof(daoint) );
+	pos = DVector_Insert( nodes, i, 1 );
 	if ( pos ){
 		*pos = (daoint)node;
 		return 1;
@@ -708,7 +704,7 @@ void EraseFromNodes( DVector *nodes, daoint i, daoint count )
 			if ( node )
 				DaoXMLNode_DeleteAsChld( node );
 		}
-		DVector_Erase( nodes, i*sizeof(daoint), count*sizeof(daoint) );
+		DVector_Erase( nodes, i, count );
 	}
 }
 
@@ -817,7 +813,7 @@ DaoXMLDocument* DaoXMLDocument_New()
 	res->standalone = 0;
 	res->encoding = DString_New();
 	res->doctype = DString_New();
-	res->instructions = DVector_New( 1 );
+	res->instructions = DVector_New( sizeof(daoint) );
 	res->root = NULL;
 	res->namepool = DMap_New( DAO_DATA_STRING, DAO_DATA_NULL );
 	return res;
@@ -847,7 +843,7 @@ void DaoXMLElement_Normalize( DaoXMLElement *self )
 		self->kind = XMLElement;
 	}
 	else if ( !self->c.children )
-		self->c.children = DVector_New( 1 );
+		self->c.children = DVector_New( sizeof(daoint) );
 }
 
 int DaoXMLElement_AddChild( DaoXMLElement *self, DaoXMLNode *child, int inc_refs )
@@ -1965,21 +1961,20 @@ static void DaoXMLElement_MapAttribs( DaoProcess *proc, DaoValue *p[], int N )
 		DaoTuple *tup = DaoProcess_PutTuple( proc, p[1]->xType.nested->size );
 		int i;
 		for ( i = 0; i < tup->size; i++ ){
-			DString *name = tup->ctype->nested->items.pType[i]->name;
+			DaoType *stp = tup->ctype->nested->items.pType[i];
 			DString *key = DString_New();
-			daoint pos = DString_FindChar( name, ':', 0 );
 			DNode *node;
 			if ( tup->values[i] == NULL ){
 				char buf[200];
-				snprintf( buf, sizeof(buf), "Unsupported type of tuple item: %s", name->chars );
+				snprintf( buf, sizeof(buf), "Unsupported type of tuple item: %s", stp->name->chars );
 				DaoProcess_RaiseError( proc, "Type", buf );
 				goto Error;
 			}
-			if ( pos < 0 ){
+			if ( stp->tid != DAO_PAR_NAMED ){
 				DaoProcess_RaiseError( proc, "Type", "Tuple type contains unnamed items" );
 				goto Error;
 			}
-			DString_SubString( name, key, 0, pos );
+			DString_Assign( key, stp->fname );
 			node = DMap_Find( self->attribs, key );
 			if ( node ){
 				DString *val = node->value.pString;
@@ -2242,24 +2237,22 @@ int MapContent( DaoProcess *proc, DaoXMLElement *el, DaoTuple *tup, DString *pat
 	if ( path->size )
 		DString_AppendChar( path, '.' );
 	DString_Append( path, &el->tag );
-	if ( el->kind != XMLElement || NodesSize( el->c.children ) < 2 ){
+	if ( el->kind != XMLElement || NodesSize( el->c.children ) == 0 ){
 		char buf[400];
-		snprintf( buf, sizeof(buf), "Element has less then two children: %s", path->chars );
+		snprintf( buf, sizeof(buf), "Element does not contain sub-elements: %s", path->chars );
 		DaoProcess_RaiseError( proc, xmlerr, buf );
 		return 0;
 	}
 	for ( i = 0; i < tup->size; i++ ){
 		daoint j;
-		DString *name = tup->ctype->nested->items.pType[i]->name;
+		DaoType *stp = tup->ctype->nested->items.pType[i];
 		DString *tag, *data;
-		daoint pos = DString_FindChar( name, ':', 0 );
-		if ( pos < 0 ){
+		if ( stp->tid != DAO_PAR_NAMED ){
 			DaoProcess_RaiseError( proc, "Type", "Tuple type contains unnamed items" );
 			return 0;
 		}
-		tag = DString_New();
+		tag = DString_Copy( stp->fname );
 		data = DString_New();
-		DString_SubString( name, tag, 0, pos );
 		for ( j = 0; j < NodesSize( el->c.children ); j++ ){
 			DaoXMLNode *node = GetNode( el->c.children, j );
 			if ( node->kind == XMLElement || node->kind == XMLEmptyElement || node->kind == XMLTextElement ){
@@ -2313,7 +2306,7 @@ int MapContent( DaoProcess *proc, DaoXMLElement *el, DaoTuple *tup, DString *pat
 					default:
 						if ( 1 ){
 							char buf[400];
-							snprintf( buf, sizeof(buf), "Unsupported type of tuple item: %s", name->chars );
+							snprintf( buf, sizeof(buf), "Unsupported type of tuple item: %s", stp->name->chars );
 							DaoProcess_RaiseError( proc, "Type", buf );
 							goto Error;
 						}
@@ -2404,10 +2397,9 @@ int WriteContent( DaoProcess *proc, DaoXMLElement *dest, DString *tag, DaoValue 
 		DString *subpath = DString_Copy( path );
 		daoint i;
 		for ( i = 0; i < tup->size; i++ ){
-			DString *name = tup->ctype->nested->items.pType[i]->name;
+			DaoType *stp = tup->ctype->nested->items.pType[i];
 			DString *etag;
-			daoint pos = DString_FindChar( name, ':', 0 );
-			if ( tup->ctype->nested->items.pType[i]->tid != DAO_PAR_NAMED || pos < 0 ){
+			if ( stp->tid != DAO_PAR_NAMED ){
 				char buf[200];
 				snprintf( buf, sizeof(buf), "Tuple content for element '%s' contains unnamed items", path->chars );
 				DaoProcess_RaiseError( proc, "Type", buf );
@@ -2415,8 +2407,7 @@ int WriteContent( DaoProcess *proc, DaoXMLElement *dest, DString *tag, DaoValue 
 				DaoXMLElement_Delete( el );
 				return 0;
 			}
-			etag = DString_New();
-			DString_SubString( name, etag, 0, pos );
+			etag = DString_Copy( stp->fname );
 			if ( !WriteContent( proc, el, etag, tup->values[i], subpath ) ){
 				DString_Delete( subpath );
 				DString_Delete( etag );
@@ -2564,7 +2555,8 @@ static DaoFuncItem xmlElemMeths[] =
 	 * named items only, each of which refers to an existing attribute or child element by its name/tag (if there are multiple elements with the
 	 * given tag, the first one is taken). Leaf elements (containing character data only) and attributes can be mapped to \c int, \c float,
 	 * \c double, \c string or \c enum. Non-leaf elements can be mapped to a tuple type, in which case the mapping proceeds recursively.
-	 * \a mapping may omit unneeded attributes and elements */
+	 * \a mapping may omit unneeded attributes and elements
+	 * \note Use \c tuple<tag: T,> to map elements containing single sub-element */
 	{ DaoXMLElement_Map,		"map(self: element, what: enum<attribs,children>, mapping: type<@T<tuple<...>>>) => @T" },
 
 	/*! Additional named parameters of this method are converted into elements and appended to the list of children. For each parameter
