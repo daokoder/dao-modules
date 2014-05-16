@@ -670,7 +670,7 @@ DaoXMLNode* GetNode( DVector *nodes, daoint i )
 {
 	if ( i < 0 )
 		i += NodesSize( nodes );
-	return NodesSize( nodes ) > i? (DaoXMLNode*)nodes->data.daoints[i] : NULL;
+	return ( NodesSize( nodes ) > i && i >= 0 )? (DaoXMLNode*)nodes->data.daoints[i] : NULL;
 }
 
 void AppendToNodes( DVector **nodes, DaoXMLNode *node )
