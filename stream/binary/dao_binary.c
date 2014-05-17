@@ -48,7 +48,7 @@ static void DaoBinary_FillBuf( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, NULL, "The stream is not a file" );
 		return;
 	}
-	if( ( stream->mode & DAO_IO_READ ) == 0 ){
+	if( ( stream->mode & DAO_STREAM_READABLE ) == 0 ){
 		DaoProcess_RaiseError( proc, NULL, "The stream is not readable" );
 		return;
 	}
@@ -69,7 +69,7 @@ static void DaoBinary_ReadArr( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, NULL, "The stream is not a file" );
 		return;
 	}
-	if( ( stream->mode & DAO_IO_READ ) == 0 ){
+	if( ( stream->mode & DAO_STREAM_READABLE ) == 0 ){
 		DaoProcess_RaiseError( proc, NULL, "The stream is not readable" );
 		return;
 	}
@@ -97,7 +97,7 @@ static void DaoBinary_Unpack( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, NULL, "The stream is not a file" );
 		return;
 	}
-	if( ( stream->mode & DAO_IO_READ ) == 0 ){
+	if( ( stream->mode & DAO_STREAM_READABLE ) == 0 ){
 		DaoProcess_RaiseError( proc, NULL, "The stream is not readable" );
 		return;
 	}
@@ -125,7 +125,7 @@ static void DaoBinary_ReadBuf( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, NULL, "The stream is not a file" );
 		return;
 	}
-	if( ( stream->mode & DAO_IO_READ ) == 0 ){
+	if( ( stream->mode & DAO_STREAM_READABLE ) == 0 ){
 		DaoProcess_RaiseError( proc, NULL, "The stream is not readable" );
 		return;
 	}
@@ -147,7 +147,7 @@ static void DaoBinary_WriteBuf( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, NULL, "The stream is not a file" );
 		return;
 	}
-	if( ( stream->mode & DAO_IO_WRITE ) == 0 ){
+	if( ( stream->mode & DAO_STREAM_WRITABLE ) == 0 ){
 		DaoProcess_RaiseError( proc, NULL, "The stream is not writable" );
 		return;
 	}
@@ -170,7 +170,7 @@ static void DaoBinary_Pack( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, NULL, "The stream is not a file" );
 		return;
 	}
-	if( ( stream->mode & DAO_IO_WRITE ) == 0 ){
+	if( ( stream->mode & DAO_STREAM_WRITABLE ) == 0 ){
 		DaoProcess_RaiseError( proc, NULL, "The stream is not writable" );
 		return;
 	}
@@ -220,7 +220,7 @@ static void DaoBinary_WriteArr( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, NULL, "The stream is not a file" );
 		return;
 	}
-	if( ( stream->mode & DAO_IO_WRITE ) == 0 ){
+	if( ( stream->mode & DAO_STREAM_WRITABLE ) == 0 ){
 		DaoProcess_RaiseError( proc, NULL, "The stream is not writable" );
 		return;
 	}

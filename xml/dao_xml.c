@@ -2903,7 +2903,7 @@ static void DaoXMLWriter_Create( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	else {
 		DaoStream *stream = &p[0]->xStream;
-		if ( stream->mode & DAO_IO_WRITE ){
+		if ( stream->mode & DAO_STREAM_WRITABLE ){
 			DaoGC_IncRC( p[0] );
 			res->stream = &p[0]->xStream;
 		}

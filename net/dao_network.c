@@ -883,7 +883,7 @@ static void DaoSocket_Lib_GetStream( DaoProcess *proc, DaoValue *par[], int N  )
 	return;
 #endif
 	stream = DaoStream_New();
-	stream->attribs |= DAO_IO_FILE;
+	stream->mode |= DAO_STREAM_FILE;
 	stream->file = fdopen( self->id, mode );
 	if ( !stream->file ){
 		char errbuf[MAX_ERRMSG];
@@ -892,13 +892,11 @@ static void DaoSocket_Lib_GetStream( DaoProcess *proc, DaoValue *par[], int N  )
 		DaoStream_Delete( stream );
 		return;
 	}
-	if( strstr( mode, "+" ) )
-		stream->mode = DAO_IO_WRITE | DAO_IO_READ;
-	else{
-		if( strstr( mode, "r" ) )
-			stream->mode |= DAO_IO_READ;
-		if( strstr( mode, "w" ) || strstr( mode, "a" ) )
-			stream->mode |= DAO_IO_WRITE;
+	if( strstr( mode, "+" ) ){
+		stream->mode = DAO_STREAM_WRITABLE | DAO_STREAM_READABLE;
+	}else{
+		if( strstr( mode, "r" ) ) stream->mode |= DAO_STREAM_READABLE;
+		if( strstr( mode, "w" ) || strstr( mode, "a" ) ) stream->mode |= DAO_STREAM_WRITABLE;
 	}
 	DaoProcess_PutValue( proc, (DaoValue*)stream );
 }
