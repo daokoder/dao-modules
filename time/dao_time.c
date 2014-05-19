@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2011-2013, Limin Fu
+// Copyright (c) 2011-2014, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -25,6 +25,8 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 // OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+
+// 2013-12: Danilov Aleksey, initial implementation.
 
 #include<string.h>
 #include"dao_time.h"
@@ -634,56 +636,56 @@ static DaoFuncItem timeMeths[] =
 	{ DaoTime_Parse,	"time(value: string) => time" },
 
 	/*! Copy constructor */
-	{ DaoTime_Copy,		"time(other: time) => time" },
+	{ DaoTime_Copy,		"time(invar other: time) => time" },
 
 	/*! Sets one or more time parts using named parameters */
 	{ DaoTime_Set,		"set(self: time, ...: var<year:int>|var<month:int>|var<day:int>|var<hour:int>|var<min:int>|var<sec:int>)" },
 
 	/*! Returns time_t value */
-	{ DaoTime_Value,	"value(self: time) => int" },
+	{ DaoTime_Value,	"value(invar self: time) => int" },
 
 	/*! Returns time kind (UTC or local) */
-	{ DaoTime_Type,		"kind(self: time) => enum<local, utc>" },
+	{ DaoTime_Type,		"kind(invar self: time) => enum<local, utc>" },
 
 	/*! Converts local time to UTC or vice versa */
 	{ DaoTime_Convert,	"convert(self: time, type: enum<local, utc>)" },
 
 	/*! Returns time part */
-	{ DaoTime_Second,	"sec(self: time) => int" },
-	{ DaoTime_Minute,	"min(self: time) => int" },
-	{ DaoTime_Hour,		"hour(self: time) => int" },
-	{ DaoTime_Day,		"day(self: time) => int" },
-	{ DaoTime_Month,	"month(self: time) => int" },
-	{ DaoTime_Year,		"year(self: time) => int" },
+	{ DaoTime_Second,	"sec(invar self: time) => int" },
+	{ DaoTime_Minute,	"min(invar self: time) => int" },
+	{ DaoTime_Hour,		"hour(invar self: time) => int" },
+	{ DaoTime_Day,		"day(invar self: time) => int" },
+	{ DaoTime_Month,	"month(invar self: time) => int" },
+	{ DaoTime_Year,		"year(invar self: time) => int" },
 
 	/*! Returns day of week */
-	{ DaoTime_WeekDay,	"wday(self: time) => int" },
+	{ DaoTime_WeekDay,	"wday(invar self: time) => int" },
 
 	/*! Returns day of year */
-	{ DaoTime_YearDay,	"yday(self: time) => int" },
+	{ DaoTime_YearDay,	"yday(invar self: time) => int" },
 
 	/*! Returns time formatted to string using template \a format, which follows the rules for C \c strftime() */
-	{ DaoTime_Format,	"format(self: time, format = '') => string" },
+	{ DaoTime_Format,	"format(invar self: time, format = '') => string" },
 
 	/*! Returns time formatted to string using template \a format. \a names can specify custome names for months
 	 * ('month' => {<12 names>}), days of week ('week' => {<7 names>}), days of year ('day' => {<365/366 names>}) or
 	 * halfday names ('halfday' => {<2 names>}) */
-	{ DaoTime_Format2,	"format(self: time, names: map<string, list<string>>, format = '%Y-%M-%D, %H:%I:%S' ) => string" },
+	{ DaoTime_Format2,	"format(invar self: time, invar names: map<string, list<string>>, format = '%Y-%M-%D, %H:%I:%S' ) => string" },
 
 	/*! Returns the number of day in the month or year of the given time depending on the \a period parameter */
-	{ DaoTime_Days,		"days(self: time, period: enum<month, year>) => int" },
+	{ DaoTime_Days,		"days(invar self: time, period: enum<month, year>) => int" },
 
 	/*! Adds the specified number of \a years, \a months and \a days to the given time */
 	{ DaoTime_Add,		"add(self: time, years = 0, months = 0, days = 0)" },
 
 	/*! Time comparison */
-	{ DaoTime_Equal,	"==(a: time, b: time) => int" },
-	{ DaoTime_NotEqual,	"!=(a: time, b: time) => int" },
-	{ DaoTime_Lesser,	"<(a: time, b: time) => int" },
-	{ DaoTime_LessOrEq,	"<=(a: time, b: time) => int" },
+	{ DaoTime_Equal,	"==(invar a: time, invar b: time) => int" },
+	{ DaoTime_NotEqual,	"!=(invar a: time, invar b: time) => int" },
+	{ DaoTime_Lesser,	"<(invar a: time, invar b: time) => int" },
+	{ DaoTime_LessOrEq,	"<=(invar a: time, invar b: time) => int" },
 
 	/*! Returns the difference between \a start and \a end time in days and seconds */
-	{ DaoTime_Diff,		"diff(start: time, end: time) => tuple<days: int, seconds: double>" },
+	{ DaoTime_Diff,		"diff(invar start: time, invar end: time) => tuple<days: int, seconds: double>" },
 
 	/*! Returns the current time zone (is Daylight Saving Time (DST) used, shift in seconds from GMT, zone name, DST zone name) */
 	{ DaoTime_Zone,		"zone() => tuple<dst: int, shift: int, name: string, dst_name: string>" },

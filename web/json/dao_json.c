@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2011-2013, Limin Fu
+// Copyright (c) 2011-2014, Limin Fu
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without modification,
@@ -24,6 +24,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+
+// 2011-10: Danilov Aleksey, initial implementation.
 
 #include "stdio.h"
 #include "string.h"
@@ -490,7 +492,7 @@ static DaoFuncItem jsonMeths[] =
 	 * - int, float, double => number
 	 * - none => null
 	 */
-	{ JSON_Serialize,	"serialize(data: map<string,@V>|list<@V>, style: enum<pretty,compact> = $pretty) => string" },
+	{ JSON_Serialize,	"serialize(invar data: map<string,@V>|list<@V>, style: enum<pretty,compact> = $pretty) => string" },
 
 	/*! Parses JSON in \a str and returns the corresponding map or list.
 	 *

@@ -26,6 +26,8 @@
 // OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// 2013-12: Danilov Aleksey, initial implementation.
+
 #include"dao.h"
 #include"daoValue.h"
 #include<ctype.h>

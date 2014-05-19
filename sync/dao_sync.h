@@ -25,6 +25,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// 2011-01: Danilov Aleksey, implementation of state and queue types.
+
 #include"dao.h"
 #include"daoStdtype.h"
 #include"daoValue.h"

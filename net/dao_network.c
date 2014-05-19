@@ -928,20 +928,20 @@ static DaoFuncItem socketMeths[] =
 	{  DaoSocket_Lib_ReceiveDao,    "receive_dao( self :socket )=>list<int|float|double|complex|string|array>" },
 
 	/*! Peer name */
-	{  DaoSocket_Lib_GetPeerName,   "peername( self :socket )=>string" },
+	{  DaoSocket_Lib_GetPeerName,   "peername( invar self :socket )=>string" },
 
 	/*! Socket file descriptor */
-	{  DaoSocket_Lib_Id,            "id( self :socket )=>int" },
+	{  DaoSocket_Lib_Id,            "id( invar self :socket )=>int" },
 
 	/*! Current socket state */
-	{  DaoSocket_Lib_State,         "state( self :socket )=>enum<closed, bound, listening, connected>" },
+	{  DaoSocket_Lib_State,         "state( invar self :socket )=>enum<closed, bound, listening, connected>" },
 
 	/*! Closes the socket */
 	{  DaoSocket_Lib_Close,         "close( self :socket )" },
 
 	/*! Returns stream with \a mode bound to the socket
 	 * \note On Windows, this operation is not supported */
-	{  DaoSocket_Lib_GetStream,     "getstream( self :socket, mode :string )=>io::stream" },
+	{  DaoSocket_Lib_GetStream,     "getstream( invar self :socket, mode :string )=>io::stream" },
 	{ NULL, NULL }
 };
 
@@ -1122,7 +1122,8 @@ static DaoFuncItem netMeths[] =
 	 * Returns sub-lists of \a read and \a write containing available objects
 	 * \warning On Windows, selecting streams is not supported	*/
 	{  DaoNetLib_Select,
-		"select( read :list<@X<io::stream|socket>>, write :list<@Y<io::stream|socket>>, timeout :float )=>tuple<read :list<@X>, write :list<@Y>>" },
+		"select( invar read :list<@X<io::stream|socket>>, invar write :list<@Y<io::stream|socket>>,"
+				"timeout :float )=>tuple<read :list<@X>, write :list<@Y>>" },
 	{ NULL, NULL }
 };
 

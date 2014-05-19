@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2011-2013, Limin Fu
+// Copyright (c) 2011-2014, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -24,6 +24,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+
+// 2011-01: Danilov Aleksey, implementation of state and queue types.
 
 #include"dao_sync.h"
 
@@ -581,17 +583,36 @@ static void DaoState_Waitlist( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem stateMeths[] =
 {
+	/*! Constructs state object containing the given \a value */
 	{ DaoState_Create,   "state<@T>( value: @T )" },
+
+	/*! Reads the value and returns it */
 	{ DaoState_Value,    "value( self: state<@T> ) => @T" },
+
+	/*! Set the value to \a value and returns the old value */
 	{ DaoState_Set,	     "set( self: state<@T>, value: @T ) => @T" },
+
+	/*! If the current value is equal to \a from, sets the value to \a into and returns non-zero. Otherwise the value is not changed
+	 * and zero is returned */
 	{ DaoState_TestSet,  "alter( self: state<@T>, from: @T, into: @T ) => int" },
+
+	/*! Adds the give \a value to the current value */
 	{ DaoState_FetchAdd, "add( self: state<@T>, value: @T ) => @T" },
+
+	/*! Substitutes the give \a value from the current value */
 	{ DaoState_FetchSub, "sub( self: state<@T>, value: @T ) => @T" },
+
+	/*! Blocks the current thread until the specified \a value is set, or until the end of \a timeout given in seconds (if \a timeout is positive)
+	 * Returns non-zero if not timed out */
 	{ DaoState_WaitFor,  "wait( self: state<@T>, value: @T, timeout: float = -1 ) => int" },
+
+	/*! Returns the list of all values currently awaited from the state by all threads */
 	{ DaoState_Waitlist, "waitlist( self: state<@T> ) => list<@T>" },
 	{ NULL, NULL }
 };
 
+/*! Represents state of an object or process in multithreaded environment. Uses the semantics of atomic operations to concurrently access and modify
+ * the underlying data. Provides the ability to wait until a specific value is set by another thread, abstracting over conditional variables */
 DaoTypeBase stateTyper = {
 	"state<@T>", NULL, NULL, stateMeths, {NULL}, {0},
 	(FuncPtrDel)DaoState_Delete, DaoState_GetGCFields
@@ -822,17 +843,33 @@ static void DaoQueue_Create( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem queueMeths[] =
 {
+	/*! Constructs the queue given the maximum \a capacity */
 	{ DaoQueue_Create,   "queue<@T>( capacity = 0 )" },
+
+	/*! Returns queue size */
 	{ DaoQueue_Size,     "size( self: queue<@T> ) => int" },
+
+	/*! Returns queue capacity */
 	{ DaoQueue_Capacity, "capacity( self: queue<@T> ) => int" },
+
+	/*! Pushes \a value to the queue, blocks if queue size equals its capacity */
 	{ DaoQueue_Push,     "push( self: queue<@T>, value: @T )" },
+
+	/*! Tries to push \a value to the queue within the given \a timeout interval. Returns non-zero if \a value was successfully pushed */
 	{ DaoQueue_TryPush,  "trypush( self: queue<@T>, value: @T, timeout: float = 0 ) => int" },
+
+	/*! Pops \a value from the queue, blocks if queue size is zero */
 	{ DaoQueue_Pop,      "pop( self: queue<@T> ) => @T" },
+
+	/*! Tries to pop \a value from the queue within the given \a timeout interval */
 	{ DaoQueue_TryPop,   "trypop( self: queue<@T>, timeout: float = 0 ) => @T|none" },
+
+	/*! Moves all elements of \a other to this queue, leaving \a other empty */
 	{ DaoQueue_Merge,    "merge( self: queue<@T>, other: queue<@T> )" },
 	{ NULL, NULL }
 };
 
+/*! Synchronized queue. Unlike mt::channel, does not deep-copies the data and has no constraints on the type of the elements */
 DaoTypeBase queueTyper = {
 	"queue<@T>", NULL, NULL, queueMeths, {NULL}, {0},
 	(FuncPtrDel)DaoQueue_Delete, DaoQueue_GetGCFields

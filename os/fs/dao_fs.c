@@ -1270,37 +1270,37 @@ static DaoFuncItem fsnodeMeths[] =
 	{ FSNode_New,		"entry(path: string) => entry" },
 
 	/*! Returns full path */
-	{ FSNode_Path,		"path(self: entry) => string" },
+	{ FSNode_Path,		"path(invar self: entry) => string" },
 
 	/*! Returns entry name (last component of path) */
-	{ FSNode_Name,		"name(self: entry) => string" },
+	{ FSNode_Name,		"name(invar self: entry) => string" },
 
 	/*! Returns base name (up to, but not including, the first '.' in name) */
-	{ FSNode_BaseName,	"basename(self: entry) => string" },
+	{ FSNode_BaseName,	"basename(invar self: entry) => string" },
 
 	/*! Returns name part after the last '.' */
-	{ FSNode_Suffix,	"suffix(self: entry) => string" },
+	{ FSNode_Suffix,	"suffix(invar self: entry) => string" },
 
 	/*! Returns type of entry: file or directory */
-	{ FSNode_Type,		"type(self: entry ) => enum<file, dir>" },
+	{ FSNode_Type,		"type(invar self: entry ) => enum<file, dir>" },
 
 	/*! Returns size of file (0 for directory) */
-	{ FSNode_Size,		"size(self: entry) => int" },
+	{ FSNode_Size,		"size(invar self: entry) => int" },
 
 	/*! Resizes file */
 	{ FSNode_Resize,	"resize(self: entry, size: int)" },
 
 	/*! Returns directory which contains this entry */
-	{ FSNode_Parent,	"dirup(self: entry)=> entry|none" },
+	{ FSNode_Parent,	"dirup(invar self: entry)=> entry|none" },
 
 	/*! Returns time of creation, last modification and access (use time module to operate them) */
-	{ FSNode_Time,		"time(self: entry) => tuple<created: int, modified: int, accessed: int>" },
+	{ FSNode_Time,		"time(invar self: entry) => tuple<created: int, modified: int, accessed: int>" },
 
 	/*! Returns owner name */
-	{ FSNode_Owner,		"owner(self: entry) => string" },
+	{ FSNode_Owner,		"owner(invar self: entry) => string" },
 
 	/*! Returns access mode as a combination of 'r', 'w' and 'x'. On Windows, only permissions for the current user are returned */
-	{ FSNode_Access,	"access(self: entry) => tuple<user: string, group: string, other: string>" },
+	{ FSNode_Access,	"access(invar self: entry) => tuple<user: string, group: string, other: string>" },
 
 	/*! Sets access mode to \a mode, where \a mode is a combination of 'r', 'w' and 'x'.
 	 * On Windows, only permissions for the current user are changed */
@@ -1322,24 +1322,24 @@ static DaoFuncItem fsnodeMeths[] =
 
 	/*! For directory returns list of inner entries of given \a type with names matching \a filter,
 	 * where \a filter type is defined by \a filtering and can be either a wildcard pattern or usual string pattern */
-	{ FSNode_Children,	"entries(self: entry, filter = '*', filtering: enum<wildcard, regex> = $wildcard) => list<entry>" },
+	{ FSNode_Children,	"entries(invar self: entry, filter = '*', filtering: enum<wildcard, regex> = $wildcard) => list<entry>" },
 
 	/*! For directory returns list of inner files with names matching \a filter,
 	 * where \a filter type is defined by \a filtering and can be either a wildcard pattern or usual string pattern */
-	{ FSNode_Files,		"files(self: entry, filter = '*', filtering: enum<wildcard, regex> = $wildcard) => list<entry>" },
+	{ FSNode_Files,		"files(invar self: entry, filter = '*', filtering: enum<wildcard, regex> = $wildcard) => list<entry>" },
 
 	/*! For directory returns list of inner directories with names matching \a filter,
 	 * where \a filter type is defined by \a filtering and can be either a wildcard pattern or usual string pattern */
-	{ FSNode_Dirs,		"dirs(self: entry, filter = '*', filtering: enum<wildcard, regex> = $wildcard) => list<entry>" },
+	{ FSNode_Dirs,		"dirs(invar self: entry, filter = '*', filtering: enum<wildcard, regex> = $wildcard) => list<entry>" },
 
 	/*! For directory returns entry given its relative \a path */
-	{ FSNode_Child,		"[](self: entry, path: string) => entry" },
+	{ FSNode_Child,		"[](invar self: entry, path: string) => entry" },
 
 	/*! Copies file and returns entry of the copy */
 	{ FSNode_Copy,		"copy(self: entry, path: string) => entry" },
 
 	/*! For directory returns non-zero if entry specified by relative \a path exists */
-	{ FSNode_Exists,	"exists(self: entry, path: string) => int" },
+	{ FSNode_Exists,	"exists(invar self: entry, path: string) => int" },
 
 	/*! For directory creates file with unique name prefixed by \a prefix in this directory. Returns the corresponding entry */
 	{ FSNode_Mktemp,	"mktemp(self: entry, prefix = '') => entry" },
@@ -1364,7 +1364,7 @@ static DaoFuncItem fsMeths[] =
 	{ FS_PWD,		"pwd() => string" },
 
 	/*! Makes \a dir the current working directory */
-	{ FS_SetCWD,	"cd(dir: entry)" },
+	{ FS_SetCWD,	"cd(invar dir: entry)" },
 	{ FS_SetCWD2,	"cd(dir: string)" },
 
 	/*! Returns absolute form of \a path, which must point to an existing file or directory. On Windows, replaces all '\' in path with '/' */

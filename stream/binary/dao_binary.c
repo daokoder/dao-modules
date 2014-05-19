@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2011,2012, Limin Fu
+// Copyright (c) 2011-2014, Limin Fu
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without modification,
@@ -24,6 +24,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+
+// 2011-01: Danilov Aleksey, initial implementation.
 
 #include"dao.h"
 #include"daoValue.h"
@@ -139,9 +141,9 @@ static void DaoBinary_ReadBuf( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoBinary_WriteBuf( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoStream *stream = &p[0]->xStream;
+	DaoStream *stream = &p[1]->xStream;
 	FILE* file = stream->file;
-	Dao_Buffer *buffer = Dao_Buffer_CastFromValue( p[1] );
+	Dao_Buffer *buffer = Dao_Buffer_CastFromValue( p[0] );
 	size_t count = p[2]->xInteger.value;
 	if( !file ){
 		DaoProcess_RaiseError( proc, NULL, "The stream is not a file" );
@@ -158,9 +160,9 @@ static void DaoBinary_WriteBuf( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoBinary_Pack( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoStream *stream = &p[0]->xStream;
+	DaoStream *stream = &p[1]->xStream;
 	FILE* file = stream->file;
-	DaoArray *arr = &p[1]->xArray;
+	DaoArray *arr = &p[0]->xArray;
 	size_t sizes[] = {1, 2, 4};
 	size_t size =  sizes[p[2]->xEnum.value];
 	size_t count =  p[3]->xInteger.value;
@@ -210,9 +212,9 @@ static void DaoBinary_Pack( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoBinary_WriteArr( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoStream *stream = &p[0]->xStream;
+	DaoStream *stream = &p[1]->xStream;
 	FILE* file = stream->file;
-	DaoArray *arr = &p[1]->xArray;
+	DaoArray *arr = &p[0]->xArray;
 	size_t count =  p[2]->xInteger.value;
 	size_t size = 0;
 	DaoArray_Sliced( arr );
@@ -237,33 +239,33 @@ static void DaoBinary_WriteArr( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem binMeths[] =
 {
-	/*! Fills \a dest with \a count bytes read from the stream. If \a count is zero, or greater than \a dest size,
+	/*! Fills \a dest with \a count bytes read from \a source. If \a count is zero, or greater than \a dest size,
 	 * \a dest size is assumed. Returns the number of bytes read */
-	{ DaoBinary_FillBuf,	"fill(self: io::stream, dest: buffer, count = 0) => int" },
+	{ DaoBinary_FillBuf,	"fill(source: io::stream, dest: buffer, count = 0) => int" },
 
-	/*! Fills \a dest with \a count elements read from the stream. If \a count iszero, or greater than \a dest size,
+	/*! Fills \a dest with \a count elements read from \a source. If \a count iszero, or greater than \a dest size,
 	 * \a dest size is assumed. Returns the number of elements read */
-	{ DaoBinary_ReadArr,	"fill(self: io::stream, dest: array<@T>, count = 0) => int" },
+	{ DaoBinary_ReadArr,	"fill(source: io::stream, dest: array<@T>, count = 0) => int" },
 
-	/*! Reads \a count chunks of size \a size from the stream into \a dest so that each chunk corresponds to a single
+	/*! Reads \a count chunks of size \a size from \a source into \a dest so that each chunk corresponds to a single
 	 * \a dest element. If \a count is zero, or greater than \a dest size, \a dest size is assumed.
 	 * Returns the number of chunks read */
-	{ DaoBinary_Unpack,		"unpack(self: io::stream, dest: array<int>, size: enum<byte,word,dword>, count = 0) => int" },
+	{ DaoBinary_Unpack,		"unpack(source: io::stream, dest: array<int>, size: enum<byte,word,dword>, count = 0) => int" },
 
-	/*! Writes \a count chunks of size \a size to the stream so that each \a source element corresponds to a single
+	/*! Writes \a count chunks of size \a size to \a dest so that each \a source element corresponds to a single
 	 * chunk. If \a count is zero, or greater than \a dest size, \a dest size is assumed */
-	{ DaoBinary_Pack,		"pack(self: io::stream, source: array<int>, size: enum<byte,word,dword>, count = 0)" },
+	{ DaoBinary_Pack,		"pack(invar source: array<int>, dest: io::stream, size: enum<byte,word,dword>, count = 0)" },
 
-	/*! Reads \a count bytes from the stream and returns them as a buffer. If \a count is zero, 2^24 is assumed */
-	{ DaoBinary_ReadBuf,	"read(self: io::stream, count = 0) => buffer" },
+	/*! Reads \a count bytes from \a source and returns them as a buffer. If \a count is zero, 2^24 is assumed */
+	{ DaoBinary_ReadBuf,	"read(source: io::stream, count = 0) => buffer" },
 
-	/*! Writes \a count bytes from \a source into the stream.  If \a count is zero, or greater than \a source size,
+	/*! Writes \a count bytes from \a source into \a dest.  If \a count is zero, or greater than \a source size,
 	 * \a source size is assumed */
-	{ DaoBinary_WriteBuf,	"write(self: io::stream, source: buffer, count = 0)" },
+	{ DaoBinary_WriteBuf,	"write(invar source: buffer, dest: io::stream, count = 0)" },
 
-	/*! Writes \a count elements from \a source into the stream.  If \a count is zero, or greater than \a source size,
+	/*! Writes \a count elements from \a source into \a dest.  If \a count is zero, or greater than \a source size,
 	 * \a source size is assumed */
-	{ DaoBinary_WriteArr,	"write(self: io::stream, source: array<@T>, count = 0)" },
+	{ DaoBinary_WriteArr,	"write(invar source: array<@T>, dest: io::stream, count = 0)" },
 	{ NULL, NULL }
 };
 

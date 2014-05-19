@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2011-2013, Limin Fu
+// Copyright (c) 2011-2014, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -24,6 +24,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+
+// 2014-01: Danilov Aleksey, initial implementation.
 
 #include"dao_scanner.h"
 
@@ -284,14 +286,14 @@ static DaoFuncItem scannerMeths[] =
 	{ DaoScanner_Create,	"scanner(context: string, pos = 0) => scanner" },
 
 	/*! Scanned string */
-	{ DaoScanner_Context,	"context(self: scanner) => string" },
+	{ DaoScanner_Context,	"context(invar self: scanner) => string" },
 
 	/*! Current position */
-	{ DaoScanner_Position,	"pos(self: scanner) => int" },
+	{ DaoScanner_Position,	"pos(invar self: scanner) => int" },
 	{ DaoScanner_SetPos,	"pos(self: scanner, pos: int)" },
 
 	/*! Number of bytes in the remaining string (starting from the current position) */
-	{ DaoScanner_Rest,		"rest(self: scanner) => int" },
+	{ DaoScanner_Rest,		"rest(invar self: scanner) => int" },
 
 	/*! Appends \a context to the context of the scanner */
 	{ DaoScanner_Append,	"append(self: scanner, context: string)" },
@@ -300,7 +302,7 @@ static DaoFuncItem scannerMeths[] =
 	{ DaoScanner_Fetch,		"fetch(self: scanner, count: int) => string" },
 
 	/*! Returns \a count bytes starting from the current position without advancing the scanner */
-	{ DaoScanner_Peek,		"peek(self: scanner, count: int) => string" },
+	{ DaoScanner_Peek,		"peek(invar self: scanner, count: int) => string" },
 
 	/*! Mathes \a pattern immediately at the current position; on success, the scanner is advanced and its last match information is updated.
 	 * Returns the number of bytes the scanner has advanced through */
@@ -311,19 +313,19 @@ static DaoFuncItem scannerMeths[] =
 	{ DaoScanner_Seek,		"seek(self: scanner, pattern: string) => int" },
 
 	/*! Last matched sub-string or its group \a group (if \a group is greater then zero) */
-	{ DaoScanner_Matched,	"matched(self: scanner, group = 0) => string" },
+	{ DaoScanner_Matched,	"matched(invar self: scanner, group = 0) => string" },
 
 	/*! Position of last matched sub-string or its group \a group (if \a group is greater then zero) */
-	{ DaoScanner_MatchedAt,	"matched_pos(self: scanner, group = 0) => tuple<start: int, end: int>|none" },
+	{ DaoScanner_MatchedAt,	"matched_pos(invar self: scanner, group = 0) => tuple<start: int, end: int>|none" },
 
 	/*! Line number at the current position */
-	{ DaoScanner_Line,		"line(self: scanner) => int" },
+	{ DaoScanner_Line,		"line(invar self: scanner) => int" },
 
 	/*! Matches \a pattern immediately before the current position without affecting the state of the scanner */
-	{ DaoScanner_Follows,	"follows(self: scanner, pattern: string) => int" },
+	{ DaoScanner_Follows,	"follows(invar self: scanner, pattern: string) => int" },
 
 	/*! Matches \a pattern immediately after the current position without affecting the state of the scanner */
-	{ DaoScanner_Precedes,	"precedes(self: scanner, pattern: string) => int" },
+	{ DaoScanner_Precedes,	"precedes(invar self: scanner, pattern: string) => int" },
 	{ NULL, NULL }
 };
 

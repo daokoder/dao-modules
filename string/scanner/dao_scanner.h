@@ -25,6 +25,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// 2014-01: Danilov Aleksey, initial implementation.
+
 #include"dao.h"
 #include"daoValue.h"
 
