@@ -1,0 +1,45 @@
+load xml
+
+text = 
+@[xml]<?xml version="1.0" encoding="utf-8"?>
+	<root>
+		<?pi data?>
+		chardata
+		<group atr="abc">
+			<el a="yes" b="2">value</el>
+		</group>
+	</root>
+@[xml]
+
+# Parse XML into a tree structure
+doc = xml.parse(text)
+io.writeln('version =', doc.version, ' encoding =', doc.encoding)
+
+# Obtaining the root element
+root = doc.root
+io.writeln('<', root.tag, root.empty? '/>' : '>')
+
+# processing instruction
+pi = (xml::instruction)root.child(0)
+io.writeln('<?', pi.target, pi.data, '?>' )
+
+# character data
+cd = (xml::chardata)root.child(1)
+io.writeln('chardata:', cd.kind, cd.data)
+
+# getting a sub-element
+gr = root.elements[0]
+io.writeln('<', gr.tag, 'atr="', gr['atr'], '">')
+
+# finding a sub-element by path and/or attributes
+inner = root.find('group/el', b => '2')
+io.writeln('inner text:', inner.text)
+
+# mapping of data
+io.writeln('inner attribs:', inner.map($attribs, type(tuple<a: enum<yes,no>, b: int>)))
+
+# adding a sub-element <el2> <inner1>str</inner1> <inner2>1</inner2> </el2>
+gr.extend(el2 => (inner1 => 'str', inner2 => 1))
+
+# serializing to XML
+io.writeln(doc.toXML())

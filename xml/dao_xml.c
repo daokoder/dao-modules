@@ -1469,15 +1469,15 @@ static void DaoXMLDocument_Serialize( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem xmlDocMeths[] =
 {
 	/*! Constructs new XML document with \a root as its root element */
-	{ DaoXMLDocument_Create,			"document(root: element) => document" },
+	{ DaoXMLDocument_Create,			"document(invar root: element) => document" },
 
 	/*! XML version */
-	{ DaoXMLDocument_GetVersion,		".version(self: document) => string" },
+	{ DaoXMLDocument_GetVersion,		".version(invar self: document) => string" },
 	{ DaoXMLDocument_SetVersion,		".version=(self: document, value: string)" },
 
 	/*! Encoding
 	 * \note Specifying encoding has no effect on actual encoding of resulting XML document */
-	{ DaoXMLDocument_GetEncoding,		".encoding(self: document) => string" },
+	{ DaoXMLDocument_GetEncoding,		".encoding(invar self: document) => string" },
 	{ DaoXMLDocument_SetEncoding,		".encoding=(self: document, value: string)" },
 
 	/*! Standalone document parameter (zero -- 'no', non-zero -- 'yes') */
@@ -1486,20 +1486,20 @@ static DaoFuncItem xmlDocMeths[] =
 
 	/*! Internal DTD section ('<!DOCTYPE ... >')
 	 * \note DTD is not interpreted and thus has no effect on treatment of elements and attributes */
-	{ DaoXMLDocument_GetDoctype,		".doctype(self: document) => string" },
+	{ DaoXMLDocument_GetDoctype,		".doctype(invar self: document) => string" },
 	{ DaoXMLDocument_SetDoctype,		".doctype=(self: document, value: string)" },
 
 	/*! Processing instructions outside of root element (placed before root element during serialization)
 	 * \note The list contains *references* to instructions; however, modifying the list itself has no effect on the document */
-	{ DaoXMLDocument_GetInstructions,	".instructions(self: document) => list<instruction>" },
+	{ DaoXMLDocument_GetInstructions,	".instructions(invar self: document) => list<instruction>" },
 	{ DaoXMLDocument_SetInstructions,	".instructions=(self: document, value: list<instruction>)" },
 
 	/*! Root element */
-	{ DaoXMLDocument_GetRoot,			".root(self: document) => element" },
+	{ DaoXMLDocument_GetRoot,			".root(invar self: document) => element" },
 	{ DaoXMLDocument_SetRoot,			".root=(self: document, value: element)" },
 
 	/*! Returns XML representation of the whole document */
-	{ DaoXMLDocument_Serialize,			"toXML(self: document) => string" },
+	{ DaoXMLDocument_Serialize,			"toXML(invar self: document) => string" },
 	{ NULL, NULL }
 };
 
@@ -1616,11 +1616,11 @@ static DaoFuncItem xmlInstMeths[] =
 	{ DaoXMLInstruction_Create,		"instruction(name: string, data = '') => instruction" },
 
 	/*! Instruction target */
-	{ DaoXMLInstruction_GetName,	".target(self: instruction) => string" },
+	{ DaoXMLInstruction_GetName,	".target(invar self: instruction) => string" },
 	{ DaoXMLInstruction_SetName,	".target=(self: instruction, value: string)" },
 
 	/*! Instruction data */
-	{ DaoXMLInstruction_GetData,	".data(self: instruction) => string" },
+	{ DaoXMLInstruction_GetData,	".data(invar self: instruction) => string" },
 	{ DaoXMLInstruction_SetData,	".data=(self: instruction, value: string)" },
 	{ NULL, NULL }
 };
@@ -2529,27 +2529,27 @@ static DaoFuncItem xmlElemMeths[] =
 	{ DaoXMLElement_Create,		"element(tag: string, ...: var<string>) => element" },
 
 	/*! Tag */
-	{ DaoXMLElement_GetTag,		".tag(self: element) => string" },
+	{ DaoXMLElement_GetTag,		".tag(invar self: element) => string" },
 	{ DaoXMLElement_SetTag,		".tag=(self: element, value: string)" },
 
 	/*! Attribute \a attribute */
-	{ DaoXMLElement_GetAttr,	"[](self: element, attrib: string) => string" },
+	{ DaoXMLElement_GetAttr,	"[](invar self: element, attrib: string) => string" },
 	{ DaoXMLElement_SetAttr,	"[]=(self: element, value: string|none, attrib: string)" },
 
 	/*! Returns map of all attributes
 	 * \note Modifying the returned map has no effect on the element */
-	{ DaoXMLElement_Attributes,	".attribs(self: element) => map<string,string>" },
+	{ DaoXMLElement_Attributes,	".attribs(invar self: element) => map<string,string>" },
 
 	/*! Returns non-zero if element has \a attribute */
-	{ DaoXMLElement_HasAttr,	"has(self: element, attrib: string) => int" },
+	{ DaoXMLElement_HasAttr,	"has(invar self: element, attrib: string) => int" },
 
 	/*! Treats element as one containing character data only. Getting text succeeds if element has single child representing character data,
 	 * or has no chidren at all (but is not empty). Setting text of an element clears its list of children */
-	{ DaoXMLElement_GetText,	".text(self: element) => string" },
+	{ DaoXMLElement_GetText,	".text(invar self: element) => string" },
 	{ DaoXMLElement_SetText,	".text=(self: element, value: string)" },
 
 	/*! Number of direct children */
-	{ DaoXMLElement_Size,		".size(self: element) => int" },
+	{ DaoXMLElement_Size,		".size(invar self: element) => int" },
 
 	/*! Maps either element attributes or its children depending on \a what and returns the resulting data. \a mapping must be a tuple type with
 	 * named items only, each of which refers to an existing attribute or child element by its name/tag (if there are multiple elements with the
@@ -2557,7 +2557,7 @@ static DaoFuncItem xmlElemMeths[] =
 	 * \c double, \c string or \c enum. Non-leaf elements can be mapped to a tuple type, in which case the mapping proceeds recursively.
 	 * \a mapping may omit unneeded attributes and elements
 	 * \note Use \c tuple<tag: T,> to map elements containing single sub-element */
-	{ DaoXMLElement_Map,		"map(self: element, what: enum<attribs,children>, mapping: type<@T<tuple<...>>>) => @T" },
+	{ DaoXMLElement_Map,		"map(invar self: element, what: enum<attribs,children>, mapping: type<@T<tuple<...>>>) => @T" },
 
 	/*! Additional named parameters of this method are converted into elements and appended to the list of children. For each parameter
 	 * in the form *name => value*, an element '<name>value</name>' is created; specifying a tuple as value continues the conversion recursively.
@@ -2566,7 +2566,7 @@ static DaoFuncItem xmlElemMeths[] =
 	{ DaoXMLElement_AddContent,	"extend(self: element, ...: var<any>)" },
 
 	/*! Non-zero if element is an empty element ('<tag ... />'). Making an element empty erases its list of children */
-	{ DaoXMLElement_GetEmpty,	".empty(self: element) => int" },
+	{ DaoXMLElement_GetEmpty,	".empty(invar self: element) => int" },
 	{ DaoXMLElement_SetEmpty,	".empty=(self: element, value: int)" },
 
 	/*! Removes all attributes; for a non-empty element, sets its content to empty string */
@@ -2574,15 +2574,15 @@ static DaoFuncItem xmlElemMeths[] =
 
 	/*! The list of direct children
 	 * \note The returned list contains *references* to child items; however, modifying the list itself has no effect on the element */
-	{ DaoXMLElement_GetChildren,".children(self: element) => list<element|instruction|chardata>" },
+	{ DaoXMLElement_GetChildren,".children(invar self: element) => list<element|instruction|chardata>" },
 	{ DaoXMLElement_SetChildren,".children=(self: element, value: list<element|instruction|chardata>)" },
 
-	/*! Returns direct child with index \c at */
-	{ DaoXMLElement_GetChild,	"child(self: element, at: int) => element|instruction|chardata" },
+	/*! Returns direct child with index \a at */
+	{ DaoXMLElement_GetChild,	"child(invar self: element, at: int) => element|instruction|chardata" },
 
 	/*! Returns the list of direct child elements
 	 * \note The returned list contains *references* to child items; however, modifying the list itself has no effect on the element */
-	{ DaoXMLElement_GetElems,	".elements(self: element) => list<element>" },
+	{ DaoXMLElement_GetElems,	".elements(invar self: element) => list<element>" },
 
 	/*! Returns the first element among the children which matches specified description. \a path is a sequence of tags delimited by '/'
 	 * (e.g. 'a', 'a/b', '/b', 'a/', 'a//c', '') pointing to the element; empty tag matches any element.
@@ -2592,7 +2592,7 @@ static DaoFuncItem xmlElemMeths[] =
 	/*! Returns all elements among the children which match specified description. \a path is a sequence of tags delimited by '/'
 	 * (e.g. 'a', 'a/b', '/b', 'a/', 'a//c', '') pointing to the elements; empty tag matches any element (for non-end tags, the first element is
 	 * picked). Element attributes may be provided as name-value pairs via additional named parameters */
-	{ DaoXMLElement_FindElems,	"select(self: element, path: string, ...: var<string>) => list<element>" },
+	{ DaoXMLElement_FindElems,	"select(invar self: element, path: string, ...: var<string>) => list<element>" },
 
 	/*! Appends \a item to the list of children */
 	{ DaoXMLElement_Append,		"append(self: element, item: element|instruction|chardata)" },
@@ -2609,7 +2609,7 @@ static DaoFuncItem xmlElemMeths[] =
 	/*! Returns namespace name (URI) associated with \a prefix (empty string if not found). If \a prefix is empty string,
 	 * default namespace is assumed
 	 * \warning Obtaining inherited namespace succeeds only if parent elements are preserved */
-	{ DaoXMLElement_Namespace,	"namespace(self: element, prefix = '') => string" },
+	{ DaoXMLElement_Namespace,	"namespace(invar self: element, prefix = '') => string" },
 	{ NULL, NULL }
 };
 
@@ -2699,15 +2699,15 @@ static DaoFuncItem xmlCdataMeths[] =
 	{ DaoXMLCharData_Create,	"chardata(data = '', kind: enum<text, cdata> = $text) => chardata" },
 
 	/*! Representation form: plain text or CDATA section */
-	{ DaoXMLCharData_GetKind,	".kind(self: chardata) => enum<text, cdata>" },
+	{ DaoXMLCharData_GetKind,	".kind(invar self: chardata) => enum<text, cdata>" },
 	{ DaoXMLCharData_SetKind,	".kind=(self: chardata, value: enum<text, cdata>)" },
 
 	/*! Represented character data */
-	{ DaoXMLCharData_GetValue,	".data(self: chardata) => string" },
+	{ DaoXMLCharData_GetValue,	".data(invar self: chardata) => string" },
 	{ DaoXMLCharData_SetValue,	".data=(self: chardata, value: string)" },
 
 	/*! Returns the size of character data */
-	{ DaoXMLCharData_Size,		"size(self: chardata) => int" },
+	{ DaoXMLCharData_Size,		"size(invar self: chardata) => int" },
 
 	/*! Appends \a value to character data */
 	{ DaoXMLCharData_Append,	"append(self: chardata, value: string)" },
@@ -3437,26 +3437,32 @@ static void DaoXML_FromBase64( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem xmlMeths[] = {
 	/*! Returns XML document parsed from \a str */
 	{ DaoXMLDocument_FromString,	"parse(str: string) => xml::document" },
+	{ NULL, NULL }
+};
 
+static DaoFuncItem b64Meths[] = {
 	/*! Returns \a str encoded in Base64 */
-	{ DaoXML_ToBase64,				"toBase64(str: string) => string" },
+	{ DaoXML_ToBase64,				"encode(str: string) => string" },
 
 	/*! Returns \a str decoded from Base64 */
-	{ DaoXML_FromBase64,			"fromBase64(str: string) => string" },
+	{ DaoXML_FromBase64,			"decode(str: string) => string" },
 	{ NULL, NULL }
 };
 
 DAO_DLL int DaoXML_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	DaoNamespace *xmlns;
+	DaoNamespace *xmlns, *b64ns;
 	DMutex_Init( &xmlmtx );
 	xmlns = DaoVmSpace_GetNamespace( vmSpace, "xml" );
 	DaoNamespace_AddConstValue( ns, "xml", (DaoValue*)xmlns );
+	b64ns = DaoVmSpace_GetNamespace( vmSpace, "base64" );
+	DaoNamespace_AddConstValue( ns, "base64", (DaoValue*)b64ns );
 	daox_type_xmlinst = DaoNamespace_WrapType( xmlns, &xmlInstTyper, 1 );
 	daox_type_xmlcdata = DaoNamespace_WrapType( xmlns, &xmlCdataTyper, 1 );
 	daox_type_xmlelem = DaoNamespace_WrapType( xmlns, &xmlElemTyper, 1 );
 	daox_type_xmldoc = DaoNamespace_WrapType( xmlns, &xmlDocTyper, 1 );
 	daox_type_xmlwriter = DaoNamespace_WrapType( xmlns, &xmlWriterTyper, 1 );
 	DaoNamespace_WrapFunctions( xmlns, xmlMeths );
+	DaoNamespace_WrapFunctions( b64ns, b64Meths );
 	return 0;
 }
