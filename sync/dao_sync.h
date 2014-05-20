@@ -140,6 +140,7 @@ struct DaoQueue
 	DaoMutex *mtx;
 	DaoCondVar *pushvar;
 	DaoCondVar *popvar;
+	DaoCondVar *joinvar;
 };
 
 #endif

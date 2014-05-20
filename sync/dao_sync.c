@@ -387,19 +387,7 @@ extern DaoTypeBase stateTyper;
 static void DaoState_Create( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoType *type = DaoProcess_GetReturnType( proc );
-	DaoState *res;
-	switch ( p[0]->type ){
-	case DAO_INTEGER:
-	case DAO_FLOAT:
-	case DAO_DOUBLE:
-	case DAO_COMPLEX:
-	case DAO_ENUM:
-		break;
-	default:
-		DaoProcess_RaiseError( proc, NULL, "type not supported" );
-		return;
-	}
-	res = DaoState_New( type, p[0] );
+	DaoState *res = DaoState_New( type, p[0] );
 	DaoProcess_PutValue( proc, (DaoValue*)res );
 }
 
@@ -455,11 +443,6 @@ static void DaoState_FetchAdd( DaoProcess *proc, DaoValue *p[], int N )
 	DNode *node;
 	DaoValue *old = 0;
 	DaoMutex_Lock( self->lock );
-	if ( p[1]->type != self->state->type ){
-		DaoMutex_Unlock( self->lock );
-		DaoProcess_RaiseError( proc, NULL, "types do not match" );
-		return;
-	}
 	DaoValue_Copy( self->state, &old );
 	switch ( self->state->type ){
 	case DAO_INTEGER:
@@ -474,9 +457,6 @@ static void DaoState_FetchAdd( DaoProcess *proc, DaoValue *p[], int N )
 	case DAO_COMPLEX:
 		self->state->xComplex.value.real += p[1]->xComplex.value.real;
 		self->state->xComplex.value.imag += p[1]->xComplex.value.imag;
-		break;
-	case DAO_ENUM:
-		DaoEnum_AddValue( &self->state->xEnum, &p[1]->xEnum );
 		break;
 	}
 	node = DaoMap_First( self->demands );
@@ -496,11 +476,6 @@ static void DaoState_FetchSub( DaoProcess *proc, DaoValue *p[], int N )
 	DNode *node;
 	DaoValue *old = 0;
 	DaoMutex_Lock( self->lock );
-	if ( p[1]->type != self->state->type ){
-		DaoMutex_Unlock( self->lock );
-		DaoProcess_RaiseError( proc, NULL, "types do not match" );
-		return;
-	}
 	DaoValue_Copy( self->state, &old );
 	switch ( self->state->type ){
 	case DAO_INTEGER:
@@ -515,9 +490,6 @@ static void DaoState_FetchSub( DaoProcess *proc, DaoValue *p[], int N )
 	case DAO_COMPLEX:
 		self->state->xComplex.value.real -= p[1]->xComplex.value.real;
 		self->state->xComplex.value.imag -= p[1]->xComplex.value.imag;
-		break;
-	case DAO_ENUM:
-		DaoEnum_RemoveValue( &self->state->xEnum, &p[1]->xEnum );
 		break;
 	}
 	node = DaoMap_First( self->demands );
@@ -597,10 +569,10 @@ static DaoFuncItem stateMeths[] =
 	{ DaoState_TestSet,  "alter( self: state<@T>, from: @T, into: @T ) => int" },
 
 	/*! Adds the give \a value to the current value */
-	{ DaoState_FetchAdd, "add( self: state<@T>, value: @T ) => @T" },
+	{ DaoState_FetchAdd, "add( self: state<@T<int|float|double|complex>>, value: @T ) => @T" },
 
-	/*! Substitutes the give \a value from the current value */
-	{ DaoState_FetchSub, "sub( self: state<@T>, value: @T ) => @T" },
+	/*! Substitutes the given \a value from the current value */
+	{ DaoState_FetchSub, "sub( self: state<@T<int|float|double|complex>>, value: @T ) => @T" },
 
 	/*! Blocks the current thread until the specified \a value is set, or until the end of \a timeout given in seconds (if \a timeout is positive)
 	 * Returns non-zero if not timed out */
@@ -630,9 +602,11 @@ DaoQueue* DaoQueue_New( DaoType *type, int capacity )
 	res->mtx = DaoMutex_New();
 	res->pushvar = DaoCondVar_New();
 	res->popvar = DaoCondVar_New();
+	res->joinvar = DaoCondVar_New();
 	DaoGC_IncRC( (DaoValue*)res->mtx );
 	DaoGC_IncRC( (DaoValue*)res->pushvar );
 	DaoGC_IncRC( (DaoValue*)res->popvar );
+	DaoGC_IncRC( (DaoValue*)res->joinvar );
 	return res;
 }
 
@@ -648,6 +622,7 @@ void DaoQueue_Delete( DaoQueue *self )
 	DaoGC_DecRC( (DaoValue*)self->mtx );
 	DaoGC_DecRC( (DaoValue*)self->pushvar );
 	DaoGC_DecRC( (DaoValue*)self->popvar );
+	DaoGC_DecRC( (DaoValue*)self->joinvar );
 	DaoCstruct_Free( (DaoCstruct*)self );
 	dao_free( self );
 }
@@ -701,6 +676,8 @@ static void DaoQueue_Merge( DaoProcess *proc, DaoValue *p[], int N )
 		self->size += other->size;
 		if( other->capacity && other->size == other->capacity )
 			DaoCondVar_BroadCast( other->pushvar );
+		if ( other->size )
+			DaoCondVar_BroadCast( other->joinvar );
 		other->size = 0;
 		other->head = other->tail = NULL;
 		merged = 1;
@@ -789,6 +766,8 @@ static void DaoQueue_Pop( DaoProcess *proc, DaoValue *p[], int N )
 		self->head->previous = NULL;
 	if( self->capacity && self->size == self->capacity )
 		DaoCondVar_Signal( self->pushvar );
+	if ( self->size == 1 )
+		DaoCondVar_BroadCast( self->joinvar );
 	self->size--;
 	DaoMutex_Unlock( self->mtx );
 	DaoProcess_PutValue( proc, item->value );
@@ -824,6 +803,8 @@ static void DaoQueue_TryPop( DaoProcess *proc, DaoValue *p[], int N )
 			self->head->previous = NULL;
 		if( self->capacity && self->size == self->capacity )
 			DaoCondVar_Signal( self->pushvar );
+		if ( self->size == 1 )
+			DaoCondVar_BroadCast( self->joinvar );
 		self->size--;
 	}
 	DaoMutex_Unlock( self->mtx );
@@ -841,6 +822,15 @@ static void DaoQueue_Create( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutValue( proc, (DaoValue*)res );
 }
 
+static void DaoQueue_Join( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoQueue *self = (DaoQueue*)DaoValue_CastCstruct( p[0], NULL );
+	DaoMutex_Lock( self->mtx );
+	while ( self->size )
+		DaoCondVar_Wait( self->joinvar, self->mtx );
+	DaoMutex_Unlock( self->mtx );
+}
+
 static DaoFuncItem queueMeths[] =
 {
 	/*! Constructs the queue given the maximum \a capacity */
@@ -855,17 +845,22 @@ static DaoFuncItem queueMeths[] =
 	/*! Pushes \a value to the queue, blocks if queue size equals its capacity */
 	{ DaoQueue_Push,     "push( self: queue<@T>, value: @T )" },
 
-	/*! Tries to push \a value to the queue within the given \a timeout interval. Returns non-zero if \a value was successfully pushed */
+	/*! Tries to push \a value to the queue within the given \a timeout interval (in case of negative value, waits indefinitely).
+	 * Returns non-zero if \a value was successfully pushed */
 	{ DaoQueue_TryPush,  "trypush( self: queue<@T>, value: @T, timeout: float = 0 ) => int" },
 
 	/*! Pops \a value from the queue, blocks if queue size is zero */
 	{ DaoQueue_Pop,      "pop( self: queue<@T> ) => @T" },
 
-	/*! Tries to pop \a value from the queue within the given \a timeout interval */
+	/*! Tries to pop \a value from the queue within the given \a timeout interval (in case of negative value, waits indefinitely). On success,
+	 * returns the popped value */
 	{ DaoQueue_TryPop,   "trypop( self: queue<@T>, timeout: float = 0 ) => @T|none" },
 
 	/*! Moves all elements of \a other to this queue, leaving \a other empty */
 	{ DaoQueue_Merge,    "merge( self: queue<@T>, other: queue<@T> )" },
+
+	/*! Blocks until the queue is emptied */
+	{ DaoQueue_Join,     "wait_empty( self: queue<@T> )" },
 	{ NULL, NULL }
 };
 
