@@ -578,6 +578,7 @@ xml_error ParseXMLCharData( XMLContext *ctx, DString *dest )
 		case '\0':
 		case '<':
 			DString_AppendBytes( dest, start, ctx->pos - start - 1 );
+			DString_Trim( dest, 1, 1, 1 );
 			str = dest->chars;
 			for ( i = 0; i < dest->size; i++ )
 				if ( str[i] == '\r' ){
