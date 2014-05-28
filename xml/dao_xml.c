@@ -2954,7 +2954,7 @@ static void DaoXMLWriter_RawData( DaoProcess *proc, DaoValue *p[], int N )
 		DaoXMLWriter_StartContent( self );
 		DaoStream_WriteString( self->stream, data );
 		self->start = 0;
-		DaoProcess_PutReference( proc, p[0] );
+		DaoProcess_PutValue( proc, p[0] );
 	}
 }
 
@@ -3021,7 +3021,7 @@ static void DaoXMLWriter_Text( DaoProcess *proc, DaoValue *p[], int N )
 		break;
 	}
 	self->start = 0;
-	DaoProcess_PutReference( proc, p[0] );
+	DaoProcess_PutValue( proc, p[0] );
 }
 
 static void DaoXMLWriter_Cdata( DaoProcess *proc, DaoValue *p[], int N )
@@ -3042,7 +3042,7 @@ static void DaoXMLWriter_Cdata( DaoProcess *proc, DaoValue *p[], int N )
 		DaoXMLWriter_StartContent( self );
 		DaoStream_WriteString( self->stream, cdata );
 		self->start = 0;
-		DaoProcess_PutReference( proc, p[0] );
+		DaoProcess_PutValue( proc, p[0] );
 		DString_Delete( cdata );
 	}
 }
@@ -3064,7 +3064,7 @@ static void DaoXMLWriter_Comment( DaoProcess *proc, DaoValue *p[], int N )
 		DString_AppendChars( comm, " -->" );
 		DaoStream_WriteString( self->stream, comm );
 		self->start = 0;
-		DaoProcess_PutReference( proc, p[0] );
+		DaoProcess_PutValue( proc, p[0] );
 		DString_Delete( comm );
 	}
 }
@@ -3081,7 +3081,7 @@ static void DaoXMLWriter_Flush( DaoProcess *proc, DaoValue *p[], int N )
 	if ( !DaoXMLWriter_CheckClosed( self, proc ) )
 		return;
 	DaoStream_Flush( self->stream );
-	DaoProcess_PutReference( proc, p[0] );
+	DaoProcess_PutValue( proc, p[0] );
 }
 
 static void DaoXMLWriter_Close( DaoProcess *proc, DaoValue *p[], int N )
@@ -3104,7 +3104,7 @@ static void DaoXMLWriter_Binary( DaoProcess *proc, DaoValue *p[], int N )
 	DaoStream_WriteString( self->stream, dest );
 	self->start = 0;
 	DString_Delete( dest );
-	DaoProcess_PutReference( proc, p[0] );
+	DaoProcess_PutValue( proc, p[0] );
 }
 
 static void DaoXMLWriter_Tag( DaoProcess *proc, DaoValue *p[], int N )
@@ -3201,7 +3201,7 @@ static void DaoXMLWriter_Tag( DaoProcess *proc, DaoValue *p[], int N )
 		DaoString_Set( str, tag );
 		DaoList_PushBack( self->tagstack, (DaoValue*)str );
 	}
-	DaoProcess_PutReference( proc, p[0] );
+	DaoProcess_PutValue( proc, p[0] );
 Exit:
 	DString_Delete( buf );
 	DString_Delete( name );
@@ -3226,7 +3226,7 @@ static void DaoXMLWriter_End( DaoProcess *proc, DaoValue *p[], int N )
 	DaoStream_WriteString( self->stream, DaoList_Back( self->tagstack )->xString.value );
 	DaoStream_WriteChar( self->stream, '>' );
 	DaoList_PopBack( self->tagstack );
-	DaoProcess_PutReference( proc, p[0] );
+	DaoProcess_PutValue( proc, p[0] );
 }
 
 static void DaoXMLWriter_Header( DaoProcess *proc, DaoValue *p[], int N )
@@ -3274,7 +3274,7 @@ static void DaoXMLWriter_Header( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	else {
 		DaoStream_WriteString( self->stream, buf );
-		DaoProcess_PutReference( proc, p[0] );
+		DaoProcess_PutValue( proc, p[0] );
 	}
 	DString_Delete( buf );
 }
@@ -3300,7 +3300,7 @@ static void DaoXMLWriter_PInst( DaoProcess *proc, DaoValue *p[], int N )
 		DaoStream_WriteChars( self->stream, " " );
 		DaoStream_WriteString( self->stream, data );
 		DaoStream_WriteChars( self->stream, "?>" );
-		DaoProcess_PutReference( proc, p[0] );
+		DaoProcess_PutValue( proc, p[0] );
 	}
 }
 
@@ -3342,7 +3342,7 @@ static void DaoXMLWriter_Doctype( DaoProcess *proc, DaoValue *p[], int N )
 	self->dtd = 1;
 	DaoXMLWriter_Return( self );
 	DaoStream_WriteString( self->stream, dtd );
-	DaoProcess_PutReference( proc, p[0] );
+	DaoProcess_PutValue( proc, p[0] );
 }
 
 static DaoFuncItem xmlWriterMeths[] =
@@ -3359,47 +3359,47 @@ static DaoFuncItem xmlWriterMeths[] =
 	/*! Returns the internal string stream content */
 	{ DaoXMLWriter_GetBuf,	"getstring(self: writer) => string" },
 
-	/*! Flushes output stream and returns reference to \a self */
+	/*! Flushes output stream and returns \a self */
 	{ DaoXMLWriter_Flush,	"flush(self: writer) => writer" },
 
 	/*! Closes output stream */
 	{ DaoXMLWriter_Close,	"close(self: writer)" },
 
-	/*! Writes \a data as raw data (without preprocessing) and returns reference to \a self */
+	/*! Writes \a data as raw data (without preprocessing) and returns \a self */
 	{ DaoXMLWriter_RawData,	"raw(self: writer, data: string) => writer" },
 
-	/*! Writes \a value as text and returns reference to \a self. Special characters in resulting text are replaced with references */
+	/*! Writes \a value as text and returns \a self. Special characters in resulting text are replaced with references */
 	{ DaoXMLWriter_Text,	"text(self: writer, value: int|float|double|enum|string) => writer" },
 
-	/*! Writes binary \a data using Base64 encoding and returns reference to \a self */
+	/*! Writes binary \a data using Base64 encoding and returns \a self */
 	{ DaoXMLWriter_Binary,	"binary(self: writer, data: string) => writer" },
 
-	/*! Writes CDATA section containing \a data and returns reference to \a self */
+	/*! Writes CDATA section containing \a data and returns \a self */
 	{ DaoXMLWriter_Cdata,	"cdata(self: writer, data: string) => writer" },
 
-	/*! Writes comment containing \a text and returns reference to \a self */
+	/*! Writes comment containing \a text and returns \a self */
 	{ DaoXMLWriter_Comment,	"comment(self: writer, text: string) => writer" },
 
-	/*! Writes start tag or empty-element \a name and returns reference to \a self. An empty element is assumed if \a name ends with '/'.
+	/*! Writes start tag or empty-element \a name and returns \a self. An empty element is assumed if \a name ends with '/'.
 	 * Attributes may be provided as name-value pairs via additional named parameters */
 	{ DaoXMLWriter_Tag,		"tag(self: writer, name: string, ...: var<string>) => writer" },
 
-	/*! Writes start tag or empty-element \a name with \a attributes and returns reference to \a self.
+	/*! Writes start tag or empty-element \a name with \a attributes and returns \a self.
 	 * An empty element is assumed if \a name ends with '/' */
 	{ DaoXMLWriter_Tag,		"tag(self: writer, name: string, attributes: map<string,string>) => writer" },
 
-	/*! Writes end tag matching the last written start tag and returns reference to \a self */
+	/*! Writes end tag matching the last written start tag and returns \a self */
 	{ DaoXMLWriter_End,		"end(self: writer) => writer" },
 
 	/*! Writes XML declaration containing \a version, \a encoding and \a standalone parameters (\a encoding and \a standalone may be omitted),
-	 * returns reference to \a self
+	 * returns \a self
 	 * \note Specifying encoding has no effect on actual encoding of resulting XML document */
 	{ DaoXMLWriter_Header,	"header(self: writer, version = '1.0', encoding = '', standalone = '') => writer" },
 
-	/*! Writes processing instruction with \a name and \a data and returns reference to \a self */
+	/*! Writes processing instruction with \a name and \a data and returns \a self */
 	{ DaoXMLWriter_PInst,	"instruction(self: writer, name: string, data = '') => writer" },
 
-	/*! Writes DTD section and returns reference to \a self; \a dtd should be in form of '<!DOCTYPE ... >' */
+	/*! Writes DTD section and returns \a self; \a dtd should be in form of '<!DOCTYPE ... >' */
 	{ DaoXMLWriter_Doctype,	"doctype(self: writer, dtd: string) => writer" },
 	{ NULL, NULL }
 };
