@@ -8,7 +8,7 @@ int main(void){
 }
 @[cxx]
 
-if( DaoMake::TestCompile( code, '-lcblas', '-I.' ) == 0 ) return
+if( DaoMake::TestCompile( code, '-lcblas', '-I' + DaoMake::SourcePath() ) == 0 ) return
 
 project = DaoMake::Project( "cblas" ) 
 
@@ -23,6 +23,7 @@ project.UseImportLibrary( daovm, "dao" )
 project.AddCommand( 'dao_cblas.h: cblas.h cblas.c', '../../tools/clangdao/clangdao cblas.c' )
 
 project.AddIncludePath( "../../kernel" )
+project.AddIncludePath( "../../" )
 project.AddLinkingFlag( "-lcblas" )
 
 project_objs = project.AddObjects( source_cblas, { "dao_cblas.h" } )

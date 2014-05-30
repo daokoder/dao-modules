@@ -8,6 +8,8 @@
 #ifdef __cplusplus
 extern "C"{
 #endif
+#include<modules/auxlib/dao_aux.h>
+
 #include<daoArray.h>
 
 #ifdef __cplusplus

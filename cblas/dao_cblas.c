@@ -2486,7 +2486,6 @@ static void dao__cblas_zher2k( DaoProcess *_proc, DaoValue *_p[], int _n )
 #endif
 static DaoNumItem dao__Nums[] = 
 {
-  {  "OBJC_NEW_PROPERTIES", DAO_DOUBLE, OBJC_NEW_PROPERTIES},
   { "CblasRowMajor", DAO_INTEGER, CblasRowMajor },
   { "CblasColMajor", DAO_INTEGER, CblasColMajor },
   { "CblasNoTrans", DAO_INTEGER, CblasNoTrans },
