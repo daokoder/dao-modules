@@ -20,7 +20,9 @@ source_cblas = { "dao_cblas.c", "dao_cblas2.c", "dao_cblas3.c" }
 
 project.UseImportLibrary( daovm, "dao" )
 
-project.AddCommand( 'dao_cblas.h: cblas.h cblas.c', '../../tools/clangdao/clangdao cblas.c' )
+if( DaoMake::IsFile( '../../tools/clangdao/clangdao' ) ){
+	project.AddCommand( 'dao_cblas.h: cblas.h cblas.c', '../../tools/clangdao/clangdao cblas.c' )
+}
 
 project.AddIncludePath( "../../kernel" )
 project.AddIncludePath( "../../" )

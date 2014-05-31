@@ -684,7 +684,7 @@ DAO_DLL int DaoCxx_OnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 
 	string predefines;
 #ifdef MAC_OSX
-	predefines = "#define MAC_OSX 1\n#define UNIX 1\n";
+	predefines = "#define MACOSX 1\n#define UNIX 1\n";
 	// needed to circumvent a bug which is supposingly fixed in clang 2.9-16
 	headers.AddPath( "/Developer/SDKs/MacOSX10.5.sdk/usr/lib/gcc/i686-apple-darwin9/4.2.1/include", clang::frontend::System, false, false, true );
 	// workaround for finding: stdarg.h
