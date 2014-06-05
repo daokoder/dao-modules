@@ -18,9 +18,7 @@ const types =
 	'MyType'
 }
 
-const sample = link( 'sample', funcs, types );
-
-use sample
+load link( 'sample', funcs, types )
 
 x = [ 1, 2, 3, 4 ]
 
