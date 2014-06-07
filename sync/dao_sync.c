@@ -135,7 +135,7 @@ static void DaoMutex_Lib_Unlock( DaoProcess *proc, DaoValue *par[], int N )
 static void DaoMutex_Lib_TryLock( DaoProcess *proc, DaoValue *par[], int N )
 {
 	DaoMutex *self = (DaoMutex*) par[0];
-	DaoProcess_PutInteger( proc, DaoMutex_TryLock( self ) );
+	DaoProcess_PutEnum( proc, DaoMutex_TryLock( self )? "true" : "false" );
 }
 static void DaoMutex_Lib_Protect( DaoProcess *proc, DaoValue *p[], int n )
 {
@@ -152,7 +152,7 @@ static DaoFuncItem mutexMeths[] =
 	{ DaoMutex_Lib_Mutex,     "mutex()=>mutex" },
 	{ DaoMutex_Lib_Lock,      "lock( self : mutex )" },
 	{ DaoMutex_Lib_Unlock,    "unlock( self : mutex )" },
-	{ DaoMutex_Lib_TryLock,   "trylock( self : mutex )=>int" },
+	{ DaoMutex_Lib_TryLock,   "trylock( self : mutex )=>bool" },
 	{ DaoMutex_Lib_Protect,   "protect( self : mutex )[]" },
 	{ NULL, NULL }
 };
@@ -203,8 +203,8 @@ static void DaoCondV_Lib_TimedWait( DaoProcess *proc, DaoValue *par[], int N )
 {
 	DaoCondVar *self = (DaoCondVar*) par[0];
 	DaoMutex *mutex = (DaoMutex*) par[1];
-	DaoProcess_PutInteger( proc,
-			DCondVar_TimedWait( & self->myCondVar, & mutex->myMutex, par[2]->xFloat.value ) );
+	DaoProcess_PutEnum( proc,
+			DCondVar_TimedWait( & self->myCondVar, & mutex->myMutex, par[2]->xFloat.value )? "false" : "true" );
 }
 static void DaoCondV_Lib_Signal( DaoProcess *proc, DaoValue *par[], int N )
 {
@@ -220,7 +220,7 @@ static DaoFuncItem condvMeths[] =
 {
 	{ DaoCondV_Lib_CondVar,   "condition()=>condition" },
 	{ DaoCondV_Lib_Wait,      "wait( self : condition, mtx : mutex )" },
-	{ DaoCondV_Lib_TimedWait, "timedwait( self : condition, mtx : mutex, seconds :float )=>int" },
+	{ DaoCondV_Lib_TimedWait, "timedwait( self : condition, mtx : mutex, seconds :float )=>bool" },
 	{ DaoCondV_Lib_Signal,    "signal( self : condition )" },
 	{ DaoCondV_Lib_BroadCast, "broadcast( self : condition )" },
 	{ NULL, NULL }
@@ -415,7 +415,7 @@ static void DaoState_TestSet( DaoProcess *proc, DaoValue *p[], int N )
 			DaoCondVar_BroadCast( (DaoCondVar*)DNode_Value( node ) );
 	}
 	DaoMutex_Unlock( self->lock );
-	DaoProcess_PutInteger( proc, set );
+	DaoProcess_PutEnum( proc, set? "true" : "false" );
 }
 
 static void DaoState_Set( DaoProcess *proc, DaoValue *p[], int N )
@@ -536,7 +536,7 @@ static void DaoState_WaitFor( DaoProcess *proc, DaoValue *p[], int N )
 			while( DaoValue_Compare( self->state, state ) );
 		DaoMutex_Unlock( self->defmtx );
 	}
-	DaoProcess_PutInteger( proc, res );
+	DaoProcess_PutEnum( proc, res? "true" : "false" );
 }
 
 static void DaoState_Waitlist( DaoProcess *proc, DaoValue *p[], int N )
@@ -564,9 +564,9 @@ static DaoFuncItem stateMeths[] =
 	/*! Set the value to \a value and returns the old value */
 	{ DaoState_Set,	     "set( self: state<@T>, value: @T ) => @T" },
 
-	/*! If the current value is equal to \a from, sets the value to \a into and returns non-zero. Otherwise the value is not changed
-	 * and zero is returned */
-	{ DaoState_TestSet,  "alter( self: state<@T>, from: @T, into: @T ) => int" },
+	/*! If the current value is equal to \a from, sets the value to \a into and returns \c true. Otherwise the value is not changed
+	 * and \c false is returned */
+	{ DaoState_TestSet,  "alter( self: state<@T>, from: @T, into: @T ) => bool" },
 
 	/*! Adds the give \a value to the current value */
 	{ DaoState_FetchAdd, "add( self: state<@T<int|float|double|complex>>, value: @T ) => @T" },
@@ -575,8 +575,8 @@ static DaoFuncItem stateMeths[] =
 	{ DaoState_FetchSub, "sub( self: state<@T<int|float|double|complex>>, value: @T ) => @T" },
 
 	/*! Blocks the current thread until the specified \a value is set, or until the end of \a timeout given in seconds (if \a timeout is positive)
-	 * Returns non-zero if not timed out */
-	{ DaoState_WaitFor,  "wait( self: state<@T>, value: @T, timeout: float = -1 ) => int" },
+	 * Returns \c true if not timed out */
+	{ DaoState_WaitFor,  "wait( self: state<@T>, value: @T, timeout: float = -1 ) => bool" },
 
 	/*! Returns the list of all values currently awaited from the state by all threads */
 	{ DaoState_Waitlist, "waitlist( self: state<@T> ) => list<@T>" },
@@ -748,7 +748,7 @@ static void DaoQueue_TryPush( DaoProcess *proc, DaoValue *p[], int N )
 		DaoGC_DecRC( item->value );
 		dao_free( item );
 	}
-	DaoProcess_PutInteger( proc, pushable );
+	DaoProcess_PutEnum( proc, pushable? "true" : "false" );
 }
 
 static void DaoQueue_Pop( DaoProcess *proc, DaoValue *p[], int N )
@@ -846,8 +846,8 @@ static DaoFuncItem queueMeths[] =
 	{ DaoQueue_Push,     "push( self: queue<@T>, value: @T )" },
 
 	/*! Tries to push \a value to the queue within the given \a timeout interval (in case of negative value, waits indefinitely).
-	 * Returns non-zero if \a value was successfully pushed */
-	{ DaoQueue_TryPush,  "trypush( self: queue<@T>, value: @T, timeout: float = 0 ) => int" },
+	 * Returns \c true if \a value was successfully pushed */
+	{ DaoQueue_TryPush,  "trypush( self: queue<@T>, value: @T, timeout: float = 0 ) => bool" },
 
 	/*! Pops \a value from the queue, blocks if queue size is zero */
 	{ DaoQueue_Pop,      "pop( self: queue<@T> ) => @T" },

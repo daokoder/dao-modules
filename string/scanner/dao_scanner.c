@@ -248,7 +248,7 @@ static void DaoScanner_Follows( DaoProcess *proc, DaoValue *p[], int N )
 		if ( DaoRegex_Match( reg, self->context, &start, &end ) )
 			res = 1;
 	}
-	DaoProcess_PutInteger( proc, res );
+	DaoProcess_PutEnum( proc, res? "true" : "false" );
 }
 
 static void DaoScanner_Precedes( DaoProcess *proc, DaoValue *p[], int N )
@@ -277,7 +277,7 @@ static void DaoScanner_Precedes( DaoProcess *proc, DaoValue *p[], int N )
 		if ( DaoRegex_Match( reg, self->context, &start, &end ) )
 			res = 1;
 	}
-	DaoProcess_PutInteger( proc, res );
+	DaoProcess_PutInteger( proc, res? "true" : "false" );
 }
 
 static DaoFuncItem scannerMeths[] =
@@ -322,10 +322,10 @@ static DaoFuncItem scannerMeths[] =
 	{ DaoScanner_Line,		"line(invar self: scanner) => int" },
 
 	/*! Matches \a pattern immediately before the current position without affecting the state of the scanner */
-	{ DaoScanner_Follows,	"follows(invar self: scanner, pattern: string) => int" },
+	{ DaoScanner_Follows,	"follows(invar self: scanner, pattern: string) => bool" },
 
 	/*! Matches \a pattern immediately after the current position without affecting the state of the scanner */
-	{ DaoScanner_Precedes,	"precedes(invar self: scanner, pattern: string) => int" },
+	{ DaoScanner_Precedes,	"precedes(invar self: scanner, pattern: string) => bool" },
 	{ NULL, NULL }
 };
 

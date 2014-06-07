@@ -843,7 +843,7 @@ static void FSNode_Exists( DaoProcess *proc, DaoValue *p[], int N )
 		return;
 	}
 	child = DInode_New();
-	DaoProcess_PutInteger( proc, DInode_SubInode( self, path->chars, 0, child, 1 ) == 0 );
+	DaoProcess_PutEnum( proc, DInode_SubInode( self, path->chars, 0, child, 1 ) == 0? "true" : "false" );
 	DString_Delete( path );
 	DInode_Delete( child );
 }
@@ -1202,7 +1202,7 @@ static void FS_Exists( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DString *path = DString_Copy( p[0]->xString.value );
 	DInode *fsnode = DInode_New();
-	DaoProcess_PutInteger( proc, DInode_Open( fsnode, path->chars ) == 0 );
+	DaoProcess_PutEnum( proc, DInode_Open( fsnode, path->chars ) == 0? "true" : "false" );
 	DString_Delete( path );
 	DInode_Delete( fsnode );
 }
@@ -1338,8 +1338,8 @@ static DaoFuncItem fsnodeMeths[] =
 	/*! Copies file and returns entry of the copy */
 	{ FSNode_Copy,		"copy(self: entry, path: string) => entry" },
 
-	/*! For directory returns non-zero if entry specified by relative \a path exists */
-	{ FSNode_Exists,	"exists(invar self: entry, path: string) => int" },
+	/*! For directory returns \c true if entry specified by relative \a path exists */
+	{ FSNode_Exists,	"exists(invar self: entry, path: string) => bool" },
 
 	/*! For directory creates file with unique name prefixed by \a prefix in this directory. Returns the corresponding entry */
 	{ FSNode_Mktemp,	"mktemp(self: entry, prefix = '') => entry" },
@@ -1370,8 +1370,8 @@ static DaoFuncItem fsMeths[] =
 	/*! Returns absolute form of \a path, which must point to an existing file or directory. On Windows, replaces all '\' in path with '/' */
 	{ FS_NormPath,	"realpath(path: string) => string" },
 
-	/*! Returns non-zero if \a path exists and points to a file or directory */
-	{ FS_Exists,	"exists(path: string) => int" },
+	/*! Returns \c true if \a path exists and points to a file or directory */
+	{ FS_Exists,	"exists(path: string) => bool" },
 
 	/*! On Windows, returns list of root directories (drives). On other systems returns {'/'} */
 	{ FS_Roots,		"roots() => list<string>" },

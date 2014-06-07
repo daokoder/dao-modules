@@ -1225,13 +1225,13 @@ static void DaoXMLDocument_SetEncoding( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoXMLDocument_GetStandalone( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoXMLDocument *self = (DaoXMLDocument*)DaoValue_TryGetCdata( p[0] );
-	DaoProcess_PutInteger( proc, self->standalone );
+	DaoProcess_PutEnum( proc, self->standalone? "true" : "false" );
 }
 
 static void DaoXMLDocument_SetStandalone( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoXMLDocument *self = (DaoXMLDocument*)DaoValue_TryGetCdata( p[0] );
-	self->standalone = p[1]->xInteger.value != 0;
+	self->standalone = p[1]->xEnum.value != 0;
 }
 
 static void DaoXMLDocument_GetDoctype( DaoProcess *proc, DaoValue *p[], int N )
@@ -1481,9 +1481,9 @@ static DaoFuncItem xmlDocMeths[] =
 	{ DaoXMLDocument_GetEncoding,		".encoding(invar self: document) => string" },
 	{ DaoXMLDocument_SetEncoding,		".encoding=(self: document, value: string)" },
 
-	/*! Standalone document parameter (zero -- 'no', non-zero -- 'yes') */
-	{ DaoXMLDocument_GetStandalone,		".standalone(self: document) => int" },
-	{ DaoXMLDocument_SetStandalone,		".standalone=(self: document, value: int)" },
+	/*! Standalone document parameter */
+	{ DaoXMLDocument_GetStandalone,		".standalone(self: document) => bool" },
+	{ DaoXMLDocument_SetStandalone,		".standalone=(self: document, value: bool)" },
 
 	/*! Internal DTD section ('<!DOCTYPE ... >')
 	 * \note DTD is not interpreted and thus has no effect on treatment of elements and attributes */
@@ -1695,9 +1695,9 @@ static void DaoXMLElement_HasAttr( DaoProcess *proc, DaoValue *p[], int N )
 	DaoXMLElement *self = (DaoXMLElement*)DaoValue_TryGetCdata( p[0] );
 	DString *attr = p[1]->xString.value;
 	if ( self->attribs )
-		DaoProcess_PutInteger( proc, DMap_Find( self->attribs, attr )? 1 : 0 );
+		DaoProcess_PutEnum( proc, DMap_Find( self->attribs, attr )? "true" : "false" );
 	else
-		DaoProcess_PutInteger( proc, 0 );
+		DaoProcess_PutEnum( proc, "false" );
 }
 
 static void DaoXMLElement_GetText( DaoProcess *proc, DaoValue *p[], int N )
@@ -1750,13 +1750,13 @@ static void DaoXMLElement_Size( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoXMLElement_GetEmpty( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoXMLElement *self = (DaoXMLElement*)DaoValue_TryGetCdata( p[0] );
-	DaoProcess_PutInteger( proc, self->kind == XMLEmptyElement );
+	DaoProcess_PutEnum( proc, self->kind == XMLEmptyElement? "true" : "false" );
 }
 
 static void DaoXMLElement_SetEmpty( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoXMLElement *self = (DaoXMLElement*)DaoValue_TryGetCdata( p[0] );
-	daoint empty = p[1]->xInteger.value;
+	daoint empty = p[1]->xEnum.value == 1;
 	if ( empty ){
 		if ( self->kind == XMLTextElement )
 			DString_Delete( self->c.text );
@@ -2541,8 +2541,8 @@ static DaoFuncItem xmlElemMeths[] =
 	 * \note Modifying the returned map has no effect on the element */
 	{ DaoXMLElement_Attributes,	".attribs(invar self: element) => map<string,string>" },
 
-	/*! Returns non-zero if element has \a attribute */
-	{ DaoXMLElement_HasAttr,	"has(invar self: element, attrib: string) => int" },
+	/*! Returns \c true if element has \a attribute */
+	{ DaoXMLElement_HasAttr,	"has(invar self: element, attrib: string) => bool" },
 
 	/*! Treats element as one containing character data only. Getting text succeeds if element has single child representing character data,
 	 * or has no chidren at all (but is not empty). Setting text of an element clears its list of children */
@@ -2566,9 +2566,9 @@ static DaoFuncItem xmlElemMeths[] =
 	 * \c enum flags are written separated by ';' */
 	{ DaoXMLElement_AddContent,	"extend(self: element, ...: var<any>)" },
 
-	/*! Non-zero if element is an empty element ('<tag ... />'). Making an element empty erases its list of children */
-	{ DaoXMLElement_GetEmpty,	".empty(invar self: element) => int" },
-	{ DaoXMLElement_SetEmpty,	".empty=(self: element, value: int)" },
+	/*! Is \c true if element is an empty element ('<tag ... />'). Making an element empty erases its list of children */
+	{ DaoXMLElement_GetEmpty,	".empty(invar self: element) => bool" },
+	{ DaoXMLElement_SetEmpty,	".empty=(self: element, value: bool)" },
 
 	/*! Removes all attributes; for a non-empty element, sets its content to empty string */
 	{ DaoXMLElement_Clear,		"clear(self: element)" },

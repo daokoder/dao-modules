@@ -33,8 +33,10 @@
 
 #include"dao.h"
 #include"daoValue.h"
+#include"daoNamespace.h"
 
 static const char jsonerr[] = "JSON";
+static DaoType *booltype;
 
 void JSON_Indent( DString *text, int indent )
 {
@@ -52,7 +54,7 @@ int JSON_SerializeValue( DaoValue *value, DString *text, int indent )
 	DaoMap *map;
 	DNode *node;
 	DString *str;
-	switch( DaoValue_Type( value ) ){
+	switch( value->type ){
 	case DAO_INTEGER:
 		snprintf( buf, sizeof(buf), "%"DAO_INT_FORMAT, DaoValue_TryGetInteger( value ) );
 		DString_AppendChars( text, buf );
@@ -64,6 +66,12 @@ int JSON_SerializeValue( DaoValue *value, DString *text, int indent )
 	case DAO_DOUBLE:
 		snprintf( buf, sizeof(buf), "%f", DaoValue_TryGetDouble( value ) );
 		DString_AppendChars( text, buf );
+		break;
+	case DAO_ENUM:
+		if ( value->xEnum.subtype == DAO_ENUM_BOOL )
+			DString_AppendChars( text, value->xEnum.value? "true" : "false" );
+		else
+			return value->type;
 		break;
 	case DAO_STRING:
 		DString_AppendChar( text, '"' );
@@ -138,7 +146,7 @@ int JSON_SerializeValue( DaoValue *value, DString *text, int indent )
 		DString_AppendChars( text, "null" );
 		break;
 	default:
-		return DaoValue_Type( value );
+		return value->type;
 	}
 	return 0;
 }
@@ -196,7 +204,7 @@ DaoValue* JSON_ParseString( DaoProcess *process, char* *text )
 		else if( *end == '"' ){
 			DString *str;
 			daoint i;
-			value = (DaoValue*) DaoProcess_NewChars( process, *text + 1, end - *text - 1 );
+			value = (DaoValue*) DaoProcess_NewString( process, *text + 1, end - *text - 1 );
 			*text = end + 1;
 			str = value->xString.value;
 			for ( i = 0; i < str->size - 1; i++ )
@@ -254,12 +262,12 @@ DaoValue* JSON_ParseSpecialLiteral( DaoProcess *process, char* *text )
 	buf[5] = '\0';
 	if( strcmp( buf, "false" ) == 0 ){
 		*text += 5;
-		return (DaoValue*) DaoProcess_NewInteger( process, 0 );
+		return (DaoValue*) DaoProcess_NewEnum( process, booltype, 0 );
 	}
 	buf[4] = '\0';
 	if( strcmp( buf, "true" ) == 0 ){
 		*text += 4;
-		return (DaoValue*) DaoProcess_NewInteger( process, 1 );
+		return (DaoValue*) DaoProcess_NewEnum( process, booltype, 1 );
 	}
 	else if( strcmp( buf, "null" ) == 0 ){
 		*text += 4;
@@ -491,6 +499,7 @@ static DaoFuncItem jsonMeths[] =
 	 * - map  => object
 	 * - int, float, double => number
 	 * - none => null
+	 * - enum<false:true> => bool
 	 */
 	{ JSON_Serialize,	"serialize(invar data: map<string,@V>|list<@V>, style: enum<pretty,compact> = $pretty) => string" },
 
@@ -501,7 +510,7 @@ static DaoFuncItem jsonMeths[] =
 	 * - object => map
 	 * - number => int or double (depending on the presence of decimal separator)
 	 * - null   => none
-	 * - bool   => int
+	 * - bool   => enum<false:true>
 	 */
 	{ JSON_Deserialize,	"parse(str: string) => map<string,any>|list<any>" },
 	{ NULL, NULL }
@@ -510,6 +519,9 @@ static DaoFuncItem jsonMeths[] =
 DAO_DLL int DaoJSON_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *jsonns;
+	DString *bname = DString_NewChars( "bool" );
+	booltype = DaoNamespace_FindType( ns, bname );
+	DString_Delete( bname );
 	jsonns = DaoVmSpace_GetNamespace( vmSpace, "json" );
 	DaoNamespace_AddConstValue( ns, "json", (DaoValue*)jsonns );
 	DaoNamespace_WrapFunctions( ns, jsonMeths );

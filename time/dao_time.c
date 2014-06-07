@@ -641,7 +641,7 @@ static DaoFuncItem timeMeths[] =
 	/*! Sets one or more time parts using named parameters */
 	{ DaoTime_Set,		"set(self: time, ...: var<year:int>|var<month:int>|var<day:int>|var<hour:int>|var<min:int>|var<sec:int>)" },
 
-	/*! Returns time_t value */
+	/*! Returns \c time_t value */
 	{ DaoTime_Value,	"value(invar self: time) => int" },
 
 	/*! Returns time kind (UTC or local) */
