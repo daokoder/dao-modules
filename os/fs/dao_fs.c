@@ -499,15 +499,10 @@ int DInode_Resize( DInode *self, daoint size )
 	int fd = _open( self->path, _O_RDWR );
 	if ( fd == -1 )
 		return errno;
-#ifdef MINGW
-	/* _chsize_s() not available on MinGW: */
-#warning "DInode_Resize() needs fixings!"
-#else
-	res = _chsize_s( fd, size );
-#endif
+	res = _chsize_s( fd, size ); // if not available, stop using ancient MinGW version!
 	_close( fd );
 #else
-	res = truncate64( self->path, size );
+	res = truncate( self->path, size );
 #endif
 	if ( !res )
 		self->size = size;
