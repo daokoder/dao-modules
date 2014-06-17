@@ -287,20 +287,16 @@ static void DaoTime_Set( DaoProcess *proc, DaoValue *p[], int N )
 	time_t value;
 	struct tm old = self->parts;
 	for ( i = 1; i < N; i++ ){
-		DString *name = p[i]->xNameValue.name;
-		daoint val = p[i]->xNameValue.value->xInteger.value;
-		if ( strstr( name->chars, "year" ) )
-			self->parts.tm_year = val - 1900;
-		else if ( strstr( name->chars, "month" ) )
-			self->parts.tm_mon = val - 1;
-		else if ( strstr( name->chars, "day" ) )
-			self->parts.tm_mday = val;
-		else if ( strstr( name->chars, "hour" ) )
-			self->parts.tm_hour = val;
-		else if ( strstr( name->chars, "min" ) )
-			self->parts.tm_min = val;
-		else if ( strstr( name->chars, "sec" ) )
-			self->parts.tm_sec = val;
+		daoint val = p[i]->xTuple.values[1]->xInteger.value;
+		switch ( p[i]->xTuple.values[0]->xEnum.value ){
+		case 0:		self->parts.tm_year = val - 1900; break; // year
+		case 1:		self->parts.tm_mon = val - 1; break; // month
+		case 2:		self->parts.tm_mday = val; break; // day
+		case 3:		self->parts.tm_hour = val; break; // hour
+		case 4:		self->parts.tm_min = val; break; // min
+		case 5:		self->parts.tm_sec = val; break; // sec
+		default:	break;
+		}
 	}
 	value = mktime( &self->parts );
 	if ( value == (time_t)-1){
@@ -639,7 +635,7 @@ static DaoFuncItem timeMeths[] =
 	{ DaoTime_Copy,		"time(invar other: time) => time" },
 
 	/*! Sets one or more time parts using named parameters */
-	{ DaoTime_Set,		"set(self: time, ...: var<year:int>|var<month:int>|var<day:int>|var<hour:int>|var<min:int>|var<sec:int>)" },
+	{ DaoTime_Set,		"set(self: time, ...: tuple<enum<year,month,day,hour,min,sec>, int>)" },
 
 	/*! Returns \c time_t value */
 	{ DaoTime_Value,	"value(invar self: time) => int" },

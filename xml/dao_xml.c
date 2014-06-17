@@ -1834,6 +1834,14 @@ int CheckAttrValue( DaoProcess *proc, DString *attr, DString *value )
 	return 1;
 }
 
+DString* DaoTuple_GetParamName( DaoTuple *self )
+{
+	DString *s = DString_New();
+	DaoEnum_MakeName( &self->values[0]->xEnum, s );
+	DString_Erase( s, 0, 1 );
+	return s;
+}
+
 static void DaoXMLElement_Create( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoXMLElement *res = DaoXMLElement_New();
@@ -1849,25 +1857,19 @@ static void DaoXMLElement_Create( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	if ( ValidateName( proc, res->tag.chars ) ){
 		int i;
-		for ( i = 1; i < N; i++ )
-			if ( p[i]->type != DAO_PAR_NAMED ){
-				DaoProcess_RaiseError( proc, "Param", "Additional method parameters must be named" );
+		for ( i = 1; i < N; i++ ){
+			DaoTuple *tup = &p[i]->xTuple;
+			DString *attr = DaoTuple_GetParamName( tup );
+			DString *val = DString_Copy( tup->values[1]->xString.value );
+			if ( !CheckAttrValue( proc, attr, val ) ){
 				DaoXMLElement_Delete( res );
 				return;
 			}
-			else {
-				DaoNameValue *par = &p[i]->xNameValue;
-				DString *attr = DString_Copy( par->name );
-				DString *val = DString_Copy( par->value->xString.value );
-				if ( !CheckAttrValue( proc, attr, val ) ){
-					DaoXMLElement_Delete( res );
-					return;
-				}
-				if ( !res->attribs )
-					res->attribs = DMap_New( DAO_DATA_STRING, DAO_DATA_STRING );
-				DMap_Insert( res->attribs, attr, val );
-				DString_Delete( attr );
-				DString_Delete( val );
+			if ( !res->attribs )
+				res->attribs = DMap_New( DAO_DATA_STRING, DAO_DATA_STRING );
+			DMap_Insert( res->attribs, attr, val );
+			DString_Delete( attr );
+			DString_Delete( val );
 			}
 		DaoProcess_PutCdata( proc, res, daox_type_xmlelem );
 	}
@@ -2083,9 +2085,9 @@ int MatchElement( DaoXMLNode *node, DString *tag, DaoValue *attribs[], int attr_
 			int match = 1;
 			int i;
 			for ( i = 0; i < attr_count; i++ ){
-				DaoNameValue *par = &attribs[i]->xNameValue;
-				DString *attr = DString_Copy( par->name );
-				DString *val = DString_Copy( par->value->xString.value );
+				DaoTuple *tup = &attribs[i]->xTuple;
+				DString *attr = DaoTuple_GetParamName( tup );
+				DString *val = DString_Copy( tup->values[1]->xString.value );
 				DNode *node;
 				node = el->attribs? DMap_Find( el->attribs, attr ) : NULL;
 				if ( !node || !DString_EQ( val, node->value.pString ) )
@@ -2139,11 +2141,6 @@ static void DaoXMLElement_FindElem( DaoProcess *proc, DaoValue *p[], int N )
 	DaoXMLElement *self = (DaoXMLElement*)DaoValue_TryGetCdata( p[0] );
 	DString *path = p[1]->xString.value;
 	daoint i;
-	for ( i = 2; i < N; i++ )
-		if ( p[i]->type != DAO_PAR_NAMED ){
-			DaoProcess_RaiseError( proc, "Param", "Additional method parameters must be named" );
-			return;
-		}
 	if ( self->kind == XMLElement ){
 		daoint i;
 		DString *tag = DString_New();
@@ -2465,15 +2462,13 @@ static void DaoXMLElement_AddContent( DaoProcess *proc, DaoValue *p[], int N )
 	DaoXMLElement *self = (DaoXMLElement*)DaoValue_TryGetCdata( p[0] );
 	DString *path = DString_New();
 	daoint i;
-	for ( i = 1; i < N; i++ )
-		if ( p[i]->type != DAO_PAR_NAMED ){
-			DaoProcess_RaiseError( proc, "Param", "Additional method parameters must be named" );
-			DString_Delete( path );
-			return;
-		}
-	for ( i = 1; i < N; i++ )
-		if ( !WriteContent( proc, self, p[i]->xNameValue.name, p[i]->xNameValue.value, path ) )
+	for ( i = 1; i < N; i++ ){
+		DString *name = DaoTuple_GetParamName( &p[i]->xTuple );
+		int res = WriteContent( proc, self, name, p[i]->xTuple.values[1], path );
+		DString_Delete( name );
+		if ( !res )
 			break;
+	}
 	DString_Delete( path );
 }
 
@@ -2527,7 +2522,7 @@ static DaoFuncItem xmlElemMeths[] =
 {
 	/*! Constructs XML element with \a tag; if \a tag ends with '/', empty element ('<tag .../>') is created.
 	 * Element attributes may be provided as name-value pairs via additional named parameters */
-	{ DaoXMLElement_Create,		"element(tag: string, ...: var<string>) => element" },
+	{ DaoXMLElement_Create,		"element(tag: string, ...: tuple<enum, string>) => element" },
 
 	/*! Tag */
 	{ DaoXMLElement_GetTag,		".tag(invar self: element) => string" },
@@ -2564,7 +2559,7 @@ static DaoFuncItem xmlElemMeths[] =
 	 * in the form *name => value*, an element '<name>value</name>' is created; specifying a tuple as value continues the conversion recursively.
 	 * For leaf elements (containing character data only), supported types are \c int, \c float, \c double, \c string and \c enum;
 	 * \c enum flags are written separated by ';' */
-	{ DaoXMLElement_AddContent,	"extend(self: element, ...: var<any>)" },
+	{ DaoXMLElement_AddContent,	"extend(self: element, ...: tuple<enum, any>)" },
 
 	/*! Is \c true if element is an empty element ('<tag ... />'). Making an element empty erases its list of children */
 	{ DaoXMLElement_GetEmpty,	".empty(invar self: element) => bool" },
@@ -2587,13 +2582,13 @@ static DaoFuncItem xmlElemMeths[] =
 
 	/*! Returns the first element among the children which matches specified description. \a path is a sequence of tags delimited by '/'
 	 * (e.g. 'a', 'a/b', '/b', 'a/', 'a//c', '') pointing to the element; empty tag matches any element.
-	 * Element attributes may be provided as name-value pairs via additional named parameters */
-	{ DaoXMLElement_FindElem,	"find(self: element, path: string, ...: var<string>) => element|none" },
+	 * Element attributes may be provided as name-value pairs via additional variadic parameters */
+	{ DaoXMLElement_FindElem,	"find(self: element, path: string, ...: tuple<enum, string>) => element|none" },
 
 	/*! Returns all elements among the children which match specified description. \a path is a sequence of tags delimited by '/'
 	 * (e.g. 'a', 'a/b', '/b', 'a/', 'a//c', '') pointing to the elements; empty tag matches any element (for non-end tags, the first element is
-	 * picked). Element attributes may be provided as name-value pairs via additional named parameters */
-	{ DaoXMLElement_FindElems,	"select(invar self: element, path: string, ...: var<string>) => list<element>" },
+	 * picked). Element attributes may be provided as name-value pairs via additional variadic parameters */
+	{ DaoXMLElement_FindElems,	"select(invar self: element, path: string, ...: tuple<enum, string>) => list<element>" },
 
 	/*! Appends \a item to the list of children */
 	{ DaoXMLElement_Append,		"append(self: element, item: element|instruction|chardata)" },
@@ -3160,22 +3155,20 @@ static void DaoXMLWriter_Tag( DaoProcess *proc, DaoValue *p[], int N )
 		}
 		else {
 			int i;
-			for ( i = 2; i < N; i++ )
-				if ( p[i]->type != DAO_PAR_NAMED ){
-					DaoProcess_RaiseError( proc, "Param", "Additional parameters of this method must be named" );
-					goto Exit;
-				}
 			attribs = DString_New();
 			for ( i = 2; i < N; i++ ){
-				DString *attr = p[i]->xNameValue.name;
-				DString *val = p[i]->xNameValue.value->xString.value;
-				if ( !CheckAttrValue( proc, attr, val ) )
+				DString *attr = DaoTuple_GetParamName( &p[i]->xTuple );
+				DString *val = p[i]->xTuple.values[1]->xString.value;
+				if ( !CheckAttrValue( proc, attr, val ) ){
+					DString_Delete( attr );
 					goto Exit;
+				}
 				DString_AppendChar( attribs, ' ' );
 				DString_Append( attribs, attr );
 				DString_AppendChars( attribs, "=\"" );
 				EscapeXMLMarkupChars( val, attribs );
 				DString_AppendChar( attribs, '"' );
+				DString_Delete( attr );
 			}
 		}
 	}
@@ -3382,7 +3375,7 @@ static DaoFuncItem xmlWriterMeths[] =
 
 	/*! Writes start tag or empty-element \a name and returns \a self. An empty element is assumed if \a name ends with '/'.
 	 * Attributes may be provided as name-value pairs via additional named parameters */
-	{ DaoXMLWriter_Tag,		"tag(self: writer, name: string, ...: var<string>) => writer" },
+	{ DaoXMLWriter_Tag,		"tag(self: writer, name: string, ...: tuple<enum, string>) => writer" },
 
 	/*! Writes start tag or empty-element \a name with \a attributes and returns \a self.
 	 * An empty element is assumed if \a name ends with '/' */

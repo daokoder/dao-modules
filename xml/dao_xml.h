@@ -29,6 +29,7 @@
 
 #include"dao.h"
 #include"daoValue.h"
+#include"daoStdtype.h"
 
 #include<errno.h>
 
