@@ -684,7 +684,7 @@ static DaoFuncItem timeMeths[] =
 	{ DaoTime_Diff,		"diff(invar start: time, invar end: time) => tuple<days: int, seconds: double>" },
 
 	/*! Returns the current time zone (is Daylight Saving Time (DST) used, shift in seconds from GMT, zone name, DST zone name) */
-	{ DaoTime_Zone,		"zone() => tuple<dst: int, shift: int, name: string, dst_name: string>" },
+	{ DaoTime_Zone,		"zone() => tuple<dst: int, shift: int, name: string, dstName: string>" },
 	{ NULL, NULL }
 };
 

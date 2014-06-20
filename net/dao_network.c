@@ -906,8 +906,8 @@ static DaoFuncItem socketMeths[] =
 	/*! Binds the socket to \a port */
 	{  DaoSocket_Lib_Bind,          "bind( self :socket, port :int )" },
 
-	/*! Listens the socket using \a backlog as the maximum size of the queue of pending connections */
-	{  DaoSocket_Lib_Listen,        "listen( self :socket, backlog=10 )" },
+	/*! Listens the socket using \a backLog as the maximum size of the queue of pending connections */
+	{  DaoSocket_Lib_Listen,        "listen( self :socket, backLog=10 )" },
 
 	/*! Accepts connection */
 	{  DaoSocket_Lib_Accept,        "accept( self :socket )=>socket" },
@@ -918,8 +918,8 @@ static DaoFuncItem socketMeths[] =
 	/*! Sends data \a data */
 	{  DaoSocket_Lib_Send,          "send( self :socket, data :string )" },
 
-	/*! Receives at most \a maxlen bytes and returnes the received data */
-	{  DaoSocket_Lib_Receive,       "receive( self :socket, maxlen=512 )=>string" },
+	/*! Receives at most \a limit bytes and returnes the received data */
+	{  DaoSocket_Lib_Receive,       "receive( self :socket, limit=512 )=>string" },
 
 	/*! Sends data via the internal serialization protocol */
 	{  DaoSocket_Lib_SendDao,       "send_dao( self :socket, ... )" },

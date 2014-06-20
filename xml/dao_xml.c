@@ -3064,10 +3064,10 @@ static void DaoXMLWriter_Comment( DaoProcess *proc, DaoValue *p[], int N )
 	}
 }
 
-static void DaoXMLWriter_GetBuf( DaoProcess *proc, DaoValue *p[], int N )
+static void DaoXMLWriter_Stream( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoXMLWriter *self = (DaoXMLWriter*)DaoValue_TryGetCdata( p[0] );
-	DaoProcess_PutString( proc, self->stream->streamString );
+	DaoProcess_PutValue( proc, (DaoValue*)self->stream );
 }
 
 static void DaoXMLWriter_Flush( DaoProcess *proc, DaoValue *p[], int N )
@@ -3349,8 +3349,8 @@ static DaoFuncItem xmlWriterMeths[] =
 	/*! Creates XML writer which writes to internal string stream */
 	{ DaoXMLWriter_Create,	"writer() => writer" },
 
-	/*! Returns the internal string stream content */
-	{ DaoXMLWriter_GetBuf,	"getstring(self: writer) => string" },
+	/*! Output stream */
+	{ DaoXMLWriter_Stream,	".stream(invar self: writer) => invar<io::stream>" },
 
 	/*! Flushes output stream and returns \a self */
 	{ DaoXMLWriter_Flush,	"flush(self: writer) => writer" },
