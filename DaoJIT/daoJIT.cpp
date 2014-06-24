@@ -3342,6 +3342,29 @@ void DaoJIT_Compile( DaoRoutine *routine, DaoOptimizer *optimizer )
 #endif
 }
 
+const char* const dao_exception_names[] =
+{
+	"Exception" ,
+	"Warning" ,
+	"Error" ,
+	"Error::Field" ,
+	"Error::Field::NotExist" ,
+	"Error::Field::NotPermit" ,
+	"Error::Float" ,
+	"Error::Float::DivByZero" ,
+	"Error::Float::OverFlow" ,
+	"Error::Float::UnderFlow" ,
+	"Error::Index" ,
+	"Error::Index::Range" ,
+	"Error::Key" ,
+	"Error::Key::NotExist" ,
+	"Error::Param" ,
+	"Error::Syntax" ,
+	"Error::Type" ,
+	"Error::Value" ,
+	"Error::File"
+};
+
 void DaoJIT_Execute( DaoProcess *process, DaoJitCallData *data, int jitcode )
 {
 	DaoRoutine *routine = process->activeRoutine;
@@ -3352,7 +3375,7 @@ void DaoJIT_Execute( DaoProcess *process, DaoJitCallData *data, int jitcode )
 		int vmc = rc & 0xffff;
 		int ec = rc >> 16;
 		process->activeCode = process->topFrame->codes + vmc;
-		DaoProcess_RaiseException( process, DaoException_GetName(ec), "", NULL );
+		DaoProcess_RaiseException( process, dao_exception_names[ec], "", NULL );
 	}
 }
 

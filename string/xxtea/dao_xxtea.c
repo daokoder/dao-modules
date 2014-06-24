@@ -154,13 +154,13 @@ static void DaoSTR_Encrypt( DaoProcess *proc, DaoValue *p[], int N )
 {
 	int rc = DString_Encrypt( p[0]->xString.value, p[1]->xString.value, p[2]->xEnum.value );
 	if( rc ) DaoProcess_RaiseError( proc, NULL, errmsg[rc-1] );
-	DaoProcess_PutReference( proc, p[0] );
+	DaoProcess_PutValue( proc, p[0] );
 }
 static void DaoSTR_Decrypt( DaoProcess *proc, DaoValue *p[], int N )
 {
 	int rc = DString_Decrypt( p[0]->xString.value, p[1]->xString.value, p[2]->xEnum.value );
 	if( rc ) DaoProcess_RaiseError( proc, NULL, errmsg[rc-1] );
-	DaoProcess_PutReference( proc, p[0] );
+	DaoProcess_PutValue( proc, p[0] );
 }
 
 const char *enc = "encrypt( source :string, key :string, format :enum<regular,hex> = $regular )=>string";

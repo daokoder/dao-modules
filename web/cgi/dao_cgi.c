@@ -71,8 +71,8 @@ static void InsertKeyValue( DaoProcess *proc, DaoMap *mulmap, DaoMap *map, DaoVa
 static void ParseKeyValueString( DaoProcess *proc, DaoMap *mulmap, DaoMap *map, const char *data )
 {
 	const char *end = data + strlen( data );
-	DaoValue *vk = (DaoValue*) DaoProcess_NewChars( proc, NULL, 0 );
-	DaoValue *vv = (DaoValue*) DaoProcess_NewChars( proc, NULL, 0 );
+	DaoValue *vk = (DaoValue*) DaoProcess_NewString( proc, NULL, 0 );
+	DaoValue *vv = (DaoValue*) DaoProcess_NewString( proc, NULL, 0 );
 	DString *key = DaoString_Get( DaoValue_CastString( vk ) );
 	DString *value = DaoString_Get( DaoValue_CastString( vv ) );
 	DString *buffer = key;
@@ -110,8 +110,8 @@ static void ParseKeyValueStringArray( DaoProcess *proc, DaoMap *map, char **p )
 	int nc = 0;
 	char buffer[ LOCAL_BUF_SIZE + 1 ];
 	
-	DaoValue *vk = (DaoValue*) DaoProcess_NewChars( proc, NULL, 0 );
-	DaoValue *vv = (DaoValue*) DaoProcess_NewChars( proc, NULL, 0 );
+	DaoValue *vk = (DaoValue*) DaoProcess_NewString( proc, NULL, 0 );
+	DaoValue *vv = (DaoValue*) DaoProcess_NewString( proc, NULL, 0 );
 	DString *key = DaoString_Get( DaoValue_CastString( vk ) );
 	DString *value = DaoString_Get( DaoValue_CastString( vv ) );
 	while( *p != NULL ){
@@ -166,8 +166,8 @@ static void PreparePostData( DaoProcess *proc, DaoMap *httpPOSTS, DaoMap *httpPO
 {
 	DString *fname;
 	DString *buffer = DString_New();
-	DaoValue *vk = (DaoValue*) DaoProcess_NewChars( proc, NULL, 0 );
-	DaoValue *vv = (DaoValue*) DaoProcess_NewChars( proc, NULL, 0 );
+	DaoValue *vk = (DaoValue*) DaoProcess_NewString( proc, NULL, 0 );
+	DaoValue *vv = (DaoValue*) DaoProcess_NewString( proc, NULL, 0 );
 	DString *key = DaoString_Get( DaoValue_CastString( vk ) );
 	DString *value = DaoString_Get( DaoValue_CastString( vv ) );
 	char *content_length = getenv( "CONTENT_LENGTH" );

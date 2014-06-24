@@ -20,7 +20,7 @@ source_cblas = { "dao_cblas.c", "dao_cblas2.c", "dao_cblas3.c" }
 
 project.UseImportLibrary( daovm, "dao" )
 
-if( DaoMake::IsFile( "../../tools/clangdao/clangdao" ) ){
+if( DaoMake::IsFile( "../../tools/clangdao/clangdao" ) && DaoMake::IsOutOfSourceBuild() == 0 ){
 	project.AddCommand( "dao_cblas.h: cblas.h cblas.c", "../../tools/clangdao/clangdao cblas.c" )
 }
 

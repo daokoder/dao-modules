@@ -108,15 +108,6 @@ void DSema_SetValue( DSema *self, int n )
 
 
 
-static int DaoMT_PushSectionFrame( DaoProcess *proc )
-{
-	if( DaoProcess_PushSectionFrame( proc ) == NULL ){
-		DaoProcess_RaiseError( proc, NULL, "code section not found!" );
-		return 0;
-	}
-	return 1;
-}
-
 static void DaoMutex_Lib_Mutex( DaoProcess *proc, DaoValue *par[], int N )
 {
 	DaoMutex *mutex = DaoMutex_New();
@@ -140,8 +131,8 @@ static void DaoMutex_Lib_TryLock( DaoProcess *proc, DaoValue *par[], int N )
 static void DaoMutex_Lib_Protect( DaoProcess *proc, DaoValue *p[], int n )
 {
 	DaoMutex *self = (DaoMutex*) p[0];
-	DaoVmCode *sect = DaoGetSectionCode( proc->activeCode );
-	if( sect == NULL || DaoMT_PushSectionFrame( proc ) == 0 ) return;
+	DaoVmCode *sect = DaoProcess_InitCodeSection( proc );
+	if( sect == NULL ) return;
 	DaoMutex_Lock( self );
 	DaoProcess_Execute( proc );
 	DaoMutex_Unlock( self );
@@ -290,8 +281,8 @@ static void DaoSema_Lib_GetValue( DaoProcess *proc, DaoValue *par[], int N )
 static void DaoSema_Lib_Protect( DaoProcess *proc, DaoValue *p[], int n )
 {
 	DaoSema *self = (DaoSema*) p[0];
-	DaoVmCode *sect = DaoGetSectionCode( proc->activeCode );
-	if( sect == NULL || DaoMT_PushSectionFrame( proc ) == 0 ) return;
+	DaoVmCode *sect = DaoProcess_InitCodeSection( proc );
+	if( sect == NULL ) return;
 	DSema_Wait( & self->mySema );
 	DaoProcess_Execute( proc );
 	DSema_Post( & self->mySema );
