@@ -311,8 +311,7 @@ void DaoJIT_LOAD( DaoValue *dA, DaoValue **dC )
 {
 	if( dA == NULL ) return;
 	if( (dA->xNone.trait & DAO_VALUE_CONST) == 0 ){
-		GC_ShiftRC( dA, *dC );
-		*dC = dA;
+		GC_Assign( dC, dA );
 	}else{
 		DaoValue_Copy( dA, dC );
 	}
@@ -663,8 +662,7 @@ void DaoJIT_POW_ARRAY_ARRAY( DaoValue *C, DaoValue *A, DaoValue *B, int *estatus
 }
 void DaoJIT_MOVE_PP( DaoValue *dA, DaoValue **dC )
 {
-	GC_ShiftRC( dA, *dC );
-	*dC = dA;
+	GC_Assign( dC, dA );
 }
 void DaoJIT_MOVE_SS( DaoValue *dA, DaoValue **dC2 )
 {
@@ -673,8 +671,7 @@ void DaoJIT_MOVE_SS( DaoValue *dA, DaoValue **dC2 )
 		DString_Assign( dC->xString.value, dA->xString.value );
 	}else{
 		DaoString *S = DaoString_Copy( (DaoString*) dA );
-		GC_ShiftRC( S, dC );
-		*dC2 = (DaoValue*) S;
+		GC_Assign( dC2, S );
 	}
 }
 void DaoJIT_ADD_SS( DaoValue *dA, DaoValue *dB, DaoValue **dC2 )
@@ -689,8 +686,7 @@ void DaoJIT_ADD_SS( DaoValue *dA, DaoValue *dB, DaoValue **dC2 )
 			DString_Assign( dC->xString.value, dA->xString.value );
 		}else{
 			DaoString *S = DaoString_Copy( (DaoString*) dA );
-			GC_ShiftRC( S, dC );
-			*dC2 = (DaoValue*) S;
+			GC_Assign( dC2, S );
 		}
 		DString_Append( dC->xString.value, dB->xString.value );
 	}
@@ -759,8 +755,7 @@ void DaoJIT_SETI_TI( DaoValue *dA, daoint id, DaoValue *dC, int *estatus )
 void DaoJIT_SETF_TPP( DaoValue *dA, int id, DaoValue *dC, int *estatus )
 {
 	DaoTuple *tuple = (DaoTuple*) dC;
-	GC_ShiftRC( dA, tuple->values[id] );
-	tuple->values[id] = dA;
+	GC_Assign( & tuple->values[id], dA );
 }
 }
 

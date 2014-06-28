@@ -580,7 +580,7 @@ int DaoNetwork_ReceiveExt( DaoProcess *proc, int sockfd, DaoList *data )
 			case DAO_STRING :
 				if( inpack->tag == 0 ) DString_Clear( str );
 				DString_AppendChars( str, inpack->data );
-				item = (DaoValue*) DaoProcess_NewChars( proc, NULL, 0);
+				item = (DaoValue*) DaoProcess_NewString( proc, NULL, 0);
 				DaoString_Set( DaoValue_CastString( item ), str );
 				/* printf( "string: %s\n", inpack->data ); */
 				if( inpack->tag ==2 || size <= MAX_DATA ) DaoList_PushBack( data, item );
@@ -1004,7 +1004,7 @@ static void DaoNetLib_GetHost( DaoProcess *proc, DaoValue *par[], int N  )
 		char **p = hent->h_aliases;
 		char **q = hent->h_addr_list;
 		while( *p ){
-			value = (DaoValue*) DaoProcess_NewChars( proc, inet_ntoa( *(struct in_addr*) (*q) ), 0 );
+			value = (DaoValue*) DaoProcess_NewString( proc, inet_ntoa( *(struct in_addr*) (*q) ), 0 );
 			DaoMap_InsertChars( res, *p, value );
 			p ++;
 			q ++;

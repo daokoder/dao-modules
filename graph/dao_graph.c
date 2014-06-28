@@ -264,14 +264,12 @@ void DaoxGraph_ConnectedComponents( DaoxGraph *self, DArray *cclist )
 		DArray_PushBack( cclist, subgraph );
 		for(i=0,n=nodes->size; i<n; i++){
 			DaoxNode *node = (DaoxNode*) nodes->items.pVoid[i];
-			GC_ShiftRC( subgraph, node->graph );
-			node->graph = subgraph;
+			GC_Assign( & node->graph, subgraph );
 			DArray_PushBack( subgraph->nodes, node );
 			for(j=0; j<node->outs->size; j++){
 				DaoxEdge *edge = (DaoxEdge*) node->outs->items.pVoid[j];
 				if( edge->graph == subgraph ) continue;
-				GC_ShiftRC( subgraph, edge->graph );
-				edge->graph = subgraph;
+				GC_Assign( & edge->graph, subgraph );
 				DArray_PushBack( subgraph->edges, edge );
 			}
 		}
@@ -695,8 +693,7 @@ void DaoxGraphData_Reset( DaoxGraphData *self, DaoxGraph *graph, int nodeSize, i
 			edge->X.Void = NULL;
 		}
 	}
-	GC_ShiftRC( graph, self->graph );
-	self->graph = graph;
+	GC_Assign( & self->graph, graph );
 	if( graph == NULL ) return;
 
 	N = graph->nodes->size;

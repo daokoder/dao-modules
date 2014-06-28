@@ -392,8 +392,7 @@ static void DaoCLoader_Load( DaoProcess *proc, DaoValue *p[], int N )
 			continue;
 		}
 		tp = DaoType_New( "FFI_Function", DAO_NONE, (DaoValue*) ffi, NULL );
-		GC_ShiftRC( tp, func->routHost );
-		func->routHost = tp;
+		GC_Assign( & func->routHost, tp );
 	}
 	GC_DecRC( dummy );
 	DaoVmSpace_ReleaseParser( vms, parser );
