@@ -16,7 +16,7 @@ io.writeln("The values are $$$0, '$1' and {$2}.".format(5, 'str', {1, 2, 3} ));
 #Placeholder ID should be argument index or name.
 
 
-io.writeln("The values are $(x), $(y) and '$2'.".format(x = $enum, y = 0xFF, none));
+io.writeln(format("The values are $(x), $(y) and '$2'.", x = $enum, y = 0xFF, none));
 
 
 #<alignment> ::= ('>' | '<' | '=') <field width>
@@ -26,9 +26,9 @@ io.writeln("The values are $(x), $(y) and '$2'.".format(x = $enum, y = 0xFF, non
 
 
 io.writeln('\n#Alignment');
-io.writeln('($(0<10))'.format('left'));
-io.writeln('($(0>10))'.format('right'));
-io.writeln('($(0=10))'.format('center'));
+io.writeln(format'($(0<10))', 'left'));
+io.writeln(format'($(0>10))', 'right'));
+io.writeln(format'($(0=10))', 'center'));
 
 
 #<numeric format> ::= : ['+' | ' '] ('i' | 'x' | 'X' | 'f' | 'g' | 'G') [.<precision>]
@@ -39,14 +39,14 @@ io.writeln('($(0=10))'.format('center'));
 
 
 io.writeln('\n#Numeric format');
-io.writeln('$(0:i), $(1:X.4), $(2:+f.2)'.format(-1, 255, 3.3452));
+io.writeln(format'$(0:i), $(1:X.4), $(2:+f.2)', -1, 255, 3.3452));
 
 
 #For containers, numeric format and alignment are applied to each element individually.
 
 
 io.writeln('\n#Containers');
-io.writeln('$(0:f.2>6)'.format({1, 2, 3}));
+io.writeln(format'$(0:f.2>6)', {1, 2, 3}));
 
 
 #<element> ::= ( '[' <index> | <slice> ']' | .<field name>)
@@ -58,5 +58,5 @@ io.writeln('$(0:f.2>6)'.format({1, 2, 3}));
 
 
 io.writeln('\n#Inner data access');
-io.writeln('[$0][-1] = $(0[-1]); ($1).x = $(1.x:i)'.format([1, 2], (x = 1, y = 2)));
-io.writeln('"$0"[:2] = $(0[:2]); [$1][1:1] = $(1[1:1])'.format('string', [1, 2; 3, 4; 5, 6]));
+io.writeln(format'[$0][-1] = $(0[-1]); ($1).x = $(1.x:i)', [1, 2], (x = 1, y = 2)));
+io.writeln(format'"$0"[:2] = $(0[:2]); [$1][1:1] = $(1[1:1])', 'string', [1, 2; 3, 4; 5, 6]));
