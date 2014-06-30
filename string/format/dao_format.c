@@ -33,6 +33,7 @@
 
 #include"dao.h"
 #include"daoValue.h"
+#include"daoStdtype.h"
 
 
 struct Format
@@ -386,6 +387,16 @@ static int PrintValue( DaoValue *value, DString *dest, Format *format, DString *
 	else
 		return error;
 }
+
+int IsNamedValue( DaoTuple *tup )
+{
+	if ( tup->size == 2 && tup->values[0]->type == DAO_ENUM ){
+		DaoEnum *en = &tup->values[0]->xEnum;
+		return en->subtype != DAO_ENUM_FLAG && en->subtype != DAO_ENUM_SYM && en->subtype != DAO_ENUM_BOOL;
+	}
+	return 0;
+}
+
 static void DaoFormat( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DString *fmt = DaoString_Get( DaoValue_CastString( p[0] ) );
@@ -654,13 +665,15 @@ static void DaoFormat( DaoProcess *proc, DaoValue *p[], int N )
 			if( argname ){
 				int i;
 				for( i = 1; i < N; i++ )
-					if( DaoValue_Type( p[i] ) == DAO_PAR_NAMED ){
-						DString *sname = ( (DaoNameValue*)p[i] )->name;
-						if( DString_Size( sname ) == argnamelen &&
-								!strncmp( DString_GetData( sname ), argname, argnamelen ) ){
-							value = ( (DaoNameValue*)p[i] )->value;
+					if( p[i]->type == DAO_TUPLE && IsNamedValue( &p[i]->xTuple ) ){
+						DString *sname = DString_New();
+						DaoEnum_MakeName( &p[i]->xTuple.values[0]->xEnum, sname );
+						if( DString_Size( sname ) - 1 == argnamelen &&
+								!strncmp( DString_GetData( sname ) + 1, argname, argnamelen ) ){
+							value = p[i]->xTuple.values[1];
 							break;
 						}
+						DString_Delete( sname );
 					}
 				if( !value ){
 					DString *sname = DString_New( 1 );
@@ -691,8 +704,8 @@ static void DaoFormat( DaoProcess *proc, DaoValue *p[], int N )
 			format.namelen = namelen;
 			if( value )
 				error = PrintValue( value, str, &format, tmp, buf );
-			else if( DaoValue_Type( p[num + 1] ) == DAO_PAR_NAMED )
-				error = PrintValue( ( (DaoNameValue*)p[num + 1] )->value, str, &format, tmp, buf );
+			else if( DaoValue_Type( p[num + 1] ) == DAO_TUPLE && IsNamedValue( &p[num + 1]->xTuple ) )
+				error = PrintValue( p[num + 1]->xTuple.values[1], str, &format, tmp, buf );
 			else
 				error = PrintValue( p[num + 1], str, &format, tmp, buf );
 			switch( error ){
