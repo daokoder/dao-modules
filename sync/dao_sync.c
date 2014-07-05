@@ -364,11 +364,11 @@ void DaoState_Delete( DaoState *self )
 	DaoCstruct_Free( (DaoCstruct*)self );
 	dao_free( self );
 }
-static void DaoState_GetGCFields( void *p, DArray *values, DArray *arrays, DArray *maps, int remove )
+static void DaoState_GetGCFields( void *p, DList *values, DList *arrays, DList *maps, int remove )
 {
 	DaoState *self = (DaoState*)p;
 	if( self->state ){
-		DArray_Append( values, self->state );
+		DList_Append( values, self->state );
 		if( remove ) self->state = NULL;
 	}
 }
@@ -618,14 +618,14 @@ void DaoQueue_Delete( DaoQueue *self )
 	dao_free( self );
 }
 
-static void DaoQueue_GetGCFields( void *p, DArray *values, DArray *arrays, DArray *maps, int remove )
+static void DaoQueue_GetGCFields( void *p, DList *values, DList *arrays, DList *maps, int remove )
 {
 	DaoQueue *self = (DaoQueue*)p;
 	while( self->tail != NULL ){
 		QueueItem *item = self->tail;
 		self->tail = item->previous;
 		if( item->value ){
-			DArray_Append( values, item->value );
+			DList_Append( values, item->value );
 			if( remove ) item->value = NULL;
 		}
 	}

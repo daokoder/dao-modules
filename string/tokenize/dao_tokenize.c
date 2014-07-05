@@ -77,13 +77,13 @@ static void DaoSTR_Tokenize( DaoProcess *proc, DaoValue *p[], int N )
 			}else{
 				if( simplify ) DString_Trim( str, 1, 1, 0 );
 				if( str->size > 0 ){
-					DArray_Append( list->value, value );
+					DList_Append( list->value, value );
 					DString_Clear( str );
 				}
 				DString_AppendChar( str, *s );
 				s ++;
 				if( simplify ) DString_Trim( str, 1, 1, 0 );
-				if( str->size > 0 ) DArray_Append( list->value, value );
+				if( str->size > 0 ) DList_Append( list->value, value );
 				DString_Clear( str );
 				continue;
 			}
@@ -92,7 +92,7 @@ static void DaoSTR_Tokenize( DaoProcess *proc, DaoValue *p[], int N )
 		s ++;
 	}
 	if( simplify ) DString_Trim( str, 1, 1, 0 );
-	if( str->size > 0 ) DArray_Append( list->value, value );
+	if( str->size > 0 ) DList_Append( list->value, value );
 	DaoString_Delete( (DaoString*) value );
 }
 const char *p = "tokenize( source :string, seps :string, quotes='', backslash=0, simplify=0 )=>list<string>";

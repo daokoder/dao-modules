@@ -72,7 +72,7 @@ struct DaoXMLElement {
 	DMap *attribs;
 	union {
 		DString *text;
-		DVector *children;
+		DArray *children;
 	} c;
 };
 
@@ -89,7 +89,7 @@ struct DaoXMLInstruction {
 struct DaoXMLDocument {
 	DString *version, *doctype, *encoding;
 	int standalone;
-	DVector *instructions;
+	DArray *instructions;
 	DaoXMLElement *root;
 	DMap *namepool;
 };

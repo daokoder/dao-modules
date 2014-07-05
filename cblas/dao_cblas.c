@@ -2516,6 +2516,8 @@ extern "C"{
 int DaoOnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 {
 	__daoVmSpace = vms;
+	DaoNamespace *aux = DaoVmSpace_LinkModule( vms, ns, "aux" );
+	if( aux == NULL ) return 1;
 	DaoNamespace_AddConstNumbers( ns, dao__Nums );
 	DaoNamespace_TypeDefines( ns, dao__Aliases );
 	DaoNamespace_WrapFunctions( ns, dao__Funcs );

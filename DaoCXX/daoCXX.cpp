@@ -55,7 +55,7 @@ extern "C" {
 #include "dao.h"
 #include "daoConst.h"
 #include "daoString.h"
-#include "daoArray.h"
+#include "daoList.h"
 #include "daoValue.h"
 #include "daoRoutine.h"
 }
@@ -94,7 +94,7 @@ const char *header_suffix_pattern = "%. (h | hxx | hpp)";
 DaoRegex *source_caption_regex = NULL;
 DaoRegex *header_suffix_regex = NULL;
 
-static void dao_cxx_parse( DString *VT, DString *source, DArray *markers )
+static void dao_cxx_parse( DString *VT, DString *source, DList *markers )
 {
 	DString *marker = NULL;
 	daoint start = 0, rb = DString_FindChar( VT, ']', 0 );
@@ -105,7 +105,7 @@ static void dao_cxx_parse( DString *VT, DString *source, DArray *markers )
 		if( end == -1 ) break;
 		if( marker == NULL ) marker = DString_New();
 		DString_SetBytes( marker, source->chars + start, end - start );
-		DArray_Append( markers, marker );
+		DList_Append( markers, marker );
 		start = end + 1;
 		while( start < source->size && isspace( source->chars[start] ) ) start += 1;
 	}
@@ -125,7 +125,7 @@ static daoint dao_string_find_paired( DString *mbs, char lb, char rb )
 	}
 	return -1;
 }
-static int dao_markers_get( DArray *markers, const char *name, DString *one, DArray *all )
+static int dao_markers_get( DList *markers, const char *name, DString *one, DList *all )
 {
 	daoint i, m = 0, npos = -1;
 	for(i=0; i<markers->size; i++){
@@ -138,11 +138,11 @@ static int dao_markers_get( DArray *markers, const char *name, DString *one, DAr
 		if( strcmp( one->chars, name ) ) continue;
 		DString_SetBytes( one, marker->chars + lb + 1, rb - lb - 1 );
 		DString_Trim( one, 1, 1, 0 );
-		DArray_Erase( markers, i, 1 );
+		DList_Erase( markers, i, 1 );
 		i -= 1;
 		m += 1;
 		if( all == NULL ) break;
-		DArray_Append( all, one );
+		DList_Append( all, one );
 	}
 	return m;
 }
@@ -404,7 +404,7 @@ static void dao_make_anonymous_name( char *name, DaoNamespace *NS, DString *VT, 
 	sprintf( name, "%sanonymous_%x_%x%s", prefix, hash1, hash2, suffix );
 }
 
-static int dao_cxx_block( DaoNamespace *NS, DString *VT, DArray *markers, DString *source, DString *out )
+static int dao_cxx_block( DaoNamespace *NS, DString *VT, DList *markers, DString *source, DString *out )
 {
 	char bytes[200];
 	char name[50];
@@ -440,7 +440,7 @@ static int dao_cxx_block( DaoNamespace *NS, DString *VT, DArray *markers, DStrin
 	DString_AppendChar( out, ';' );
 	return 0;
 }
-static int dao_cxx_function( DaoNamespace *NS, DString *VT, DArray *markers, DString *source, DString *out )
+static int dao_cxx_function( DaoNamespace *NS, DString *VT, DList *markers, DString *source, DString *out )
 {
 	int retc;
 	char file[50];
@@ -494,7 +494,7 @@ static int dao_cxx_function( DaoNamespace *NS, DString *VT, DArray *markers, DSt
 	func->pFunc = (DaoCFunction)fp;
 	return 0;
 }
-static int dao_cxx_header( DaoNamespace *NS, DString *VT, DArray *markers, DString *source, DString *out )
+static int dao_cxx_header( DaoNamespace *NS, DString *VT, DList *markers, DString *source, DString *out )
 {
 	DString *mbs = DString_New();
 	char name[50];
@@ -509,13 +509,13 @@ static int dao_cxx_header( DaoNamespace *NS, DString *VT, DArray *markers, DStri
 	DString_Delete( mbs );
 	return 0;
 }
-static int dao_cxx_source( DaoNamespace *NS, DString *VT, DArray *markers, DString *source, DString *out )
+static int dao_cxx_source( DaoNamespace *NS, DString *VT, DList *markers, DString *source, DString *out )
 {
 	DString *mbs = DString_New();
 	DString *call = DString_New();
 	DString *cproto = DString_New();
-	DArray *wraps = DArray_New(DAO_DATA_STRING);
-	DArray *funcs = DArray_New(0);
+	DList *wraps = DList_New(DAO_DATA_STRING);
+	DList *funcs = DList_New(0);
 	InputKind kind = IK_CXX;
 	char name[200];
 	char *file = name;
@@ -542,7 +542,7 @@ static int dao_cxx_source( DaoNamespace *NS, DString *VT, DArray *markers, DStri
 			failed += 1;
 			continue;
 		}
-		DArray_Append( funcs, func );
+		DList_Append( funcs, func );
 	}
 	DString_AppendChars( source, "}\n" );
 
@@ -579,7 +579,7 @@ static int dao_cxx_source( DaoNamespace *NS, DString *VT, DArray *markers, DStri
 static int dao_cxx_inliner( DaoNamespace *NS, DString *mode, DString *verbatim, DString *out, int line )
 {
 	DString *source = DString_New();
-	DArray *markers = DArray_New(DAO_DATA_STRING);
+	DList *markers = DList_New(DAO_DATA_STRING);
 	int retc = 1;
 
 	dao_cxx_parse( verbatim, source, markers );
@@ -605,12 +605,12 @@ static int dao_cxx_inliner( DaoNamespace *NS, DString *mode, DString *verbatim, 
 		retc = 1;
 	}
 	DString_Delete( source );
-	DArray_Delete( markers );
+	DList_Delete( markers );
 	return retc;
 }
 static int dao_cxx_loader( DaoNamespace *NS, DString *file, DString *emsg )
 {
-	DArray *markers;
+	DList *markers;
 	DString *source, *marker = NULL;
 	daoint start = 0;
 	int retc = 0;
@@ -621,12 +621,12 @@ static int dao_cxx_loader( DaoNamespace *NS, DString *file, DString *emsg )
 		return 1;
 	}
 	marker = DString_New();
-	markers = DArray_New(DAO_DATA_STRING);
+	markers = DList_New(DAO_DATA_STRING);
 	while( start < source->size && source->chars[start] == '@' ){
 		daoint end = DString_FindChar( source, '\n', start );
 		if( end == -1 ) break;
 		DString_SetBytes( marker, source->chars + start, end - start );
-		DArray_Append( markers, marker );
+		DList_Append( markers, marker );
 		start = end + 1;
 		while( start < source->size && isspace( source->chars[start] ) ) start += 1;
 	}
@@ -643,7 +643,7 @@ static int dao_cxx_loader( DaoNamespace *NS, DString *file, DString *emsg )
 	}
 	DString_Delete( source );
 	DString_Delete( marker );
-	DArray_Delete( markers );
+	DList_Delete( markers );
 	return retc;
 }
 

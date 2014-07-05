@@ -662,29 +662,29 @@ DaoXMLElement* DaoXMLElement_New()
 	return res;
 }
 
-daoint NodesSize( DVector *nodes )
+daoint NodesSize( DArray *nodes )
 {
 	return nodes? nodes->size : 0;
 }
 
-DaoXMLNode* GetNode( DVector *nodes, daoint i )
+DaoXMLNode* GetNode( DArray *nodes, daoint i )
 {
 	if ( i < 0 )
 		i += NodesSize( nodes );
 	return ( NodesSize( nodes ) > i && i >= 0 )? (DaoXMLNode*)nodes->data.daoints[i] : NULL;
 }
 
-void AppendToNodes( DVector **nodes, DaoXMLNode *node )
+void AppendToNodes( DArray **nodes, DaoXMLNode *node )
 {
 	if ( !*nodes )
-		*nodes = DVector_New( sizeof(daoint) );
-	DVector_PushDaoInt( *nodes, (daoint)node );
+		*nodes = DArray_New( sizeof(daoint) );
+	DArray_PushDaoInt( *nodes, (daoint)node );
 }
 
-int InsertToNodes( DVector *nodes, daoint i, DaoXMLNode *node )
+int InsertToNodes( DArray *nodes, daoint i, DaoXMLNode *node )
 {
 	daoint *pos;
-	pos = DVector_Insert( nodes, i, 1 );
+	pos = DArray_Insert( nodes, i, 1 );
 	if ( pos ){
 		*pos = (daoint)node;
 		return 1;
@@ -696,7 +696,7 @@ int InsertToNodes( DVector *nodes, daoint i, DaoXMLNode *node )
 void DaoXMLNode_Delete( DaoXMLNode *self );
 void DaoXMLNode_DeleteAsChld( DaoXMLNode *self );
 
-void EraseFromNodes( DVector *nodes, daoint i, daoint count )
+void EraseFromNodes( DArray *nodes, daoint i, daoint count )
 {
 	if ( nodes ){
 		daoint j;
@@ -705,20 +705,20 @@ void EraseFromNodes( DVector *nodes, daoint i, daoint count )
 			if ( node )
 				DaoXMLNode_DeleteAsChld( node );
 		}
-		DVector_Erase( nodes, i, count );
+		DArray_Erase( nodes, i, count );
 	}
 }
 
-void DeleteNodes( DVector **nodes )
+void DeleteNodes( DArray **nodes )
 {
-	DVector *vt = *nodes;
+	DArray *vt = *nodes;
 	if ( vt ){
 		daoint i;
 		for ( i = 0; i < NodesSize( vt ); i++ ){
 			DaoXMLNode *node = (DaoXMLNode*)vt->data.daoints[i];
 			DaoXMLNode_DeleteAsChld( node );
 		}
-		DVector_Delete( vt );
+		DArray_Delete( vt );
 		*nodes = NULL;
 	}
 }
@@ -814,7 +814,7 @@ DaoXMLDocument* DaoXMLDocument_New()
 	res->standalone = 0;
 	res->encoding = DString_New();
 	res->doctype = DString_New();
-	res->instructions = DVector_New( sizeof(daoint) );
+	res->instructions = DArray_New( sizeof(daoint) );
 	res->root = NULL;
 	res->namepool = DMap_New( DAO_DATA_STRING, DAO_DATA_NULL );
 	return res;
@@ -844,7 +844,7 @@ void DaoXMLElement_Normalize( DaoXMLElement *self )
 		self->kind = XMLElement;
 	}
 	else if ( !self->c.children )
-		self->c.children = DVector_New( sizeof(daoint) );
+		self->c.children = DArray_New( sizeof(daoint) );
 }
 
 int DaoXMLElement_AddChild( DaoXMLElement *self, DaoXMLNode *child, int inc_refs )
@@ -1707,7 +1707,7 @@ static void DaoXMLElement_GetText( DaoProcess *proc, DaoValue *p[], int N )
 	if ( self->kind == XMLTextElement )
 		str = self->c.text;
 	else if ( self->kind != XMLEmptyElement ) {
-		DVector *children = self->c.children;
+		DArray *children = self->c.children;
 		if ( NodesSize( children ) != 0 ){
 			if ( NodesSize( children ) == 1 ){
 				DaoXMLNode *node = GetNode( self->c.children, 0 );

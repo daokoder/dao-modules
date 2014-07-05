@@ -28,6 +28,8 @@
 #ifndef __DAO_GRAPH_H__
 #define __DAO_GRAPH_H__
 
+#define DAO_LIST_ITEM_TYPES  struct DaoxNode **pgNode;  struct DaoxEdge **pgEdge;
+
 #include"daoStdtype.h"
 
 typedef struct DaoxGraph  DaoxGraph;
@@ -70,8 +72,8 @@ struct DaoxNode
 	DAO_CSTRUCT_COMMON;
 
 	DaoxGraph  *graph; /* Without reference counting; */
-	DArray     *ins;   /* in edges:  <DaoxEdge*>; Without reference counting; */
-	DArray     *outs;  /* out edges: <DaoxEdge*>; Without reference counting; */
+	DList      *ins;   /* in edges:  <DaoxEdge*>; Without reference counting; */
+	DList      *outs;  /* out edges: <DaoxEdge*>; Without reference counting; */
 	DaoValue   *value; /* Dao user data; With reference counting; */
 	double      weight;
 	daoint      state;
@@ -110,8 +112,8 @@ struct DaoxGraph
 {
 	DAO_CSTRUCT_COMMON;
 
-	DArray  *nodes; /* <DaoxNode*>; With reference counting; */
-	DArray  *edges; /* <DaoxEdge*>; With reference counting; */
+	DList   *nodes; /* <DaoxNode*>; With reference counting; */
+	DList   *edges; /* <DaoxEdge*>; With reference counting; */
 	short    directed; /* directed graph; */
 
 	DaoType  *nodeType; /* With reference counting; */
@@ -129,9 +131,9 @@ DAO_DLL DaoxEdge* DaoxGraph_AddEdge( DaoxGraph *self, DaoxNode *first, DaoxNode 
 
 DAO_DLL daoint DaoxGraph_RandomInit( DaoxGraph *self, daoint N, double prob );
 
-DAO_DLL void DaoxNode_BreadthFirstSearch( DaoxNode *self, DArray *nodes );
-DAO_DLL void DaoxNode_DepthFirstSearch( DaoxNode *self, DArray *nodes );
-DAO_DLL void DaoxGraph_ConnectedComponents( DaoxGraph *self, DArray *cclist );
+DAO_DLL void DaoxNode_BreadthFirstSearch( DaoxNode *self, DList *nodes );
+DAO_DLL void DaoxNode_DepthFirstSearch( DaoxNode *self, DList *nodes );
+DAO_DLL void DaoxGraph_ConnectedComponents( DaoxGraph *self, DList *cclist );
 
 
 
@@ -153,7 +155,7 @@ DAO_DLL void DaoxGraphData_Clear( DaoxGraphData *self );
 
 DAO_DLL void DaoxGraphData_Reset( DaoxGraphData *self, DaoxGraph *graph, int nodeSize, int edgeSize );
 
-DAO_DLL void DaoxGraphData_GetGCFields( void *p, DArray *vs, DArray *as, DArray *ms, int rm );
+DAO_DLL void DaoxGraphData_GetGCFields( void *p, DList *vs, DList *as, DList *ms, int rm );
 
 DAO_DLL int DaoxGraphData_IsAssociated( DaoxGraphData *self, DaoxGraph *graph, DaoProcess *proc );
 

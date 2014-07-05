@@ -10,7 +10,7 @@ extern "C"{
 #endif
 #include<modules/auxlib/dao_aux.h>
 
-#include<daoArray.h>
+#include<daoList.h>
 
 #ifdef __cplusplus
 }
