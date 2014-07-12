@@ -82,11 +82,6 @@ DMutex fs_mtx;
 
 #define MAX_ERRMSG 100
 
-/* Not available in MinGW for Windows: */
-#ifndef ELOOP
-#define ELOOP  62
-#endif
-
 static const char fserr[] = "File";
 
 struct DInode
@@ -262,7 +257,7 @@ char* DInode_Parent( DInode *self, char *buffer )
 
 int DInode_Rename( DInode *self, const char *path )
 {
-	char buf[MAX_PATH + 1], nbuf[MAX_PATH];
+	char buf[MAX_PATH + 1], nbuf[MAX_PATH + 1];
 	size_t len;
 	int res;
 	if( !self->path || !DInode_Parent( self, buf ) )
