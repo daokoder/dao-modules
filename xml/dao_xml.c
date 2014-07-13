@@ -2884,19 +2884,6 @@ static void DaoXMLWriter_Create( DaoProcess *proc, DaoValue *p[], int N )
 	DaoXMLWriter *res = DaoXMLWriter_New();
 	if ( N == 0 )
 		res->stream = DaoStream_New();
-	else if ( p[0]->type == DAO_STRING ){
-		DString *name = p[0]->xString.value;
-		FILE *file = fopen( name->chars, "w" );
-		if ( !file ){
-			char buf[400];
-			snprintf( buf, sizeof(buf), "Failed to open file for writing: %s", name->chars );
-			DaoProcess_RaiseError( proc, xmlerr, buf );
-			DaoXMLWriter_Delete( res );
-			return;
-		}
-		res->stream = DaoStream_New();
-		DaoStream_SetFile( res->stream, file );
-	}
 	else {
 		DaoStream *stream = &p[0]->xStream;
 		if ( stream->mode & DAO_STREAM_WRITABLE ){
@@ -3342,9 +3329,6 @@ static DaoFuncItem xmlWriterMeths[] =
 {
 	/*! Creates XML writer which writes to stream \a dest */
 	{ DaoXMLWriter_Create,	"writer(dest: io::stream) => writer" },
-
-	/*! Creates XML writer which writes to \a file (using 'w' mode) */
-	{ DaoXMLWriter_Create,	"writer(file: string) => writer" },
 
 	/*! Creates XML writer which writes to internal string stream */
 	{ DaoXMLWriter_Create,	"writer() => writer" },
