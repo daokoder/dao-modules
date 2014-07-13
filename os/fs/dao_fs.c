@@ -141,7 +141,7 @@ DMutex fs_mtx;
 typedef char char_t;
 typedef struct stat stat_t;
 
-#define T
+#define T( tcs ) tcs
 #define T_FMT "s"
 
 #define tcscpy strcpy
