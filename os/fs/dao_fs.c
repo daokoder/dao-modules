@@ -28,7 +28,7 @@
 /* Contribution logs: */
 /* 2011-02, Aleksey Danilov: added initial implementation. */
 /* 2014-01, Aleksey Danilov: numerous enhancements and additions. */
-/* 2014-07, Aleksey Danilov: support for Unicode file names in Windows. */
+/* 2014-07, Aleksey Danilov: support for Unicode file names in Windows, reorganization of the interface. */
 
 #include<string.h>
 #include<errno.h>
@@ -197,7 +197,9 @@ struct DInode
 
 typedef struct DInode DInode;
 
-DaoType *daox_type_fsnode = NULL;
+DaoType *daox_type_entry = NULL;
+DaoType *daox_type_file = NULL;
+DaoType *daox_type_dir = NULL;
 
 DInode* DInode_New()
 {
@@ -428,8 +430,6 @@ int DInode_SubInode( DInode *self, const char_t *path, int dir, DInode *dest, in
 	return DInode_Open( dest, buf );
 }
 
-extern DaoTypeBase fsnodeTyper;
-
 int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *dest, DaoRegex *pattern )
 {
 	char_t buffer[MAX_PATH + 1];
@@ -467,7 +467,7 @@ int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *des
 					return res;
 				}
 				if( ( fsnode->type == type || type == 2 ) && DaoRegex_Match( pattern, str, NULL, NULL ) ){
-					value = (DaoValue*) DaoProcess_NewCdata( proc, daox_type_fsnode, fsnode, 1 );
+					value = (DaoValue*) DaoProcess_NewCdata( proc, fsnode->type == 0? daox_type_dir : daox_type_file, fsnode, 1 );
 					DaoList_PushBack( dest, value );
 				}
 				else
@@ -496,7 +496,7 @@ int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *des
 					return res;
 				}
 				if( ( fsnode->type == type || type == 2 ) && DaoRegex_Match( pattern, str, NULL, NULL ) ){
-					value = (DaoValue*) DaoProcess_NewCdata( proc, daox_type_fsnode, fsnode, 1 );
+					value = (DaoValue*) DaoProcess_NewCdata( proc, fsnode->type == 0? daox_type_dir : daox_type_file, fsnode, 1 );
 					DaoList_PushBack( dest, value );
 				}
 				else
@@ -565,7 +565,8 @@ int DInode_GetOwner( DInode *self, DString *name )
 	PSECURITY_DESCRIPTOR sd = NULL;
 	char_t buf[UNLEN], dbuf[UNLEN];
 	DWORD bufsize = UNLEN, sdsize = UNLEN;
-	if ( GetNamedSecurityInfoW( self->path, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION, &sid, NULL, NULL, NULL, &sd ) != ERROR_SUCCESS )
+	if ( GetNamedSecurityInfoW( self->path, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION, &sid, NULL, NULL, NULL, &sd )
+		 != ERROR_SUCCESS )
 		return 1;
 	if ( !LookupAccountSidW( NULL, sid, buf, &bufsize, dbuf, &sdsize, &sidname ) ){
 		LocalFree( sd );
@@ -657,7 +658,8 @@ static void GetErrorMessage( char *buffer, int code, int special )
 	case EBADF:			strcpy( buffer, "Access not permitted (EACCES/EBADF)"); break;
 	case EBUSY:			strcpy (buffer, "Path is being used (EBUSY)" ); break;
 	case ENOTEMPTY:
-	case EEXIST:		strcpy( buffer, special? "Directory is not empty (ENOTEMPTY/EEXIST)" : "File object already exists (EEXIST/ENOTEMPTY)" ); break;
+	case EEXIST:		strcpy( buffer, special? "Directory is not empty (ENOTEMPTY/EEXIST)" :
+												 "File object already exists (EEXIST/ENOTEMPTY)" ); break;
 	case EPERM:
 	case ENOTDIR:
 	case EISDIR:		strcat( buffer, "Inconsistent type of file object (EPERM/ENOTDIR/EISDIR)" ); break;
@@ -754,7 +756,7 @@ static void FSNode_Parent( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, fserr, errbuf );
 		return;
 	}
-	DaoProcess_PutCdata( proc, (void*)par, daox_type_fsnode );
+	DaoProcess_PutCdata( proc, (void*)par, daox_type_dir );
 }
 
 static void FSNode_Type( DaoProcess *proc, DaoValue *p[], int N )
@@ -849,13 +851,13 @@ static void FSNode_SetAccess(DaoProcess *proc, DaoValue *p[], int N)
 	DInode *self = (DInode*)DaoValue_TryGetCdata(p[0]);
 	char errbuf[MAX_ERRMSG];
 	int ur, uw, ux, gr, gw, gx, otr, otw, otx;
-	DString *mode = DString_Copy( p[1]->xString.value );
+	DString *mode = p[1]->xTuple.values[0]->xString.value;
 	if ( !InitPermissions( mode, &ur, &uw, &ux ) )
 		goto Error;
-	DString_Assign( mode, p[2]->xString.value );
+	mode = p[2]->xTuple.values[1]->xString.value;
 	if ( !InitPermissions( mode, &gr, &gw, &gx ) )
 		goto Error;
-	DString_Assign( mode, p[3]->xString.value );
+	mode = p[3]->xTuple.values[2]->xString.value;
 	if ( !InitPermissions( mode, &otr, &otw, &otx ) )
 		goto Error;
 	int res = DInode_SetAccess(self, ur, uw, ux, gr, gw, gx, otr, otw, otx);
@@ -865,7 +867,6 @@ static void FSNode_SetAccess(DaoProcess *proc, DaoValue *p[], int N)
 	}
 	else
 		FSNode_Update(proc, p, N);
-	DString_Delete( mode );
 	return;
 Error:
 	DaoProcess_RaiseError( proc, fserr, "Invalid access mode format" );
@@ -894,7 +895,7 @@ static void FSNode_Makefile( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 	else
-		DaoProcess_PutCdata( proc, (void*)child, daox_type_fsnode );
+		DaoProcess_PutCdata( proc, (void*)child, daox_type_file );
 	FreeTChars( path );
 }
 
@@ -920,7 +921,7 @@ static void FSNode_Makedir( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 	else
-		DaoProcess_PutCdata( proc, (void*)child, daox_type_fsnode );
+		DaoProcess_PutCdata( proc, (void*)child, daox_type_dir );
 	FreeTChars( path );
 }
 
@@ -974,7 +975,7 @@ static void FSNode_Child( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, fserr, errbuf );
 		return;                                  
 	}
-	DaoProcess_PutCdata( proc, (void*)child, daox_type_fsnode );
+	DaoProcess_PutCdata( proc, (void*)child, child->type == 0? daox_type_dir : daox_type_file );
 Exit:
 	FreeTChars( buf );
 }
@@ -1049,7 +1050,6 @@ static void DInode_Children( DInode *self, DaoProcess *proc, int type, DString *
     DString_Delete( strbuf );
     if( !pattern )
     	return;
-	type = ( type == 3 ) ? 2 : ( ( type == 1 ) ? 1 : 0 );
 	if( ( res = DInode_ChildrenRegex( self, type, proc, list, pattern ) ) != 0 ){
 		char errbuf[MAX_ERRMSG];
 		GetErrorMessage( errbuf, res, 1 );
@@ -1062,7 +1062,7 @@ static void FSNode_Children( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
 	DString *pt = DString_Copy( p[1]->xString.value );
-	DInode_Children( self, proc, 3, pt, DaoValue_TryGetEnum( p[2] ) );
+	DInode_Children( self, proc, 2, pt, DaoValue_TryGetEnum( p[2] ) );
 	DString_Delete( pt );
 }
 
@@ -1077,7 +1077,7 @@ static void FSNode_Dirs( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
 	DString *pt = DString_Copy( p[1]->xString.value );
-	DInode_Children( self, proc, 2, pt, DaoValue_TryGetEnum( p[2] ) );
+	DInode_Children( self, proc, 0, pt, DaoValue_TryGetEnum( p[2] ) );
 	DString_Delete( pt );
 }
 
@@ -1141,7 +1141,7 @@ static void FSNode_Copy( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, fserr, errbuf );
 		goto Exit;
 	}
-	DaoProcess_PutCdata( proc, copy, daox_type_fsnode );
+	DaoProcess_PutCdata( proc, copy, daox_type_file );
 Exit:
 	FreeTChars( path );
 	if ( src ) fclose( src );
@@ -1183,7 +1183,7 @@ static void FSNode_Mktemp( DaoProcess *proc, DaoValue *p[], int N )
 			DaoProcess_RaiseError( proc, fserr, errbuf );
 		}
 		else
-			DaoProcess_PutCdata( proc, fsnode, daox_type_fsnode );
+			DaoProcess_PutCdata( proc, fsnode, daox_type_file );
 	}
 	FreeTChars( pref );
 }
@@ -1205,7 +1205,7 @@ static void FSNode_New( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 	else
-		DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_fsnode );
+		DaoProcess_PutCdata( proc, (void*)fsnode, fsnode->type == 0? daox_type_dir : daox_type_file );
 	FreeTChars( path );
 }
 
@@ -1222,7 +1222,7 @@ static void FS_CWD( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 	else
-		DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_fsnode );
+		DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_dir );
 }
 
 static void FS_PWD( DaoProcess *proc, DaoValue *p[], int N )
@@ -1336,7 +1336,7 @@ static void FS_NewFile( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, fserr, "File object is not a file" );
 	}
 	else
-		DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_fsnode );
+		DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_file );
 	FreeTChars( path );
 }
 
@@ -1361,114 +1361,147 @@ static void FS_NewDir( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, fserr, "File object is not a directory" );
 	}
 	else
-		DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_fsnode );
+		DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_dir );
 	FreeTChars( path );
 }
 
-static DaoFuncItem fsnodeMeths[] =
+static DaoFuncItem entryMeths[] =
 {
-	/*! Returns new entry bound to \a path of file or directory */
+	/*! Returns new \c entry bound to \a path of file or directory */
 	{ FSNode_New,		"entry(path: string) => entry" },
 
-	/*! Returns full path */
-	{ FSNode_Path,		"path(invar self: entry) => string" },
+	/*! Full path */
+	{ FSNode_Path,		".path(invar self: entry) => string" },
 
-	/*! Returns entry name (last component of path) */
-	{ FSNode_Name,		"name(invar self: entry) => string" },
+	/*! Entry name (last component of path) */
+	{ FSNode_Name,		".name(invar self: entry) => string" },
 
-	/*! Returns base name (up to, but not including, the first '.' in name) */
-	{ FSNode_BaseName,	"basename(invar self: entry) => string" },
+	/*! Base name (up to, but not including, the first '.' in name) */
+	{ FSNode_BaseName,	".basename(invar self: entry) => string" },
 
-	/*! Returns name part after the last '.' */
-	{ FSNode_Suffix,	"suffix(invar self: entry) => string" },
+	/*! Name part after the last '.' */
+	{ FSNode_Suffix,	".suffix(invar self: entry) => string" },
 
-	/*! Returns type of entry: file or directory */
-	{ FSNode_Type,		"type(invar self: entry ) => enum<file, dir>" },
+	/*! File object kind: file or directory */
+	{ FSNode_Type,		".kind(invar self: entry ) => enum<file, dir>" },
 
-	/*! Returns size of file (0 for directory) */
-	{ FSNode_Size,		"size(invar self: entry) => int" },
+	/*! Directory which contains this entry */
+	{ FSNode_Parent,	".dirup(invar self: entry)=> dir|none" },
 
-	/*! Resizes file */
-	{ FSNode_Resize,	"resize(self: entry, size: int)" },
+	/*! Time of creation, last modification and access (use \c time module to operate it) */
+	{ FSNode_Time,		".time(invar self: entry) => tuple<created: int, modified: int, accessed: int>" },
 
-	/*! Returns directory which contains this entry */
-	{ FSNode_Parent,	"dirup(invar self: entry)=> entry|none" },
+	/*! Owner name */
+	{ FSNode_Owner,		".owner(invar self: entry) => string" },
 
-	/*! Returns time of creation, last modification and access (use time module to operate them) */
-	{ FSNode_Time,		"time(invar self: entry) => tuple<created: int, modified: int, accessed: int>" },
-
-	/*! Returns owner name */
-	{ FSNode_Owner,		"owner(invar self: entry) => string" },
-
-	/*! Returns access mode as a combination of 'r', 'w' and 'x'. On Windows, only permissions for the current user are returned */
-	{ FSNode_Access,	"access(invar self: entry) => tuple<user: string, group: string, other: string>" },
-
-	/*! Sets access mode to \a mode, where \a mode is a combination of 'r', 'w' and 'x'.
-	 * On Windows, only permissions for the current user are changed */
-	{ FSNode_SetAccess,	"access(self: entry, user: string, group = '', other = '')" },
+	/*! Access mode as a combination of 'r', 'w' and 'x' flags. On Windows, only permissions for the current user are affected */
+	{ FSNode_Access,	".access(invar self: entry) => tuple<user: string, group: string, other: string>" },
+	{ FSNode_SetAccess,	".access=(self: entry, value: tuple<user: string, group: string, other: string>)" },
 
 	/*! Moves (renames) entry within the file system so that its full path becomes \a path. \a path may end with directory separator,
-	 * omitting entry name, in which case the current name is assumed */
+	 * omitting the entry name, in which case the current name is assumed */
 	{ FSNode_Rename,	"move(self: entry, path: string)" },
 
 	/*! Deletes file or empty directory
+	 *
 	 * \note Doing this does not invalidate the entry */
 	{ FSNode_Remove,	"delete(self: entry)" },
 
-	/*! For directory creates new file given its relative \a path and returns the corresponding entry */
-	{ FSNode_Makefile,	"mkfile(self: entry, path: string) => entry" },
-
-	/*! For directory creates new directory given its relative \a path and returns the corrsesponding entry */
-	{ FSNode_Makedir,	"mkdir(self: entry, path: string) => entry" },
-
-	/*! For directory returns list of inner entries of given \a type with names matching \a filter,
-	 * where \a filter type is defined by \a filtering and can be either a wildcard pattern or usual string pattern */
-	{ FSNode_Children,	"entries(invar self: entry, filter = '*', filtering: enum<wildcard, regex> = $wildcard) => list<entry>" },
-
-	/*! For directory returns list of inner files with names matching \a filter,
-	 * where \a filter type is defined by \a filtering and can be either a wildcard pattern or usual string pattern */
-	{ FSNode_Files,		"files(invar self: entry, filter = '*', filtering: enum<wildcard, regex> = $wildcard) => list<entry>" },
-
-	/*! For directory returns list of inner directories with names matching \a filter,
-	 * where \a filter type is defined by \a filtering and can be either a wildcard pattern or usual string pattern */
-	{ FSNode_Dirs,		"dirs(invar self: entry, filter = '*', filtering: enum<wildcard, regex> = $wildcard) => list<entry>" },
-
-	/*! For directory returns entry given its relative \a path */
-	{ FSNode_Child,		"[](invar self: entry, path: string) => entry" },
-
-	/*! Copies file and returns entry of the copy */
-	{ FSNode_Copy,		"copy(self: entry, path: string) => entry" },
-
-	/*! For directory returns \c true if entry specified by relative \a path exists */
-	{ FSNode_Exists,	"exists(invar self: entry, path: string) => bool" },
-
-	/*! For directory creates file with unique name prefixed by \a prefix in this directory. Returns the corresponding entry */
-	{ FSNode_Mktemp,	"mktemp(self: entry, prefix = '') => entry" },
-
 	/*! Re-reads all entry attributes */
 	{ FSNode_Update,	"refresh(self: entry)" },
-
 	{ NULL, NULL }
 };
 
-/*! Provides platform-independent interface for manipulating files and directories */
-DaoTypeBase fsnodeTyper = {
-	"entry", NULL, NULL, fsnodeMeths, {NULL}, {0}, (FuncPtrDel)DInode_Delete, NULL
+static DaoFuncItem fileMeths[] =
+{
+	/*! Returns \a file object bound to \a path if it points to a file, otherwise raises exception */
+	{ FS_NewFile,		"file(path: string) => file" },
+
+	/*! Size of the file in bytes */
+	{ FSNode_Size,		".size(invar self: file) => int" },
+
+	/*! Resizes the file to the given \a size */
+	{ FSNode_Resize,	"resize(self: file, size: int)" },
+
+	/*! Copies the file and returns \c file object of its copy */
+	{ FSNode_Copy,		"copy(self: file, path: string) => file" },
+	{ NULL, NULL }
+};
+
+static DaoFuncItem dirMeths[] =
+{
+	/*! Returns \c dir object bount to \a path if it points to a directory, otherwise raises exception */
+	{ FS_NewDir,		"dir(path: string) => dir" },
+
+	/*! Creates new file given relative \a path and returns its \c file object */
+	{ FSNode_Makefile,	"mkfile(self: dir, path: string) => file" },
+
+	/*! Creates new directory given relative \a path and returns its \c dir object */
+	{ FSNode_Makedir,	"mkdir(self: dir, path: string) => dir" },
+
+	/*! Returns the list of inner entries with names matching \a filter,
+	 * where \a filter type is defined by \a filtering and can be either a wildcard pattern or Dao string pattern */
+	{ FSNode_Children,	"entries(invar self: dir, filter = '*', filtering: enum<wildcard,pattern> = $wildcard) => list<entry>" },
+
+	/*! Returns the list of inner files with names matching \a filter,
+	 * where \a filter type is defined by \a filtering and can be either a wildcard pattern or Dao string pattern */
+	{ FSNode_Files,		"files(invar self: dir, filter = '*', filtering: enum<wildcard,pattern> = $wildcard) => list<file>" },
+
+	/*! Returns the list of inner directories with names matching \a filter,
+	 * where \a filter type is defined by \a filtering and can be either a wildcard pattern or Dao string pattern */
+	{ FSNode_Dirs,		"dirs(invar self: dir, filter = '*', filtering: enum<wildcard,pattern> = $wildcard) => list<dir>" },
+
+	/*! Returns sub-entry given its relative \a path */
+	{ FSNode_Child,		"[](invar self: dir, path: string) => entry" },
+
+	/*! Returns \c true if sub-entry specified by relative \a path exists */
+	{ FSNode_Exists,	"exists(invar self: dir, path: string) => bool" },
+
+	/*! Creates file with unique name prefixed by \a prefix in this directory. Returns the corresponding entry */
+	{ FSNode_Mktemp,	"mktemp(self: dir, prefix = '') => file" },
+	{ NULL, NULL }
+};
+
+/*! \brief Provides platform-independent interface for manipulating files and directories.
+ *
+ * \c entry represents a generic file system object, namely a file or directory (links and other special types of file-like objects are
+ * not supported). \c entry is inherited by \c file and \c dir, which provide operations specific to files and directories accordingly.
+ *
+ * A file object is operated by its name, no descriptors or locks are kept for the lifetime of the associated \c entry. File attributes
+ * are cached and are only updated when necessary (e.g., \c resize() will update the size attribute); use \c refresh() to re-read them.
+ *
+ * \c entry uses '/' as the unified path separator on all platforms, Windows paths (including UNC) are automatically normalized to
+ * this form. Relative paths and symbolic links are automatically expanded to their absolute form.
+ *
+ * \note On Windows, all path strings are assumed to be encoded in UTF-8, and are implicitly converted to UTF-16 in order to support
+ * Unicode file names on this platform.
+ */
+DaoTypeBase entryTyper = {
+	"entry", NULL, NULL, entryMeths, {NULL}, {0}, (FuncPtrDel)DInode_Delete, NULL
+};
+
+DaoTypeBase fileTyper = {
+	"file", NULL, NULL, fileMeths, {&entryTyper, NULL}, {0}, (FuncPtrDel)DInode_Delete, NULL
+};
+
+DaoTypeBase dirTyper = {
+	"dir", NULL, NULL, dirMeths, {&entryTyper, NULL}, {0}, (FuncPtrDel)DInode_Delete, NULL
 };
 
 static DaoFuncItem fsMeths[] =
 {
-	/*! Returns entry of current working directory */
-	{ FS_CWD,		"cwd() => entry" },
+	/*! Returns the current working directory */
+	{ FS_CWD,		"cwd() => dir" },
 
-	/*! Returns path of current working directory */
+	/*! Returns path the of current working directory */
 	{ FS_PWD,		"pwd() => string" },
 
 	/*! Makes \a dir the current working directory */
-	{ FS_SetCWD,	"cd(invar dir: entry)" },
-	{ FS_SetCWD2,	"cd(dir: string)" },
+	{ FS_SetCWD,	"cd(invar path: dir)" },
+	{ FS_SetCWD2,	"cd(path: string)" },
 
-	/*! Returns absolute form of \a path, which must point to an existing file or directory. On Windows, replaces all '\' in path with '/' */
+	/*! Returns absolute form of \a path, which must point to an existing file or directory. On Windows, replaces all '\' in path
+	 * with '/' */
 	{ FS_NormPath,	"realpath(path: string) => string" },
 
 	/*! Returns \c true if \a path exists and points to a file or directory */
@@ -1476,13 +1509,6 @@ static DaoFuncItem fsMeths[] =
 
 	/*! On Windows, returns list of root directories (drives). On other systems returns {'/'} */
 	{ FS_Roots,		"roots() => list<string>" },
-
-	/*! Returns entry bound to \a path if it points to a file, otherwise raises exception */
-	{ FS_NewFile,	"file(path: string) => entry" },
-
-	/*! Returns entry bount to \a path if it points to a directory, otherwise raises exception */
-	{ FS_NewDir,	"dir(path: string) => entry" },
-
 	{ NULL, NULL }
 };
 
@@ -1492,7 +1518,9 @@ DAO_DLL int DaoFS_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	FS_INIT();
 	fsns = DaoVmSpace_GetNamespace( vmSpace, "fs" );
 	DaoNamespace_AddConstValue( ns, "fs", (DaoValue*)fsns );
-	daox_type_fsnode = DaoNamespace_WrapType( fsns, & fsnodeTyper, 1 );
+	daox_type_entry = DaoNamespace_WrapType( fsns, & entryTyper, 1 );
+	daox_type_file = DaoNamespace_WrapType( fsns, & fileTyper, 1 );
+	daox_type_dir = DaoNamespace_WrapType( fsns, & dirTyper, 1 );
 	DaoNamespace_WrapFunctions( fsns, fsMeths );
 	return 0;
 }
