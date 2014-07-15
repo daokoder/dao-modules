@@ -7,13 +7,13 @@ class Server
 	routine Start()
 	{
 #	io.writeln( net.gethost( '127.0.0.1' ) );
-		io.writeln( net.gethost( 'localhost' ) );
+		io.writeln( net.host( 'localhost' ) );
 		sock = net.bind( 10000 );
 		sock.listen();
 		while(1){
 			sockfd = sock.accept();
 			message = sockfd.receive();
-			io.writeln( sockfd.peername() );
+			io.writeln( sockfd.peername );
 			io.writeln( 'received', message );
 			sockfd.send_dao( 'TEST', 12.345, [1,2,3] );
 			sockfd.close();

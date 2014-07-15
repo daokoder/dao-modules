@@ -47,6 +47,7 @@
 
 #elif WIN32
 
+#include"winsock2.h"
 #include"winsock.h"
 
 typedef size_t socklen_t;
@@ -56,6 +57,7 @@ typedef size_t socklen_t;
 #endif
 
 #include"dao.h"
+#include"daoValue.h"
 #include"daoStream.h"
 
 
@@ -88,48 +90,52 @@ static void GetErrorMessage( char *buffer, int code )
 {
 	switch( code ){
 #ifdef WIN32
-	case WSAENETDOWN:            strcpy( buffer, "The network subsystem has failed (WSAENETDOWN)" ); break;
-	case WSAEAFNOSUPPORT:        strcpy( buffer, "The address family is not supported (WSAEAFNOSUPPORT)" ); break;
-	case WSAEINPROGRESS:         strcpy( buffer, "The service provider is processing another call (WSAEINPROGRESS)" ); break;
+	case WSAENETDOWN:            strcpy( buffer, "Network subsystem failure (WSAENETDOWN)" ); break;
+	case WSAEAFNOSUPPORT:        strcpy( buffer, "Address family is not supported (WSAEAFNOSUPPORT)" ); break;
+	case WSAEINPROGRESS:         strcpy( buffer, "Service provider is processing another call (WSAEINPROGRESS)" ); break;
 	case WSAEMFILE:              strcpy( buffer, "No more file descriptors available (WSAEMFILE)" ); break;
 	case WSAENOBUFS:             strcpy( buffer, "Insufficient buffer space (WSAENOBUFS)" ); break;
-	case WSAEPROTONOSUPPORT:     strcpy( buffer, "The protocol is not supported (WSAEPROTONOSUPPORT)" ); break;
-	case WSAEPROVIDERFAILEDINIT: strcpy( buffer, "The service provider failed to initialize (WSAEPROVIDERFAILEDINIT)" ); break;
-	case WSAECONNRESET:          strcpy( buffer, "The connection was terminated by the remote side (WSAECONNRESET)" ); break;
-	case WSAEADDRNOTAVAIL:       strcpy( buffer, "The address is not available (WSAEADDRNOTAVAIL)" ); break;
-	case WSAECONNREFUSED:        strcpy( buffer, "The connection was refused (WSAECONNREFUSED)" ); break;
-	case WSAENETUNREACH:         strcpy( buffer, "The network is not reachable (WSAENETUNREACH)" ); break;
-	case WSAEHOSTUNREACH:        strcpy( buffer, "The host is not reachable (WSAEHOSTUNREACH)" ); break;
-	case WSAETIMEDOUT:           strcpy( buffer, "The attempt to establish the connection timed out (WSAETIMEDOUT)" ); break;
-	case WSAENETRESET:           strcpy( buffer, "The connection was broken (WSAENETRESET)" ); break;
-	case WSAEMSGSIZE:            strcpy( buffer, "The message is too large (WSAEMSGSIZE)" ); break;
-	case WSAECONNABORTED:        strcpy( buffer, "The connection was terminated due to a time-out or other failure (WSAECONNABORTED)" ); break;
+	case WSAEPROTONOSUPPORT:     strcpy( buffer, "Protocol not supported (WSAEPROTONOSUPPORT)" ); break;
+	case WSAEPROVIDERFAILEDINIT: strcpy( buffer, "Service provider failed to initialize (WSAEPROVIDERFAILEDINIT)" ); break;
+	case WSAECONNRESET:          strcpy( buffer, "Connection was terminated by the remote side (WSAECONNRESET)" ); break;
+	case WSAEADDRNOTAVAIL:       strcpy( buffer, "Address not available (WSAEADDRNOTAVAIL)" ); break;
+	case WSAECONNREFUSED:        strcpy( buffer, "Connection was refused (WSAECONNREFUSED)" ); break;
+	case WSAENETUNREACH:         strcpy( buffer, "Network not reachable (WSAENETUNREACH)" ); break;
+	case WSAEHOSTUNREACH:        strcpy( buffer, "Host not reachable (WSAEHOSTUNREACH)" ); break;
+	case WSAETIMEDOUT:           strcpy( buffer, "Attempt to establish connection timed out (WSAETIMEDOUT)" ); break;
+	case WSAENETRESET:           strcpy( buffer, "Connection has timed out when $keepAlive option is set (WSAENETRESET)" ); break;
+	case WSAENOTCONN:            strcpy( buffer, "Connection has been reset when $keepAlive option is set (WSAENOTCONN)" ); break;
+	case WSAEMSGSIZE:            strcpy( buffer, "Message too large (WSAEMSGSIZE)" ); break;
+	case WSAECONNABORTED:        strcpy( buffer, "Connection was terminated due to a time-out or other failure (WSAECONNABORTED)" ); break;
 	case WSAEINVAL:              strcpy( buffer, "Invalid parameter (WSAEINVAL)" ); break;
 	case WSAHOST_NOT_FOUND:      strcpy( buffer, "Authoritative answer host not found (WSAHOST_NOT_FOUND)" ); break;
 	case WSATRY_AGAIN:           strcpy( buffer, "Nonauthoritative host not found, or no response from the server (WSATRY_AGAIN)" ); break;
-	case WSANO_RECOVERY:         strcpy( buffer, "A non-recoverable error occurred (WSANO_RECOVERY)" ); break;
+	case WSANO_RECOVERY:         strcpy( buffer, "Non-recoverable error (WSANO_RECOVERY)" ); break;
 	case WSANO_DATA:             strcpy( buffer, "Address not found (WSANO_DATA)" ); break;
-	case WSASYSNOTREADY:         strcpy( buffer, "The network subsystem is not ready (WSASYSNOTREADY)" ); break;
-	case WSAVERNOTSUPPORTED:     strcpy( buffer, "The version is not supported (WSAVERNOTSUPPORTED)" ); break;
-	case WSAEPROCLIM:            strcpy( buffer, "A limit on the number of tasks has been reached (WSAEPROCLIM)" ); break;
+	case WSASYSNOTREADY:         strcpy( buffer, "Network subsystem not ready (WSASYSNOTREADY)" ); break;
+	case WSAVERNOTSUPPORTED:     strcpy( buffer, "Windows Sockets version not supported (WSAVERNOTSUPPORTED)" ); break;
+	case WSAEPROCLIM:            strcpy( buffer, "Limit on the number of tasks has been reached (WSAEPROCLIM)" ); break;
 	case WSAEFAULT:				 strcpy( buffer, "Failed to allocate necessary resources (WSAEFAULT)" ); break;
+	case WSAEACCES:				 strcpy( buffer, "Insufficient privileges (WSAEACCES)" ); break;
+	case WSAEADDRINUSE:			 strcpy( buffer, "Address already in use (WSAEADDRINUSE)" ); break;
 #else
-	case EAFNOSUPPORT:    strcpy( buffer, "The address family is not supported (EAFNOSUPPORT)" ); break;
+	case EAFNOSUPPORT:    strcpy( buffer, "Address family not supported (EAFNOSUPPORT)" ); break;
 	case EMFILE:
 	case ENFILE:          strcpy( buffer, "No more file descriptors available (EMFILE/ENFILE)" ); break;
-	case EPROTONOSUPPORT: strcpy( buffer, "The protocol is not supported (EPROTONOSUPPORT)" ); break;
-	case EACCES:          strcpy( buffer, "The process does not have the appropriate privileges (EACCES)" ); break;
+	case EPROTONOSUPPORT: strcpy( buffer, "Protocol not supported (EPROTONOSUPPORT)" ); break;
+	case EACCES:          strcpy( buffer, "Insufficient privileges (EACCES)" ); break;
 	case ENOBUFS:         strcpy( buffer, "Insufficient buffer space (ENOBUFS)" ); break;
-	case EADDRNOTAVAIL:   strcpy( buffer, "The address is not available (EADDRNOTAVAIL)" ); break;
-	case ETIMEDOUT:       strcpy( buffer, "The attempt to establish the connection timed out (ETIMEDOUT)" ); break;
-	case ECONNREFUSED:    strcpy( buffer, "The connection was refused (ECONNREFUSED)" ); break;
-	case ENETUNREACH:     strcpy( buffer, "The network is not reachable (ENETUNREACH)" ); break;
-	case EADDRINUSE:      strcpy( buffer, "The socket address is already in use (EADDRINUSE)" ); break;
-	case EINTR:           strcpy( buffer, "The data sending was interrupted by a signal (EINTR)" ); break;
-	case EMSGSIZE:        strcpy( buffer, "The message is too large (EMSGSIZE)" ); break;
-	case EPIPE:           strcpy( buffer, "The connection was broken (EPIPE)" ); break;
+	case EADDRNOTAVAIL:   strcpy( buffer, "Address not available (EADDRNOTAVAIL)" ); break;
+	case ETIMEDOUT:       strcpy( buffer, "Attempt to establish connection timed out (ETIMEDOUT)" ); break;
+	case ECONNREFUSED:    strcpy( buffer, "Connection was refused (ECONNREFUSED)" ); break;
+	case ENETUNREACH:     strcpy( buffer, "Network not reachable (ENETUNREACH)" ); break;
+	case EADDRINUSE:      strcpy( buffer, "Address already in use (EADDRINUSE)" ); break;
+	case EINTR:           strcpy( buffer, "Data sending was interrupted by a signal (EINTR)" ); break;
+	case EMSGSIZE:        strcpy( buffer, "Message too large (EMSGSIZE)" ); break;
+	case EPIPE:           strcpy( buffer, "Connection was broken (EPIPE)" ); break;
 	case EINVAL:          strcpy( buffer, "Invalid parameter (EINVAL)" ); break;
 	case ENOMEM:          strcpy( buffer, "Insufficient space (ENOMEM)" ); break;
+	case ENOTCONN:        strcpy( buffer, "Socket not connected (ENOTCONN)" ); break;
 #endif
 	default: sprintf( buffer, "Unknown system error (%x)", code );
 	}
@@ -168,14 +174,39 @@ static int GetHostError()
 #endif
 }
 
+enum {
+	Socket_SharedAddress = 1,
+	Socket_ExclusiveAddress = 2,
+	Socket_ReusableAddress = 4,
+};
+
+typedef int socket_opts;
+
+int DaoNetwork_SetSocketOptions( int sock, socket_opts opts )
+{
+	int flag = 1;
+#ifdef WIN32
+	if ( opts & Socket_ExclusiveAddress ){
+		if( setsockopt( sock, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (void*)&flag, sizeof(int) ) == -1 ) return -1;
+	}
+	if ( opts & Socket_ReusableAddress ){
+		if( setsockopt( sock, SOL_SOCKET, SO_REUSEADDR, (void*)&flag, sizeof(int) ) == -1 ) return -1;
+	}
+#else
+	if ( opts & Socket_SharedAddress ){
+		if( setsockopt( sock, SOL_SOCKET, SO_REUSEADDR, (void*)&flag, sizeof(int) ) == -1 ) return -1;
+	}
+#endif
+	return 0;
+}
+
 void DaoNetwork_Close( int sockfd );
-int DaoNetwork_Bind( int port )
+int DaoNetwork_Bind( int port, socket_opts opts )
 {
 	struct sockaddr_in myaddr;    /*  my address information */
-	int yes = 0;
 	int sockfd = socket( AF_INET, SOCK_STREAM, 0);
 	if( sockfd == -1 ) return -1;
-	if( setsockopt( sockfd, SOL_SOCKET, SO_REUSEADDR, (void*)&yes, sizeof(int) ) == -1 ) return -1;
+	if( opts && DaoNetwork_SetSocketOptions( sockfd, opts ) == -1 ) return -1;
 
 	myaddr.sin_family = AF_INET;         /*  host byte order */
 	myaddr.sin_port = htons( port );     /*  short, network byte order */
@@ -262,6 +293,20 @@ int DaoNetwork_Receive( int sockfd, DString *buf, int max )
 	/* if( numbytes >=0 ) buf->size = numbytes; */
 	return numbytes;
 }
+
+enum {
+	Shutdown_Receive = 0,
+	Shutdown_Send = 1,
+	Shutdown_Both = 2
+};
+
+typedef int shutdown_flag;
+
+int DaoNetwork_Shutdown( int sockfd, shutdown_flag flag )
+{
+	return shutdown( sockfd, flag );
+}
+
 void DaoNetwork_Close( int sockfd )
 {
 #ifdef UNIX
@@ -649,18 +694,23 @@ int DaoNetwork_ReceiveExt( DaoProcess *proc, int sockfd, DaoList *data )
 	return dpp;
 }
 
+#define MAX_ERRMSG 100
+
+enum {
+	Socket_Closed = 0,
+	Socket_Bound,
+	Socket_Connected,
+	Socket_Listening
+};
+
+typedef int socket_state;
+typedef struct DaoSocket DaoSocket;
+
 struct DaoSocket
 {
 	int id;
-	int state;
+	socket_state state;
 };
-
-#define MAX_ERRMSG 100
-#define SOCKET_BOUND 1
-#define SOCKET_CONNECTED 2
-#define SOCKET_LISTENING 3
-
-typedef struct DaoSocket DaoSocket;
 
 extern DaoTypeBase socketTyper;
 DaoType *daox_type_socket = NULL;
@@ -669,8 +719,17 @@ static DaoSocket* DaoSocket_New(  )
 {
 	DaoSocket *self = dao_malloc( sizeof(DaoSocket) );
 	self->id = -1;
-	self->state = 0;
+	self->state = Socket_Closed;
 	return self;
+}
+
+static int DaoSocket_Shutdown( DaoSocket *self, shutdown_flag flag )
+{
+	if( self->id != -1 ){
+		if ( DaoNetwork_Shutdown( self->id, flag ) != 0 )
+			return -1;
+	}
+	return 0;
 }
 
 static void DaoSocket_Close( DaoSocket *self )
@@ -678,7 +737,7 @@ static void DaoSocket_Close( DaoSocket *self )
 	if( self->id != -1 ){
 		DaoNetwork_Close( self->id );
 		self->id = -1;
-		self->state = 0;
+		self->state = Socket_Closed;
 	}
 }
 
@@ -688,12 +747,12 @@ static void DaoSocket_Delete( DaoSocket *self )
 	dao_free( self );
 }
 
-static int DaoSocket_Bind( DaoSocket *self, int port )
+static int DaoSocket_Bind( DaoSocket *self, int port, socket_opts opts )
 {
 	DaoSocket_Close( self );
-	self->id = DaoNetwork_Bind( port );
+	self->id = DaoNetwork_Bind( port, opts );
 	if( self->id != -1 )
-		self->state = SOCKET_BOUND;
+		self->state = Socket_Bound;
 	return self->id;
 }
 
@@ -702,8 +761,20 @@ static int DaoSocket_Connect( DaoSocket *self, DString *host, int port )
 	DaoSocket_Close( self );
 	self->id = DaoNetwork_Connect( DString_GetData( host ), port );
 	if( self->id != -1 )
-		self->state = SOCKET_CONNECTED;
+		self->state = Socket_Connected;
 	return self->id;
+}
+
+static void DaoSocket_Lib_Shutdown( DaoProcess *proc, DaoValue *par[], int N  )
+{
+	char errbuf[MAX_ERRMSG];
+	DaoSocket* self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	if ( self->state != Socket_Connected )
+		DaoProcess_RaiseError( proc, neterr, "Socket not connected" );
+	else if ( DaoSocket_Shutdown( self, par[1]->xEnum.value ) != 0 ){
+		GetErrorMessage( errbuf, GetError() );
+		DaoProcess_RaiseError( proc, neterr, errbuf );
+	}
 }
 
 static void DaoSocket_Lib_Close( DaoProcess *proc, DaoValue *par[], int N  )
@@ -715,7 +786,7 @@ static void DaoSocket_Lib_Bind( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
-	if( DaoSocket_Bind( self, DaoValue_TryGetInteger( par[1] ) ) == -1 ){
+	if( DaoSocket_Bind( self, par[1]->xInteger.value, N == 3? par[2]->xEnum.value : 0 ) == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 	}
@@ -725,7 +796,7 @@ static void DaoSocket_Lib_Listen( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
-	if( self->state != SOCKET_BOUND ){
+	if( self->state != Socket_Bound ){
 		DaoProcess_RaiseError( proc, neterr, "The socket is not bound" );
 		return;
 	}
@@ -734,7 +805,7 @@ static void DaoSocket_Lib_Listen( DaoProcess *proc, DaoValue *par[], int N  )
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 		return;
 	}
-	self->state = SOCKET_LISTENING;
+	self->state = Socket_Listening;
 }
 
 static void DaoSocket_Lib_Accept( DaoProcess *proc, DaoValue *par[], int N  )
@@ -742,7 +813,7 @@ static void DaoSocket_Lib_Accept( DaoProcess *proc, DaoValue *par[], int N  )
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
 	DaoSocket *sock;
-	if( self->state != SOCKET_LISTENING ){
+	if( self->state != Socket_Listening ){
 		DaoProcess_RaiseError( proc, neterr, "The socket is not in the listening state" );
 		return;
 	}
@@ -753,7 +824,7 @@ static void DaoSocket_Lib_Accept( DaoProcess *proc, DaoValue *par[], int N  )
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 		return;
 	}
-	sock->state = SOCKET_CONNECTED;
+	sock->state = Socket_Connected;
 	DaoProcess_PutCdata( proc, (void*)sock, daox_type_socket );
 }
 
@@ -761,7 +832,7 @@ static void DaoSocket_Lib_Connect( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
-	if( DaoSocket_Connect( self, DaoString_Get( DaoValue_CastString( par[1] ) ), DaoValue_TryGetInteger( par[2] ) ) == -1 ){
+	if( DaoSocket_Connect( self, par[1]->xString.value, par[2]->xInteger.value ) == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 	}
@@ -772,7 +843,7 @@ static void DaoSocket_Lib_Send( DaoProcess *proc, DaoValue *par[], int N  )
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
 	int n;
-	if( self->state != SOCKET_CONNECTED ){
+	if( self->state != Socket_Connected ){
 		DaoProcess_RaiseError( proc, neterr, "The socket is not connected" );
 		return;
 	}
@@ -787,7 +858,7 @@ static void DaoSocket_Lib_Receive( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
-	if( self->state != SOCKET_CONNECTED ){
+	if( self->state != Socket_Connected ){
 		DaoProcess_RaiseError( proc, neterr, "The socket is not connected" );
 		return;
 	}
@@ -803,7 +874,7 @@ static void DaoSocket_Lib_SendDao( DaoProcess *proc, DaoValue *par[], int N  )
 	char errbuf[MAX_ERRMSG];
 	int n;
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
-	if( self->state != SOCKET_CONNECTED ){
+	if( self->state != Socket_Connected ){
 		DaoProcess_RaiseError( proc, neterr, "The socket is not connected" );
 		return;
 	}
@@ -819,7 +890,7 @@ static void DaoSocket_Lib_ReceiveDao( DaoProcess *proc, DaoValue *par[], int N  
 {
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
-	if( self->state != SOCKET_CONNECTED ){
+	if( self->state != Socket_Connected ){
 		DaoProcess_RaiseError( proc, neterr, "The socket is not connected" );
 		return;
 	}
@@ -841,10 +912,10 @@ static void DaoSocket_Lib_State( DaoProcess *proc, DaoValue *par[], int N  )
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
 	char buffer[10];
 	switch( self->state ){
-	case 0:                strcpy( buffer, "closed" ); break;
-	case SOCKET_BOUND:     strcpy( buffer, "bound" ); break;
-	case SOCKET_LISTENING: strcpy( buffer, "listening" ); break;
-	case SOCKET_CONNECTED: strcpy( buffer, "connected" ); break;
+	case Socket_Closed:    strcpy( buffer, "closed" ); break;
+	case Socket_Bound:     strcpy( buffer, "bound" ); break;
+	case Socket_Listening: strcpy( buffer, "listening" ); break;
+	case Socket_Connected: strcpy( buffer, "connected" ); break;
 	}
 	DaoProcess_PutEnum( proc, buffer );
 }
@@ -860,7 +931,7 @@ static void DaoSocket_Lib_GetPeerName( DaoProcess *proc, DaoValue *par[], int N 
 #else
 	socklen_t size = sizeof( struct sockaddr_in );
 #endif
-	if( self->state != SOCKET_CONNECTED ){
+	if( self->state != Socket_Connected ){
 		DaoProcess_RaiseError( proc, neterr, "The socket is not connected" );
 		return;
 	}
@@ -882,6 +953,10 @@ static void DaoSocket_Lib_GetStream( DaoProcess *proc, DaoValue *par[], int N  )
 	DaoProcess_RaiseError( proc, NULL, "Creating stream from a socket is not supported on the current platform" );
 	return;
 #endif
+	if( self->state != Socket_Connected ){
+		DaoProcess_RaiseError( proc, neterr, "The socket is not connected" );
+		return;
+	}
 	stream = DaoStream_New();
 	stream->mode |= DAO_STREAM_FILE;
 	stream->file = fdopen( self->id, mode );
@@ -903,57 +978,61 @@ static void DaoSocket_Lib_GetStream( DaoProcess *proc, DaoValue *par[], int N  )
 
 static DaoFuncItem socketMeths[] =
 {
-	/*! Binds the socket to \a port */
-	{  DaoSocket_Lib_Bind,          "bind( self :socket, port :int )" },
+	/*! Binds the socket to \a port using \a address options if specified. For the description of \a address, see \c net.bind() */
+	{  DaoSocket_Lib_Bind,          "bind( self: socket, port: int )" },
+	{  DaoSocket_Lib_Bind,          "bind( self: socket, port: int, address: enum<shared;exclusive;reused> )" },
 
 	/*! Listens the socket using \a backLog as the maximum size of the queue of pending connections */
-	{  DaoSocket_Lib_Listen,        "listen( self :socket, backLog=10 )" },
+	{  DaoSocket_Lib_Listen,        "listen( self: socket, backLog = 10 )" },
 
 	/*! Accepts connection */
-	{  DaoSocket_Lib_Accept,        "accept( self :socket )=>socket" },
+	{  DaoSocket_Lib_Accept,        "accept( self: socket ) => socket" },
 
-	/*! Connects to address \a host : \a port */
-	{  DaoSocket_Lib_Connect,       "connect( self :socket, host :string, port :int )" },
+	/*! Connects to \a host : \a port */
+	{  DaoSocket_Lib_Connect,       "connect( self: socket, host: string, port: int )" },
 
 	/*! Sends data \a data */
-	{  DaoSocket_Lib_Send,          "send( self :socket, data :string )" },
+	{  DaoSocket_Lib_Send,          "send( self: socket, data: string )" },
 
 	/*! Receives at most \a limit bytes and returnes the received data */
-	{  DaoSocket_Lib_Receive,       "receive( self :socket, limit=512 )=>string" },
+	{  DaoSocket_Lib_Receive,       "receive( self: socket, limit = 512 ) => string" },
 
 	/*! Sends data via the internal serialization protocol */
-	{  DaoSocket_Lib_SendDao,       "send_dao( self :socket, ... )" },
+	{  DaoSocket_Lib_SendDao,       "send_dao( self: socket, ... )" },
 
 	/*! Receives data via the internal serialization protocol */
-	{  DaoSocket_Lib_ReceiveDao,    "receive_dao( self :socket )=>list<int|float|double|complex|string|array>" },
+	{  DaoSocket_Lib_ReceiveDao,    "receive_dao( self: socket ) => list<int|float|double|complex|string|array>" },
 
 	/*! Peer name */
-	{  DaoSocket_Lib_GetPeerName,   "peername( invar self :socket )=>string" },
+	{  DaoSocket_Lib_GetPeerName,   ".peername( invar self: socket ) => string" },
 
 	/*! Socket file descriptor */
-	{  DaoSocket_Lib_Id,            "id( invar self :socket )=>int" },
+	{  DaoSocket_Lib_Id,            ".id( invar self: socket ) => int" },
 
 	/*! Current socket state */
-	{  DaoSocket_Lib_State,         "state( invar self :socket )=>enum<closed, bound, listening, connected>" },
+	{  DaoSocket_Lib_State,         ".state( invar self: socket ) => enum<closed,bound,listening,connected>" },
+
+	/*! Shuts down the connection, stopping further operations specified by \a what */
+	{  DaoSocket_Lib_Shutdown,      "shutdown( self: socket, what: enum<send,receive,both> )" },
 
 	/*! Closes the socket */
-	{  DaoSocket_Lib_Close,         "close( self :socket )" },
+	{  DaoSocket_Lib_Close,         "close( self: socket )" },
 
-	/*! Returns stream with \a mode bound to the socket
-	 * \note On Windows, this operation is not supported */
-	{  DaoSocket_Lib_GetStream,     "getstream( invar self :socket, mode :string )=>io::stream" },
+	/*! Returns stream opened with \a mode bound to the socket
+	 * \warning Not supported on Windows */
+	{  DaoSocket_Lib_GetStream,     "open( invar self: socket, mode: string ) => io::stream" },
 	{ NULL, NULL }
 };
 
 DaoTypeBase socketTyper = {
-	"socket", NULL, NULL, socketMeths, {0}, {0}, (FuncPtrDel)DaoSocket_Delete, NULL
+	"net::socket", NULL, NULL, socketMeths, {0}, {0}, (FuncPtrDel)DaoSocket_Delete, NULL
 };
 
 static void DaoNetLib_Bind( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *sock = DaoSocket_New(  );
-	if( DaoSocket_Bind( sock, DaoValue_TryGetInteger( par[0] ) ) == -1 ){
+	if( DaoSocket_Bind( sock, par[0]->xInteger.value, N == 2? par[1]->xEnum.value : 0 ) == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 		return;
@@ -964,7 +1043,7 @@ static void DaoNetLib_Connect( DaoProcess *proc, DaoValue *p[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *sock = DaoSocket_New(  );
-	if( DaoSocket_Connect( sock, DaoString_Get( DaoValue_CastString( p[0] ) ), DaoValue_TryGetInteger( p[1] ) ) == -1 ){
+	if( DaoSocket_Connect( sock, p[0]->xString.value, p[1]->xInteger.value ) == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 		return;
@@ -979,8 +1058,9 @@ static void DaoNetLib_GetHost( DaoProcess *proc, DaoValue *par[], int N  )
 	struct in_addr id;
 	size_t size = sizeof( struct sockaddr_in );
 	const char *host = DaoString_GetChars( DaoValue_CastString( par[0] ) );
-	DaoMap *res = DaoProcess_PutMap( proc, 0 );
-	DaoValue *value;
+	DaoTuple *tup = DaoProcess_PutTuple( proc, 3 );
+	DaoTuple_SetItem( tup, (DaoValue*)DaoProcess_NewList( proc ), 1 );
+	DaoTuple_SetItem( tup, (DaoValue*)DaoProcess_NewList( proc ), 2 );
 	if( DaoString_Size( DaoValue_CastString( par[0] ) ) ==0 ) return;
 	if( host[0] >= '0' && host[0] <= '9' ){
 #ifdef UNIX
@@ -1000,16 +1080,43 @@ static void DaoNetLib_GetHost( DaoProcess *proc, DaoValue *par[], int N  )
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 		return;
 	}
+	DString_SetChars( tup->values[0]->xString.value, hent->h_name );
 	if( hent->h_addrtype == AF_INET ){
 		char **p = hent->h_aliases;
 		char **q = hent->h_addr_list;
 		while( *p ){
-			value = (DaoValue*) DaoProcess_NewString( proc, inet_ntoa( *(struct in_addr*) (*q) ), 0 );
-			DaoMap_InsertChars( res, *p, value );
+			DaoList_Append( &tup->values[1]->xList, (DaoValue*)DaoString_NewChars( *p ) );
 			p ++;
+		}
+		while ( *q ){
+			DaoList_Append( &tup->values[2]->xList, (DaoValue*)DaoString_NewChars( inet_ntoa( *(struct in_addr*) (*q) ) ) );
 			q ++;
 		}
 	}else{ /* AF_INET6 */
+	}
+}
+
+static void DaoNetLib_GetService( DaoProcess *proc, DaoValue *par[], int N  )
+{
+	struct servent *srvent;
+	DaoTuple *tup = DaoProcess_PutTuple( proc, 3 );
+	char **p;
+	DaoTuple_SetItem( tup, (DaoValue*)DaoProcess_NewList( proc ), 2 );
+	if ( par[0]->type == DAO_STRING ){
+		if ( !par[0]->xString.value->size )
+			return;
+		srvent = getservbyname( par[0]->xString.value->chars, "tcp" );
+	}
+	else
+		srvent = getservbyport( par[0]->xInteger.value, "tcp" );
+	if( srvent == NULL )
+		return;
+	DString_SetChars( tup->values[0]->xString.value, srvent->s_name );
+	tup->values[1]->xInteger.value = srvent->s_port;
+	p = srvent->s_aliases;
+	while( *p ){
+		DaoList_Append( &tup->values[2]->xList, (DaoValue*)DaoString_NewChars( *p ) );
+		p ++;
 	}
 }
 
@@ -1109,21 +1216,35 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 
 static DaoFuncItem netMeths[] =
 {
-	/*! Returns socket bound to \a port */
-	{  DaoNetLib_Bind,          "bind( port :int )=>socket" },
+	/*! Returns socket bound to \a port using \a address options if specified.
+	 *
+	 * Meaning of \a address values:
+	 * -\c shared -- non-exclusive binding of the address and port, other sockets will be able to bind to the same address and port
+	 * (SO_REUSEADDR on Unix, ignored on Windows)
+	 * -\c exclusive -- exclusive binding of the address and port, no other sockets are allowed to rebind
+	 * (SO_EXCLUSIVEADDRUSE on Windows, ignored on Unix)
+	 * -\c reused -- rebinds the socket even if the address and port are already bound by another socket (non-exclusively)
+	 * (SO_REUSEADDR on Windows, ignored on Unix)
+	*/
+	{  DaoNetLib_Bind,          "bind( port: int ) => net::socket" },
+	{  DaoNetLib_Bind,          "bind( port: int, address: enum<shared;exclusive;reused> ) => net::socket" },
 
-	/*! Returns socket connected to address \a host : \a port */
-	{  DaoNetLib_Connect,       "connect( host :string, port :int )=>socket" },
+	/*! Returns socket connected to \a host : \a port */
+	{  DaoNetLib_Connect,       "connect( host: string, port: int ) => net::socket" },
+	{  DaoNetLib_Connect,       "connect( host: string, port: int ) => net::socket" },
 
-	/*! Returns name-address information for \a host */
-	{  DaoNetLib_GetHost,       "gethost( host :string )=>map<string,string>" },
+	/*! Returns information for host with the given \a id, which may be either name or address */
+	{  DaoNetLib_GetHost,       "host( id: string ) => tuple<name: string, aliases: list<string>, addresses: list<string>>" },
+
+	/*! Returns information for TCP service with the given \a id, which may be either name or port */
+	{  DaoNetLib_GetService,    "service( id: string|int ) => tuple<name: string, port: int, aliases: list<string>>" },
 
 	/*! Waits \a timeout seconds for any object in \a read or \a write list to become available for reading or writing accordingly.
 	 * Returns sub-lists of \a read and \a write containing available objects
 	 * \warning On Windows, selecting streams is not supported	*/
 	{  DaoNetLib_Select,
-		"select( invar read :list<@X<io::stream|socket>>, invar write :list<@Y<io::stream|socket>>,"
-				"timeout :float )=>tuple<read :list<@X>, write :list<@Y>>" },
+		"select( invar read: list<@X<io::stream|net::socket>>, invar write: list<@Y<io::stream|net::socket>>,"
+				"timeout: float )=>tuple<read: list<@X>, write: list<@Y>>" },
 	{ NULL, NULL }
 };
 
@@ -1150,10 +1271,10 @@ void DaoNetwork_Init( DaoVmSpace *vms, DaoNamespace *ns )
 
 }
 
-DAO_DLL int DaoNet_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_DLL int DaoNetwork_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	daox_type_socket = DaoNamespace_WrapType( ns, & socketTyper, 1 );
 	DaoNamespace_WrapType( ns, & libNetTyper, 1 );
+	daox_type_socket = DaoNamespace_WrapType( ns, & socketTyper, 1 );
 	DaoNetwork_Init( vmSpace, ns );
 	return 0;
 }
