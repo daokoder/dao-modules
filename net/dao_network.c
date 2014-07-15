@@ -1025,7 +1025,7 @@ static DaoFuncItem socketMeths[] =
 };
 
 DaoTypeBase socketTyper = {
-	"net::socket", NULL, NULL, socketMeths, {0}, {0}, (FuncPtrDel)DaoSocket_Delete, NULL
+	"socket", NULL, NULL, socketMeths, {0}, {0}, (FuncPtrDel)DaoSocket_Delete, NULL
 };
 
 static void DaoNetLib_Bind( DaoProcess *proc, DaoValue *par[], int N  )
@@ -1226,12 +1226,12 @@ static DaoFuncItem netMeths[] =
 	 * -\c reused -- rebinds the socket even if the address and port are already bound by another socket (non-exclusively)
 	 * (SO_REUSEADDR on Windows, ignored on Unix)
 	*/
-	{  DaoNetLib_Bind,          "bind( port: int ) => net::socket" },
-	{  DaoNetLib_Bind,          "bind( port: int, address: enum<shared;exclusive;reused> ) => net::socket" },
+	{  DaoNetLib_Bind,          "bind( port: int ) => socket" },
+	{  DaoNetLib_Bind,          "bind( port: int, address: enum<shared;exclusive;reused> ) => socket" },
 
 	/*! Returns socket connected to \a host : \a port */
-	{  DaoNetLib_Connect,       "connect( host: string, port: int ) => net::socket" },
-	{  DaoNetLib_Connect,       "connect( host: string, port: int ) => net::socket" },
+	{  DaoNetLib_Connect,       "connect( host: string, port: int ) => socket" },
+	{  DaoNetLib_Connect,       "connect( host: string, port: int ) => socket" },
 
 	/*! Returns information for host with the given \a id, which may be either name or address */
 	{  DaoNetLib_GetHost,       "host( id: string ) => tuple<name: string, aliases: list<string>, addresses: list<string>>" },
@@ -1243,13 +1243,9 @@ static DaoFuncItem netMeths[] =
 	 * Returns sub-lists of \a read and \a write containing available objects
 	 * \warning On Windows, selecting streams is not supported	*/
 	{  DaoNetLib_Select,
-		"select( invar read: list<@X<io::stream|net::socket>>, invar write: list<@Y<io::stream|net::socket>>,"
+		"select( invar read: list<@X<io::stream|socket>>, invar write: list<@Y<io::stream|socket>>,"
 				"timeout: float )=>tuple<read: list<@X>, write: list<@Y>>" },
 	{ NULL, NULL }
-};
-
-DaoTypeBase libNetTyper = {
-	"net", NULL, NULL, netMeths, {0}, {0}, NULL, NULL
 };
 
 void DaoNetwork_Init( DaoVmSpace *vms, DaoNamespace *ns )
@@ -1273,8 +1269,10 @@ void DaoNetwork_Init( DaoVmSpace *vms, DaoNamespace *ns )
 
 DAO_DLL int DaoNetwork_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	DaoNamespace_WrapType( ns, & libNetTyper, 1 );
-	daox_type_socket = DaoNamespace_WrapType( ns, & socketTyper, 1 );
+	DaoNamespace *netns = DaoNamespace_GetNamespace( ns, "net" );
+	DaoNamespace_AddConstValue( ns, "net", (DaoValue*)netns );
+	daox_type_socket = DaoNamespace_WrapType( netns, & socketTyper, 1 );
+	DaoNamespace_WrapFunctions( netns, netMeths );
 	DaoNetwork_Init( vmSpace, ns );
 	return 0;
 }
