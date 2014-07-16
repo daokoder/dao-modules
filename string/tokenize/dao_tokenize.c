@@ -96,7 +96,7 @@ static void DaoSTR_Tokenize( DaoProcess *proc, DaoValue *p[], int N )
 	DaoString_Delete( (DaoString*) value );
 }
 const char *p = "tokenize( source :string, seps :string, quotes='', backslash=0, simplify=0 )=>list<string>";
-DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_DLL int DaoTokenize_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace_WrapFunction( ns, DaoSTR_Tokenize, p );
 	return 0;

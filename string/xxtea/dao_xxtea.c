@@ -166,9 +166,11 @@ static void DaoSTR_Decrypt( DaoProcess *proc, DaoValue *p[], int N )
 const char *enc = "encrypt( source :string, key :string, format :enum<regular,hex> = $regular )=>string";
 const char *dec = "decrypt( source :string, key :string, format :enum<regular,hex> = $regular )=>string";
 
-DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_DLL int DaoXXTEA_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	DaoNamespace_WrapFunction( ns, DaoSTR_Encrypt, enc );
-	DaoNamespace_WrapFunction( ns, DaoSTR_Decrypt, dec );
+	DaoNamespace *xxteans = DaoNamespace_GetNamespace( ns, "xxtea" );
+	DaoNamespace_AddConstValue( ns, "xxtea", (DaoValue*)xxteans );
+	DaoNamespace_WrapFunction( xxteans, DaoSTR_Encrypt, enc );
+	DaoNamespace_WrapFunction( xxteans, DaoSTR_Decrypt, dec );
 	return 0;
 }

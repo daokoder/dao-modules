@@ -735,8 +735,16 @@ static void DaoFormat( DaoProcess *proc, DaoValue *p[], int N )
 	DString_Delete( str );
 }
 
-DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+static DaoFuncItem formatMeths[] =
 {
-	DaoNamespace_WrapFunction( ns, (DaoCFunction)DaoFormat, "format( self: string, ... )=>string" );
+	/*! Returns the string constructed from \a template and specified arguments. For the description of the grammar and possible use,
+	 * see *format.dao* */
+	{ DaoFormat,	"format(template: string, ...) => string" },
+	{ NULL, NULL }
+};
+
+DAO_DLL int DaoFormat_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+{
+	DaoNamespace_WrapFunctions( ns, formatMeths );
 	return 0;
 }

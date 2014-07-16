@@ -177,7 +177,7 @@ static void DaoSTR_MD5( DaoProcess *proc, DaoValue *p[], int N )
 	DString *md5 = DaoProcess_PutChars( proc, "" );
 	DString_MD5( self, md5 );
 }
-DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_DLL int DaoMD5_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace_WrapFunction( ns, DaoSTR_MD5, "md5( self :string )=>string" );
 	return 0;

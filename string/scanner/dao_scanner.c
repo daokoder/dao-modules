@@ -285,18 +285,18 @@ static DaoFuncItem scannerMeths[] =
 	/*! Constructs scanner operating on string \a context starting at position \a pos */
 	{ DaoScanner_Create,	"scanner(context: string, pos = 0) => scanner" },
 
-	/*! Scanned string */
-	{ DaoScanner_Context,	"context(invar self: scanner) => string" },
+	/*! String being scanned */
+	{ DaoScanner_Context,	".context(invar self: scanner) => string" },
 
 	/*! Current position */
-	{ DaoScanner_Position,	"pos(invar self: scanner) => int" },
-	{ DaoScanner_SetPos,	"pos(self: scanner, pos: int)" },
+	{ DaoScanner_Position,	".pos(invar self: scanner) => int" },
+	{ DaoScanner_SetPos,	".pos(self: scanner, pos: int)" },
 
-	/*! Number of bytes in the remaining string (starting from the current position) */
-	{ DaoScanner_Rest,		"rest(invar self: scanner) => int" },
+	/*! Number of bytes left to scan (from the current position to the end of the context) */
+	{ DaoScanner_Rest,		".rest(invar self: scanner) => int" },
 
-	/*! Appends \a context to the context of the scanner */
-	{ DaoScanner_Append,	"append(self: scanner, context: string)" },
+	/*! Appends \a str to the context string */
+	{ DaoScanner_Append,	"append(self: scanner, str: string)" },
 
 	/*! Returns \a count bytes starting from the current position and advances the scanner */
 	{ DaoScanner_Fetch,		"fetch(self: scanner, count: int) => string" },
@@ -312,10 +312,10 @@ static DaoFuncItem scannerMeths[] =
 	 * information is updated. Returns the number of bytes the scanner has advanced through */
 	{ DaoScanner_Seek,		"seek(self: scanner, pattern: string) => int" },
 
-	/*! Last matched sub-string or its group \a group (if \a group is greater then zero) */
+	/*! The last matched sub-string or its group \a group (if \a group is greater then zero) */
 	{ DaoScanner_Matched,	"matched(invar self: scanner, group = 0) => string" },
 
-	/*! Position of last matched sub-string or its group \a group (if \a group is greater then zero) */
+	/*! Position of the last matched sub-string or its group \a group (if \a group is greater then zero) */
 	{ DaoScanner_MatchedAt,	"matched_pos(invar self: scanner, group = 0) => tuple<start: int, end: int>|none" },
 
 	/*! Line number at the current position */
@@ -329,6 +329,7 @@ static DaoFuncItem scannerMeths[] =
 	{ NULL, NULL }
 };
 
+/*! Provides way to successively process textual data using Dao string patterns */
 DaoTypeBase scannerTyper = {
 	"scanner", NULL, NULL, scannerMeths, {NULL}, {0},
 	(FuncPtrDel)DaoScanner_Delete, NULL

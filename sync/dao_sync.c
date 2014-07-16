@@ -863,11 +863,13 @@ DaoTypeBase queueTyper = {
 
 DAO_DLL int DaoSync_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	dao_type_mutex   = DaoNamespace_WrapType( ns, & mutexTyper, 0 );
-	dao_type_condvar = DaoNamespace_WrapType( ns, & condvTyper, 0 );
-	dao_type_sema    = DaoNamespace_WrapType( ns, & semaTyper, 0 );
-	daox_type_DaoState = DaoNamespace_WrapType( ns, &stateTyper, 0 );
-	daox_type_DaoQueue = DaoNamespace_WrapType( ns, &queueTyper, 0 );
+	DaoNamespace *syncns = DaoNamespace_GetNamespace( ns, "sync" );
+	DaoNamespace_AddConstValue( ns, "sync", (DaoValue*)syncns );
+	dao_type_mutex   = DaoNamespace_WrapType( syncns, & mutexTyper, 0 );
+	dao_type_condvar = DaoNamespace_WrapType( syncns, & condvTyper, 0 );
+	dao_type_sema    = DaoNamespace_WrapType( syncns, & semaTyper, 0 );
+	daox_type_DaoState = DaoNamespace_WrapType( syncns, &stateTyper, 0 );
+	daox_type_DaoQueue = DaoNamespace_WrapType( syncns, &queueTyper, 0 );
 	return 0;
 }
 
