@@ -38,6 +38,11 @@
 
 #ifdef UNIX
 
+// gethostby* is not reentrant on Unix, synchronization is desirable
+static DMutex net_mtx;
+#define NET_TRANS( st ) DMutex_Lock( &net_mtx ); st; DMutex_Unlock( &net_mtx )
+#define NET_INIT() DMutex_Init( &net_mtx )
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -45,7 +50,10 @@
 #include <unistd.h>
 #include <netdb.h>
 
-#elif WIN32
+#else
+
+#define NET_TRANS( st ) st
+#define NET_INIT()
 
 #include"winsock2.h"
 #include"winsock.h"
@@ -232,7 +240,8 @@ int DaoNetwork_Connect( const char *host, unsigned short port )
 	int sockfd;
 	struct sockaddr_in addr;
 	struct hostent *he;
-	if( ( he = gethostbyname( host )) == NULL) return -1;  /*  get the host info */
+	NET_TRANS( he = gethostbyname( host ) ); /*  get the host info */
+	if( he == NULL) return -1;
 	if( ( sockfd = socket( AF_INET, SOCK_STREAM, 0 ) ) == -1) return -1;
 
 	addr.sin_family = AF_INET;    /*  host byte order */
@@ -1071,9 +1080,9 @@ static void DaoNetLib_GetHost( DaoProcess *proc, DaoValue *par[], int N  )
 		addr.sin_family = AF_INET; 
 		addr.sin_addr = id;
 		memset( &( addr.sin_zero ), '\0', 8);
-		hent = gethostbyaddr( (void*) & addr, size, AF_INET );
+		NET_TRANS( hent = gethostbyaddr( (void*) & addr, size, AF_INET ) );
 	}else{
-		hent = gethostbyname( host );
+		NET_TRANS( hent = gethostbyname( host ) );
 	}
 	if( hent == NULL ){
 		GetHostErrorMessage( errbuf, GetHostError() );
@@ -1250,7 +1259,6 @@ static DaoFuncItem netMeths[] =
 
 void DaoNetwork_Init( DaoVmSpace *vms, DaoNamespace *ns )
 {
-
 #ifdef WIN32
 	char errbuf[MAX_ERRMSG];
 	WSADATA wsaData;   /*  if this doesn't work */
@@ -1264,7 +1272,7 @@ void DaoNetwork_Init( DaoVmSpace *vms, DaoNamespace *ns )
 		exit(1);
 	} 
 #endif
-
+	NET_INIT();
 }
 
 DAO_DLL int DaoNetwork_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
