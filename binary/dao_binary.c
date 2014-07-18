@@ -269,7 +269,7 @@ static DaoFuncItem binMeths[] =
 	{ NULL, NULL }
 };
 
-DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_DLL int DaoBinary_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *binns;
 	DaoVmSpace_LinkModule( vmSpace, ns, "sys" );
