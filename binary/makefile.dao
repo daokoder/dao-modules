@@ -2,15 +2,12 @@
 project = DaoMake::Project( "DaoBinary" )
 
 daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
-daosys = DaoMake::FindPackage( "DaoSys", $REQUIRED )
 
-if( daovm == none or daosys == none ) return
+if( daovm == none ) return
 
 project.UseImportLibrary( daovm, "dao" )
 
 dao_binary_objs  = project.AddObjects( { "dao_binary.c" } )
-
-dao_binary_objs.UseImportLibrary( daosys )
 
 dao_binary_dll  = project.AddSharedLibrary( "dao_binary", dao_binary_objs )
 dao_binary_lib  = project.AddStaticLibrary( "dao_binary", dao_binary_objs )

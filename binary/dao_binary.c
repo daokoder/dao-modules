@@ -32,40 +32,14 @@
 #include"daoStdtype.h"
 #include"daoNumtype.h"
 #include"daoStream.h"
-#include"dao_sys.h"
 
-#ifdef WIN32
-#define fstat _fstat
-#define stat _stat
-#define fileno _fileno
-#endif
-
-static void DaoBinary_FillBuf( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoStream *stream = &p[0]->xStream;
-	FILE* file = stream->file;
-	Dao_Buffer *buffer = Dao_Buffer_CastFromValue( p[1] );
-	size_t count = p[2]->xInteger.value;
-	if( !file ){
-		DaoProcess_RaiseError( proc, NULL, "The stream is not a file" );
-		return;
-	}
-	if( ( stream->mode & DAO_STREAM_READABLE ) == 0 ){
-		DaoProcess_RaiseError( proc, NULL, "The stream is not readable" );
-		return;
-	}
-	if( count == 0 || count > buffer->size )
-		count = buffer->size;
-	DaoProcess_PutInteger( proc, fread( buffer->buffer.pVoid, 1, count, file ) );
-}
-
-static void DaoBinary_ReadArr( DaoProcess *proc, DaoValue *p[], int N )
+static void DaoBinary_Read( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoStream *stream = &p[0]->xStream;
 	FILE* file = stream->file;
 	DaoArray *arr = &p[1]->xArray;
 	size_t count =  p[2]->xInteger.value;
-	size_t size;
+	size_t size = 0;
 	DaoArray_Sliced( arr );
 	if( !file ){
 		DaoProcess_RaiseError( proc, NULL, "The stream is not a file" );
@@ -93,7 +67,7 @@ static void DaoBinary_Unpack( DaoProcess *proc, DaoValue *p[], int N )
 	DaoArray *arr = &p[1]->xArray;
 	size_t sizes[] = {1, 2, 4};
 	size_t size =  sizes[p[2]->xEnum.value];
-	size_t count =  p[3]->xInteger.value;
+	size_t count = p[3]->xInteger.value;
 	DaoArray_Sliced( arr );
 	if( !file ){
 		DaoProcess_RaiseError( proc, NULL, "The stream is not a file" );
@@ -103,8 +77,8 @@ static void DaoBinary_Unpack( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, NULL, "The stream is not readable" );
 		return;
 	}
-	if( count == 0 || count > arr->size )
-		count = arr->size;
+	if( count <= 0 || count > arr->size*sizeof(daoint)/size )
+		count = arr->size*sizeof(daoint)/size;
 	count = fread( arr->data.p, size, count, file );
 	if( size != sizeof(daoint) ){
 		size_t i;
@@ -117,47 +91,6 @@ static void DaoBinary_Unpack( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutInteger( proc, count );
 }
 
-static void DaoBinary_ReadBuf( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoStream *stream = &p[0]->xStream;
-	FILE* file = stream->file;
-	Dao_Buffer *buffer;
-	size_t count = p[1]->xInteger.value;
-	if( !file ){
-		DaoProcess_RaiseError( proc, NULL, "The stream is not a file" );
-		return;
-	}
-	if( ( stream->mode & DAO_STREAM_READABLE ) == 0 ){
-		DaoProcess_RaiseError( proc, NULL, "The stream is not readable" );
-		return;
-	}
-	/* max of int is too big, also SIZE_MAX not available on Mac: */
-	if( count == 0 ) count = 1<<24;
-	buffer = Dao_Buffer_New( count );
-	count = fread( buffer->buffer.pVoid, 1, count, file );
-	Dao_Buffer_Resize( buffer, count );
-	DaoProcess_PutValue( proc, (DaoValue*)buffer );
-}
-
-static void DaoBinary_WriteBuf( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoStream *stream = &p[1]->xStream;
-	FILE* file = stream->file;
-	Dao_Buffer *buffer = Dao_Buffer_CastFromValue( p[0] );
-	size_t count = p[2]->xInteger.value;
-	if( !file ){
-		DaoProcess_RaiseError( proc, NULL, "The stream is not a file" );
-		return;
-	}
-	if( ( stream->mode & DAO_STREAM_WRITABLE ) == 0 ){
-		DaoProcess_RaiseError( proc, NULL, "The stream is not writable" );
-		return;
-	}
-	if( count == 0 || count > buffer->size )
-		count = buffer->size;
-	fwrite( buffer->buffer.pVoid, 1, count, file );
-}
-
 static void DaoBinary_Pack( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoStream *stream = &p[1]->xStream;
@@ -165,9 +98,10 @@ static void DaoBinary_Pack( DaoProcess *proc, DaoValue *p[], int N )
 	DaoArray *arr = &p[0]->xArray;
 	size_t sizes[] = {1, 2, 4};
 	size_t size =  sizes[p[2]->xEnum.value];
-	size_t count =  p[3]->xInteger.value;
+	size_t count = p[3]->xInteger.value, res = 0;
 	size_t i;
 	DaoArray_Sliced( arr );
+	count = arr->size;
 	if( !file ){
 		DaoProcess_RaiseError( proc, NULL, "The stream is not a file" );
 		return;
@@ -176,7 +110,7 @@ static void DaoBinary_Pack( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, NULL, "The stream is not writable" );
 		return;
 	}
-	if( count == 0 || count > arr->size )
+	if( count <= 0 || count > arr->size )
 		count = arr->size;
 	if( size != sizeof(daoint) ){
 		void *data = dao_malloc( size*count );
@@ -203,76 +137,177 @@ static void DaoBinary_Pack( DaoProcess *proc, DaoValue *p[], int N )
 			}
 			break;
 		}
-		fwrite( data, size, count, file );
+		res = fwrite( data, size, count, file );
 		dao_free( data );
 	}
 	else
-		fwrite( arr->data.i, size, count, file );
+		res = fwrite( arr->data.i, size, count, file );
+	DaoProcess_PutInteger( proc, res );
 }
 
-static void DaoBinary_WriteArr( DaoProcess *proc, DaoValue *p[], int N )
+static void DaoBinary_Write( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoStream *stream = &p[1]->xStream;
 	FILE* file = stream->file;
 	DaoArray *arr = &p[0]->xArray;
-	size_t count =  p[2]->xInteger.value;
 	size_t size = 0;
+	size_t count = p[2]->xInteger.value;
 	DaoArray_Sliced( arr );
 	if( !file ){
-		DaoProcess_RaiseError( proc, NULL, "The stream is not a file" );
+		DaoProcess_RaiseError( proc, "Param", "The stream is not a file" );
 		return;
 	}
 	if( ( stream->mode & DAO_STREAM_WRITABLE ) == 0 ){
-		DaoProcess_RaiseError( proc, NULL, "The stream is not writable" );
+		DaoProcess_RaiseError( proc, "Param", "The stream is not writable" );
 		return;
 	}
-	if( count == 0 || count > arr->size )
-		count = arr->size;
 	switch( arr->etype ){
 	case DAO_INTEGER:	size = sizeof(daoint); break;
 	case DAO_FLOAT:		size = sizeof(float); break;
 	case DAO_DOUBLE:	size = sizeof(double); break;
 	case DAO_COMPLEX:	size = sizeof(complex16); break;
 	}
-	fwrite( arr->data.p, size, count, file );
+	if( !count || count > arr->size )
+		count = arr->size;
+	DaoProcess_PutInteger( proc, fwrite( arr->data.p, size, count, file ) );
 }
 
+enum {
+	Binary_Byte = 0,
+	Binary_UByte,
+	Binary_Word,
+	Binary_UWord,
+	Binary_DWord,
+	Binary_UDWord
+};
+
+typedef int bin_data;
+
+static void DaoBinary_GetItem( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoArray *arr = &p[0]->xArray;
+	bin_data type = p[1]->xEnum.value;
+	daoint offset = p[2]->xInteger.value;
+	char *tpname = DaoProcess_GetReturnType( proc )->name->chars;
+	char *data;
+	DaoArray_Sliced( arr );
+	data = (char*)arr->data.p + offset;
+	if ( offset < 0 )
+		DaoProcess_RaiseError( proc, "Index::Range", "Invalid offset" );
+	else if ( strcmp( tpname, "double" ) == 0 ){
+		if ( offset + sizeof(double) > arr->size*sizeof(daoint) ){
+			DaoProcess_RaiseError( proc, "Index::Range", "Invalid offset" );
+			return;
+		}
+		DaoProcess_PutDouble( proc, *(double*)data );
+		return;
+	}
+	else if ( strcmp( tpname, "float" ) == 0 ){
+		if ( offset + sizeof(float) > arr->size*sizeof(daoint) ){
+			DaoProcess_RaiseError( proc, "Index::Range", "Invalid offset" );
+			return;
+		}
+		DaoProcess_PutFloat( proc, *(float*)data  );
+	}
+	else {
+		size_t sizes[] = {1, 1, 2, 2, 4, 4};
+		size_t size = sizes[type];
+		daoint num;
+		if ( offset + size > arr->size*sizeof(daoint) ){
+			DaoProcess_RaiseError( proc, "Index::Range", "Invalid offset" );
+			return;
+		}
+		switch( type ){
+		case Binary_UByte:	num = *(uchar_t*)data; break;
+		case Binary_Byte:	num = *(char*)data; break;
+		case Binary_UWord:  num = *(ushort_t*)data; break;
+		case Binary_Word:	num = *(short*)data; break;
+		case Binary_UDWord: num = *(uint_t*)data; break;
+		case Binary_DWord:	num = *(int*)data; break;
+		}
+		DaoProcess_PutInteger( proc, num );
+	}
+}
+
+static void DaoBinary_SetItem( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoArray *arr = &p[0]->xArray;
+	bin_data type = p[1]->xEnum.value;
+	daoint offset = p[2]->xInteger.value;
+	char *data;
+	DaoArray_Sliced( arr );
+	data = (char*)arr->data.p + offset;
+	if ( offset < 0 )
+		DaoProcess_RaiseError( proc, "Index::Range", "Invalid offset" );
+	else if ( p[3]->type == DAO_DOUBLE ){
+		if ( offset + sizeof(double) > arr->size*sizeof(daoint) ){
+			DaoProcess_RaiseError( proc, "Index::Range", "Invalid offset" );
+			return;
+		}
+		*(double*)data = p[3]->xDouble.value;
+		return;
+	}
+	else if ( p[3]->type == DAO_FLOAT ){
+		if ( offset + sizeof(float) > arr->size*sizeof(daoint) ){
+			DaoProcess_RaiseError( proc, "Index::Range", "Invalid offset" );
+			return;
+		}
+		*(float*)data  = p[3]->xFloat.value;
+	}
+	else {
+		size_t sizes[] = {1, 1, 2, 2, 4, 4};
+		size_t size = sizes[type];
+		daoint num = p[3]->xInteger.value;
+		if ( offset + size > arr->size*sizeof(daoint) ){
+			DaoProcess_RaiseError( proc, "Index::Range", "Invalid offset" );
+			return;
+		}
+		switch( type ){
+		case Binary_UByte:	*(uchar_t*)data = num; break;
+		case Binary_Byte:	*(char*)data = num; break;
+		case Binary_UWord:  *(ushort_t*)data = num; break;
+		case Binary_Word:	*(short*)data = num; break;
+		case Binary_UDWord: *(uint_t*)data = num; break;
+		case Binary_DWord:	*(int*)data = num; break;
+		}
+	}
+}
+
+/*! \note All the routines below accepting \c io::stream expect a file stream only */
 static DaoFuncItem binMeths[] =
 {
-	/*! Fills \a dest with \a count bytes read from \a source. If \a count is zero, or greater than \a dest size,
-	 * \a dest size is assumed. Returns the number of bytes read */
-	{ DaoBinary_FillBuf,	"fill(source: io::stream, dest: buffer, count = 0) => int" },
-
-	/*! Fills \a dest with \a count elements read from \a source. If \a count iszero, or greater than \a dest size,
-	 * \a dest size is assumed. Returns the number of elements read */
-	{ DaoBinary_ReadArr,	"fill(source: io::stream, dest: array<@T>, count = 0) => int" },
+	/*! Reads \a count elements from \a source to \a dest. If \a count is zero, or greater than \a dest size,
+	 * \a dest size is assumed. Returns the number of elements actually read */
+	{ DaoBinary_Read,		"read(source: io::stream, dest: array<@T>, count = 0) => int" },
 
 	/*! Reads \a count chunks of size \a size from \a source into \a dest so that each chunk corresponds to a single
-	 * \a dest element. If \a count is zero, or greater than \a dest size, \a dest size is assumed.
-	 * Returns the number of chunks read */
+	 * \a dest element (with possible widening). If \a count is zero, or greater than \a dest element size, \a dest
+	 * element size is assumed. Returns the number of chunks actually read */
 	{ DaoBinary_Unpack,		"unpack(source: io::stream, dest: array<int>, size: enum<byte,word,dword>, count = 0) => int" },
 
-	/*! Writes \a count chunks of size \a size to \a dest so that each \a source element corresponds to a single
-	 * chunk. If \a count is zero, or greater than \a dest size, \a dest size is assumed */
-	{ DaoBinary_Pack,		"pack(invar source: array<int>, dest: io::stream, size: enum<byte,word,dword>, count = 0)" },
+	/*! Writes \a count chunks of size \a size to \a dest so that each \a source element corresponds to a single chunk
+	 * (with possible narrowing). Returns the number of chunks actually written */
+	{ DaoBinary_Pack,		"pack(invar source: array<int>, dest: io::stream, size: enum<byte,word,dword>, count = 0) => int" },
 
-	/*! Reads \a count bytes from \a source and returns them as a buffer. If \a count is zero, 2^24 is assumed */
-	{ DaoBinary_ReadBuf,	"read(source: io::stream, count = 0) => buffer" },
+	/*! Writes \a count elements from \a source to \a dest. If \c count is zero, or greater than \a dest size, all \a dest data is
+	 * written. Returns the number of elements actually written */
+	{ DaoBinary_Write,		"write(invar source: array<@T>, dest: io::stream, count = 0) => int" },
 
-	/*! Writes \a count bytes from \a source into \a dest.  If \a count is zero, or greater than \a source size,
-	 * \a source size is assumed */
-	{ DaoBinary_WriteBuf,	"write(invar source: buffer, dest: io::stream, count = 0)" },
+	/*! Reads value described by \a what from \a source at the given \a offset */
+	{ DaoBinary_GetItem,	"get(invar source: array<int>, what: enum<byte,ubyte,word,uword,dword,udword>, offset: int) => int" },
+	{ DaoBinary_GetItem,	"get(invar source: array<int>, what: enum<float>, offset: int) => float" },
+	{ DaoBinary_GetItem,	"get(invar source: array<int>, what: enum<double>, offset: int) => double" },
 
-	/*! Writes \a count elements from \a source into \a dest.  If \a count is zero, or greater than \a source size,
-	 * \a source size is assumed */
-	{ DaoBinary_WriteArr,	"write(invar source: array<@T>, dest: io::stream, count = 0)" },
+	/*! Writes \a value described by \a what to \a dest at the given \a offset */
+	{ DaoBinary_SetItem,	"set(dest: array<int>, what: enum<byte,ubyte,word,uword,dword,udword>, offset: int, value: int)" },
+	{ DaoBinary_SetItem,	"set(dest: array<int>, what: enum<float>, offset: int, value: float)" },
+	{ DaoBinary_SetItem,	"set(dest: array<int>, what: enum<double>, offset: int, value: double)" },
 	{ NULL, NULL }
 };
 
 DAO_DLL int DaoBinary_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *binns;
-	DaoVmSpace_LinkModule( vmSpace, ns, "sys" );
 	binns = DaoVmSpace_GetNamespace( vmSpace, "bin" );
 	DaoNamespace_AddConstValue( ns, "bin", (DaoValue*)binns );
 	DaoNamespace_WrapFunctions( binns, binMeths );
