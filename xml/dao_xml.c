@@ -27,6 +27,7 @@
 
 // 2014-05: Danilov Aleksey, initial implementation
 
+#include<string.h>
 #include"dao_xml.h"
 
 typedef int xml_error;
@@ -2872,7 +2873,7 @@ DaoXMLWriter* DaoXMLWriter_New()
 void DaoXMLWriter_Delete( DaoXMLWriter *self )
 {
 	if ( DaoList_Size( self->tagstack ) )
-		fprintf( stderr, "\n[xml::writer] Tag not closed\n", self );
+		fprintf( stderr, "\n[xml::writer] Tag not closed\n" );
 	if ( self->stream )
 		DaoGC_DecRC( (DaoValue*)self->stream );
 	DaoList_Delete( self->tagstack );

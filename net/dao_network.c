@@ -36,6 +36,8 @@
 #include"math.h"
 #include"errno.h"
 
+#include"daoThread.h"
+
 #ifdef UNIX
 
 // gethostby* is not reentrant on Unix, synchronization is desirable
