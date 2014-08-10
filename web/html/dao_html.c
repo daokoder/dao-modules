@@ -27,6 +27,7 @@
 
 // 2014-08: Danilov Aleksey, initial implementation.
 
+#include <string.h>
 #include "dao.h"
 #include "daoValue.h"
 #include "daoStdtype.h"
@@ -36,7 +37,7 @@ typedef struct DaoHtmlContext DaoHtmlContext;
 
 struct DaoHtmlContext
 {
-	DArray *content;
+	DList *content;
 	daoint size, indent;
 	int pending;
 };
@@ -44,7 +45,7 @@ struct DaoHtmlContext
 DaoHtmlContext* DaoHtmlContext_New()
 {
 	DaoHtmlContext *res = (DaoHtmlContext*)dao_malloc( sizeof(DaoHtmlContext) );
-	res->content = DArray_New( sizeof(daoint) );
+	res->content = DList_New( DAO_DATA_STRING );
 	res->size = res->indent = 0;
 	res->pending = 0;
 	return res;
@@ -55,9 +56,7 @@ void DaoHtmlContext_Delete( DaoHtmlContext *self )
 	int i;
 	if ( self == NULL )
 		return;
-	for ( i = 0; i < self->content->size; i++ )
-		DString_Delete( (DString*)self->content->data.daoints[i] );
-	DArray_Delete( self->content );
+	DList_Delete( self->content );
 	dao_free( self );
 }
 
@@ -73,7 +72,6 @@ DaoHtmlContext* GetContext( DaoProcess *proc )
 
 void ClearContext( DaoProcess *proc )
 {
-	DaoHtmlContext_Delete( (DaoHtmlContext*)DaoProcess_GetAuxData( proc, DaoHtmlContext_Delete ) );
 	DaoProcess_SetAuxData( proc, DaoHtmlContext_Delete, NULL );
 }
 
@@ -190,7 +188,7 @@ void WriteAttrs( DaoValue *attrs[], int N, DString *dest ){
 
 void DaoHtmlContext_AddContent( DaoHtmlContext *self, DString *content, int pending )
 {
-	DArray_PushDaoInt( self->content, (daoint)DString_Copy( content ) );
+	DList_Append( self->content, content );
 	self->size += content->size;
 	self->pending = pending;
 }
@@ -201,7 +199,7 @@ void DaoHtmlContext_NewLine( DaoHtmlContext *self )
 	int i;
 	for ( i = 0; i < self->indent; i++ )
 		DString_AppendChar( line, '\t' );
-	DArray_PushDaoInt( self->content, (daoint)line );
+	DList_Append( self->content, line );
 	self->size += line->size;
 	self->pending = 1;
 }
@@ -211,12 +209,12 @@ void DaoHtmlContext_Fold( DaoHtmlContext *self, DString *dest )
 	DString_Reserve( dest, dest->size + self->size );
 	if ( self->content->size ){
 		int i;
-		char *line = ( (DString*)self->content->data.daoints[0] )->chars;
+		char *line = self->content->items.pString[0]->chars;
 		if ( *line == '\n' )
 			line++;
 		DString_AppendChars( dest, line );
 		for ( i = 1; i < self->content->size; i++ )
-			DString_Append( dest, (DString*)self->content->data.daoints[i] );
+			DString_Append( dest, self->content->items.pString[i] );
 		DString_AppendChar( dest, '\n' );
 	}
 }
