@@ -9,11 +9,14 @@ project.UseImportLibrary( daovm, "dao" )
 
 dao_cgi_objs  = project.AddObjects( { "cgi/dao_cgi.c" } )
 dao_json_objs = project.AddObjects( { "json/dao_json.c" } )
+dao_html_objs = project.AddObjects( { "html/dao_html.c" } )
 
 dao_cgi_dll  = project.AddSharedLibrary( "dao_cgi", dao_cgi_objs )
 dao_cgi_lib  = project.AddStaticLibrary( "dao_cgi", dao_cgi_objs )
 dao_json_dll = project.AddSharedLibrary( "dao_json", dao_json_objs )
 dao_json_lib = project.AddStaticLibrary( "dao_json", dao_json_objs )
+dao_html_dll = project.AddSharedLibrary( "dao_html", dao_html_objs )
+dao_html_lib = project.AddStaticLibrary( "dao_html", dao_html_objs )
 
 path = DaoMake::MakePath( daovm.GetPath( "MOD-PATH" ), "web" )
 
@@ -22,3 +25,5 @@ project.Install( path, dao_cgi_dll );
 project.Install( path, dao_cgi_lib );
 project.Install( path, dao_json_dll );
 project.Install( path, dao_json_lib );
+project.Install( path, dao_html_dll );
+project.Install( path, dao_html_lib );

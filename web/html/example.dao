@@ -1,0 +1,17 @@
+load html import html
+
+htmlForm = fragment {
+	form(id="login_form", method=$post, action="#"){
+		input($hidden, id="lang_confirm", value="Confrim")
+		span(id="status_message", style="color:#FA8;margin-right:10pt"){}
+		text("User"); input($text, id="username", value="", style="max-width:120pt")
+		text("Password"); input($password, id="password", value="", style="max-width:120pt")
+		span(id="confirm_password"){}
+		span(id="confirm_password2"){}
+		input($button, id="a_random_string", value="Login", onclick="Login()")
+		input($button, id="a_random_string", value="Signup", onclick="Signup()")
+		anchor(href="/help/account", style="color:#FFF"){ "Account help?" }
+	}
+}
+
+io.writeln(htmlForm)
