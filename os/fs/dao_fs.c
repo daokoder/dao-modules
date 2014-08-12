@@ -40,14 +40,7 @@
 #ifdef WIN32
 
 typedef wchar_t char_t;
-
-#ifdef X86_WIN64
 typedef struct __stat64 stat_t;
-#define stat _wstat64
-#else
-typedef struct _stat stat_t;
-#define stat _wstat
-#endif
 
 #define T( tcs ) L##tcs
 #define T_FMT "ls"
@@ -62,6 +55,7 @@ typedef struct _stat stat_t;
 #define tcsstr wcsstr
 
 #define fopen _wfopen
+#define stat _wstat64
 #define rename _wrename
 #define rmdir _wrmdir
 #define unlink _wunlink
@@ -69,11 +63,6 @@ typedef struct _stat stat_t;
 #define chmod _wchmod
 #define getcwd _wgetcwd
 #define chdir _wchdir
-
-/* Not available in MinGW for Windows XP: */
-#ifndef ELOOP
-#define ELOOP  62
-#endif
 
 char_t* CharsToTChars( char *chs )
 {
@@ -448,13 +437,7 @@ int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *des
 	int res;
 #ifdef WIN32
 	intptr_t handle;
-#ifdef X86_WIN64
 	struct _wfinddata64_t finfo;
-#define _wfindfirst _wfindfirst64
-#define _wfindnext _wfindnext64
-#else
-	struct _wfinddata_t finfo;
-#endif
 #else
 	DIR *handle;
 	struct dirent *finfo;
@@ -469,7 +452,7 @@ int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *des
 		tcscpy( buffer + len, T("*") );
     else
 		tcscpy( buffer + len++, T("/*") );
-	handle = _wfindfirst( buffer, &finfo );
+	handle = _wfindfirst64( buffer, &finfo );
 	if (handle != -1){
 		DString *str = DString_New();
 		DaoValue *value;
@@ -490,7 +473,7 @@ int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *des
 				else
 					DInode_Delete( fsnode );
 			}
-		while( !_wfindnext( handle, &finfo ) );
+		while( !_wfindnext64( handle, &finfo ) );
 		DString_Delete( str );
 		_findclose( handle );
 	}
@@ -609,11 +592,7 @@ int DInode_Resize( DInode *self, daoint size )
 	int fd = _wopen( self->path, _O_RDWR );
 	if ( fd == -1 )
 		return errno;
-#if __MINGW32_MAJOR_VERSION > 3 || (__MINGW32_MAJOR_VERSION == 3 && __MINGW32_MINOR_VERSION > 20)
 	res = _chsize_s( fd, size );
-#else
-	res = _chsize( fd, size );
-#endif
 	_close( fd );
 #else
 	res = truncate( self->path, size );
