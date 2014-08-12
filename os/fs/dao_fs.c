@@ -45,7 +45,7 @@ typedef wchar_t char_t;
 typedef struct __stat64 stat_t;
 #define stat _wstat64
 #else
-typedef struct stat stat_t;
+typedef struct _stat stat_t;
 #define stat _wstat
 #endif
 
