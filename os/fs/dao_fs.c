@@ -609,7 +609,11 @@ int DInode_Resize( DInode *self, daoint size )
 	int fd = _wopen( self->path, _O_RDWR );
 	if ( fd == -1 )
 		return errno;
+#if __MINGW32_MAJOR_VERSION > 3 || (__MINGW32_MAJOR_VERSION == 3 && __MINGW32_MINOR_VERSION > 20)
 	res = _chsize_s( fd, size );
+#else
+	res = _chsize( fd, size );
+#endif
 	_close( fd );
 #else
 	res = truncate( self->path, size );
