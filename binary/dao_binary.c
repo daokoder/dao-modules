@@ -185,17 +185,25 @@ typedef int bin_data;
 
 static void DaoBinary_GetItem( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoArray *arr = &p[0]->xArray;
 	bin_data type = p[1]->xEnum.value;
 	daoint offset = p[2]->xInteger.value;
 	char *tpname = DaoProcess_GetReturnType( proc )->name->chars;
+	daoint size;
 	char *data;
-	DaoArray_Sliced( arr );
-	data = (char*)arr->data.p + offset;
+	if ( p[0]->type == DAO_ARRAY ){
+		DaoArray *arr = &p[0]->xArray;
+		DaoArray_Sliced( arr );
+		data = (char*)arr->data.p + offset;
+		size = arr->size*sizeof(daoint);
+	}
+	else {
+		data = p[0]->xString.value->chars;
+		size = p[0]->xString.value->size;
+	}
 	if ( offset < 0 )
 		DaoProcess_RaiseError( proc, "Index::Range", "Invalid offset" );
 	else if ( strcmp( tpname, "double" ) == 0 ){
-		if ( offset + sizeof(double) > arr->size*sizeof(daoint) ){
+		if ( offset + sizeof(double) > size ){
 			DaoProcess_RaiseError( proc, "Index::Range", "Invalid offset" );
 			return;
 		}
@@ -203,17 +211,39 @@ static void DaoBinary_GetItem( DaoProcess *proc, DaoValue *p[], int N )
 		return;
 	}
 	else if ( strcmp( tpname, "float" ) == 0 ){
-		if ( offset + sizeof(float) > arr->size*sizeof(daoint) ){
+		if ( offset + sizeof(float) > size ){
 			DaoProcess_RaiseError( proc, "Index::Range", "Invalid offset" );
 			return;
 		}
 		DaoProcess_PutFloat( proc, *(float*)data  );
 	}
+	else if ( N == 4 ){ // bit range
+		daoint count = p[3]->xInteger.value;
+		uint_t val = 0;
+		int i;
+		if ( count < 0 ){
+			DaoProcess_RaiseError( proc, "Param", "Invalid count" );
+			return;
+		}
+		if ( offset + count > size*CHAR_BIT ){
+			DaoProcess_RaiseError( proc, "Index::Range", "Invalid offset" );
+			return;
+		}
+		if ( count > 4*CHAR_BIT ){
+			DaoProcess_RaiseError( proc, "Param", "Bit range too large" );
+			return;
+		}
+		for ( i = 0; i < count; i++ ){
+			int index = offset%CHAR_BIT + i;
+			uchar_t *ptr = data + offset/CHAR_BIT + index/CHAR_BIT;
+			val |= (uchar_t)( *ptr << ( index%CHAR_BIT ) ) >> ( CHAR_BIT - 1 ) << ( count - i - 1 );
+		}
+		DaoProcess_PutInteger( proc, val );
+	}
 	else {
 		size_t sizes[] = {1, 1, 2, 2, 4, 4};
-		size_t size = sizes[type];
 		daoint num;
-		if ( offset + size > arr->size*sizeof(daoint) ){
+		if ( offset + sizes[type] > size ){
 			DaoProcess_RaiseError( proc, "Index::Range", "Invalid offset" );
 			return;
 		}
@@ -236,7 +266,7 @@ static void DaoBinary_SetItem( DaoProcess *proc, DaoValue *p[], int N )
 	daoint offset = p[2]->xInteger.value;
 	char *data;
 	DaoArray_Sliced( arr );
-	data = (char*)arr->data.p + offset;
+	data = (char*)arr->data.p + ( N == 5? 0 : offset );
 	if ( offset < 0 )
 		DaoProcess_RaiseError( proc, "Index::Range", "Invalid offset" );
 	else if ( p[3]->type == DAO_DOUBLE ){
@@ -253,6 +283,30 @@ static void DaoBinary_SetItem( DaoProcess *proc, DaoValue *p[], int N )
 			return;
 		}
 		*(float*)data  = p[3]->xFloat.value;
+	}
+	else if ( N == 5 ){ // bit range
+		daoint count = p[3]->xInteger.value;
+		uint_t value = p[4]->xInteger.value;
+		int i;
+		if ( count < 0 ){
+			DaoProcess_RaiseError( proc, "Param", "Invalid count" );
+			return;
+		}
+		if ( offset + count > arr->size*sizeof(daoint)*CHAR_BIT ){
+			DaoProcess_RaiseError( proc, "Index::Range", "Invalid offset" );
+			return;
+		}
+		if ( count > 4*CHAR_BIT ){
+			DaoProcess_RaiseError( proc, "Param", "Bit range too large" );
+			return;
+		}
+		for ( i = 0; i < count; i++ ){
+			int index = offset%CHAR_BIT + i;
+			uchar_t *ptr = data + offset/CHAR_BIT + index/CHAR_BIT;
+			int pos = CHAR_BIT - index%CHAR_BIT - 1;
+			uchar_t byteval = (uint_t)( value << ( 4*CHAR_BIT - count + i ) ) >> ( 4*CHAR_BIT - 1 ) << pos;
+			*ptr = ( *ptr & ~( (uchar_t)1 << pos ) ) | byteval;
+		}
 	}
 	else {
 		size_t sizes[] = {1, 1, 2, 2, 4, 4};
@@ -293,15 +347,21 @@ static DaoFuncItem binMeths[] =
 	 * written. Returns the number of elements actually written */
 	{ DaoBinary_Write,		"write(invar source: array<@T>, dest: io::stream, count = 0) => int" },
 
-	/*! Reads value described by \a what from \a source at the given \a offset */
-	{ DaoBinary_GetItem,	"get(invar source: array<int>, what: enum<byte,ubyte,word,uword,dword,udword>, offset: int) => int" },
-	{ DaoBinary_GetItem,	"get(invar source: array<int>, what: enum<float>, offset: int) => float" },
-	{ DaoBinary_GetItem,	"get(invar source: array<int>, what: enum<double>, offset: int) => double" },
+	/*! Reads value described by \a what from \a source at the given byte \a offset */
+	{ DaoBinary_GetItem,	"get(invar source: array<int>|string, what: enum<byte,ubyte,word,uword,dword,udword>, offset: int) => int" },
+	{ DaoBinary_GetItem,	"get(invar source: array<int>|string, what: enum<float>, offset: int) => float" },
+	{ DaoBinary_GetItem,	"get(invar source: array<int>|string, what: enum<double>, offset: int) => double" },
 
-	/*! Writes \a value described by \a what to \a dest at the given \a offset */
+	/*! Reads \a count bits from \a source at the given bit \a offset */
+	{ DaoBinary_GetItem,	"get(invar source: array<int>|string, what: enum<bits>, offset: int, count: int) => int" },
+
+	/*! Writes \a value described by \a what to \a dest at the given byte \a offset */
 	{ DaoBinary_SetItem,	"set(dest: array<int>, what: enum<byte,ubyte,word,uword,dword,udword>, offset: int, value: int)" },
 	{ DaoBinary_SetItem,	"set(dest: array<int>, what: enum<float>, offset: int, value: float)" },
 	{ DaoBinary_SetItem,	"set(dest: array<int>, what: enum<double>, offset: int, value: double)" },
+
+	/*! Writes \a count lower bits of \a value to \a dest at the given \a offset */
+	{ DaoBinary_SetItem,	"set(dest: array<int>, what: enum<bits>, offset: int, count: int, value: int)" },
 	{ NULL, NULL }
 };
 
