@@ -344,7 +344,11 @@ static void DaoCLoader_Load( DaoProcess *proc, DaoValue *p[], int N )
 	for(i=0; i<DAO_FFI_SINT64; i++){
 		DString mbs = DString_WrapChars( alias[i] );
 		DaoNamespace_AddType( ns, daox_ffi_int_types[i]->name, daox_ffi_int_types[i] );
-		if( i < DAO_FFI_SINT32 ) DaoNamespace_AddType( ns, & mbs, daox_ffi_int_types[i] );
+		DaoNamespace_AddTypeConstant( ns, daox_ffi_int_types[i]->name, daox_ffi_int_types[i] );
+		if( i < DAO_FFI_SINT32 ){
+			DaoNamespace_AddType( ns, & mbs, daox_ffi_int_types[i] );
+			DaoNamespace_AddTypeConstant( ns, & mbs, daox_ffi_int_types[i] );
+		}
 	}
 
 	dummy = DaoRoutine_New( ns, NULL, 0 );
@@ -414,7 +418,10 @@ DAO_DLL int DaoClinker_OnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 	for(i=0; i<DAO_FFI_SINT64; i++){
 		DString mbs = DString_WrapChars( alias[i] );
 		daox_ffi_int_types[i] = DaoNamespace_TypeDefine( ns, "int", ctype[i] );
-		if( i < DAO_FFI_SINT32 ) DaoNamespace_AddType( ns, & mbs, daox_ffi_int_types[i] );
+		if( i < DAO_FFI_SINT32 ){
+			DaoNamespace_AddType( ns, & mbs, daox_ffi_int_types[i] );
+			DaoNamespace_AddTypeConstant( ns, & mbs, daox_ffi_int_types[i] );
+		}
 	}
 
 	DaoNamespace_WrapFunction( ns, DaoCLoader_Load,

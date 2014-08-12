@@ -5,9 +5,9 @@ daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
 
 if( daovm == none ) return
 
-if( DaoMake::IsPlatform( "MINGW" ) ) project.AddDefinition( "MINGW" );
-
 project.UseImportLibrary( daovm, "dao" )
+
+if( DaoMake::Is64Bit() ) project.AddDefinition( "X86_WIN64" );
 
 dao_fs_objs = project.AddObjects( { "fs/dao_fs.c" } )
 dao_fs_dll  = project.AddSharedLibrary( "dao_fs", dao_fs_objs )
