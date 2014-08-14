@@ -37,6 +37,7 @@ static DaoType *dao_type_condvar = NULL;
 static DaoType *dao_type_sema    = NULL;
 static DaoType *daox_type_DaoState = NULL;
 static DaoType *daox_type_DaoQueue = NULL;
+static DaoType *daox_type_DaoGuard = NULL;
 
 
 static void DSema_SetValue( DSema *self, int n );
@@ -861,6 +862,114 @@ DaoTypeBase queueTyper = {
 	(FuncPtrDel)DaoQueue_Delete, DaoQueue_GetGCFields
 };
 
+DaoGuard* DaoGuard_New( DaoType *type, DaoValue *value )
+{
+	DaoGuard *res = dao_malloc( sizeof(DaoGuard) );
+	DaoCstruct_Init( (DaoCstruct*)res, type );
+	res->value = NULL;
+	DaoValue_Copy( value, &res->value );
+	res->read = res->write = 0;
+	res->lock = DaoMutex_New();
+	res->writevar = DaoCondVar_New();
+	DaoGC_IncRC( (DaoValue*)res->lock );
+	DaoGC_IncRC( (DaoValue*)res->writevar );
+	return res;
+}
+
+void DaoGuard_Delete( DaoGuard *self )
+{
+	DaoGC_DecRC( self->value );
+	DaoGC_DecRC( (DaoValue*)self->lock );
+	DaoGC_DecRC( (DaoValue*)self->writevar );
+	DaoCstruct_Free( (DaoCstruct*)self );
+	dao_free( self );
+}
+static void DaoGuard_GetGCFields( void *p, DList *values, DList *arrays, DList *maps, int remove )
+{
+	DaoGuard *self = (DaoGuard*)p;
+	if ( self->value ){
+		DList_Append( values, self->value );
+		if ( remove ) self->value = NULL;
+	}
+}
+
+extern DaoTypeBase guardTyper;
+
+static void DaoGuard_Create( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoType *type = DaoProcess_GetReturnType( proc );
+	DaoGuard *res = DaoGuard_New( type, p[0] );
+	DaoProcess_PutValue( proc, (DaoValue*)res );
+}
+
+DaoValue* DaoGuard_ExecSection( DaoGuard *self, DaoProcess *proc )
+{
+	DaoVmCode *sect = DaoProcess_InitCodeSection( proc );
+	DaoValue *res = NULL;
+	if ( sect ){
+		daoint entry = proc->topFrame->entry;
+		if ( sect->b > 0 ) DaoProcess_SetValue( proc, sect->a, self->value );
+		proc->topFrame->entry = entry;
+		if ( DaoProcess_Execute( proc ) )
+			res = proc->stackValues[0];
+		DaoProcess_PopFrame( proc );
+		DaoProcess_SetActiveFrame( proc, proc->topFrame );
+	}
+	return res;
+}
+
+static void DaoGuard_Peek( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoGuard *self = (DaoGuard*)DaoValue_CastCstruct( p[0], NULL );
+	DaoValue *res;
+	DaoMutex_Lock( self->lock );
+	self->read++;
+	DaoMutex_Unlock( self->lock );
+	res = DaoGuard_ExecSection( self, proc );
+	DaoMutex_Lock( self->lock );
+	if ( --self->read == 0 && self->write )
+		DaoCondVar_BroadCast( self->writevar );
+	DaoMutex_Unlock( self->lock );
+	if ( res )
+		DaoProcess_PutValue( proc, res );
+}
+
+static void DaoGuard_Acquire( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoGuard *self = (DaoGuard*)DaoValue_CastCstruct( p[0], NULL );
+	DaoValue *res;
+	DaoMutex_Lock( self->lock );
+	self->write++;
+	while ( self->read )
+		DaoCondVar_Wait( self->writevar, self->lock );
+	res = DaoGuard_ExecSection( self, proc );
+	if ( res && res->type != DAO_NONE )
+		DaoValue_Copy( res, &self->value );
+	self->write--;
+	DaoMutex_Unlock( self->lock );
+}
+
+static DaoFuncItem guardMeths[] =
+{
+	/*! Constructs guard object with the given \a value */
+	{ DaoGuard_Create,	"guard<@T>(value: @T)" },
+
+	/*! Grants non-exclusive read-only access to the guarded \a value. Returns the result of the code section.
+	 * \note Multiple tasks are allowed to concurrently peek the data */
+	{ DaoGuard_Peek,	"peek(invar self: guard<@T>)[value: invar<@T> => @V] => @V" },
+
+	/*! Grants exclusive read/write access to the guarded \a value. Sets the value to the result of the code section if it is not \c none.
+	 * \note Only a single task may acquire the data; no other task is allowed to peek the data in the meantime */
+	{ DaoGuard_Acquire,	"acquire(self: guard<@T>)[value: @T => @T|none]" },
+	{ DaoGuard_Acquire,	"acquire(self: guard<invar<@T>>)[value: invar<@T>]" },
+	{ NULL, NULL }
+};
+
+DaoTypeBase guardTyper = {
+	"guard<@T>", NULL, NULL, guardMeths, {NULL}, {0},
+	(FuncPtrDel)DaoGuard_Delete, DaoGuard_GetGCFields
+};
+
 DAO_DLL int DaoSync_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *syncns = DaoNamespace_GetNamespace( ns, "sync" );
@@ -870,6 +979,7 @@ DAO_DLL int DaoSync_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	dao_type_sema    = DaoNamespace_WrapType( syncns, & semaTyper, 0 );
 	daox_type_DaoState = DaoNamespace_WrapType( syncns, &stateTyper, 0 );
 	daox_type_DaoQueue = DaoNamespace_WrapType( syncns, &queueTyper, 0 );
+	daox_type_DaoGuard = DaoNamespace_WrapType( syncns, &guardTyper, 0 );
 	return 0;
 }
 
