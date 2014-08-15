@@ -49,6 +49,7 @@ typedef struct DaoSema     DaoSema;
 typedef struct DaoState    DaoState;
 typedef struct QueueItem   QueueItem;
 typedef struct DaoQueue    DaoQueue;
+typedef struct DaoGuard    DaoGuard;
 
 struct DSema
 {
@@ -141,6 +142,16 @@ struct DaoQueue
 	DaoCondVar *pushvar;
 	DaoCondVar *popvar;
 	DaoCondVar *joinvar;
+};
+
+struct DaoGuard {
+	DAO_CSTRUCT_COMMON;
+
+	DaoValue *value;
+	DaoMutex *lock;
+	DaoCondVar *writevar;
+	volatile int read;
+	volatile int write;
 };
 
 #endif
