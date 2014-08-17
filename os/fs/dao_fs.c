@@ -460,18 +460,25 @@ int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *des
 		do
 			if( tcscmp( finfo.name, T(".") ) && tcscmp( finfo.name, T("..") ) ){
 				DString_SetTChars( str, finfo.name );
-				tcscpy( buffer + len, finfo.name );
-				fsnode = DInode_New();
-				if( ( res = DInode_Open( fsnode, buffer ) ) != 0 ){
-					DInode_Delete( fsnode );
-					return res;
+				if ( pattern ){
+					tcscpy( buffer + len, finfo.name );
+					fsnode = DInode_New();
+					if( ( res = DInode_Open( fsnode, buffer ) ) != 0 ){
+						DInode_Delete( fsnode );
+						return res;
+					}
+					if( ( fsnode->type == type || type == 2 ) && DaoRegex_Match( pattern, str, NULL, NULL ) ){
+						value = (DaoValue*) DaoProcess_NewCdata( proc, fsnode->type == 0? daox_type_dir : daox_type_file, fsnode, 1 );
+						DaoList_PushBack( dest, value );
+					}
+					else
+						DInode_Delete( fsnode );
 				}
-				if( ( fsnode->type == type || type == 2 ) && DaoRegex_Match( pattern, str, NULL, NULL ) ){
-					value = (DaoValue*) DaoProcess_NewCdata( proc, fsnode->type == 0? daox_type_dir : daox_type_file, fsnode, 1 );
-					DaoList_PushBack( dest, value );
+				else {
+					DaoString *name = DaoString_New();
+					DaoString_Set( name, str );
+					DaoList_PushBack( dest, (DaoValue*)name );
 				}
-				else
-					DInode_Delete( fsnode );
 			}
 		while( !_wfindnext64( handle, &finfo ) );
 		DString_Delete( str );
@@ -489,18 +496,25 @@ int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *des
 		while( ( finfo = readdir( handle ) ) )
 			if( tcscmp( finfo->d_name, T(".") ) && tcscmp( finfo->d_name, T("..") ) ){
 				DString_SetTChars( str, finfo->d_name );
-				tcscpy( buffer + len, finfo->d_name );
-				fsnode = DInode_New();
-				if( ( res = DInode_Open( fsnode, buffer ) ) != 0 ){
-					DInode_Delete( fsnode );
-					return res;
+				if ( pattern ){
+					tcscpy( buffer + len, finfo->d_name );
+					fsnode = DInode_New();
+					if( ( res = DInode_Open( fsnode, buffer ) ) != 0 ){
+						DInode_Delete( fsnode );
+						return res;
+					}
+					if( ( fsnode->type == type || type == 2 ) && DaoRegex_Match( pattern, str, NULL, NULL ) ){
+						value = (DaoValue*) DaoProcess_NewCdata( proc, fsnode->type == 0? daox_type_dir : daox_type_file, fsnode, 1 );
+						DaoList_PushBack( dest, value );
+					}
+					else
+						DInode_Delete( fsnode );
 				}
-				if( ( fsnode->type == type || type == 2 ) && DaoRegex_Match( pattern, str, NULL, NULL ) ){
-					value = (DaoValue*) DaoProcess_NewCdata( proc, fsnode->type == 0? daox_type_dir : daox_type_file, fsnode, 1 );
-					DaoList_PushBack( dest, value );
+				else {
+					DaoString *name = DaoString_New();
+					DaoString_Set( name, str );
+					DaoList_PushBack( dest, (DaoValue*)name );
 				}
-				else
-					DInode_Delete( fsnode );
 			}
 		DString_Delete( str );
 		closedir( handle );
@@ -1251,10 +1265,6 @@ static void FS_SetCWD( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *fsnode = (DInode*)DaoValue_TryGetCdata( p[0] );
 	int res;
-	if( fsnode->type != 0 ){
-		DaoProcess_RaiseError( proc, fserr, "File object is not a directory" );
-		return;
-	}
 	FS_TRANS( res = chdir( fsnode->path ) );
 	if( res ){
 		char errbuf[MAX_PATH + 1];
@@ -1268,11 +1278,22 @@ static void FS_SetCWD2( DaoProcess *proc, DaoValue *p[], int N )
 	char_t *path = CharsToTChars( p[0]->xString.value->chars );
 	int res;
 	DInode *fsnode = DInode_New();
-	if( ( res = DInode_Open( fsnode, path ) ) == 0 && fsnode->type == 0 )
+	if( ( res = DInode_Open( fsnode, path ) ) == 0 && fsnode->type == 0 ){
 		FS_TRANS( res = chdir( fsnode->path ) );
-	if ( res ) {
+		if ( res ){
+			char errbuf[MAX_ERRMSG + MAX_PATH + 3];
+			GetErrorMessage( errbuf, errno, 0 );
+			DaoProcess_RaiseError( proc, fserr, errbuf );
+		}
+	}
+	else {
 		char errbuf[MAX_ERRMSG + MAX_PATH + 3];
-		GetErrorMessage( errbuf, errno, 0 );
+		if( res == -1 )
+			strcpy( errbuf, "File object is not a file or directory" );
+		else if ( res )
+			GetErrorMessage( errbuf, errno, 0 );
+		else
+			strcpy( errbuf, "File object is not a directory" );
 		if( res == -1 || res == ENOENT )
 			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %"T_FMT, path );
 		DaoProcess_RaiseError( proc, fserr, errbuf );
@@ -1363,6 +1384,48 @@ static void FS_NewDir( DaoProcess *proc, DaoValue *p[], int N )
 	else
 		DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_dir );
 	FreeTChars( path );
+}
+
+static void FS_ListDir( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DInode *fsnode = (DInode*)DaoValue_TryGetCdata( p[0] );
+	DaoList *lst = DaoProcess_PutList( proc );
+	int res = DInode_ChildrenRegex( fsnode, 2, proc, lst, NULL );
+	if( res ){
+		char errbuf[MAX_PATH + 1];
+		GetErrorMessage( errbuf, errno, 0 );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
+	}
+}
+
+static void FS_ListDir2( DaoProcess *proc, DaoValue *p[], int N )
+{
+	char_t *path = CharsToTChars( p[0]->xString.value->chars );
+	int res;
+	DaoList *lst = DaoProcess_PutList( proc );
+	DInode *fsnode = DInode_New();
+	if( ( res = DInode_Open( fsnode, path ) ) == 0 && fsnode->type == 0 ){
+		res = DInode_ChildrenRegex( fsnode, 2, proc, lst, NULL );
+		if ( res ){
+			char errbuf[MAX_ERRMSG + MAX_PATH + 3];
+			GetErrorMessage( errbuf, errno, 0 );
+			DaoProcess_RaiseError( proc, fserr, errbuf );
+		}
+	}
+	else {
+		char errbuf[MAX_ERRMSG + MAX_PATH + 3];
+		if( res == -1 )
+			strcpy( errbuf, "File object is not a file or directory" );
+		else if ( res )
+			GetErrorMessage( errbuf, errno, 0 );
+		else
+			strcpy( errbuf, "File object is not a directory" );
+		if( res == -1 || res == ENOENT )
+			snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %"T_FMT, path );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
+	}
+	FreeTChars( path );
+	DInode_Delete( fsnode );
 }
 
 static DaoFuncItem entryMeths[] =
@@ -1499,6 +1562,10 @@ static DaoFuncItem fsMeths[] =
 	/*! Makes \a dir the current working directory */
 	{ FS_SetCWD,	"cd(invar path: dir)" },
 	{ FS_SetCWD2,	"cd(path: string)" },
+
+	/*! Returns list of names of all file objects in the directory specified by \a path */
+	{ FS_ListDir,	"ls(invar path: dir) => list<string>" },
+	{ FS_ListDir2,	"ls(path = '.') => list<string>" },
 
 	/*! Returns absolute form of \a path, which must point to an existing file or directory. On Windows, replaces all '\' in path
 	 * with '/' */
