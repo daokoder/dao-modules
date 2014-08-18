@@ -60,6 +60,10 @@ static DMutex net_mtx;
 #include"winsock2.h"
 #include"winsock.h"
 
+#ifndef SO_EXCLUSIVEADDRUSE
+#define SO_EXCLUSIVEADDRUSE ((int)(~SO_REUSEADDR))
+#endif
+
 typedef size_t socklen_t;
 #define fileno _fileno
 #define fdopen _fdopen

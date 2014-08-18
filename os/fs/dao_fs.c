@@ -127,6 +127,10 @@ DString* DaoProcess_PutTChars( DaoProcess *proc, char_t *tcs )
 #include<lmcons.h>
 #include<aclapi.h>
 
+#ifndef ELOOP
+#define ELOOP 114
+#endif
+
 /* Windows functions which read or change working directory are not thread-safe, so certain safety measures are desirable */
 static DMutex fs_mtx;
 #define FS_TRANS( st ) DMutex_Lock( &fs_mtx ); st; DMutex_Unlock( &fs_mtx )
