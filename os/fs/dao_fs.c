@@ -1239,28 +1239,6 @@ static void FS_CWD( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_dir );
 }
 
-static void FS_PWD( DaoProcess *proc, DaoValue *p[], int N )
-{
-	char_t path[MAX_PATH + 1];
-	int res = 0;
-	FS_TRANS( res = getcwd( path, MAX_PATH ) != NULL );
-	if( !res ){
-		char errbuf[MAX_ERRMSG];
-		GetErrorMessage( errbuf, ( res == 0 )? errno : res, 0 );
-		DaoProcess_RaiseError( proc, fserr, errbuf );
-	}
-	else {
-		char_t buf[MAX_PATH + 1];
-		if ( ( res = NormalizePath( path, buf ) ) != 0 ){
-			char errbuf[MAX_ERRMSG];
-			GetErrorMessage( errbuf, res, 0 );
-			DaoProcess_RaiseError( proc, fserr, errbuf );
-		}
-		else
-			DaoProcess_PutTChars( proc, buf );
-	}
-}
-
 static void FS_SetCWD( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *fsnode = (DInode*)DaoValue_TryGetCdata( p[0] );
@@ -1555,9 +1533,6 @@ static DaoFuncItem fsMeths[] =
 {
 	/*! Returns the current working directory */
 	{ FS_CWD,		"cwd() => dir" },
-
-	/*! Returns path the of current working directory */
-	{ FS_PWD,		"pwd() => string" },
 
 	/*! Makes \a dir the current working directory */
 	{ FS_SetCWD,	"cd(invar path: dir)" },
