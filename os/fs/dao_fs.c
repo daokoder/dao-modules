@@ -126,6 +126,7 @@ DString* DaoProcess_PutTChars( DaoProcess *proc, char_t *tcs )
 #include<fcntl.h>
 #include<lmcons.h>
 #include<aclapi.h>
+#include<Shlobj.h>
 
 #ifndef ELOOP
 #define ELOOP 114
@@ -1414,6 +1415,30 @@ static void FS_ListDir2( DaoProcess *proc, DaoValue *p[], int N )
 	DInode_Delete( fsnode );
 }
 
+static void FS_HomeDir( DaoProcess *proc, DaoValue *p[], int N )
+{
+	char_t buf[MAX_PATH + 1];
+	int res = 0;
+	DInode *fsnode = DInode_New();
+#ifdef WIN32
+	if ( SHGetFolderPathW( NULL, CSIDL_PERSONAL, NULL, 0, buf ) != S_OK ){
+		DaoProcess_RaiseError( proc, fserr, "Failed to get home directory" );
+		DInode_Delete( fsnode );
+		return;
+	}
+#else
+	strcpy( buf, "~" );
+#endif
+	if( ( res = DInode_Open( fsnode, buf ) ) != 0 ){
+		char errbuf[MAX_ERRMSG];
+		DInode_Delete( fsnode );
+		GetErrorMessage( errbuf, ( res == 0 )? errno : res, 0 );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
+	}
+	else
+		DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_dir );
+}
+
 static DaoFuncItem entryMeths[] =
 {
 	/*! Returns new \c entry bound to \a path of file or directory */
@@ -1559,6 +1584,9 @@ static DaoFuncItem fsMeths[] =
 
 	/*! On Windows, returns list of root directories (drives). On other systems returns {'/'} */
 	{ FS_Roots,		"roots() => list<string>" },
+
+	/*! Returns home directory for the current user (on Windows, 'Documents' directory is assumed) */
+	{ FS_HomeDir,	"home() => dir" },
 	{ NULL, NULL }
 };
 
