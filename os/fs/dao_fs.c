@@ -607,17 +607,20 @@ int DInode_Resize( DInode *self, daoint size )
 {
 	int res = 0;
 #ifdef WIN32
-	int fd = _wopen( self->path, _O_RDWR );
-	if ( fd == -1 )
-		return errno;
-	res = _chsize_s( fd, size );
-	_close( fd );
+	HANDLE handle = CreateFileW( self->path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
+	LARGE_INTEGER usize;
+	if ( handle == INVALID_HANDLE_VALUE )
+		return -1;
+	usize.u.LowPart = size;
+	usize.u.HighPart = ( sizeof(daoint) == 4 )? 0 : ( size >> 32 );
+	res = ( SetFilePointerEx( handle, usize, NULL, FILE_BEGIN ) && SetEndOfFile( handle ) )? 0 : -1;
+	CloseHandle( handle );
 #else
 	res = truncate( self->path, size );
 #endif
 	if ( !res )
 		self->size = size;
-	return res? errno : 0;
+	return res;
 }
 
 int MakeTmpFile( char_t *dir, char_t *prefix, char_t *namebuf )
@@ -796,13 +799,14 @@ static void FSNode_Resize( DaoProcess *proc, DaoValue *p[], int N )
 	int res;
 	if ( self->type == 0 ){
 		DaoProcess_RaiseError( proc, fserr, "Resizing a directory" );
+		return;
 	}
 	if ( ( res = DInode_Resize( self, size ) ) != 0 ){
 		char errbuf[MAX_ERRMSG];
 		if( res == -1 )
 			strcpy( errbuf, "Failed to resize file" );
 		else
-			GetErrorMessage( errbuf, res, 0 );
+			GetErrorMessage( errbuf, errno, 0 );
 		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 }
@@ -1466,7 +1470,7 @@ static DaoFuncItem fileMeths[] =
 	{ FSNode_Size,		".size(invar self: file) => int" },
 
 	/*! Resizes the file to the given \a size */
-	{ FSNode_Resize,	"resize(self: file, size: int)" },
+	{ FSNode_Resize,	".size=(self: file, size: int)" },
 
 	/*! Copies the file and returns \c file object of its copy */
 	{ FSNode_Copy,		"copy(self: file, path: string) => file" },
