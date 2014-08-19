@@ -776,7 +776,6 @@ void DaoJIT_Init( DaoVmSpace *vms, DaoJIT *jit )
 	for(i=DVM_GETMI_AII; i<=DVM_SETMI_ACIC; i++) daojit_opcode_compilable[i] = 1;
 	for(i=DVM_DATA_I; i<=DVM_SETVG_CC; i++) daojit_opcode_compilable[i] = 1;
 	for(i=DVM_NOT_I; i<=DVM_TILDE_I; i++) daojit_opcode_compilable[i] = 1;
-	daojit_opcode_compilable[ DVM_NOP ] = 1;
 	daojit_opcode_compilable[ DVM_LOAD ] = 1;
 	daojit_opcode_compilable[ DVM_GOTO ] = 1;
 	daojit_opcode_compilable[ DVM_SWITCH ] = 1;
@@ -2292,8 +2291,6 @@ Function* DaoJitHandle::Compile( int start, int end )
 #endif
 		if( labels.find( i ) != labels.end() ) labels[i] = NewBlock( vmc );
 		switch( code ){
-		case DVM_NOP :
-			break;
 		case DVM_DATA :
 			value = getInt32( (int) vmc->b );
 			switch( vmc->a ){
