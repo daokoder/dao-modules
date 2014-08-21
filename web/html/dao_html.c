@@ -267,7 +267,7 @@ static void Html_Tag( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, "HTML", "Tag out of context (must be inside document(){} or fragment(){} and in the same task)" );
 	else {
 		DString *tag = DString_New();
-		DaoVmCode *sect = DaoProcess_InitCodeSection( proc );
+		DaoVmCode *sect = DaoProcess_InitCodeSection( proc, 0 );
 		if ( !phrazing || !ctx->pending )
 			DaoHtmlContext_NewLine( ctx );
 		DString_AppendChar( tag, '<' );
@@ -338,7 +338,7 @@ static void Html_Text( DaoProcess *proc, DaoValue *p[], int N )
 static void Html_Document( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoHtmlContext *ctx = DaoHtmlContext_New();
-	DaoVmCode *sect = DaoProcess_InitCodeSection( proc );
+	DaoVmCode *sect = DaoProcess_InitCodeSection( proc, 0 );
 	DString *res;
 	if ( GetContext( proc ) ){
 		DaoProcess_RaiseError( proc, "HTML", "Nested contexts not allowed (nested document(){} or fragment(){} sections)" );
@@ -361,7 +361,7 @@ static void Html_Document( DaoProcess *proc, DaoValue *p[], int N )
 static void Html_Fragment( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoHtmlContext *ctx = DaoHtmlContext_New();
-	DaoVmCode *sect = DaoProcess_InitCodeSection( proc );
+	DaoVmCode *sect = DaoProcess_InitCodeSection( proc, 0 );
 	DString *res;
 	if ( GetContext( proc ) ){
 		DaoProcess_RaiseError( proc, "HTML", "Nested contexts not allowed (nested document(){} or fragment(){} sections)" );

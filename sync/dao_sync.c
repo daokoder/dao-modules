@@ -132,7 +132,7 @@ static void DaoMutex_Lib_TryLock( DaoProcess *proc, DaoValue *par[], int N )
 static void DaoMutex_Lib_Protect( DaoProcess *proc, DaoValue *p[], int n )
 {
 	DaoMutex *self = (DaoMutex*) p[0];
-	DaoVmCode *sect = DaoProcess_InitCodeSection( proc );
+	DaoVmCode *sect = DaoProcess_InitCodeSection( proc, 0 );
 	if( sect == NULL ) return;
 	DaoMutex_Lock( self );
 	DaoProcess_Execute( proc );
@@ -282,7 +282,7 @@ static void DaoSema_Lib_GetValue( DaoProcess *proc, DaoValue *par[], int N )
 static void DaoSema_Lib_Protect( DaoProcess *proc, DaoValue *p[], int n )
 {
 	DaoSema *self = (DaoSema*) p[0];
-	DaoVmCode *sect = DaoProcess_InitCodeSection( proc );
+	DaoVmCode *sect = DaoProcess_InitCodeSection( proc, 0 );
 	if( sect == NULL ) return;
 	DSema_Wait( & self->mySema );
 	DaoProcess_Execute( proc );
@@ -904,7 +904,7 @@ static void DaoGuard_Create( DaoProcess *proc, DaoValue *p[], int N )
 
 DaoValue* DaoGuard_ExecSection( DaoGuard *self, DaoProcess *proc )
 {
-	DaoVmCode *sect = DaoProcess_InitCodeSection( proc );
+	DaoVmCode *sect = DaoProcess_InitCodeSection( proc, 1 );
 	DaoValue *res = NULL;
 	if ( sect ){
 		daoint entry = proc->topFrame->entry;

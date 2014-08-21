@@ -461,15 +461,14 @@ static void GRAPH_ConnectedComponents( DaoProcess *proc, DaoValue *p[], int N )
 static void NODE_Search( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DList *nodes;
-	DaoVmCode *sect = DaoGetSectionCode( proc->activeCode );
 	DaoList *list = DaoProcess_PutList( proc );
 	DaoxNode *self = (DaoxNode*) p[0];
+	DaoVmCode *sect = DaoProcess_InitCodeSection( proc, 1 );
 	daoint method = p[1]->xEnum.value;
 	daoint which = p[2]->xEnum.value;
 	daoint i, j, entry;
 
 	if( sect == NULL ) return;
-	if( DaoProcess_PushSectionFrame( proc ) == NULL ) return;
 	for(i=0; i<self->graph->nodes->size; i++){
 		DaoxNode *node = (DaoxNode*) self->graph->nodes->items.pVoid[i];
 		node->state = 0;
@@ -512,13 +511,12 @@ static void NODE_Search( DaoProcess *proc, DaoValue *p[], int N )
 static void GRAPH_FindNodes( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraph *self = (DaoxGraph*) p[0];
-	DaoVmCode *sect = DaoGetSectionCode( proc->activeCode );
 	DaoList *list = DaoProcess_PutList( proc );
+	DaoVmCode *sect = DaoProcess_InitCodeSection( proc, 1 );
 	daoint which = p[1]->xEnum.value;
 	daoint i, j, entry;
 
 	if( sect == NULL ) return;
-	if( DaoProcess_PushSectionFrame( proc ) == NULL ) return;
 	entry = proc->topFrame->entry;
 	for(i=0; i<self->nodes->size; i++){
 		DaoxNode *node = (DaoxNode*) self->nodes->items.pVoid[i];
@@ -536,13 +534,12 @@ static void GRAPH_FindNodes( DaoProcess *proc, DaoValue *p[], int N )
 static void GRAPH_FindEdges( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraph *self = (DaoxGraph*) p[0];
-	DaoVmCode *sect = DaoGetSectionCode( proc->activeCode );
 	DaoList *list = DaoProcess_PutList( proc );
+	DaoVmCode *sect = DaoProcess_InitCodeSection( proc, 1 );
 	daoint which = p[1]->xEnum.value;
 	daoint i, j, entry;
 
 	if( sect == NULL ) return;
-	if( DaoProcess_PushSectionFrame( proc ) == NULL ) return;
 	entry = proc->topFrame->entry;
 	for(i=0; i<self->edges->size; i++){
 		DaoxEdge *edge = (DaoxEdge*) self->edges->items.pVoid[i];
