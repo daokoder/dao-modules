@@ -37,8 +37,8 @@ class Client
 #std.listmeth( net );
 #io.println( net );
 
-server = Server() !!;
-server.Start();
+server = Server()
+server.Start() !!
 sys.sleep(1);
-client = Client() !!;
-client.Start();
+client = Client()
+client.Start() !!
