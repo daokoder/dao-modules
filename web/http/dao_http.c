@@ -1183,7 +1183,10 @@ static void CLIENT_Get( DaoProcess *proc, DaoValue *p[], int N )
 
 	if( frame ){
 		sect = DaoProcess_InitCodeSection( proc, 1 );
-		if( sect == NULL ) return;
+		if( sect == NULL ){
+			mg_close_connection( conn );
+			return;
+		}
 	}
 	data = DaoProcess_NewString( proc, "", 0 );
 	entry = proc->topFrame->entry;
