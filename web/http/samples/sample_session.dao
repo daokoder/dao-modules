@@ -1,0 +1,23 @@
+
+load web.http
+
+port = 8080
+numthread = 4
+
+Server::Start( port, numthread ){
+	[request, response, session]
+
+	response.WriteHeader( 200, {'Content-Type' => 'text/plain'} );
+	response.Write( "Session Demo\n\n" );
+
+	session.SetTimeout( 30 )
+
+	# Get/Set session varaible:
+	value = session.GetVariable( 'Test' )
+	if( value == none ){
+		response.Write( 'Session expired!\n' )
+		response.Write( 'Setting new value for session variable \"Test\"!\n\n' )
+		session.SetVariable( 'Test', rand(1000) )
+	}
+	response.Write( 'Session Variable: Test = ' + (string) session.GetVariable( 'Test' ) + '\n' )
+}

@@ -1,0 +1,12 @@
+
+load web.http
+
+port = 8080
+numthread = 4
+
+Server::Start( port, numthread ){
+	[request, response]
+
+	response.WriteHeader( 200, {'Content-Type' => 'text/plain'} );
+	response.Write('Hello World\n');
+}

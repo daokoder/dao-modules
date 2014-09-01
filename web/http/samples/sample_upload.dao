@@ -1,0 +1,34 @@
+
+load web.http
+
+const html_form =
+@[html]
+<html>
+  <body>
+    Upload example.
+    <form method="POST" action="/handle_request" enctype="multipart/form-data">
+      <input type="file" name="file1" /> <br/>
+      <input type="file" name="file2" /> <br/>
+      <input type="submit" value="Upload" />
+    </form>
+  </body>
+</html>
+@[html]
+
+port = 8080
+numthread = 4
+
+Server::Start( port, numthread ){
+	[request, response, session]
+
+	response.WriteHeader( 200, {'Content-Type' => 'text/html'} );
+	response.Write( html_form );
+
+	# Summarize uploaded files:
+    # request.HttpFile has type: map<string,tuple<file:string,size:int,data:io::stream>>
+	request.HttpFile.iterate {
+		response.Write( 'Uploaded Files: </br>\n' )
+		response.Write( 'name = ' + X + '; file = ' + Y.file + '; size = ' + (string) Y.size )
+		response.Write( '</br>\n' )
+	}
+}

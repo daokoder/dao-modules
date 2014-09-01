@@ -1,0 +1,20 @@
+
+load web.http
+
+const port = 8080
+const numthread = 4
+
+
+# The following should not work!
+# Because the code section cannot be accessed from a differet process.
+
+routine MyStart() [...]
+{
+	Server::Start( port, numthread ){ ... }
+}
+
+MyStart { [request, response]
+
+	response.WriteHeader( 200, {'Content-Type' => 'text/plain'} );
+	response.Write('Hello World\n');
+}

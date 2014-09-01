@@ -7,10 +7,13 @@ if( daovm == none ) return
 
 project.UseImportLibrary( daovm, "dao" )
 
+dao_http_objs = project.AddObjects( {"http/dao_http.c", "http/Marten/marten.c"}, {"http/Marten/marten.h"} )
 dao_cgi_objs  = project.AddObjects( { "cgi/dao_cgi.c" } )
 dao_json_objs = project.AddObjects( { "json/dao_json.c" } )
 dao_html_objs = project.AddObjects( { "html/dao_html.c" } )
 
+dao_http_dll = project.AddSharedLibrary( "dao_http", dao_http_objs )
+dao_http_lib = project.AddStaticLibrary( "dao_http", dao_http_objs )
 dao_cgi_dll  = project.AddSharedLibrary( "dao_cgi", dao_cgi_objs )
 dao_cgi_lib  = project.AddStaticLibrary( "dao_cgi", dao_cgi_objs )
 dao_json_dll = project.AddSharedLibrary( "dao_json", dao_json_objs )
@@ -21,6 +24,8 @@ dao_html_lib = project.AddStaticLibrary( "dao_html", dao_html_objs )
 path = DaoMake::MakePath( daovm.GetPath( "MOD-PATH" ), "web" )
 
 project.GenerateFinder( $TRUE );
+project.Install( path, dao_http_dll );
+project.Install( path, dao_http_lib );
 project.Install( path, dao_cgi_dll );
 project.Install( path, dao_cgi_lib );
 project.Install( path, dao_json_dll );

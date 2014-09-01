@@ -1,0 +1,29 @@
+
+load web.http
+
+const html_form =
+@[]
+<html>
+  <body>POST example.
+    <form method="POST" action="/handle_post_request" enctype="multipart/form-data">
+      First Input: <input type="text" name="first" /> <br/>
+      Second Input: <input type="text" name="second" /> <br/>
+      <input type="submit" />
+    </form>
+  </body>
+</html>
+@[]
+
+port = 8080
+numthread = 4
+
+Server::Start( port, numthread ){
+	[request, response, session]
+
+	response.WriteHeader( 200, {'Content-Type' => 'text/html'} );
+	response.Write( html_form );
+
+	request.HttpPost.iterate { # request.HttpPost has type: map<string,string>
+		response.Write( 'POST Variable: ' + X + ' = ' + Y + '</br>\n' )
+	}
+}
