@@ -312,7 +312,7 @@ static void Html_Comment( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoHtmlContext *ctx = GetContext( proc );
 	if ( !ctx )
-		DaoProcess_RaiseError( proc, "HTML", "Tag out of context (must be inside document(){} or fragment(){} and in the same task)" );
+		DaoProcess_RaiseError( proc, "HTML", "Comment out of context (must be inside document(){} or fragment(){} and in the same task)" );
 	else {
 		DString *comm = DString_NewChars( "<!-- " );
 		DString_Append( comm, p[0]->xString.value );
@@ -327,7 +327,7 @@ static void Html_Text( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoHtmlContext *ctx = GetContext( proc );
 	if ( !ctx )
-		DaoProcess_RaiseError( proc, "HTML", "Tag out of context (must be inside document(){} or fragment(){} and in the same task)" );
+		DaoProcess_RaiseError( proc, "HTML", "Text out of context (must be inside document(){} or fragment(){} and in the same task)" );
 	else {
 		if ( !ctx->pending )
 			DaoHtmlContext_NewLine( ctx );
