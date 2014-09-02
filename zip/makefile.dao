@@ -1,0 +1,32 @@
+
+project = DaoMake::Project( "DaoZip" ) 
+
+daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
+
+if( daovm == none ) return
+
+project.UseImportLibrary( daovm, "dao" )
+project.AddIncludePath( "." )
+
+sources = 
+{
+	"dao_zip.c" ,
+	"bzip2/blocksort.c" ,
+	"bzip2/huffman.c" ,
+	"bzip2/crctable.c" ,
+	"bzip2/randtable.c" ,
+	"bzip2/compress.c" ,
+	"bzip2/decompress.c" ,
+	"bzip2/bzlib.c"
+}
+
+project_objs = project.AddObjects( sources )
+project_dll  = project.AddSharedLibrary( "dao_zip", project_objs )
+project_lib  = project.AddStaticLibrary( "dao_zip", project_objs )
+
+
+findpkg = DaoMake::MakePath( project.BinaryPath(), "FindDaoZip.dao" );
+project.GenerateFinder( $TRUE );
+project.Install( daovm.GetPath( "MOD-PATH" ), project_dll );
+project.Install( daovm.GetPath( "MOD-PATH" ), project_lib );
+project.Install( daovm.GetPath( "INSTALL-PATH" ) + "/shared/daomake/packages/", findpkg );

@@ -13,6 +13,7 @@ class Archive
 private
 	routine EncodeAccess( access: string )
 	routine DecodeAccess( code: int )
+
 	routine AddInt8( value: int )
 	routine AddInt16( value: int )
 	routine AddInt32( value: int )
