@@ -522,8 +522,7 @@ DAO_DLL int DaoJSON_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DString *bname = DString_NewChars( "bool" );
 	booltype = DaoNamespace_FindType( ns, bname );
 	DString_Delete( bname );
-	jsonns = DaoVmSpace_GetNamespace( vmSpace, "json" );
-	DaoNamespace_AddConstValue( ns, "json", (DaoValue*)jsonns );
-	DaoNamespace_WrapFunctions( ns, jsonMeths );
+	jsonns = DaoNamespace_GetNamespace( ns, "json" );
+	DaoNamespace_WrapFunctions( jsonns, jsonMeths );
 	return 0;
 }

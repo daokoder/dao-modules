@@ -1,0 +1,169 @@
+
+load os.fs
+
+# Simple Archive format for the Dao packaging tool.
+class Archive
+{
+	var  buffer = ""
+
+	routine Add( path: string )
+
+	routine Extract( dest: string )
+
+private
+	routine EncodeAccess( access: string )
+	routine DecodeAccess( code: int )
+	routine AddInt8( value: int )
+	routine AddInt16( value: int )
+	routine AddInt32( value: int )
+	routine AddString( data: string )
+
+	routine AddFile( entry: fs::file, depth = 1 )
+	routine AddDir( entry: fs::dir, depth = 1 )
+
+	routine AddFile( path: string, depth = 1 )
+	routine AddDir( path: string, depth = 1 )
+}
+
+routine Archive::EncodeAccess( access: string )
+{
+	code = 0
+	if( access.find( "r" ) >=0 ) code |= 0x1
+	if( access.find( "w" ) >=0 ) code |= 0x2
+	if( access.find( "x" ) >=0 ) code |= 0x4
+	return code
+}
+routine Archive::DecodeAccess( code: int )
+{
+	access = ""
+	if( code & 0x1 ) access += "r"
+	if( code & 0x2 ) access += "w"
+	if( code & 0x4 ) access += "x"
+	return access;
+}
+routine Archive::AddInt8( value: int )
+{
+	buffer += string( 1, value )
+}
+routine Archive::AddInt16( value: int )
+{
+	temp = "  ";
+	temp[0] = (value >> 8) & 0xff
+	temp[1] = value & 0xff
+	AddString( temp )
+}
+routine Archive::AddInt32( value: int )
+{
+	temp = "    ";
+	temp[0] = (value >> 24) & 0xff
+	temp[1] = (value >> 16) & 0xff
+	temp[2] = (value >> 8) & 0xff
+	temp[3] = value & 0xff
+	AddString( temp )
+}
+routine Archive::AddString( data: string )
+{
+	buffer += data
+}
+
+routine Archive::AddFile( entry: fs::file, depth = 1 )
+{
+	if( depth > 0xff ) std::error( "Directory depth higher than 255" )
+
+	access = entry.access
+
+	AddInt8( 0xF )
+	AddInt8( depth )
+	AddInt8( EncodeAccess( access.user ) )
+	AddInt8( EncodeAccess( access.group ) )
+	AddInt8( EncodeAccess( access.other ) )
+	AddString( entry.name )
+	AddInt8( 0x0 )
+	AddInt32( entry.size )
+
+	AddString( io::read( entry.path ) )
+}
+routine Archive::AddDir( entry: fs::dir, depth = 1 )
+{
+	if( depth > 0xff ) std::error( "Directory depth higher than 255" )
+
+	access = entry.access
+
+	AddInt8( 0xD )
+	AddInt8( depth )
+	AddInt8( EncodeAccess( access.user ) )
+	AddInt8( EncodeAccess( access.group ) )
+	AddInt8( EncodeAccess( access.other ) )
+	AddString( entry.name )
+	AddInt8( 0x0 )
+
+	entry.files().iterate { AddFile( X, depth + 1 ) }
+	entry.dirs().iterate { AddDir( X, depth + 1 ) }
+}
+routine Archive::AddFile( path: string, depth = 1 )
+{
+	AddFile( fs::file( path ), depth )
+}
+routine Archive::AddDir( path: string, depth = 1 )
+{
+	AddDir( fs::dir( path ), depth )
+}
+routine Archive::Add( path: string )
+{
+	if( not fs::exists( path ) ) std::error( "Path not exist: " + path )
+
+	entry = fs::entry( path )
+	switch( entry.kind ){
+	case $file: AddFile( path )
+	case $dir : AddDir( path )
+	}
+}
+
+
+routine Archive::Extract( dest: string )
+{
+	if( fs::exists( dest ) ) std::error( "Path already exist: " + dest )
+	dir = fs::cwd()
+	access = ( user = "", group = "", other = "" )
+
+	offset = 0
+	length = % buffer
+	entryStack = { dir.mkdir( dest ) }
+	io.writeln( length )
+	while( offset < length ){
+		if( (offset + 5) >= length ) std::error( "Invalid archive" )
+		nullchar = buffer.find( "\0", offset + 5 )
+		if( nullchar < 0 ) std::error( "Invalid archive" )
+		etype = buffer[offset]
+		depth = buffer[offset+1]
+		user = buffer[offset+2]
+		group = buffer[offset+3]
+		other = buffer[offset+4]
+		name = buffer[ offset+5 : nullchar ]
+		offset = nullchar + 1
+		access.user = DecodeAccess( user )
+		access.group = DecodeAccess( group )
+		access.other = DecodeAccess( other )
+		if( depth < % entryStack ) entryStack.pop()
+		if( etype == 0xF ){
+			if( (offset + 4) >= length ) std::error( "Invalid archive" )
+			B1 = buffer[offset+0]
+			B2 = buffer[offset+1]
+			B3 = buffer[offset+2]
+			B4 = buffer[offset+3]
+			len = (B1<<24) | (B2<<16) | (B3<<8) | B4
+			entry = entryStack.back().mkfile( name )
+			entry.access = access
+			fout = io::open( entry.path, "w" )
+			fout.writef( "%s", buffer[offset+4:offset+3+len] )
+			fout.close()
+			offset += 4 + len
+		}else if( etype == 0xD ){
+			entry = entryStack.back().mkdir( name )
+			entry.access = access
+			entryStack.push( entry )
+		}else{
+			std::error( "Invalid archive" )
+		}
+	}
+}

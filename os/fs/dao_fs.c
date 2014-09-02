@@ -877,10 +877,10 @@ static void FSNode_SetAccess(DaoProcess *proc, DaoValue *p[], int N)
 	DString *mode = p[1]->xTuple.values[0]->xString.value;
 	if ( !InitPermissions( mode, &ur, &uw, &ux ) )
 		goto Error;
-	mode = p[2]->xTuple.values[1]->xString.value;
+	mode = p[1]->xTuple.values[1]->xString.value;
 	if ( !InitPermissions( mode, &gr, &gw, &gx ) )
 		goto Error;
-	mode = p[3]->xTuple.values[2]->xString.value;
+	mode = p[1]->xTuple.values[2]->xString.value;
 	if ( !InitPermissions( mode, &otr, &otw, &otx ) )
 		goto Error;
 	int res = DInode_SetAccess(self, ur, uw, ux, gr, gw, gx, otr, otw, otx);

@@ -1,4 +1,4 @@
-load "../json";
+load web.json
 
 data = { 
 	"module" =>               (any)"DaoJSON", 
@@ -16,7 +16,7 @@ data = {
     } 
 };
 
-text = json.parse(data);
+text = json.serialize(data);
 io.writeln("Dao => JSON (readable):\n", text);
 io.writeln("\nDao => JSON (compact):\n", json.serialize(data, $compact));
 
