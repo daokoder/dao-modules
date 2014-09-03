@@ -1147,9 +1147,9 @@ static void CLIENT_Get( DaoProcess *proc, DaoValue *p[], int N )
 	DString *url = p[0]->xString.value;
 	DString *host = DString_Copy( url );
 	DString *uri = DString_NewChars( "/" );
+	DString *ports = DString_NewChars( "80" );
 	const char *method = p[1]->xEnum.value ? "POST" : "GET";
-	int port = p[2]->xInteger.value;
-	int use_ssl = 0;
+	int port, use_ssl = 0;
 	int entry;
 
 	struct mg_connection *conn;
@@ -1169,12 +1169,19 @@ static void CLIENT_Get( DaoProcess *proc, DaoValue *p[], int N )
 		DString_SubString( host, uri, pos, -1 );
 		DString_Erase( host, pos, -1 );
 	}
+	pos = DString_RFindChar( host, ':', -1 );
+	if( pos != DAO_NULLPOS ){
+		DString_SubString( host, ports, pos + 1, -1 );
+		DString_Erase( host, pos, -1 );
+	}
+	port = strtol( ports->chars, NULL, 0 );
 
 	conn = mg_download( host->chars, port, use_ssl, ebuf, sizeof(ebuf),
 			"%s %s HTTP/1.1\r\nHost: %s\r\n\r\n", method, uri->chars, host->chars );
 
 	DString_Delete( host );
 	DString_Delete( uri );
+	DString_Delete( ports );
 
 	if( conn == NULL ){
 		DaoProcess_RaiseError( proc, "Http", ebuf );
@@ -1210,12 +1217,8 @@ static void CLIENT_Get( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem ClientMeths[] =
 {
-	{ CLIENT_Get,
-		"Get( url: string, method: enum<GET,POST> = $GET, port = 80 ) => string"
-	},
-	{ CLIENT_Get,
-		"Get( url: string, method: enum<GET,POST> = $GET, port = 80 )[data: string]"
-	},
+	{ CLIENT_Get, "Get( url: string, method: enum<GET,POST> = $GET ) => string" },
+	{ CLIENT_Get, "Get( url: string, method: enum<GET,POST> = $GET )[data: string]" },
 	{ NULL, NULL }
 };
 
