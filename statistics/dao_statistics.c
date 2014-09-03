@@ -679,7 +679,7 @@ static DaoFuncItem statMeths[] =
 	 * Spearman's rank coefficient measures monotonic dependence. If \a mean1 and \a mean2 are given, they are used for calculating Pearson
 	 * coefficient.
 	 * \note \a self and \a other must be of equal size
-	 * Pearson:			r[X,Y] = E[(X - E[X](Y - E[Y])] / σ[X]σ[Y]
+	 * Pearson:			r[X,Y] = E[(X - E[X])(Y - E[Y])] / σ[X]σ[Y]
 	 * Spearman's rank:	ρ[X,Y] = r(Xrank, Yrank) */
 	{ DaoStat_Correlation,	"correlation(invar data1: array<@T<int|float|double>>, "
 										"invar data2: array<@T>, coefficient: enum<pearson,spearman>) => double" },
