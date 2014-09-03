@@ -4,7 +4,11 @@ load os.fs
 # Simple Archive format for the Dao packaging tool.
 class Archive
 {
-	var  buffer = ""
+	# Do not use string here:
+	# The string content could easily become dozens of megabytes,
+	# with implicit sharing and copying of strings, the memory
+	# consumption could easily multiply, reaching hundreds of megabytes.
+	var  buffers = {""}
 
 	routine Add( path: string )
 
@@ -44,7 +48,7 @@ routine Archive::DecodeAccess( code: int )
 }
 routine Archive::AddInt8( value: int )
 {
-	buffer += string( 1, value )
+	buffers.append( string( 1, value ) )
 }
 routine Archive::AddInt16( value: int )
 {
@@ -64,7 +68,7 @@ routine Archive::AddInt32( value: int )
 }
 routine Archive::AddString( data: string )
 {
-	buffer += data
+	buffers.append( data )
 }
 
 routine Archive::AddFile( entry: fs::file, depth = 1 )
@@ -72,6 +76,8 @@ routine Archive::AddFile( entry: fs::file, depth = 1 )
 	if( depth > 0xff ) std::error( "Directory depth higher than 255" )
 
 	access = entry.access
+
+	#io.writeln( "Adding:", entry.path )
 
 	AddInt8( 0xF )
 	AddInt8( depth )
@@ -128,6 +134,7 @@ routine Archive::Extract( dest: string )
 	access = ( user = "", group = "", other = "" )
 
 	offset = 0
+	buffer = buffers.sum()
 	length = % buffer
 	entryStack = { dir.mkdir( dest ) }
 	io.writeln( length )
@@ -145,7 +152,7 @@ routine Archive::Extract( dest: string )
 		access.user = DecodeAccess( user )
 		access.group = DecodeAccess( group )
 		access.other = DecodeAccess( other )
-		if( depth < % entryStack ) entryStack.pop()
+		while( depth < % entryStack ) entryStack.pop()
 		if( etype == 0xF ){
 			if( (offset + 4) >= length ) std::error( "Invalid archive" )
 			B1 = buffer[offset+0]

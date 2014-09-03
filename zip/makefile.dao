@@ -7,6 +7,7 @@ if( daovm == none ) return
 
 project.UseImportLibrary( daovm, "dao" )
 project.AddIncludePath( "." )
+project.AddIncludePath( "bzip2" )
 
 sources = 
 {

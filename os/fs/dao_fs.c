@@ -545,6 +545,10 @@ int DInode_SetAccess( DInode *self, int ur, int uw, int ux, int gr, int gw, int 
 
 void DInode_GetMode( DInode *self, DaoTuple *res )
 {
+	/* Tuple returned from DaoProcess_PutTuple() could be a reused one: */
+	res->values[0]->xString.value->size = 0;
+	res->values[1]->xString.value->size = 0;
+	res->values[2]->xString.value->size = 0;
 #ifdef WIN32
 	if ( self->mode & _S_IREAD )
 		DString_AppendChars( res->values[0]->xString.value, "r" );
@@ -909,7 +913,7 @@ static void FSNode_Makefile( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	child = DInode_New();
 	if( ( res = DInode_SubInode( self, path, 0, child, 0 ) ) != 0 ){
-		char errbuf[MAX_ERRMSG];
+		char errbuf[MAX_ERRMSG] = {0};
 		DInode_Delete( child );
 		if( res == -1 )
 			strcpy( errbuf, "Invalid file name (EINVAL)" );
@@ -1094,6 +1098,7 @@ static void FSNode_Files( DaoProcess *proc, DaoValue *p[], int N )
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
 	DString *pt = DString_Copy( p[1]->xString.value );
 	DInode_Children( self, proc, 1, pt, DaoValue_TryGetEnum( p[2] ) );
+	DString_Delete( pt );
 }
 
 static void FSNode_Dirs( DaoProcess *proc, DaoValue *p[], int N )
