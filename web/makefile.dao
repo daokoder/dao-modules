@@ -21,6 +21,15 @@ dao_json_lib = project.AddStaticLibrary( "dao_json", dao_json_objs )
 dao_html_dll = project.AddSharedLibrary( "dao_html", dao_html_objs )
 dao_html_lib = project.AddStaticLibrary( "dao_html", dao_html_objs )
 
+dao_http_dll.SetTargetPath( "../../lib/dao/modules/web" )
+dao_http_lib.SetTargetPath( "../../lib/dao/modules/web" )
+dao_cgi_dll.SetTargetPath( "../../lib/dao/modules/web" )
+dao_cgi_lib.SetTargetPath( "../../lib/dao/modules/web" )
+dao_json_dll.SetTargetPath( "../../lib/dao/modules/web" )
+dao_json_lib.SetTargetPath( "../../lib/dao/modules/web" )
+dao_html_dll.SetTargetPath( "../../lib/dao/modules/web" )
+dao_html_lib.SetTargetPath( "../../lib/dao/modules/web" )
+
 path = DaoMake::MakePath( daovm.GetPath( "MOD-PATH" ), "web" )
 
 project.GenerateFinder( $TRUE );

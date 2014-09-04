@@ -11,6 +11,9 @@ project_objs = project.AddObjects( { "dao_xml.c" } )
 project_dll  = project.AddSharedLibrary( "dao_xml", project_objs )
 project_lib  = project.AddStaticLibrary( "dao_xml", project_objs )
 
+project_dll.SetTargetPath( "../../lib/dao/modules/xml" )
+project_lib.SetTargetPath( "../../lib/dao/modules/xml" )
+
 
 project.GenerateFinder( $TRUE );
 project.Install( daovm.GetPath( "MOD-PATH" ), project_dll );

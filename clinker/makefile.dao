@@ -22,9 +22,12 @@ project.AddIncludePath( "../../kernel" )
 clinker_objs = project.AddObjects( { "dao_clinker.c" } )
 clinker_dll = project.AddSharedLibrary( "dao_clinker", clinker_objs )
 
+clinker_dll.SetTargetPath( "../../lib/dao/modules/clinker" )
+
 sample_objs = project.AddObjects( { "sample.c" } )
 sample_dll = project.AddSharedLibrary( "sample", sample_objs )
 
+sample_dll.SetTargetPath( "../../lib/dao/modules/clinker" )
 
 
 project.GenerateFinder( $TRUE );

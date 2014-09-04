@@ -25,6 +25,9 @@ project_objs = project.AddObjects( sources )
 project_dll  = project.AddSharedLibrary( "dao_zip", project_objs )
 project_lib  = project.AddStaticLibrary( "dao_zip", project_objs )
 
+project_dll.SetTargetPath( "../../lib/dao/modules/zip" )
+project_lib.SetTargetPath( "../../lib/dao/modules/zip" )
+
 
 findpkg = DaoMake::MakePath( project.BinaryPath(), "FindDaoZip.dao" );
 project.GenerateFinder( $TRUE );

@@ -33,6 +33,9 @@ project_objs = project.AddObjects( source_cblas, { "dao_cblas.h" } )
 project_dll  = project.AddSharedLibrary( "dao_cblas", project_objs )
 project_lib  = project.AddStaticLibrary( "dao_cblas", project_objs )
 
+project_dll.SetTargetPath( "../../lib/dao/modules/cblas" )
+project_lib.SetTargetPath( "../../lib/dao/modules/cblas" )
+
 
 
 project.GenerateFinder( $TRUE );

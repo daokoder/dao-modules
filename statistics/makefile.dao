@@ -10,6 +10,9 @@ project_objs = project.AddObjects( { "dao_statistics.c" } )
 project_dll  = project.AddSharedLibrary( "dao_statistics", project_objs )
 project_lib  = project.AddStaticLibrary( "dao_statistics", project_objs )
 
+project_dll.SetTargetPath( "../../lib/dao/modules/statistics" )
+project_lib.SetTargetPath( "../../lib/dao/modules/statistics" )
+
 
 project.GenerateFinder( $TRUE );
 project.Install( daovm.GetPath( "MOD-PATH" ), project_dll );
