@@ -5,4 +5,3 @@ load xxtea
 load format
 load scanner
 load template
-load base64
