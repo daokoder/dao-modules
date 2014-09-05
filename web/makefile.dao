@@ -23,6 +23,8 @@ dao_html_dll = project.AddSharedLibrary( "dao_html", dao_html_objs )
 dao_html_lib = project.AddStaticLibrary( "dao_html", dao_html_objs )
 
 if( DaoMake::IsPlatform( "WIN32" ) ){
+	dao_http_dll.AddDefinition( "_WIN32" )
+	dao_http_lib.AddDefinition( "_WIN32" )
 	dao_http_dll.AddLinkingFlag( "-lws2_32" )
 	dao_http_lib.AddLinkingFlag( "-lws2_32" )
 }

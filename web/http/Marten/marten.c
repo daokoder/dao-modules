@@ -5368,18 +5368,21 @@ void mg_stop(struct mg_context *ctx) {
 #endif // _WIN32
 }
 
+void mg_init()
+{
+#if defined(_WIN32) && !defined(__SYMBIAN32__)
+  WSADATA data;
+  WSAStartup(MAKEWORD(2,2), &data);
+  InitializeCriticalSection(&global_log_file_lock);
+#endif // _WIN32
+}
+
 struct mg_context *mg_start(const struct mg_callbacks *callbacks,
                             void *user_data,
                             const char **options) {
   struct mg_context *ctx;
   const char *name, *value, *default_value;
   int i;
-
-#if defined(_WIN32) && !defined(__SYMBIAN32__)
-  WSADATA data;
-  WSAStartup(MAKEWORD(2,2), &data);
-  InitializeCriticalSection(&global_log_file_lock);
-#endif // _WIN32
 
   // Allocate context and initialize reasonable general case defaults.
   // TODO(lsm): do proper error handling here.

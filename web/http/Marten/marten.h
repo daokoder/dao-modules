@@ -126,6 +126,9 @@ struct mg_callbacks {
   int  (*http_error)(struct mg_connection *, int status);
 };
 
+
+void mg_init();
+
 // Start web server.
 //
 // Parameters:
