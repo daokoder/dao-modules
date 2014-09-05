@@ -8,6 +8,7 @@ if( daovm == none ) return
 project.UseImportLibrary( daovm, "dao" )
 project.AddIncludePath( "." )
 project.AddIncludePath( "bzip2" )
+project.SetTargetPath( "../../lib/dao/modules" )
 
 sources = 
 {
@@ -25,12 +26,9 @@ project_objs = project.AddObjects( sources )
 project_dll  = project.AddSharedLibrary( "dao_zip", project_objs )
 project_lib  = project.AddStaticLibrary( "dao_zip", project_objs )
 
-project_dll.SetTargetPath( "../../lib/dao/modules/zip" )
-project_lib.SetTargetPath( "../../lib/dao/modules/zip" )
-
 
 findpkg = DaoMake::MakePath( project.BinaryPath(), "FindDaoZip.dao" );
 project.GenerateFinder( $TRUE );
 project.Install( daovm.GetPath( "MOD-PATH" ), project_dll );
 project.Install( daovm.GetPath( "MOD-PATH" ), project_lib );
-project.Install( daovm.GetPath( "INSTALL-PATH" ) + "/shared/daomake/packages/", findpkg );
+project.Install( daovm.GetPath( "FINDER-PATH" ), findpkg );

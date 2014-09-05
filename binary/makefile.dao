@@ -6,14 +6,12 @@ daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
 if( daovm == none ) return
 
 project.UseImportLibrary( daovm, "dao" )
+project.SetTargetPath( "../../lib/dao/modules" )
 
 dao_binary_objs  = project.AddObjects( { "dao_binary.c" } )
 
 dao_binary_dll  = project.AddSharedLibrary( "dao_binary", dao_binary_objs )
 dao_binary_lib  = project.AddStaticLibrary( "dao_binary", dao_binary_objs )
-
-dao_binary_dll.SetTargetPath( "../../lib/dao/modules/binary" )
-dao_binary_lib.SetTargetPath( "../../lib/dao/modules/binary" )
 
 path = DaoMake::MakePath( daovm.GetPath( "MOD-PATH" ), "binary" )
 

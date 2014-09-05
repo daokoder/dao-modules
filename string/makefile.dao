@@ -6,6 +6,7 @@ daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
 if( daovm == none ) return
 
 project.UseImportLibrary( daovm, "dao" )
+project.SetTargetPath( "../../lib/dao/modules/string" )
 
 dao_template_objects = project.AddObjects( { "template/dao_template.c" } )
 dao_format_objects   = project.AddObjects( { "format/dao_format.c" } )
@@ -27,18 +28,6 @@ dao_xxtea_lib    = project.AddStaticLibrary( "dao_xxtea", dao_xxtea_objects )
 dao_scanner_dll  = project.AddSharedLibrary( "dao_scanner", dao_scanner_objects  )
 dao_scanner_lib  = project.AddStaticLibrary( "dao_scanner", dao_scanner_objects )
 
-dao_template_dll.SetTargetPath( "../../lib/dao/modules/string" )
-dao_template_lib.SetTargetPath( "../../lib/dao/modules/string" )
-dao_format_dll  .SetTargetPath( "../../lib/dao/modules/string" )
-dao_format_lib  .SetTargetPath( "../../lib/dao/modules/string" )
-dao_md5_dll     .SetTargetPath( "../../lib/dao/modules/string" )
-dao_md5_lib     .SetTargetPath( "../../lib/dao/modules/string" )
-dao_tokenize_dll.SetTargetPath( "../../lib/dao/modules/string" )
-dao_tokenize_lib.SetTargetPath( "../../lib/dao/modules/string" )
-dao_xxtea_dll   .SetTargetPath( "../../lib/dao/modules/string" )
-dao_xxtea_lib   .SetTargetPath( "../../lib/dao/modules/string" )
-dao_scanner_dll .SetTargetPath( "../../lib/dao/modules/string" )
-dao_scanner_lib .SetTargetPath( "../../lib/dao/modules/string" )
 
 path = DaoMake::MakePath( daovm.GetPath( "MOD-PATH" ), "string" )
 

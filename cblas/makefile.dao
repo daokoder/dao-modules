@@ -27,14 +27,12 @@ if( DaoMake::IsFile( "../../tools/clangdao/clangdao" ) && DaoMake::IsOutOfSource
 project.AddIncludePath( "../../kernel" )
 project.AddIncludePath( "../../" )
 project.AddLinkingFlag( "-lcblas" )
+project.SetTargetPath( "../../lib/dao/modules" )
 
 project_objs = project.AddObjects( source_cblas, { "dao_cblas.h" } )
 
 project_dll  = project.AddSharedLibrary( "dao_cblas", project_objs )
 project_lib  = project.AddStaticLibrary( "dao_cblas", project_objs )
-
-project_dll.SetTargetPath( "../../lib/dao/modules/cblas" )
-project_lib.SetTargetPath( "../../lib/dao/modules/cblas" )
 
 
 

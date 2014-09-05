@@ -18,11 +18,10 @@ if( ffi ){
 
 project.AddIncludePath( "." )
 project.AddIncludePath( "../../kernel" )
+project.SetTargetPath( "../../lib/dao/modules" )
 
 clinker_objs = project.AddObjects( { "dao_clinker.c" } )
 clinker_dll = project.AddSharedLibrary( "dao_clinker", clinker_objs )
-
-clinker_dll.SetTargetPath( "../../lib/dao/modules/clinker" )
 
 sample_objs = project.AddObjects( { "sample.c" } )
 sample_dll = project.AddSharedLibrary( "sample", sample_objs )
