@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2011,2012, Limin Fu
+// Copyright (c) 2011-2014, Limin Fu
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without modification,
@@ -25,11 +25,13 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef DAO_STRING_XXTEA
-#define DAO_STRING_XXTEA
+#ifndef __DAO_CRYPTO__
+#define __DAO_CRYPTO__
 
 #include<dao.h>
 
+DAO_DLL void DString_MD5( DString *self, DString *md5 );
+DAO_DLL void DString_SHA1( DString *self, DString *sha1 );
 DAO_DLL int btea(int* v, int n, int *k);
 DAO_DLL int DString_Encrypt( DString *self, DString *key, int hex );
 DAO_DLL int DString_Decrypt( DString *self, DString *key, int hex );

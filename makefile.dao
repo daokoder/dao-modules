@@ -27,6 +27,8 @@ if( DaoMake::IsDir( "xml" ) ) modules.AddDirectory( "xml", "xml" );
 
 if( DaoMake::IsDir( "zip" ) ) modules.AddDirectory( "zip", "zip" );
 
+if( DaoMake::IsDir( "crypto" ) ) modules.AddDirectory( "crypto", "crypto" );
+
 if( DaoMake::IsDir( "web" ) ) modules.AddDirectory( "web", "web" );
 
 if( DaoMake::IsDir( "DaoGraphics" ) ) modules.AddDirectory( "Graphics", "DaoGraphics" );
