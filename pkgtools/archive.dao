@@ -1,6 +1,8 @@
 
 load os.fs
 
+const dao_zip_header = "\33DaoAchive\2\0\r\n"
+
 # Simple Archive format for the Dao packaging tool.
 class Archive
 {
@@ -8,11 +10,19 @@ class Archive
 	# The string content could easily become dozens of megabytes,
 	# with implicit sharing and copying of strings, the memory
 	# consumption could easily multiply, reaching hundreds of megabytes.
-	var  buffers = {""}
+	var  buffers = { dao_zip_header, "0000" }
+	var  tops = {}
 
 	routine Add( path: string )
 
-	routine GetBuffer(){ return buffers.sum() }
+	routine GetBuffer(){
+		count = %tops
+		buffers[1][0] = (count >> 24) & 0xff
+		buffers[1][1] = (count >> 16) & 0xff
+		buffers[1][2] = (count >> 8) & 0xff
+		buffers[1][3] = count & 0xff
+		return buffers.sum()
+	}
 
 	static routine Extract( buffer: string, dest: string )
 
@@ -20,13 +30,13 @@ private
 	static routine EncodeAccess( access: string )
 	static routine DecodeAccess( code: int )
 
-	routine AddInt8( value: int )
-	routine AddInt16( value: int )
-	routine AddInt32( value: int )
-	routine AddString( data: string )
+	routine EncodeInt8( value: int )
+	routine EncodeInt16( value: int )
+	routine EncodeInt32( value: int )
+	routine EncodeString( data: string )
 
-	routine AddFile( entry: fs::file, depth = 1 )
-	routine AddDir( entry: fs::dir, depth = 1 )
+	routine EncodeFile( entry: fs::file, depth = 1 )
+	routine EncodeDir( entry: fs::dir, depth = 1 )
 
 	routine AddFile( path: string, depth = 1 )
 	routine AddDir( path: string, depth = 1 )
@@ -48,78 +58,80 @@ static routine Archive::DecodeAccess( code: int )
 	if( code & 0x4 ) access += "x"
 	return access;
 }
-routine Archive::AddInt8( value: int )
+routine Archive::EncodeInt8( value: int )
 {
 	buffers.append( string( 1, value ) )
 }
-routine Archive::AddInt16( value: int )
+routine Archive::EncodeInt16( value: int )
 {
 	temp = "  ";
 	temp[0] = (value >> 8) & 0xff
 	temp[1] = value & 0xff
-	AddString( temp )
+	EncodeString( temp )
 }
-routine Archive::AddInt32( value: int )
+routine Archive::EncodeInt32( value: int )
 {
 	temp = "    ";
 	temp[0] = (value >> 24) & 0xff
 	temp[1] = (value >> 16) & 0xff
 	temp[2] = (value >> 8) & 0xff
 	temp[3] = value & 0xff
-	AddString( temp )
+	EncodeString( temp )
 }
-routine Archive::AddString( data: string )
+routine Archive::EncodeString( data: string )
 {
 	buffers.append( data )
 }
 
-routine Archive::AddFile( entry: fs::file, depth = 1 )
+routine Archive::EncodeFile( entry: fs::file, depth = 1 )
 {
 	if( depth > 0xff ) std::error( "Directory depth higher than 255" )
 
 	access = entry.access
 
-	#io.writeln( "Adding:", entry.path )
+	#io.writeln( "Encoding:", entry.path )
 
-	AddInt8( 0xF )
-	AddInt8( depth )
-	AddInt8( EncodeAccess( access.user ) )
-	AddInt8( EncodeAccess( access.group ) )
-	AddInt8( EncodeAccess( access.other ) )
-	AddString( entry.name )
-	AddInt8( 0x0 )
-	AddInt32( entry.size )
+	EncodeInt8( 0xF )
+	EncodeInt8( depth )
+	EncodeInt8( EncodeAccess( access.user ) )
+	EncodeInt8( EncodeAccess( access.group ) )
+	EncodeInt8( EncodeAccess( access.other ) )
+	EncodeString( entry.name )
+	EncodeInt8( 0x0 )
+	EncodeInt32( entry.size )
 
-	AddString( io::read( entry.path ) )
+	EncodeString( io::read( entry.path ) )
 }
-routine Archive::AddDir( entry: fs::dir, depth = 1 )
+routine Archive::EncodeDir( entry: fs::dir, depth = 1 )
 {
 	if( depth > 0xff ) std::error( "Directory depth higher than 255" )
 
 	access = entry.access
 
-	AddInt8( 0xD )
-	AddInt8( depth )
-	AddInt8( EncodeAccess( access.user ) )
-	AddInt8( EncodeAccess( access.group ) )
-	AddInt8( EncodeAccess( access.other ) )
-	AddString( entry.name )
-	AddInt8( 0x0 )
+	EncodeInt8( 0xD )
+	EncodeInt8( depth )
+	EncodeInt8( EncodeAccess( access.user ) )
+	EncodeInt8( EncodeAccess( access.group ) )
+	EncodeInt8( EncodeAccess( access.other ) )
+	EncodeString( entry.name )
+	EncodeInt8( 0x0 )
 
-	entry.files().iterate { AddFile( X, depth + 1 ) }
-	entry.dirs().iterate { AddDir( X, depth + 1 ) }
+	entry.files().iterate { EncodeFile( X, depth + 1 ) }
+	entry.dirs().iterate { EncodeDir( X, depth + 1 ) }
 }
 routine Archive::AddFile( path: string, depth = 1 )
 {
-	AddFile( fs::file( path ), depth )
+	EncodeFile( fs::file( path ), depth )
 }
 routine Archive::AddDir( path: string, depth = 1 )
 {
-	AddDir( fs::dir( path ), depth )
+	EncodeDir( fs::dir( path ), depth )
 }
 routine Archive::Add( path: string )
 {
 	if( not fs::exists( path ) ) std::error( "Path not exist: " + path )
+
+	tops.append( path )
 
 	entry = fs::entry( path )
 	switch( entry.kind ){
@@ -132,11 +144,22 @@ routine Archive::Add( path: string )
 static routine Archive::Extract( buffer: string, dest: string )
 {
 	if( fs::exists( dest ) ) std::error( "Path already exist: " + dest )
+	if( buffer.find( dao_zip_header ) != 0 ) return std::error( "invalid Dao zip achive" );
+
 	dir = fs::cwd()
 	access = ( user = "", group = "", other = "" )
 
-	offset = 0
+	offset = % dao_zip_header
 	length = % buffer
+
+	if( offset+4 > length ) return std::error( "invalid Dao zip achive" );
+	B1 = buffer[offset+0]
+	B2 = buffer[offset+1]
+	B3 = buffer[offset+2]
+	B4 = buffer[offset+3]
+	count = (B1<<24) | (B2<<16) | (B3<<8) | B4
+
+	offset += 4
 	entryStack = { dir.mkdir( dest ) }
 	while( offset < length ){
 		if( (offset + 5) >= length ) std::error( "Invalid archive" )
@@ -167,7 +190,8 @@ static routine Archive::Extract( buffer: string, dest: string )
 			fout.close()
 			offset += 4 + len
 		}else if( etype == 0xD ){
-			entry = entryStack.back().mkdir( name )
+			entry = entryStack.back()
+			if( count > 1 or depth > 1 ) entry = entry.mkdir( name )
 			entry.access = access
 			entryStack.push( entry )
 		}else{
