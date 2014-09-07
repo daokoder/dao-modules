@@ -311,12 +311,12 @@ void DaoxGraph_ConnectedComponents( DaoxGraph *self, DList *cclist )
 static void NODE_GetWeight( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxNode *self = (DaoxNode*) p[0];
-	DaoProcess_PutDouble( proc, self->weight );
+	DaoProcess_PutFloat( proc, self->weight );
 }
 static void NODE_SetWeight( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxNode *self = (DaoxNode*) p[0];
-	self->weight = p[1]->xDouble.value;;
+	self->weight = p[1]->xFloat.value;;
 }
 static void NODE_GetValue( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -341,12 +341,12 @@ static void NODE_GetEdges( DaoProcess *proc, DaoValue *p[], int N )
 static void EDGE_GetWeight( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxEdge *self = (DaoxEdge*) p[0];
-	DaoProcess_PutDouble( proc, self->weight );
+	DaoProcess_PutFloat( proc, self->weight );
 }
 static void EDGE_SetWeight( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxEdge *self = (DaoxEdge*) p[0];
-	self->weight = p[1]->xDouble.value;;
+	self->weight = p[1]->xFloat.value;;
 }
 static void EDGE_GetValue( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -409,7 +409,7 @@ static void GRAPH_EdgeCount( DaoProcess *proc, DaoValue *p[], int N )
 static void GRAPH_RandomInit( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraph *self = (DaoxGraph*) p[0];
-	daoint added = DaoxGraph_RandomInit( self, p[1]->xInteger.value, p[2]->xDouble.value );
+	daoint added = DaoxGraph_RandomInit( self, p[1]->xInteger.value, p[2]->xFloat.value );
 	DaoProcess_PutInteger( proc, added );
 }
 
@@ -755,26 +755,26 @@ static void GMF_SetCapacity( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxGraphMaxFlow *self = (DaoxGraphMaxFlow*) p[0];
 	DaoxEdge *edge = (DaoxEdge*) p[1];
 	if( DaoxGraphData_IsAssociated( (DaoxGraphData*)self, edge->graph, proc ) == 0 ) return;
-	edge->X.MF->capacity = p[2]->xDouble.value;
+	edge->X.MF->capacity = p[2]->xFloat.value;
 }
 static void GMF_GetCapacity( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphMaxFlow *self = (DaoxGraphMaxFlow*) p[0];
 	DaoxEdge *edge = (DaoxEdge*) p[1];
 	if( DaoxGraphData_IsAssociated( (DaoxGraphData*)self, edge->graph, proc ) == 0 ) return;
-	DaoProcess_PutDouble( proc, edge->X.MF->capacity );
+	DaoProcess_PutFloat( proc, edge->X.MF->capacity );
 }
 static void GMF_GetEdgeFlow( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphMaxFlow *self = (DaoxGraphMaxFlow*) p[0];
 	DaoxEdge *edge = (DaoxEdge*) p[1];
 	if( DaoxGraphData_IsAssociated( (DaoxGraphData*)self, edge->graph, proc ) == 0 ) return;
-	DaoProcess_PutDouble( proc, edge->X.MF->flow_fw );
+	DaoProcess_PutFloat( proc, edge->X.MF->flow_fw );
 }
 static void GMF_GetGraphFlow( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxGraphMaxFlow *self = (DaoxGraphMaxFlow*) p[0];
-	DaoProcess_PutDouble( proc, self->maxflow );
+	DaoProcess_PutFloat( proc, self->maxflow );
 }
 static DaoFuncItem DaoxGraphMFMeths[]=
 {
@@ -815,12 +815,12 @@ void DaoxGraphMaxFlow_Init( DaoxGraphMaxFlow *self, DaoxGraph *graph )
 		edge->X.MF->capacity = edge->weight;
 	}
 }
-static double DaoxGraph_MaxFlow_PRTF_Double( DaoxGraph *self, DaoxNode *source, DaoxNode *sink );
+static double DaoxGraph_MaxFlow_PRTF_Float( DaoxGraph *self, DaoxNode *source, DaoxNode *sink );
 int DaoxGraphMaxFlow_Compute( DaoxGraphMaxFlow *self, DaoxNode *source, DaoxNode *sink )
 {
 	DaoxGraph *graph = self->graph;
 	if( graph == NULL || source->graph != graph || sink->graph != graph ) return 0;
-	self->maxflow = DaoxGraph_MaxFlow_PRTF_Double( graph, source, sink );
+	self->maxflow = DaoxGraph_MaxFlow_PRTF_Float( graph, source, sink );
 	return 0;
 }
 
@@ -828,7 +828,7 @@ int DaoxGraphMaxFlow_Compute( DaoxGraphMaxFlow *self, DaoxNode *source, DaoxNode
 /* Maximum Flow: Relabel-to-front algorithm, with FIFO heuristic */
 /*****************************************************************/
 
-static void MaxFlow_PushDouble( DaoxNode *node, DaoxEdge *edge )
+static void MaxFlow_PushFloat( DaoxNode *node, DaoxEdge *edge )
 {
 	DaoxEdgeMF *E = edge->X.MF;
 	DaoxNodeMF *U = node->X.MF;
@@ -850,7 +850,7 @@ static void MaxFlow_PushDouble( DaoxNode *node, DaoxEdge *edge )
 	U->excess -= send;
 	V->excess += send;
 }
-static void MaxFlow_RelabelDouble( DaoxNode *U )
+static void MaxFlow_RelabelFloat( DaoxNode *U )
 {
 	daoint min_height = 100 * U->graph->nodes->size;
 	daoint i, n;
@@ -874,7 +874,7 @@ static void MaxFlow_RelabelDouble( DaoxNode *U )
 		}
 	}
 }
-static void MaxFlow_DischargeDouble( DaoxNode *U )
+static void MaxFlow_DischargeFloat( DaoxNode *U )
 {
 	daoint i, n;
 	DaoxNodeMF *UMF = U->X.MF;
@@ -885,7 +885,7 @@ static void MaxFlow_DischargeDouble( DaoxNode *U )
 			DaoxEdgeMF *EMF = E->X.MF;
 			DaoxNodeMF *VMF = V->X.MF;
 			if( (EMF->capacity > EMF->flow_fw) && (UMF->height > VMF->height) ){
-				MaxFlow_PushDouble( U, E );
+				MaxFlow_PushFloat( U, E );
 			}else{
 				UMF->nextpush += 1;
 			}
@@ -894,17 +894,17 @@ static void MaxFlow_DischargeDouble( DaoxNode *U )
 			DaoxEdgeMF *EMF = E->X.MF;
 			DaoxNodeMF *VMF = E->first->X.MF;
 			if( (0 > EMF->flow_bw) && (UMF->height > VMF->height) ){
-				MaxFlow_PushDouble( U, E );
+				MaxFlow_PushFloat( U, E );
 			}else{
 				UMF->nextpush += 1;
 			}
 		}else{
-			MaxFlow_RelabelDouble( U );
+			MaxFlow_RelabelFloat( U );
 			UMF->nextpush = 0;
 		}
 	}
 }
-static double DaoxGraph_MaxFlow_PRTF_Double( DaoxGraph *self, DaoxNode *source, DaoxNode *sink )
+static double DaoxGraph_MaxFlow_PRTF_Float( DaoxGraph *self, DaoxNode *source, DaoxNode *sink )
 {
 	daoint i, n;
 	double inf = 1.0;
@@ -931,13 +931,13 @@ static double DaoxGraph_MaxFlow_PRTF_Double( DaoxGraph *self, DaoxNode *source, 
 	}
 	for(i=0,n=source->outs->size; i<n; i++){
 		DaoxEdge *edge = source->outs->items.pgEdge[i];
-		if( source == edge->first ) MaxFlow_PushDouble( source, edge );
+		if( source == edge->first ) MaxFlow_PushFloat( source, edge );
 	}
 	i = 0;
 	while( i < list->size ){
 		DaoxNode *U = list->items.pgNode[i];
 		daoint old_height = U->X.MF->height;
-		MaxFlow_DischargeDouble( U );
+		MaxFlow_DischargeFloat( U );
 		if( U->X.MF->height > old_height ){
 			DList_Erase( list, i, 1 );
 			DList_PushFront( list, U );

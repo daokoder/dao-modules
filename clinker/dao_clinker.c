@@ -88,7 +88,7 @@ static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 	DaoCdata *cdata;
 	DaoFFI *ffi;
 	DString *str = NULL;
-	complex16 com = { 0.0, 0.0 };
+	dao_complex com = { 0.0, 0.0 };
 	IntArgument ints[DAO_MAX_PARAM];
 	void *args[DAO_MAX_PARAM];
 	char *bytes = NULL;
@@ -134,9 +134,6 @@ static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 		case DAO_FLOAT :
 			args[i] = & p[i]->xFloat.value;
 			break;
-		case DAO_DOUBLE :
-			args[i] = & p[i]->xDouble.value;
-			break;
 		case DAO_COMPLEX :
 			args[i] = & p[i]->xComplex.value;
 			break;
@@ -166,9 +163,6 @@ static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 			case DAO_FLOAT :
 				DaoArray_ToFloat( array );
 				break;
-			case DAO_DOUBLE :
-				DaoArray_ToDouble( array );
-				break;
 			case DAO_COMPLEX :
 				break;
 			default : break;
@@ -197,9 +191,6 @@ static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 			break;
 		case DAO_FLOAT :
 			ret = (void*) DaoProcess_PutFloat( proc, 0.0 );
-			break;
-		case DAO_DOUBLE :
-			ret = (void*) DaoProcess_PutDouble( proc, 0.0 );
 			break;
 		case DAO_COMPLEX :
 			ret = (void*) DaoProcess_PutComplex( proc, com );
@@ -248,9 +239,6 @@ static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 			case DAO_FLOAT :
 				DaoArray_FromFloat( array );
 				break;
-			case DAO_DOUBLE :
-				DaoArray_FromDouble( array );
-				break;
 			case DAO_COMPLEX :
 				break;
 			default : break;
@@ -288,8 +276,7 @@ static ffi_type* ConvertType( DaoType *tp )
 			}
 		}
 		break;
-	case DAO_FLOAT  : ffitype = & ffi_type_float; break;
-	case DAO_DOUBLE : ffitype = & ffi_type_double; break;
+	case DAO_FLOAT  : ffitype = & ffi_type_double; break;
 	default : break;
 	}
 	return ffitype;

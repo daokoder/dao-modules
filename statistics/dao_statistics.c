@@ -54,12 +54,6 @@ double Mean( DaoArray *arr )
 			sum += arr->data.f[j];
 		}
 		break;
-	case DAO_DOUBLE:
-		for( i = 0; i < size; i++ ){
-			j = start + (i / len) * step + (i % len);
-			sum += arr->data.d[j];
-		}
-		break;
 	}
 	return sum/arr->size;
 }
@@ -87,13 +81,6 @@ double Variance( DaoArray *arr, double mean, int sample )
 		for( i = 0; i < size; i++ ){
 			daoint j = start + (i / len) * step + (i % len);
 			double x = arr->data.f[j];
-			sum += ( x - mean )*( x - mean );
-		}
-		break;
-	case DAO_DOUBLE:
-		for( i = 0; i < size; i++ ){
-			daoint j = start + (i / len) * step + (i % len);
-			double x = arr->data.d[j];
 			sum += ( x - mean )*( x - mean );
 		}
 		break;
@@ -140,15 +127,6 @@ double CorrelationPearson( DaoArray *arr1, DaoArray *arr2, double mean1, double 
 			sum += ( x - mean1 )*( y - mean2 );
 		}
 		break;
-	case DAO_DOUBLE:
-		for( i = 0; i < size1; i++ ){
-			daoint j1 = start1 + (i / len1) * step1 + (i % len1);
-			daoint j2 = start2 + (i / len2) * step2 + (i % len2);
-			double x = arr1->data.d[j1];
-			double y = arr2->data.d[j2];
-			sum += ( x - mean1 )*( y - mean2 );
-		}
-		break;
 	}
 	return sum/size1/dev1/dev2;
 }
@@ -171,19 +149,13 @@ void CopyToDouble( DaoArray *src, DaoArray *dest )
 	case DAO_INTEGER:
 		for( i = 0; i < size; i++ ){
 			j = start + (i / len) * step + (i % len);
-			dest->data.d[i] = src->data.i[j];
+			dest->data.f[i] = src->data.i[j];
 		}
 		break;
 	case DAO_FLOAT:
 		for( i = 0; i < size; i++ ){
 			j = start + (i / len) * step + (i % len);
-			dest->data.d[i] = src->data.f[j];
-		}
-		break;
-	case DAO_DOUBLE:
-		for( i = 0; i < size; i++ ){
-			j = start + (i / len) * step + (i % len);
-			dest->data.d[i] = src->data.d[j];
+			dest->data.f[i] = src->data.f[j];
 		}
 		break;
 	}
@@ -192,16 +164,16 @@ void CopyToDouble( DaoArray *src, DaoArray *dest )
 void ValuesToRanks( DaoArray *arr )
 {
 	daoint i;
-	if ( arr->etype != DAO_DOUBLE )
+	if ( arr->etype != DAO_FLOAT)
 		return;
 	for ( i = 0; i < arr->size; ){
 		daoint j, count = 1, rank = i + 1;
-		for ( j = i + 1; j < arr->size && arr->data.d[i] == arr->data.d[j]; j++ ){
+		for ( j = i + 1; j < arr->size && arr->data.f[i] == arr->data.f[j]; j++ ){
 			rank += j + 1;
 			count++;
 		}
 		for ( j = i; j < i + count; j++ )
-			arr->data.d[j] = rank/(double)count;
+			arr->data.f[j] = rank/(double)count;
 		i += count;
 	}
 }
@@ -215,8 +187,8 @@ double CorrelationSpearman( DaoArray *arr1, DaoArray *arr2 )
 		return 0;
 	if ( !size || arr1->etype != arr2->etype )
 		return 0;
-	ranks1 = DaoArray_New( DAO_DOUBLE );
-	ranks2 = DaoArray_New( DAO_DOUBLE );
+	ranks1 = DaoArray_New( DAO_FLOAT );
+	ranks2 = DaoArray_New( DAO_FLOAT );
 	CopyToDouble( arr1, ranks1 );
 	CopyToDouble( arr2, ranks2 );
 	qsort( ranks1->data.p, size, sizeof(double), CompareDoubles );
@@ -256,13 +228,6 @@ double Moment( DaoArray *arr, int kurtosis, double mean )
 			sum += pow( ( x - mean )/dev, pw );
 		}
 		break;
-	case DAO_DOUBLE:
-		for( i = 0; i < size; i++ ){
-			daoint j = start + (i / len) * step + (i % len);
-			daoint x = arr->data.d[j];
-			sum += pow( ( x - mean )/dev, pw );
-		}
-		break;
 	}
 	return sum/size - ( kurtosis? 3 : 0 );
 }
@@ -274,7 +239,7 @@ static void DaoStat_Mean( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, "Value", "Empty sample" );
 		return;
 	}
-	DaoProcess_PutDouble( proc, Mean( arr ) );
+	DaoProcess_PutFloat( proc, Mean( arr ) );
 }
 
 static void DaoStat_Variance( DaoProcess *proc, DaoValue *p[], int N )
@@ -294,18 +259,18 @@ static void DaoStat_Variance( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, "Value", "Calculating sample variance on a single-element sample" );
 		return;
 	}
-	if ( N > 1 && p[1]->type == DAO_DOUBLE )
-		mean =  p[1]->xDouble.value;
+	if ( N > 1 && p[1]->type == DAO_FLOAT )
+		mean =  p[1]->xFloat.value;
 	else
 		mean = Mean( arr );
-	DaoProcess_PutDouble( proc, Variance( arr, mean, sample ) );
+	DaoProcess_PutFloat( proc, Variance( arr, mean, sample ) );
 }
 
 static void DaoStat_Percentile( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoArray *arr = &p[0]->xArray;
 	daoint i, j, count;
-	double perc = N == 1? 50.0 : p[1]->xDouble.value;
+	double perc = N == 1? 50.0 : p[1]->xFloat.value;
 	int odd;
 	DaoArray_Sliced( arr );
 	if ( !arr->size ){
@@ -339,7 +304,7 @@ static void DaoStat_Percentile( DaoProcess *proc, DaoValue *p[], int N )
 	switch ( arr->etype ){
 	case DAO_INTEGER:
 		for ( i = 0; i < count; i++ ){
-			daoint min = arr->data.i[i];
+			dao_integer min = arr->data.i[i];
 			daoint index = i;
 			for ( j = i + 1; j < arr->size; j++ )
 				if ( arr->data.i[j] < min ){
@@ -349,11 +314,11 @@ static void DaoStat_Percentile( DaoProcess *proc, DaoValue *p[], int N )
 			arr->data.i[i] = arr->data.i[index];
 			arr->data.i[index] = min;
 		}
-		DaoProcess_PutDouble( proc, odd? (double)arr->data.i[count - 1] : ( (double)arr->data.i[count - 1] + arr->data.i[count - 2] )/2 );
+		DaoProcess_PutFloat( proc, odd? (double)arr->data.i[count - 1] : ( (double)arr->data.i[count - 1] + arr->data.i[count - 2] )/2 );
 		break;
 	case DAO_FLOAT:
 		for ( i = 0; i < count; i++ ){
-			float min = arr->data.f[i];
+			double min = arr->data.f[i];
 			daoint index = i;
 			for ( j = i + 1; j < arr->size; j++ )
 				if ( arr->data.f[j] < min ){
@@ -363,21 +328,7 @@ static void DaoStat_Percentile( DaoProcess *proc, DaoValue *p[], int N )
 			arr->data.f[i] = arr->data.f[index];
 			arr->data.f[index] = min;
 		}
-		DaoProcess_PutDouble( proc, odd? (double)arr->data.f[count - 1] : ( (double)arr->data.f[count - 1] + arr->data.f[count - 2] )/2 );
-		break;
-	case DAO_DOUBLE:
-		for ( i = 0; i < count; i++ ){
-			double min = arr->data.d[i];
-			daoint index = i;
-			for ( j = i + 1; j < arr->size; j++ )
-				if ( arr->data.d[j] < min ){
-					min = arr->data.d[j];
-					index = j;
-				}
-			arr->data.d[i] = arr->data.d[index];
-			arr->data.d[index] = min;
-		}
-		DaoProcess_PutDouble( proc, odd? arr->data.d[count - 1] : ( arr->data.d[count - 1] + arr->data.d[count - 2] )/2 );
+		DaoProcess_PutFloat( proc, odd? (double)arr->data.f[count - 1] : ( (double)arr->data.f[count - 1] + arr->data.f[count - 2] )/2 );
 		break;
 	}
 }
@@ -390,7 +341,7 @@ static void DaoStat_Mode( DaoProcess *proc, DaoValue *p[], int N )
 	DNode *node;
 	char key[sizeof(void*)*2], value[sizeof(void*)*2];
 	void *pkey = &key;
-	daoint *pval = (daoint*)&value;
+	dao_integer *pval = (dao_integer*)&value;
 	memset( pkey, 0, sizeof(key) );
 	memset( pval, 0, sizeof(value) );
 	DaoArray_Sliced( arr );
@@ -401,26 +352,24 @@ static void DaoStat_Mode( DaoProcess *proc, DaoValue *p[], int N )
 	hash = DHash_New( DAO_DATA_VOID2, DAO_DATA_VOID2 );
 	for ( i = 0; i < arr->size; i++ ){
 		switch ( arr->etype ){
-		case DAO_INTEGER:	*(daoint*)pkey = arr->data.i[i]; break;
-		case DAO_FLOAT:		*(float*)pkey = arr->data.f[i]; break;
-		case DAO_DOUBLE:	*(double*)pkey = arr->data.d[i]; break;
+		case DAO_INTEGER:	*(dao_integer*)pkey = arr->data.i[i]; break;
+		case DAO_FLOAT:		*(double*)pkey = arr->data.f[i]; break;
 		}
 		node = DMap_Find( hash, pkey );
 		if ( node )
-			*pval = *(daoint*)node->value.pVoid + 1;
+			*pval = *(dao_integer*)node->value.pVoid + 1;
 		else
 			*pval = 1;
 		DMap_Insert( hash, pkey, pval );
 	}
 	for ( node = DMap_First( hash ); node; node = DMap_Next( hash, node ) )
-		if ( *(daoint*)node->value.pVoid > freq ){
-			freq = *(daoint*)node->value.pVoid;
+		if ( *(dao_integer*)node->value.pVoid > freq ){
+			freq = *(dao_integer*)node->value.pVoid;
 			memmove( pkey, node->key.pVoid, sizeof(key) );
 		}
 	switch ( arr->etype ){
-	case DAO_INTEGER:	DaoProcess_PutInteger( proc, *(daoint*)pkey ); break;
-	case DAO_FLOAT:		DaoProcess_PutFloat( proc, *(float*)pkey ); break;
-	case DAO_DOUBLE:	DaoProcess_PutDouble( proc, *(double*)pkey ); break;
+	case DAO_INTEGER:	DaoProcess_PutInteger( proc, *(dao_integer*)pkey ); break;
+	case DAO_FLOAT:		DaoProcess_PutFloat( proc, *(dao_float*)pkey ); break;
 	}
 	DMap_Delete( hash );
 }
@@ -443,7 +392,7 @@ static void DaoStat_MinMax( DaoProcess *proc, DaoValue *p[], int N )
 	switch ( arr->etype ){
 	case DAO_INTEGER:
 		if ( 1 ){
-			daoint min, max;
+			dao_integer min, max;
 			min = max = arr->data.i[start];
 			for ( i = 0; i < size; i++ ){
 				j = start + (i / len) * step + (i % len);
@@ -458,7 +407,7 @@ static void DaoStat_MinMax( DaoProcess *proc, DaoValue *p[], int N )
 		break;
 	case DAO_FLOAT:
 		if ( 1 ){
-			float min, max;
+			dao_float min, max;
 			min = max = arr->data.f[start];
 			for ( i = 0; i < size; i++ ){
 				j = start + (i / len) * step + (i % len);
@@ -469,21 +418,6 @@ static void DaoStat_MinMax( DaoProcess *proc, DaoValue *p[], int N )
 			}
 			tup->values[0]->xFloat.value = min;
 			tup->values[1]->xFloat.value = max;
-		}
-		break;
-	case DAO_DOUBLE:
-		if ( 1 ){
-			double min, max;
-			min = max = arr->data.d[start];
-			for ( i = 0; i < arr->size; i++ ){
-				j = start + (i / len) * step + (i % len);
-				if ( arr->data.d[j] < min )
-					min = arr->data.d[j];
-				else if ( arr->data.d[j] > max )
-					max = arr->data.d[j];
-			}
-			tup->values[0]->xDouble.value = min;
-			tup->values[1]->xDouble.value = max;
 		}
 		break;
 	}
@@ -526,17 +460,6 @@ static void DaoStat_Distribution( DaoProcess *proc, DaoValue *p[], int N )
 			DaoMap_Insert( hash, (DaoValue*)&key, (DaoValue*)&val );
 		}
 		break;
-	case DAO_DOUBLE:
-		for ( i = 0; i < size; i++ ){
-			daoint j = start + (i / len) * step + (i % len);
-			DaoDouble key = {DAO_DOUBLE, 0, 0, 0, 0, arr->data.d[j]};
-			DaoInteger val = {DAO_INTEGER, 0, 0, 0, 0, 1};
-			DaoValue *value = DaoMap_GetValue( hash, (DaoValue*)&key );
-			if ( value )
-				val.value = value->xInteger.value + 1;
-			DaoMap_Insert( hash, (DaoValue*)&key, (DaoValue*)&val );
-		}
-		break;
 	}
 }
 
@@ -548,7 +471,7 @@ static void DaoStat_DistribGroup( DaoProcess *proc, DaoValue *p[], int N )
 	daoint len = DaoArray_GetWorkIntervalSize( arr );
 	daoint step = DaoArray_GetWorkStep( arr );
 	daoint i;
-	double stval = p[2]->xDouble.value, interval = p[1]->xDouble.value;
+	double stval = p[2]->xFloat.value, interval = p[1]->xFloat.value;
 	DaoMap *hash = DaoProcess_PutMap( proc, 1 );
 	arr = DaoArray_GetWorkArray( arr );
 	if ( !size ){
@@ -568,7 +491,6 @@ static void DaoStat_DistribGroup( DaoProcess *proc, DaoValue *p[], int N )
 		switch ( arr->etype ){
 		case DAO_INTEGER:	item = arr->data.i[j]; break;
 		case DAO_FLOAT:		item = arr->data.f[j]; break;
-		case DAO_DOUBLE:	item = arr->data.d[j]; break;
 		}
 		if ( item >= stval ){
 			key.value = ( item - stval )/interval;
@@ -596,17 +518,17 @@ static void DaoStat_Correlation( DaoProcess *proc, DaoValue *p[], int N )
 	if ( pearson ){
 		double mean1, mean2;
 		if ( N == 5 ){
-			mean1 = p[3]->xDouble.value;
-			mean2 = p[4]->xDouble.value;
+			mean1 = p[3]->xFloat.value;
+			mean2 = p[4]->xFloat.value;
 		}
 		else {
 			mean1 = Mean( arr1 );
 			mean2 = Mean( arr2 );
 		}
-		DaoProcess_PutDouble( proc, CorrelationPearson( arr1, arr2, mean1, mean2 ));
+		DaoProcess_PutFloat( proc, CorrelationPearson( arr1, arr2, mean1, mean2 ));
 	}
 	else
-		DaoProcess_PutDouble( proc, CorrelationSpearman( arr1, arr2 ));
+		DaoProcess_PutFloat( proc, CorrelationSpearman( arr1, arr2 ));
 }
 
 static void DaoStat_Kurtosis( DaoProcess *proc, DaoValue *p[], int N )
@@ -618,10 +540,10 @@ static void DaoStat_Kurtosis( DaoProcess *proc, DaoValue *p[], int N )
 		return;
 	}
 	if ( N == 2 )
-		mean = p[1]->xDouble.value;
+		mean = p[1]->xFloat.value;
 	else
 		mean = Mean( arr );
-	DaoProcess_PutDouble( proc, Moment( arr, 1, mean ) );
+	DaoProcess_PutFloat( proc, Moment( arr, 1, mean ) );
 }
 
 static void DaoStat_Skewness( DaoProcess *proc, DaoValue *p[], int N )
@@ -633,10 +555,10 @@ static void DaoStat_Skewness( DaoProcess *proc, DaoValue *p[], int N )
 		return;
 	}
 	if ( N == 2 )
-		mean = p[1]->xDouble.value;
+		mean = p[1]->xFloat.value;
 	else
 		mean = Mean( arr );
-	DaoProcess_PutDouble( proc, Moment( arr, 0, mean ) );
+	DaoProcess_PutFloat( proc, Moment( arr, 0, mean ) );
 }
 
 static DaoFuncItem statMeths[] =

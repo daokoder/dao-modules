@@ -56,15 +56,11 @@ int JSON_SerializeValue( DaoValue *value, DString *text, int indent )
 	DString *str;
 	switch( value->type ){
 	case DAO_INTEGER:
-		snprintf( buf, sizeof(buf), "%"DAO_INT_FORMAT, DaoValue_TryGetInteger( value ) );
+		snprintf( buf, sizeof(buf), "%lli", DaoValue_TryGetInteger( value ) );
 		DString_AppendChars( text, buf );
 		break;
 	case DAO_FLOAT:
 		snprintf( buf, sizeof(buf), "%f", DaoValue_TryGetFloat( value ) );
-		DString_AppendChars( text, buf );
-		break;
-	case DAO_DOUBLE:
-		snprintf( buf, sizeof(buf), "%f", DaoValue_TryGetDouble( value ) );
 		DString_AppendChars( text, buf );
 		break;
 	case DAO_ENUM:
@@ -246,7 +242,7 @@ DaoValue* JSON_ParseNumber( DaoProcess *process, char* *text )
 	if( errno == ERANGE || ( *stop != '\0' && strchr( "eE.", *stop ) != NULL && stop != *text ) ){
 		dres = strtod( *text, &stop );
 		*text = stop;
-		return (DaoValue*) DaoProcess_NewDouble( process, dres );
+		return (DaoValue*) DaoProcess_NewFloat( process, dres );
 	}
 	else if( stop != *text ){
 		*text = stop;

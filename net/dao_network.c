@@ -426,10 +426,8 @@ static int DaoNetwork_SendNumber( int sockfd, DaoValue *data )
 {
 	if( DaoValue_Type( data ) == DAO_INTEGER )
 		return DaoNetwork_SendInteger( sockfd, DaoValue_TryGetInteger( data ) );
-	else if(  DaoValue_Type( data ) == DAO_FLOAT )
-		return DaoNetwork_SendFloat( sockfd, DaoValue_TryGetFloat( data ) );
 	else
-		return DaoNetwork_SendFloat( sockfd, DaoValue_TryGetDouble( data ) );
+		return DaoNetwork_SendFloat( sockfd, DaoValue_TryGetFloat( data ) );
 }
 static int DaoNetwork_SendChars( int sockfd, const char *mbs, int len )
 {
@@ -457,7 +455,7 @@ static int DaoNetwork_SendString( int sockfd, DString *str )
 {
 	return DaoNetwork_SendChars( sockfd, DString_GetData( str ), DString_Size( str ) );
 }
-static int DaoNetwork_SendComplex( int sockfd, complex16 data )
+static int DaoNetwork_SendComplex( int sockfd, dao_complex data )
 {
 	DaoDataPacket packet;
 	int len, length = offset;
@@ -488,7 +486,7 @@ static int DaoNetwork_SendArray( int sockfd, DaoArray *data )
 	packet.dataI1 = htonl( M );
 	packet.dataI2 = htonl( 0 );
 	if( numtype == DAO_INTEGER ){
-		daoint *vec = DaoArray_ToInteger( data );
+		dao_integer *vec = DaoArray_ToInteger( data );
 		for(j=0; j<M; j++){
 			DaoPrintNumber( buf2, vec[j] );
 			len = strlen( buf2 ) + 1;
@@ -504,24 +502,7 @@ static int DaoNetwork_SendArray( int sockfd, DaoArray *data )
 			}
 		}
 	}else if( numtype == DAO_FLOAT ){
-		float *vec = DaoArray_ToFloat( data );
-		for(j=0; j<M; j++){
-			DaoPrintNumber( buf2, vec[j] );
-			len = strlen( buf2 ) + 1;
-			length += len;
-			buf2 += len;
-			if( length >= MAX_DATA ){
-				packet.size = htons( offset + length );
-				if( LoopSend( sockfd, (char*) &packet, offset + length, 0) == -1 )
-					return -1;
-				length = 0;
-				buf2 = packet.data;
-				packet.dataI2 = htonl( j+1 );
-			}
-		}
-	}else{
 		double *vec = DaoArray_ToDouble( data );
-		if( numtype == DAO_COMPLEX ) M += M;
 		for(j=0; j<M; j++){
 			DaoPrintNumber( buf2, vec[j] );
 			len = strlen( buf2 ) + 1;
@@ -549,7 +530,6 @@ static int DaoNetwork_SendExt( DaoProcess *proc, int sockfd, DaoValue *data[], i
 		switch( DaoValue_Type( item ) ){
 		case DAO_INTEGER :
 		case DAO_FLOAT :
-		case DAO_DOUBLE :
 			res = DaoNetwork_SendNumber( sockfd, item );
 			break;
 		case DAO_STRING :
@@ -574,12 +554,11 @@ int DaoNetwork_ReceiveExt( DaoProcess *proc, int sockfd, DaoList *data )
 	char buf[ MAX_DATA + MAX_DATA + 100];
 	char *buf2 = buf;
 	short numtype;
-	complex16  com;
+	dao_complex  com;
 	DaoArray *arr = NULL;
 	DaoValue *item;
 	DString  *str = DString_New();
-	float *fv = NULL;
-	double *dv = NULL;
+	double *fv = NULL;
 	DaoDataPacket *inpack;
 	int dpp = 0, count = 0;
 	char bufin[ MAX_DATA + MAX_DATA + 2 ];
@@ -633,10 +612,6 @@ int DaoNetwork_ReceiveExt( DaoProcess *proc, int sockfd, DaoList *data )
 				/* printf( "number: %s %g\n", inpack->data, num->item.f ); */
 				DaoList_PushBack( data, item );
 				break;
-			case DAO_DOUBLE :
-				item = (DaoValue*) DaoProcess_NewDouble( proc, DaoParseNumber( inpack->data ) );
-				DaoList_PushBack( data, item );
-				break;
 			case DAO_STRING :
 				if( inpack->tag == 0 ) DString_Clear( str );
 				DString_AppendChars( str, inpack->data );
@@ -665,7 +640,7 @@ int DaoNetwork_ReceiveExt( DaoProcess *proc, int sockfd, DaoList *data )
 					DaoList_PushBack( data, item );
 				}
 				if( numtype == DAO_INTEGER ){
-					daoint *iv = DaoArray_ToInteger( arr );
+					dao_integer *iv = DaoArray_ToInteger( arr );
 					for(i=j; i<M; i++){
 						iv[i] = DaoParseNumber( buf2 );
 						while( *buf2 ) buf2 ++;
@@ -673,18 +648,9 @@ int DaoNetwork_ReceiveExt( DaoProcess *proc, int sockfd, DaoList *data )
 						if( ( buf2 - inpack->data ) >= MAX_DATA ) break;
 					}
 				}else if( numtype == DAO_FLOAT ){
-					fv = DaoArray_ToFloat( arr );
+					fv = DaoArray_ToDouble( arr );
 					for(i=j; i<M; i++){
 						fv[i] = DaoParseNumber( buf2 );
-						while( *buf2 ) buf2 ++;
-						buf2 ++;
-						if( ( buf2 - inpack->data ) >= MAX_DATA ) break;
-					}
-				}else{
-					dv = DaoArray_ToDouble( arr );
-					if( numtype == DAO_COMPLEX ) M += M;
-					for(i=j; i<M; i++){
-						dv[i] = DaoParseNumber( buf2 );
 						while( *buf2 ) buf2 ++;
 						buf2 ++;
 						if( ( buf2 - inpack->data ) >= MAX_DATA ) break;

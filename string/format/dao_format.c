@@ -34,6 +34,7 @@
 #include"dao.h"
 #include"daoValue.h"
 #include"daoStdtype.h"
+#include"daoNumtype.h"
 
 
 struct Format
@@ -92,7 +93,7 @@ static int PrintValue( DaoValue *value, DString *dest, Format *format, DString *
 				sprintf( buf, fmt, (double)DaoValue_TryGetInteger( value ) );
 		}
 		else
-			sprintf( buf, "%"DAO_INT_FORMAT, DaoValue_TryGetInteger( value ) );
+			sprintf( buf, "%lli", DaoValue_TryGetInteger( value ) );
 		break;
 	case DAO_FLOAT:
 		if( notation ){
@@ -104,19 +105,9 @@ static int PrintValue( DaoValue *value, DString *dest, Format *format, DString *
 		else
 			sprintf( buf, "%g", DaoValue_TryGetFloat( value ) );
 		break;
-	case DAO_DOUBLE:
-		if( notation ){
-			if( integer )
-				sprintf( buf, fmt, (daoint)DaoValue_TryGetDouble( value ) );
-			else
-				sprintf( buf, fmt, DaoValue_TryGetDouble( value ) );
-		}
-		else
-			sprintf( buf, "%g", DaoValue_TryGetDouble( value ) );
-		break;
 	case DAO_COMPLEX:
 		if( notation ){
-			complex16 comp = DaoValue_TryGetComplex( value );
+			dao_complex comp = DaoValue_TryGetComplex( value );
 			strcat( fmt, "%+" );
 			if( format->sign )
 				strncpy( fmt + len + 2, fmt + 2, len - 2 );
@@ -226,7 +217,7 @@ static int PrintValue( DaoValue *value, DString *dest, Format *format, DString *
 	case DAO_ARRAY:
 		valarray = DaoValue_CastArray( value );
 		if( sliced ){
-			complex16 comp = {0, 0};
+			dao_complex comp = {0, 0};
 			int rowsize = 1, maxdim;
 			if( DaoArray_SizeOfDim( valarray, 0 ) != 1 ){
 				maxdim = DaoArray_SizeOfDim( valarray, 0 );
@@ -246,7 +237,6 @@ static int PrintValue( DaoValue *value, DString *dest, Format *format, DString *
 			switch( DaoArray_NumType( valarray ) ){
 			case DAO_INTEGER: number = DaoInteger_New( 0 ); break;
 			case DAO_FLOAT:   number = DaoFloat_New( 0 ); break;
-			case DAO_DOUBLE:  number = DaoDouble_New( 0 ); break;
 			case DAO_COMPLEX: number = DaoComplex_New( comp ); break;
 			default: break;
 			}
@@ -255,11 +245,9 @@ static int PrintValue( DaoValue *value, DString *dest, Format *format, DString *
 				if( i != index*rowsize )
 					DString_AppendChars( dest, ", " );
 				switch( DaoArray_NumType( valarray ) ){
-				case DAO_INTEGER: DaoInteger_Set( (DaoInteger*)number, DaoArray_ToInteger( valarray )[i] ); break;
-				case DAO_FLOAT:   DaoFloat_Set( (DaoFloat*)number, DaoArray_ToFloat( valarray )[i] ); break;
-				case DAO_DOUBLE:  DaoDouble_Set( (DaoDouble*)number, DaoArray_ToDouble( valarray )[i] ); break;
-				case DAO_COMPLEX: DaoComplex_Set( (DaoComplex*)number,
-												  ( (complex16*)DaoArray_GetBuffer( valarray ) )[i] ); break;
+				case DAO_INTEGER: DaoInteger_Set( (DaoInteger*)number, DaoArray_GetInteger( valarray, i ) ); break;
+				case DAO_FLOAT:   DaoFloat_Set( (DaoFloat*)number, DaoArray_GetFloat( valarray, i ) ); break;
+				case DAO_COMPLEX: DaoComplex_Set( (DaoComplex*)number, DaoArray_GetComplex( valarray, i ) ); break;
 				default: break;
 				}
 				PrintValue( (DaoValue*)number, dest, format, tmp, buffer );
@@ -273,10 +261,9 @@ static int PrintValue( DaoValue *value, DString *dest, Format *format, DString *
 				return 6;
 			format->indexed = 0;
 			switch( DaoArray_NumType( valarray ) ){
-			case DAO_INTEGER: number = DaoInteger_New( DaoArray_ToInteger( valarray )[index] ); break;
-			case DAO_FLOAT:   number = DaoFloat_New( DaoArray_ToFloat( valarray )[index] ); break;
-			case DAO_DOUBLE:  number = DaoDouble_New( DaoArray_ToDouble( valarray )[index] ); break;
-			case DAO_COMPLEX: number = DaoComplex_New( ( (complex16*)DaoArray_GetBuffer( valarray ) )[index] ); break;
+			case DAO_INTEGER: number = DaoInteger_New( DaoArray_GetInteger( valarray, index ) ); break;
+			case DAO_FLOAT:   number = DaoFloat_New( DaoArray_GetFloat( valarray, index ) ); break;
+			case DAO_COMPLEX: number = DaoComplex_New( DaoArray_GetComplex( valarray, index ) ); break;
 			default: break;
 			}
 			res = PrintValue( (DaoValue*)number, dest, format, tmp, buffer );
@@ -284,11 +271,10 @@ static int PrintValue( DaoValue *value, DString *dest, Format *format, DString *
 			return res;
 		}
 		else{
-			complex16 comp = {0, 0};
+			dao_complex comp = {0, 0};
 			switch( DaoArray_NumType( valarray ) ){
 			case DAO_INTEGER: number = DaoInteger_New( 0 ); break;
 			case DAO_FLOAT:   number = DaoFloat_New( 0 ); break;
-			case DAO_DOUBLE:  number = DaoDouble_New( 0 ); break;
 			case DAO_COMPLEX: number = DaoComplex_New( comp ); break;
 			default: break;
 			}
@@ -296,11 +282,9 @@ static int PrintValue( DaoValue *value, DString *dest, Format *format, DString *
 				if( i )
 					DString_AppendChars( dest, ", " );
 				switch( DaoArray_NumType( valarray ) ){
-				case DAO_INTEGER: DaoInteger_Set( (DaoInteger*)number, DaoArray_ToInteger( valarray )[i] ); break;
-				case DAO_FLOAT:   DaoFloat_Set( (DaoFloat*)number, DaoArray_ToFloat( valarray )[i] ); break;
-				case DAO_DOUBLE:  DaoDouble_Set( (DaoDouble*)number, DaoArray_ToDouble( valarray )[i] ); break;
-				case DAO_COMPLEX: DaoComplex_Set( (DaoComplex*)number,
-												  ( (complex16*)DaoArray_GetBuffer( valarray ) )[i] ); break;
+				case DAO_INTEGER: DaoInteger_Set( (DaoInteger*)number, DaoArray_GetInteger( valarray, i ) ); break;
+				case DAO_FLOAT:   DaoFloat_Set( (DaoFloat*)number, DaoArray_GetFloat( valarray, i ) ); break;
+				case DAO_COMPLEX: DaoComplex_Set( (DaoComplex*)number, DaoArray_GetComplex( valarray, i ) ); break;
 				default: break;
 				}
 				PrintValue( (DaoValue*)number, dest, format, tmp, buffer );

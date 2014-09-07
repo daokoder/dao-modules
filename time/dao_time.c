@@ -540,7 +540,7 @@ static void DaoTime_Diff( DaoProcess *proc, DaoValue *p[], int N )
 	DaoTime *other = (DaoTime*)DaoValue_TryGetCdata( p[1] );
 	DaoTuple *res = DaoProcess_PutTuple( proc, 2 );
 	res->values[0]->xInteger.value = other->jday - self->jday;
-	res->values[1]->xDouble.value = difftime( other->value, self->value );
+	res->values[1]->xFloat.value = difftime( other->value, self->value );
 }
 
 static void DaoTime_Days( DaoProcess *proc, DaoValue *p[], int N )

@@ -1948,7 +1948,6 @@ void RaiseAttrConvError( DaoProcess *proc, DString *attr, uchar_t type )
 	switch ( type ){
 	case DAO_INTEGER:	strcat( buf, "int" ); break;
 	case DAO_FLOAT:		strcat( buf, "float" ); break;
-	case DAO_DOUBLE:	strcat( buf, "double" ); break;
 	case DAO_STRING:	strcat( buf, "string" ); break;
 	case DAO_ENUM:		strcat( buf, "enum" ); break;
 	default:			strcat( buf, "?" ); break;
@@ -1994,13 +1993,6 @@ static void DaoXMLElement_MapAttribs( DaoProcess *proc, DaoValue *p[], int N )
 					break;
 				case DAO_FLOAT:
 					tup->values[i]->xFloat.value = strtod( val->chars, &end );
-					if( *end != '\0' ){
-						RaiseAttrConvError( proc, key, type );
-						goto Error;
-					}
-					break;
-				case DAO_DOUBLE:
-					tup->values[i]->xDouble.value = strtod( val->chars, &end );
 					if( *end != '\0' ){
 						RaiseAttrConvError( proc, key, type );
 						goto Error;
@@ -2197,7 +2189,6 @@ void RaiseElemConvError( DaoProcess *proc, DString *path, DString *tag, uchar_t 
 	switch ( type ){
 	case DAO_INTEGER:	strcat( buf, "int" ); break;
 	case DAO_FLOAT:		strcat( buf, "float" ); break;
-	case DAO_DOUBLE:	strcat( buf, "double" ); break;
 	case DAO_STRING:	strcat( buf, "string" ); break;
 	case DAO_ENUM:		strcat( buf, "enum" ); break;
 	case DAO_TUPLE:		strcat( buf, "tuple" ); break;
@@ -2271,13 +2262,6 @@ int MapContent( DaoProcess *proc, DaoXMLElement *el, DaoTuple *tup, DString *pat
 						break;
 					case DAO_FLOAT:
 						tup->values[i]->xFloat.value = strtod( data->chars, &end );
-						if( *end != '\0' ){
-							RaiseElemConvError( proc, path, tag, tp );
-							goto Error;
-						}
-						break;
-					case DAO_DOUBLE:
-						tup->values[i]->xDouble.value = strtod( data->chars, &end );
 						if( *end != '\0' ){
 							RaiseElemConvError( proc, path, tag, tp );
 							goto Error;
@@ -2424,7 +2408,6 @@ int WriteContent( DaoProcess *proc, DaoXMLElement *dest, DString *tag, DaoValue 
 		switch ( src->type ){
 		case DAO_INTEGER:
 		case DAO_FLOAT:
-		case DAO_DOUBLE:
 		case DAO_STRING:
 			DaoValue_GetString( src, el->c.text );
 			if ( 1 ){
@@ -2861,9 +2844,6 @@ static void DaoXMLWriter_Text( DaoProcess *proc, DaoValue *p[], int N )
 		break;
 	case DAO_FLOAT:
 		WriteDouble( self->stream, p[1]->xFloat.value );
-		break;
-	case DAO_DOUBLE:
-		WriteDouble( self->stream, p[1]->xDouble.value );
 		break;
 	case DAO_ENUM:
 		if ( 1 ){

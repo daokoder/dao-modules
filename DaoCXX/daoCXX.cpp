@@ -185,7 +185,6 @@ static int dao_make_wrapper( DString *name, DaoType *routype, DString *cproto, D
 		switch( type->tid ){
 		case DAO_INTEGER :
 		case DAO_FLOAT :
-		case DAO_DOUBLE :
 			DString_Append( cc, pname );
 			DString_Append( cproto, type->name );
 			DString_AppendChar( cproto, ' ' );
@@ -196,7 +195,6 @@ static int dao_make_wrapper( DString *name, DaoType *routype, DString *cproto, D
 			switch( type->tid ){
 			case DAO_INTEGER : DString_AppendChars( wrapper, " = DaoValue_TryGetInteger( _p[" ); break;
 			case DAO_FLOAT   : DString_AppendChars( wrapper, " = DaoValue_TryGetFloat( _p[" ); break;
-			case DAO_DOUBLE  : DString_AppendChars( wrapper, " = DaoValue_TryGetDouble( _p[" ); break;
 			}
 			DString_AppendChars( wrapper, sindex );
 			DString_AppendChars( wrapper, "] );\n" );
@@ -309,7 +307,6 @@ static int dao_make_wrapper( DString *name, DaoType *routype, DString *cproto, D
 		switch( type->tid ){
 		case DAO_INTEGER :
 		case DAO_FLOAT :
-		case DAO_DOUBLE :
 			DString_InsertChars( cproto, " ", 0, 0, 0 );
 			DString_Insert( cproto, type->name, 0, 0, 0 );
 			DString_Append( wrapper, type->name );
@@ -321,9 +318,6 @@ static int dao_make_wrapper( DString *name, DaoType *routype, DString *cproto, D
 				break;
 			case DAO_FLOAT :
 				DString_AppendChars( wrapper, "DaoProcess_PutFloat( _proc, _res );\n" );
-				break;
-			case DAO_DOUBLE :
-				DString_AppendChars( wrapper, "DaoProcess_PutDouble( _proc, _res );\n" );
 				break;
 			}
 			break;

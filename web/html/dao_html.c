@@ -105,7 +105,6 @@ void WriteAttrValue( DaoValue *value, DString *dest )
 		break;
 	case DAO_INTEGER:
 	case DAO_FLOAT:
-	case DAO_DOUBLE:
 		DaoValue_GetString( value, buf );
 		DString_Append( dest, buf );
 		break;

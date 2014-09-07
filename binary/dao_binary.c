@@ -337,10 +337,9 @@ static void DaoBinary_Read( DaoProcess *proc, DaoValue *p[], int N )
 		return;
 	}
 	switch( arr->etype ){
-	case DAO_INTEGER:	size = sizeof(daoint); break;
-	case DAO_FLOAT:		size = sizeof(float); break;
-	case DAO_DOUBLE:	size = sizeof(double); break;
-	case DAO_COMPLEX:	size = sizeof(complex16); break;
+	case DAO_INTEGER:	size = sizeof(dao_integer); break;
+	case DAO_FLOAT:		size = sizeof(dao_float); break;
+	case DAO_COMPLEX:	size = sizeof(dao_complex); break;
 	}
 	if( count == 0 || count > arr->size )
 		count = arr->size;
@@ -449,10 +448,9 @@ static void DaoBinary_Write( DaoProcess *proc, DaoValue *p[], int N )
 		return;
 	}
 	switch( arr->etype ){
-	case DAO_INTEGER:	size = sizeof(daoint); break;
-	case DAO_FLOAT:		size = sizeof(float); break;
-	case DAO_DOUBLE:	size = sizeof(double); break;
-	case DAO_COMPLEX:	size = sizeof(complex16); break;
+	case DAO_INTEGER:	size = sizeof(dao_integer); break;
+	case DAO_FLOAT:		size = sizeof(dao_float); break;
+	case DAO_COMPLEX:	size = sizeof(dao_complex); break;
 	}
 	if( !count || count > arr->size )
 		count = arr->size;
@@ -494,7 +492,7 @@ static void DaoBinary_GetItem( DaoProcess *proc, DaoValue *p[], int N )
 			DaoProcess_RaiseError( proc, "Index::Range", "Invalid offset" );
 			return;
 		}
-		DaoProcess_PutDouble( proc, *(double*)data );
+		DaoProcess_PutFloat( proc, *(double*)data );
 		return;
 	}
 	else if ( strcmp( tpname, "float" ) == 0 ){
@@ -556,14 +554,6 @@ static void DaoBinary_SetItem( DaoProcess *proc, DaoValue *p[], int N )
 	data = (char*)arr->data.p + ( N == 5? 0 : offset );
 	if ( offset < 0 )
 		DaoProcess_RaiseError( proc, "Index::Range", "Invalid offset" );
-	else if ( p[3]->type == DAO_DOUBLE ){
-		if ( offset + sizeof(double) > arr->size*sizeof(daoint) ){
-			DaoProcess_RaiseError( proc, "Index::Range", "Invalid offset" );
-			return;
-		}
-		*(double*)data = p[3]->xDouble.value;
-		return;
-	}
 	else if ( p[3]->type == DAO_FLOAT ){
 		if ( offset + sizeof(float) > arr->size*sizeof(daoint) ){
 			DaoProcess_RaiseError( proc, "Index::Range", "Invalid offset" );

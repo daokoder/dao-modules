@@ -443,9 +443,6 @@ static void DaoState_FetchAdd( DaoProcess *proc, DaoValue *p[], int N )
 	case DAO_FLOAT:
 		self->state->xFloat.value += p[1]->xFloat.value;
 		break;
-	case DAO_DOUBLE:
-		self->state->xDouble.value += p[1]->xDouble.value;
-		break;
 	case DAO_COMPLEX:
 		self->state->xComplex.value.real += p[1]->xComplex.value.real;
 		self->state->xComplex.value.imag += p[1]->xComplex.value.imag;
@@ -475,9 +472,6 @@ static void DaoState_FetchSub( DaoProcess *proc, DaoValue *p[], int N )
 		break;
 	case DAO_FLOAT:
 		self->state->xFloat.value -= p[1]->xFloat.value;
-		break;
-	case DAO_DOUBLE:
-		self->state->xDouble.value -= p[1]->xDouble.value;
 		break;
 	case DAO_COMPLEX:
 		self->state->xComplex.value.real -= p[1]->xComplex.value.real;
