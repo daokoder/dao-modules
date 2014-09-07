@@ -35,5 +35,6 @@ DAO_DLL void DString_SHA1( DString *self, DString *sha1 );
 DAO_DLL int btea(int* v, int n, int *k);
 DAO_DLL int DString_Encrypt( DString *self, DString *key, int hex );
 DAO_DLL int DString_Decrypt( DString *self, DString *key, int hex );
+DAO_DLL int DString_GetRandom( DString *self, daoint count );
 
 #endif

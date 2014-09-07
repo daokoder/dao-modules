@@ -33,6 +33,10 @@
 #include"daoValue.h"
 #include "dao_crypto.h"
 
+#ifdef WIN32
+#include<wincrypt.h>
+#endif
+
 static void MD5_Append( DString *md5, uint32_t h )
 {
 	const char *hex = "0123456789abcdef";
@@ -353,13 +357,13 @@ static const char *errmsg[2] =
 static void DaoSTR_Encrypt( DaoProcess *proc, DaoValue *p[], int N )
 {
 	int rc = DString_Encrypt( p[0]->xString.value, p[1]->xString.value, p[2]->xEnum.value );
-	if( rc ) DaoProcess_RaiseError( proc, NULL, errmsg[rc-1] );
+	if( rc ) DaoProcess_RaiseError( proc, "Crypto", errmsg[rc-1] );
 	DaoProcess_PutValue( proc, p[0] );
 }
 static void DaoSTR_Decrypt( DaoProcess *proc, DaoValue *p[], int N )
 {
 	int rc = DString_Decrypt( p[0]->xString.value, p[1]->xString.value, p[2]->xEnum.value );
-	if( rc ) DaoProcess_RaiseError( proc, NULL, errmsg[rc-1] );
+	if( rc ) DaoProcess_RaiseError( proc, "Crypto", errmsg[rc-1] );
 	DaoProcess_PutValue( proc, p[0] );
 }
 
@@ -373,16 +377,49 @@ static void DaoCrypto_Hash( DaoProcess *proc, DaoValue *p[], int N )
 		DString_SHA1( str, res );
 }
 
+int DString_GetRandom( DString *self, daoint count )
+{
+	if ( count < 0 )
+		return 0;
+	DString_Clear( self );
+	DString_Resize( self, count );
+	if ( 1 ){
+#ifdef WIN32
+		HCRYPTPROV handle = NULL;
+		int res = CryptAcquireContext( &handle, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT | CRYPT_SILENT );
+		if ( !res )
+			return 0;
+		res = CryptGenRandom( handle, count, self->chars );
+		CryptReleaseContext( handle, 0 );
+		return res;
+#else
+		FILE *urandom = fopen( "/dev/urandom", "r" );
+		return ( urandom && fread( self->chars, 1, count, urandom ) == count );
+#endif
+	}
+}
+
+static void DaoCrypto_Random( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DString *res = DaoProcess_PutChars( proc, "" );
+	if ( !DString_GetRandom( res, p[0]->xInteger.value ) )
+		DaoProcess_RaiseError( proc, "Crypto", "Failed to fetch data from system random number generator" );
+}
+
 static DaoFuncItem cryptoMeths[] =
 {
 	/*! Returns hash string of \a str using the specified \a method */
 	{ DaoCrypto_Hash,	"hash(str: string, method: enum<md5,sha1>) => string" },
 
 	/*! Encripts \a source with XXTEA algorithm using the given \a key. Returns the resulting data in the specified \a format */
-	{ DaoSTR_Encrypt,	"encrypt( source :string, key :string, format :enum<regular,hex> = $regular )=>string" },
+	{ DaoSTR_Encrypt,	"encrypt( source :string, key :string, format :enum<regular,hex> = $regular ) => string" },
 
 	/*! Decripts \a source with XXTEA algorithm using the given \a key. Returns the resulting data in the specified \a format */
-	{ DaoSTR_Decrypt,	"decrypt( source :string, key :string, format :enum<regular,hex> = $regular )=>string" },
+	{ DaoSTR_Decrypt,	"decrypt( source :string, key :string, format :enum<regular,hex> = $regular ) => string" },
+
+	/*! Returns binary string of \a count bytes read from system random number generator (uses '/dev/urandom' on Unix,
+	 * \c CryptGenRandom() on Windows) */
+	{ DaoCrypto_Random,	"random(count: int) => string" },
 
 	{ NULL, NULL }
 };
