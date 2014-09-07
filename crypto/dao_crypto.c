@@ -394,7 +394,12 @@ int DString_GetRandom( DString *self, daoint count )
 		return res;
 #else
 		FILE *urandom = fopen( "/dev/urandom", "r" );
-		return ( urandom && fread( self->chars, 1, count, urandom ) == count );
+		int res;
+		if ( !urandom )
+			return 0;
+		res = ( fread( self->chars, 1, count, urandom ) == count );
+		fclose( urandom );
+		return res;
 #endif
 	}
 }
