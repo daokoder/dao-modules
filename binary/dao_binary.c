@@ -27,35 +27,35 @@
 
 // 2011-01: Danilov Aleksey, initial implementation.
 
-#include"dao.h"
 #include"daoValue.h"
 #include"daoStdtype.h"
 #include"daoNumtype.h"
 #include"daoStream.h"
 
-const char base64_chars[64] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+#include"dao_binary.h"
 
-void EncodeBase64( DString *src, DString *dest )
+void DString_EncodeBase64( DString *self, DString *dest )
 {
+	const char base64_chars[64] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 	daoint i, j = 0;
-	DString_Resize( dest, ( src->size/3 )*4 + ( src->size%3? 4 : 0 ) );
-	for ( i = 0; i < src->size/3; i++ ){
-		uchar_t high = src->chars[i*3], mid = src->chars[i*3 + 1], low = src->chars[i*3 + 2];
+	DString_Resize( dest, ( self->size/3 )*4 + ( self->size%3? 4 : 0 ) );
+	for ( i = 0; i < self->size/3; i++ ){
+		uchar_t high = self->chars[i*3], mid = self->chars[i*3 + 1], low = self->chars[i*3 + 2];
 		uint_t triplet = ( (uint_t)high << 16 ) | ( (uint_t)mid << 8 ) | low;
 		dest->chars[j++] = base64_chars[( triplet & ( 63 << 18 ) ) >> 18];
 		dest->chars[j++] = base64_chars[( triplet & ( 63 << 12 ) ) >> 12];
 		dest->chars[j++] = base64_chars[( triplet & ( 63 << 6 ) ) >> 6];
 		dest->chars[j++] = base64_chars[triplet & 63];
 	}
-	if ( src->size%3 == 1 ){
-		uint_t triplet = ( (uint_t)src->chars[src->size - 1] ) << 16;
+	if ( self->size%3 == 1 ){
+		uint_t triplet = ( (uint_t)self->chars[self->size - 1] ) << 16;
 		dest->chars[j++] = base64_chars[( triplet & ( 63 << 18 ) ) >> 18];
 		dest->chars[j++] = base64_chars[( triplet & ( 63 << 12 ) ) >> 12];
 		dest->chars[j++] = '=';
 		dest->chars[j] = '=';
 	}
-	else if ( src->size%3 == 2 ){
-		uint_t triplet = ( ( (uint_t)src->chars[src->size - 2] ) << 16 ) | ( ( (uint_t)src->chars[src->size - 1] ) << 8 );
+	else if ( self->size%3 == 2 ){
+		uint_t triplet = ( ( (uint_t)self->chars[self->size - 2] ) << 16 ) | ( ( (uint_t)self->chars[self->size - 1] ) << 8 );
 		dest->chars[j++] = base64_chars[( triplet & ( 63 << 18 ) ) >> 18];
 		dest->chars[j++] = base64_chars[( triplet & ( 63 << 12 ) ) >> 12];
 		dest->chars[j++] = base64_chars[( triplet & ( 63 << 6 ) ) >> 6];
@@ -63,43 +63,42 @@ void EncodeBase64( DString *src, DString *dest )
 	}
 }
 
-const uchar_t base64_nums[] = {
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 63, 0, 0, 0, 64,
-	53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 0, 0, 0, 0, 0, 0,
-	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
-	16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 0, 0, 0, 0, 0,
-	0, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41,
-	42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-};
-
-int DecodeBase64( DString *src, DString *dest, daoint *errpos )
+int DString_DecodeBase64( DString *self, DString *dest, daoint *errpos )
 {
+	const uchar_t base64_nums[] = {
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 63, 0, 0, 0, 64,
+		53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 0, 0, 0, 0, 0, 0,
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+		16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 0, 0, 0, 0, 0,
+		0, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41,
+		42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+	};
 	daoint i, padding = 0, j = 0;
-	daoint size = ( src->size/4 )*3;
-	if ( src->size%4 ){
+	daoint size = ( self->size/4 )*3;
+	if ( self->size%4 ){
 		*errpos = -1;
 		return 0;
 	}
-	if ( src->size ){
-		if ( src->chars[src->size - 1] == '=' )
+	if ( self->size ){
+		if ( self->chars[self->size - 1] == '=' )
 			padding++;
-		if ( src->size > 1 && src->chars[src->size - 2] == '=' )
+		if ( self->size > 1 && self->chars[self->size - 2] == '=' )
 			padding++;
 	}
 	DString_Resize( dest, size - padding );
-	for ( i = 0; i < src->size/4 - ( padding? 1 : 0 ); i++ ){
-		uchar_t highest = base64_nums[src->chars[i*4]], higher = base64_nums[src->chars[i*4 + 1]];
-		uchar_t lower = base64_nums[src->chars[i*4 + 2]], lowest = base64_nums[src->chars[i*4 + 3]];
+	for ( i = 0; i < self->size/4 - ( padding? 1 : 0 ); i++ ){
+		uchar_t highest = base64_nums[self->chars[i*4]], higher = base64_nums[self->chars[i*4 + 1]];
+		uchar_t lower = base64_nums[self->chars[i*4 + 2]], lowest = base64_nums[self->chars[i*4 + 3]];
 		uint_t triplet;
 		if ( !highest-- ){
 			*errpos = i*4;
@@ -123,21 +122,21 @@ int DecodeBase64( DString *src, DString *dest, daoint *errpos )
 		dest->chars[j++] = triplet & 0xFF;
 	}
 	if ( padding ){
-		uchar_t highest = base64_nums[src->chars[src->size - 4]], higher = base64_nums[src->chars[src->size - 3]];
+		uchar_t highest = base64_nums[self->chars[self->size - 4]], higher = base64_nums[self->chars[self->size - 3]];
 		uchar_t lower = 0;
 		uint_t triplet;
 		if ( !highest-- ){
-			*errpos = src->size - 4;
+			*errpos = self->size - 4;
 			return 0;
 		}
 		if ( !higher-- ){
-			*errpos = src->size - 3;
+			*errpos = self->size - 3;
 			return 0;
 		}
 		if ( padding == 1 ){
-			lower = base64_nums[src->chars[src->size - 2]];
+			lower = base64_nums[self->chars[self->size - 2]];
 			if ( !lower-- ){
-				*errpos = src->size - 2;
+				*errpos = self->size - 2;
 				return 0;
 			}
 		}
@@ -149,16 +148,15 @@ int DecodeBase64( DString *src, DString *dest, daoint *errpos )
 	return 1;
 }
 
-const char *z85_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#";
-
-int EncodeZ85( DString *src, DString *dest )
+int DString_EncodeZ85( DString *self, DString *dest )
 {
+	const char *z85_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#";
 	daoint i, j;
-	uchar_t *chs = src->chars;
-	if ( src->size%4 )
+	uchar_t *chs = self->chars;
+	if ( self->size%4 )
 		return 0;
-	DString_Resize( dest, src->size/4*5 );
-	for ( i = 0, j = 0; i < src->size; i += 4, j += 5 ){
+	DString_Resize( dest, self->size/4*5 );
+	for ( i = 0, j = 0; i < self->size; i += 4, j += 5 ){
 		uint_t val = ( (uint_t)chs[i] << 24 ) | ( (uint_t)chs[i + 1] << 16 ) | ( (uint_t)chs[i + 2] << 8 ) | (uint_t)chs[i + 3];
 		int ind;
 		for ( ind = 4; ind >= 0; ind-- ){
@@ -169,39 +167,38 @@ int EncodeZ85( DString *src, DString *dest )
 	return 1;
 }
 
-const uchar_t z85_nums[] = {
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 69, 0, 85, 84, 83, 73, 0, 76, 77, 71, 66, 0, 64, 63, 70,
-	1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 65, 0, 74, 67, 75, 72,
-	82, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51,
-	52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 78, 0, 79, 68, 0,
-	0, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
-	26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 80, 0, 81, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-};
-
-int DecodeZ85( DString *src, DString *dest, daoint *errpos )
+int DString_DecodeZ85( DString *self, DString *dest, daoint *errpos )
 {
+	const uchar_t z85_nums[] = {
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 69, 0, 85, 84, 83, 73, 0, 76, 77, 71, 66, 0, 64, 63, 70,
+		1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 65, 0, 74, 67, 75, 72,
+		82, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51,
+		52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 78, 0, 79, 68, 0,
+		0, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
+		26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 80, 0, 81, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	};
 	daoint i, j;
 	uchar_t *chs;
 	*errpos = -1;
-	if ( src->size%5 )
+	if ( self->size%5 )
 		return 0;
-	DString_Resize( dest, src->size/5*4 );
+	DString_Resize( dest, self->size/5*4 );
 	chs = dest->chars;
-	for ( i = 0, j = 0; i < src->size; i += 5, j += 4 ){
+	for ( i = 0, j = 0; i < self->size; i += 5, j += 4 ){
 		uint_t val = 0;
 		int ind, k = 1;
 		for ( ind = 4; ind >= 0; ind--, k *= 85 ){
-			uint_t num = z85_nums[src->chars[i + ind]];
+			uint_t num = z85_nums[self->chars[i + ind]];
 			if ( !num-- ){
 				*errpos = i + ind;
 				return 0;
@@ -216,19 +213,73 @@ int DecodeZ85( DString *src, DString *dest, daoint *errpos )
 	return 1;
 }
 
+void DString_EncodeHex( DString *self, DString *dest )
+{
+	const char *hex_chars = "0123456789ABCDEF";
+	daoint i;
+	DString_Resize( dest, self->size*2 );
+	for ( i = 0; i < self->size; i++ ){
+		uchar_t ch = self->chars[i];
+		dest->chars[2*i] = hex_chars[ch >> 4];
+		dest->chars[2*i + 1] = hex_chars[ch & 0x0F];
+	}
+}
+
+int DString_DecodeHex( DString *self, DString *dest, daoint *errpos )
+{
+	const uchar_t hex_nums[] = {
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 0, 0, 0, 0, 0, 0,
+		0, 11, 12, 13, 14, 15, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	};
+	daoint i;
+	*errpos = -1;
+	if ( i%2 )
+		return 0;
+	DString_Resize( dest, self->size/2 );
+	for ( i = 0; i < dest->size; i++ ){
+		uchar_t high = hex_nums[self->chars[2*i]], low = hex_nums[self->chars[2*i + 1]];
+		if ( !high-- ){
+			*errpos = 2*i;
+			return 0;
+		}
+		if ( !low-- ){
+			*errpos = 2*i + 1;
+			return 0;
+		}
+		dest->chars[i] = ( high << 4 ) | low;
+	}
+	return 1;
+}
+
 static void DaoBinary_Encode( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DString *src = p[0]->xString.value;
 	DString *dest = DaoProcess_PutChars( proc, "" );
 	if ( p[1]->xEnum.value == 0 )
-		EncodeBase64( src, dest );
-	else {
+		DString_EncodeBase64( src, dest );
+	else if ( p[1]->xEnum.value == 1 ) {
 		if ( src->size%4 ){
 			DaoProcess_RaiseError( proc, "Bin", "To be encoded with Z85, binary data size must be a multiple of 4" );
 			return;
 		}
-		EncodeZ85( src, dest );
+		DString_EncodeZ85( src, dest );
 	}
+	else
+		DString_EncodeHex( src, dest );
 }
 
 static void DaoBinary_Decode( DaoProcess *proc, DaoValue *p[], int N )
@@ -237,7 +288,7 @@ static void DaoBinary_Decode( DaoProcess *proc, DaoValue *p[], int N )
 	DString *dest = DaoProcess_PutChars( proc, "" );
 	daoint errpos;
 	if ( p[1]->xEnum.value == 0 ){
-		if ( !DecodeBase64( src, dest, &errpos ) ){
+		if ( !DString_DecodeBase64( src, dest, &errpos ) ){
 			if ( errpos < 0 )
 				DaoProcess_RaiseError( proc, "Bin", "Not a valid Base64-encoded string" );
 			else {
@@ -247,8 +298,8 @@ static void DaoBinary_Decode( DaoProcess *proc, DaoValue *p[], int N )
 			}
 		}
 	}
-	else {
-		if ( !DecodeZ85( src, dest, &errpos ) ){
+	else if ( p[1]->xEnum.value == 1 ) {
+		if ( !DString_DecodeZ85( src, dest, &errpos ) ){
 			if ( errpos < 0 )
 				DaoProcess_RaiseError( proc, "Bin", "Not a valid Z85-encoded string" );
 			else {
@@ -256,6 +307,15 @@ static void DaoBinary_Decode( DaoProcess *proc, DaoValue *p[], int N )
 				snprintf( buf, sizeof(buf), "Non-Z85 character at index %" DAO_INT_FORMAT, errpos );
 				DaoProcess_RaiseError( proc, "Bin", buf );
 			}
+		}
+	}
+	else if ( !DString_DecodeHex( src, dest, &errpos ) ){
+		if ( errpos < 0 )
+			DaoProcess_RaiseError( proc, "Bin", "Not a valid hex-encoded string" );
+		else {
+			char buf[50];
+			snprintf( buf, sizeof(buf), "Non-hex character at index %" DAO_INT_FORMAT, errpos );
+			DaoProcess_RaiseError( proc, "Bin", buf );
 		}
 	}
 }
@@ -593,10 +653,10 @@ static DaoFuncItem binMeths[] =
 	/*! Returns \a str encoded with the given \a codec.
 	 *
 	 * \note For Z85 codec, \a str size must be a multiple of 4 */
-	{ DaoBinary_Encode,		"encode(str: string, codec: enum<base64,z85>) => string" },
+	{ DaoBinary_Encode,		"encode(str: string, codec: enum<base64,z85,hex>) => string" },
 
 	/*! Returns \a str decoded with the given \a codec */
-	{ DaoBinary_Decode,		"decode(str: string, codec: enum<base64,z85>) => string" },
+	{ DaoBinary_Decode,		"decode(str: string, codec: enum<base64,z85,hex>) => string" },
 	{ NULL, NULL }
 };
 
