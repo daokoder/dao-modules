@@ -540,11 +540,11 @@ static void DaoTime_Format2( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoTime_Diff( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoTime *self = (DaoTime*)DaoValue_TryGetCdata( p[0] );
-	DaoTime *other = (DaoTime*)DaoValue_TryGetCdata( p[1] );
+	DaoTime *start = (DaoTime*)DaoValue_TryGetCdata( p[0] );
+	DaoTime *end = (DaoTime*)DaoValue_TryGetCdata( p[1] );
 	DaoTuple *res = DaoProcess_PutTuple( proc, 2 );
-	res->values[0]->xInteger.value = other->jday - self->jday;
-	res->values[1]->xInteger.value = difftime( other->value, self->value );
+	res->values[0]->xInteger.value = end->jday - start->jday;
+	res->values[1]->xInteger.value = end->value - start->value;
 }
 
 static void DaoTime_Days( DaoProcess *proc, DaoValue *p[], int N )
@@ -574,14 +574,14 @@ static void DaoTime_Lesser( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *a = (DaoTime*)DaoValue_TryGetCdata( p[0] );
 	DaoTime *b = (DaoTime*)DaoValue_TryGetCdata( p[1] );
-	DaoProcess_PutInteger( proc, difftime( b->value, a->value ) > 0 );
+	DaoProcess_PutInteger( proc, a->value < b->value );
 }
 
 static void DaoTime_LessOrEq( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *a = (DaoTime*)DaoValue_TryGetCdata( p[0] );
 	DaoTime *b = (DaoTime*)DaoValue_TryGetCdata( p[1] );
-	DaoProcess_PutInteger( proc, difftime( b->value, a->value ) >= 0 );
+	DaoProcess_PutInteger( proc, a->value <= b->value );
 }
 
 static void DaoTime_Add( DaoProcess *proc, DaoValue *p[], int N )
@@ -592,8 +592,24 @@ static void DaoTime_Add( DaoProcess *proc, DaoValue *p[], int N )
 	daoint days = 0;
 	int i;
 	int y, m, d;
+	time_t oldt = self->value;
+	struct tm oldtm = self->parts;
+	int oldj = self->jday;
+	if ( N == 0 )
+		return;
+	if ( p[1]->type == DAO_INTEGER ){
+		self->value += p[1]->xInteger.value;
+		if ( !DaoTime_GetTime( self ) ){
+			self->value = oldt;
+			self->parts = oldtm;
+			DaoProcess_RaiseError( proc, timeerr, "Invalid resulting time" );
+		}
+		else
+			DaoTime_CalcJulianDay( self );
+		return;
+	}
 	if ( !self->local ){
-		DaoProcess_RaiseError( proc, timeerr, "Only adding to a local time is supported" );
+		DaoProcess_RaiseError( proc, timeerr, "Adding years, months and days is only supported for a local time" );
 		return;
 	}
 	for ( i = 1; i < N; i++ ){
@@ -631,6 +647,12 @@ static void DaoTime_Add( DaoProcess *proc, DaoValue *p[], int N )
 		self->parts.tm_mday = d;
 	}
 	self->value = mktime( &self->parts );
+	if ( self->value == (time_t)-1 ){
+		self->value = oldt;
+		self->parts = oldtm;
+		self->jday = oldj;
+		DaoProcess_RaiseError( proc, timeerr, "Invalid resulting time" );
+	}
 }
 
 static DaoFuncItem timeMeths[] =
@@ -693,8 +715,11 @@ static DaoFuncItem timeMeths[] =
 
 	/*! Adds the specified number of years, months or days (provided as named values) to the given time.
 	 *
-	 * \note Only adding to a local time is supported */
+	 * \note Adding years, months and days is only supported for a local time*/
 	{ DaoTime_Add,		"add(self: time, ...: tuple<enum<years,months,days>,int>)" },
+
+	/*! Adds the specified number of \a seconds to the given time (works for both local and global time) */
+	{ DaoTime_Add,		"add(self: time, seconds: int)" },
 
 	/*! Time comparison */
 	{ DaoTime_Equal,	"==(invar a: time, invar b: time) => int" },
