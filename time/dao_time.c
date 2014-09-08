@@ -628,10 +628,10 @@ static void DaoTime_Add( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem timeMeths[] =
 {
 	/*! Returns current time of the given \a kind */
-	{ DaoTime_Get,		"time(kind: enum<local, utc> = $local) => time" },
+	{ DaoTime_Get,		"time(kind: enum<local,utc> = $local) => time" },
 
 	/*! Returns time with \c time_t value \a value and the given \a kind */
-	{ DaoTime_Time,		"time(value: int, kind: enum<local, utc> = $local) => time" },
+	{ DaoTime_Time,		"time(value: int, kind: enum<local,utc> = $local) => time" },
 
 	/*! Returns local time composing of the specified \a year, \a month, \a day, \a hour, \a min and \a sec */
 	{ DaoTime_MakeTime,	"time(year: int, month: int, day: int, hour = 0, min = 0, sec = 0) => time" },
@@ -646,14 +646,15 @@ static DaoFuncItem timeMeths[] =
 	/*! Sets one or more time parts using named values */
 	{ DaoTime_Set,		"set(self: time, ...: tuple<enum<year,month,day,hour,min,sec>, int>)" },
 
-	/*! \c time_t value representing date and time information */
+	/*! \c time_t value representing date and time information (number of seconds elapsed since the Epoch,
+	 * 1970-01-01 00:00:00, UTC) */
 	{ DaoTime_Value,	".value(invar self: time) => int" },
 
 	/*! Returns time kind with regard to the time zone: UTC or local */
-	{ DaoTime_Type,		".kind(invar self: time) => enum<local, utc>" },
+	{ DaoTime_Type,		".kind(invar self: time) => enum<local,utc>" },
 
-	/*! Converts local time to UTC or vice versa */
-	{ DaoTime_Convert,	"convert(self: time, type: enum<local, utc>)" },
+	/*! Converts time to the given \a kind */
+	{ DaoTime_Convert,	"convert(self: time, kind: enum<local,utc>)" },
 
 	/*! Specific time part */
 	{ DaoTime_Second,	".sec(invar self: time) => int" },
@@ -675,13 +676,13 @@ static DaoFuncItem timeMeths[] =
 	/*! Returns time formatted to string using template \a format. \a names can specify custome names for months
 	 * ('month' => {<12 names>}), days of week ('week' => {<7 names>}), days of year ('day' => {<365/366 names>}) or
 	 * halfday names ('halfday' => {<2 names>}) */
-	{ DaoTime_Format2,	"format(invar self: time, invar names: map<string, list<string>>, format = '%Y-%M-%D, %H:%I:%S' ) => string" },
+	{ DaoTime_Format2,	"format(invar self: time, invar names: map<string,list<string>>, format = '%Y-%M-%D, %H:%I:%S' ) => string" },
 
 	/*! Returns the number of day in the month or year of the given time depending on the \a period parameter */
-	{ DaoTime_Days,		"days(invar self: time, period: enum<month, year>) => int" },
+	{ DaoTime_Days,		"days(invar self: time, period: enum<month,year>) => int" },
 
 	/*! Adds the specified number of years, months or days (provided as named values) to the given time */
-	{ DaoTime_Add,		"add(self: time, ...: tuple<enum<years,months,days>, int>)" },
+	{ DaoTime_Add,		"add(self: time, ...: tuple<enum<years,months,days>,int>)" },
 
 	/*! Time comparison */
 	{ DaoTime_Equal,	"==(invar a: time, invar b: time) => int" },
@@ -692,7 +693,7 @@ static DaoFuncItem timeMeths[] =
 	/*! Returns the difference between \a start and \a end time in days and seconds */
 	{ DaoTime_Diff,		"diff(invar start: time, invar end: time) => tuple<days: int, seconds: int>" },
 
-	/*! Returns local time zone information:
+	/*! Returns local time zone information (environment variable *TZ*):
 	 * -\c dst -- is Daylight Saving Time (DST) used
 	 * -\c shift -- shift in seconds from GMT;
 	 * -\c name -- zone name
