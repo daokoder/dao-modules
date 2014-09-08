@@ -565,37 +565,37 @@ static DaoFuncItem statMeths[] =
 {
 	/*! Returns arithmetic mean of \a data.
 	 * E[X] = Σx / N */
-	{ DaoStat_Mean,			"mean(invar data: array<@T<int|float|double>>) => double" },
+	{ DaoStat_Mean,			"mean(invar data: array<@T<int|float>>) => float" },
 
 	/*! Returns variance of \a data (measure of spread) of the given \a kind. Uses \a mean if it is given
 	 * Sample:		σ²[X] = Σ(x - E[X]) / (N - 1)
 	 * Population:	σ²[X] = Σ(x - E[X]) / N */
-	{ DaoStat_Variance,		"variance(invar data: array<@T<int|float|double>>, kind: enum<sample,population> = $sample) => double" },
-	{ DaoStat_Variance,		"variance(invar data: array<@T<int|float|double>>, mean: double, kind: enum<sample,population> = $sample) => double" },
+	{ DaoStat_Variance,		"variance(invar data: array<@T<int|float>>, kind: enum<sample,population> = $sample) => float" },
+	{ DaoStat_Variance,		"variance(invar data: array<@T<int|float>>, mean: float, kind: enum<sample,population> = $sample) => float" },
 
 	/*! Returns median (middle value) of \a data while partially sorting it. If \a data size is even, the mean of two middle values is returned */
-	{ DaoStat_Percentile,	"median(data: array<@T<int|float|double>>) => double" },
+	{ DaoStat_Percentile,	"median(data: array<@T<int|float>>) => float" },
 
 	/*! Returns percentile \a percentage (the value below which the given percentage of sample values fall) of \a data while partially sorting it.
 	 * \a percentage must be in range (0; 100) */
-	{ DaoStat_Percentile,	"percentile(data: array<@T<int|float|double>>, percentage: double) => double" },
+	{ DaoStat_Percentile,	"percentile(data: array<@T<int|float>>, percentage: float) => float" },
 
 	/*! Returns mode (most common value) of \a data */
-	{ DaoStat_Mode,			"mode(invar data: array<@T<int|float|double>>) => @T" },
+	{ DaoStat_Mode,			"mode(invar data: array<@T<int|float>>) => @T" },
 
 	/*! Returns minimum and maximum value in \a data */
-	{ DaoStat_MinMax,		"range(invar data: array<@T<int|float|double>>) => tuple<min: @T, max: @T>" },
+	{ DaoStat_MinMax,		"range(invar data: array<@T<int|float>>) => tuple<min: @T, max: @T>" },
 
 	/*! Returns distribution of values in \a data in the form \c value => \c frequency, where \c value is a single unique value and \c frequency
 	 * is the number of its appearances in \a data */
-	{ DaoStat_Distribution,	"distribution(invar data: array<@T<int|float|double>>) => map<@T,int>" },
+	{ DaoStat_Distribution,	"distribution(invar data: array<@T<int|float>>) => map<@T,int>" },
 
 	/*! Returns values of \a data grouped into ranges of width \a interval starting from \a start. The result is in the form \c index => \c frequency
 	 * corresponding to the ranges present in the sample. \c index identifies the range, it is equal to integer number of intervals
 	 * \a interval between \a start and the beginning of the particular range; the exact range boundaries are
 	 * [\a start + \c floor(\c index / \a interval); \a start + \c floor(\c index / \a interval) + \a interval).
 	 * \c frequency is the number of values which fall in the range. The values lesser then \a start are not included in the resulting statistics */
-	{ DaoStat_DistribGroup,	"distribution(invar data: array<@T<int|float|double>>, interval: double, start = 0.0) => map<int,int>" },
+	{ DaoStat_DistribGroup,	"distribution(invar data: array<@T<int|float>>, interval: float, start = 0.0) => map<int,int>" },
 
 	/*! Returns correlation \a coefficient between \a data1 and \a data2. Pearson coefficient measures linear dependence,
 	 * Spearman's rank coefficient measures monotonic dependence. If \a mean1 and \a mean2 are given, they are used for calculating Pearson
@@ -603,20 +603,20 @@ static DaoFuncItem statMeths[] =
 	 * \note \a self and \a other must be of equal size
 	 * Pearson:			r[X,Y] = E[(X - E[X])(Y - E[Y])] / σ[X]σ[Y]
 	 * Spearman's rank:	ρ[X,Y] = r(Xrank, Yrank) */
-	{ DaoStat_Correlation,	"correlation(invar data1: array<@T<int|float|double>>, "
-										"invar data2: array<@T>, coefficient: enum<pearson,spearman>) => double" },
-	{ DaoStat_Correlation,	"correlation(invar data1: array<@T<int|float|double>>, "
-										"invar data2: array<@T>, coefficient: enum<pearson,spearman>, mean1: double, mean2: double) => double" },
+	{ DaoStat_Correlation,	"correlation(invar data1: array<@T<int|float>>, "
+										"invar data2: array<@T>, coefficient: enum<pearson,spearman>) => float" },
+	{ DaoStat_Correlation,	"correlation(invar data1: array<@T<int|float>>, "
+										"invar data2: array<@T>, coefficient: enum<pearson,spearman>, mean1: float, mean2: float) => double" },
 
 	/*! Returns skewness (measure of asymmetry) of \a data. Uses \a mean if it is given.
 	 * γ1[X] = E[((x - E[X]) / σ)^3] */
-	{ DaoStat_Skewness,		"skewness(invar data: array<@T<int|float|double>>) => double" },
-	{ DaoStat_Skewness,		"skewness(invar data: array<@T<int|float|double>>, mean: double) => double" },
+	{ DaoStat_Skewness,		"skewness(invar data: array<@T<int|float>>) => float" },
+	{ DaoStat_Skewness,		"skewness(invar data: array<@T<int|float>>, mean: float) => float" },
 
 	/*! Returns kurtosis (measure of "peakedness"). Uses \a mean if it is given
 	 * γ2[X] = E[((x - E[X]) / σ)^4] - 3 */
-	{ DaoStat_Kurtosis,		"kurtosis(invar data: array<@T<int|float|double>>) => double" },
-	{ DaoStat_Kurtosis,		"kurtosis(invar data: array<@T<int|float|double>>, mean: double) => double" },
+	{ DaoStat_Kurtosis,		"kurtosis(invar data: array<@T<int|float>>) => float" },
+	{ DaoStat_Kurtosis,		"kurtosis(invar data: array<@T<int|float>>, mean: float) => float" },
 	{ NULL, NULL }
 };
 

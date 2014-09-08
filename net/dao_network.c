@@ -982,7 +982,7 @@ static DaoFuncItem socketMeths[] =
 	{  DaoSocket_Lib_SendDao,       "send_dao( self: socket, ... )" },
 
 	/*! Receives data via the internal serialization protocol */
-	{  DaoSocket_Lib_ReceiveDao,    "receive_dao( self: socket ) => list<int|float|double|complex|string|array>" },
+	{  DaoSocket_Lib_ReceiveDao,    "receive_dao( self: socket ) => list<int|float|complex|string|array>" },
 
 	/*! Peer name */
 	{  DaoSocket_Lib_GetPeerName,   ".peername( invar self: socket ) => string" },

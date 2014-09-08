@@ -194,7 +194,7 @@ struct DInode
 	time_t atime;
 	time_t mtime;
 	mode_t mode;
-	daoint size;
+	dao_integer size;
 #ifndef WIN32
 	uid_t uid;
 #endif
@@ -608,7 +608,7 @@ int DInode_GetOwner( DInode *self, DString *name )
 #endif
 }
 
-int DInode_Resize( DInode *self, daoint size )
+int DInode_Resize( DInode *self, unsigned dao_integer size )
 {
 	int res = 0;
 #ifdef WIN32
@@ -616,8 +616,8 @@ int DInode_Resize( DInode *self, daoint size )
 	LARGE_INTEGER usize;
 	if ( handle == INVALID_HANDLE_VALUE )
 		return -1;
-	usize.u.LowPart = size;
-	usize.u.HighPart = ( sizeof(daoint) == 4 )? 0 : ( size >> 32 );
+	usize.u.LowPart = size & 0xFFFFFFFF;
+	usize.u.HighPart = size >> 32;
 	res = ( SetFilePointerEx( handle, usize, NULL, FILE_BEGIN ) && SetEndOfFile( handle ) )? 0 : -1;
 	CloseHandle( handle );
 #else
@@ -800,7 +800,7 @@ static void FSNode_Size( DaoProcess *proc, DaoValue *p[], int N )
 static void FSNode_Resize( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
-	daoint size = p[1]->xInteger.value;
+	dao_integer size = p[1]->xInteger.value;
 	int res;
 	if ( self->type == 0 ){
 		DaoProcess_RaiseError( proc, fserr, "Resizing a directory" );

@@ -493,7 +493,7 @@ static DaoFuncItem jsonMeths[] =
 	 * Serialization of values (Dao => JSON):
 	 * - list => array
 	 * - map  => object
-	 * - int, float, double => number
+	 * - int, float => number
 	 * - none => null
 	 * - enum<false:true> => bool
 	 */

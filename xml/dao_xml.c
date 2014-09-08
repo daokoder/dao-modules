@@ -1901,8 +1901,8 @@ static void DaoXMLElement_Drop( DaoProcess *proc, DaoValue *p[], int N )
 	DaoXMLElement *self = (DaoXMLElement*)DaoValue_TryGetCdata( p[0] );
 	DaoXMLElement_Normalize( self );
 	if ( p[1]->type == DAO_INTEGER ){
-		daoint index = p[1]->xInteger.value;
-		daoint count = p[2]->xInteger.value;
+		dao_integer index = p[1]->xInteger.value;
+		dao_integer count = p[2]->xInteger.value;
 		if ( index < 0 )
 			index += NodesSize( self->c.children );
 		if ( index < 0 || index >= NodesSize( self->c.children ) )
@@ -2053,7 +2053,7 @@ static void DaoXMLElement_GetElems( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoXMLElement_GetChild( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoXMLElement *self = (DaoXMLElement*)DaoValue_TryGetCdata( p[0] );
-	daoint at = p[1]->xInteger.value;
+	dao_integer at = p[1]->xInteger.value;
 	DaoXMLNode *node;
 	DaoType *type = daox_type_xmlelem;
 	DaoXMLElement_Normalize( self );
@@ -2133,7 +2133,6 @@ static void DaoXMLElement_FindElem( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoXMLElement *self = (DaoXMLElement*)DaoValue_TryGetCdata( p[0] );
 	DString *path = p[1]->xString.value;
-	daoint i;
 	if ( self->kind == XMLElement ){
 		daoint i;
 		DString *tag = DString_New();
@@ -2166,7 +2165,6 @@ static void DaoXMLElement_FindElems( DaoProcess *proc, DaoValue *p[], int N )
 			return;
 		}
 	if ( self->kind == XMLElement ){
-		daoint i;
 		DString *tag = DString_New();
 		DaoXMLElement *el = ResolvePath( self, path, tag );
 		if ( el && el->kind == XMLElement  ){
@@ -2534,14 +2532,14 @@ static DaoFuncItem xmlElemMeths[] =
 	/*! Maps either element attributes or its children depending on \a what and returns the resulting data. \a mapping must be a tuple type with
 	 * named items only, each of which refers to an existing attribute or child element by its name/tag (if there are multiple elements with the
 	 * given tag, the first one is taken). Leaf elements (containing character data only) and attributes can be mapped to \c int, \c float,
-	 * \c double, \c string or \c enum. Non-leaf elements can be mapped to a tuple type, in which case the mapping proceeds recursively.
+	 * \c string or \c enum. Non-leaf elements can be mapped to a tuple type, in which case the mapping proceeds recursively.
 	 * \a mapping may omit unneeded attributes and elements
 	 * \note Use \c tuple<tag: T,> to map elements containing single sub-element */
 	{ DaoXMLElement_Map,		"map(invar self: element, what: enum<attribs,children>, mapping: type<@T<tuple<...>>>) => @T" },
 
 	/*! Additional named parameters of this method are converted into elements and appended to the list of children. For each parameter
 	 * in the form *name => value*, an element '<name>value</name>' is created; specifying a tuple as value continues the conversion recursively.
-	 * For leaf elements (containing character data only), supported types are \c int, \c float, \c double, \c string and \c enum;
+	 * For leaf elements (containing character data only), supported types are \c int, \c float, \c string and \c enum;
 	 * \c enum flags are written separated by ';' */
 	{ DaoXMLElement_AddContent,	"extend(self: element, ...: tuple<enum, any>)" },
 
@@ -3195,7 +3193,7 @@ static DaoFuncItem xmlWriterMeths[] =
 	{ DaoXMLWriter_RawData,	"raw(self: writer, data: string) => writer" },
 
 	/*! Writes \a value as text and returns \a self. Special characters in resulting text are replaced with references */
-	{ DaoXMLWriter_Text,	"text(self: writer, value: int|float|double|enum|string) => writer" },
+	{ DaoXMLWriter_Text,	"text(self: writer, value: int|float|enum|string) => writer" },
 
 	/*! Writes CDATA section containing \a data and returns \a self */
 	{ DaoXMLWriter_Cdata,	"cdata(self: writer, data: string) => writer" },

@@ -1,19 +1,19 @@
 load web.json
 
-data = { 
-	"module" =>               (any)"DaoJSON", 
+data = {
+	"module" =>               (any)"DaoJSON",
 	"descriptioin" =>         "JSON serializer/parser",
 	"external dependences" => none,
 	"classes" =>              0,
-	"methods" =>              { "serialize", "deserialize" }, 
-	"Dao => JSON mapping" =>  { 
+	"methods" =>              { "serialize", "deserialize" },
+	"Dao => JSON mapping" =>  {
 	"map<string, any>" => "object",
 	"list<any>" =>        "array",
 	"string" =>           "string",
-	"int/float/double" => "number",
+	"int/float" => "number",
 	"enum<false:true>" => "bool",
 	"none" =>             "null"
-    } 
+    }
 };
 
 text = json.serialize(data);

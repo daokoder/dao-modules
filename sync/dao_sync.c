@@ -555,10 +555,10 @@ static DaoFuncItem stateMeths[] =
 	{ DaoState_TestSet,  "alter( self: state<@T>, from: @T, into: @T ) => bool" },
 
 	/*! Adds the give \a value to the current value */
-	{ DaoState_FetchAdd, "add( self: state<@T<int|float|double|complex>>, value: @T ) => @T" },
+	{ DaoState_FetchAdd, "add( self: state<@T<int|float|complex>>, value: @T ) => @T" },
 
 	/*! Substitutes the given \a value from the current value */
-	{ DaoState_FetchSub, "sub( self: state<@T<int|float|double|complex>>, value: @T ) => @T" },
+	{ DaoState_FetchSub, "sub( self: state<@T<int|float|complex>>, value: @T ) => @T" },
 
 	/*! Blocks the current thread until the specified \a value is set, or until the end of \a timeout given in seconds (if \a timeout is positive)
 	 * Returns \c true if not timed out */

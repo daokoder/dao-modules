@@ -287,7 +287,7 @@ static void DaoTime_Set( DaoProcess *proc, DaoValue *p[], int N )
 	time_t value;
 	struct tm old = self->parts;
 	for ( i = 1; i < N; i++ ){
-		daoint val = p[i]->xTuple.values[1]->xInteger.value;
+		dao_integer val = p[i]->xTuple.values[1]->xInteger.value;
 		switch ( p[i]->xTuple.values[0]->xEnum.value ){
 		case 0:		self->parts.tm_year = val - 1900; break; // year
 		case 1:		self->parts.tm_mon = val - 1; break; // month
@@ -322,7 +322,7 @@ static void DaoTime_Copy( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoTime_Value( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*)DaoValue_TryGetCdata( p[0] );
-	DaoProcess_PutInteger( proc, (daoint)self->value );
+	DaoProcess_PutInteger( proc, (dao_integer)self->value );
 }
 
 static void DaoTime_Type( DaoProcess *proc, DaoValue *p[], int N )
@@ -540,7 +540,7 @@ static void DaoTime_Diff( DaoProcess *proc, DaoValue *p[], int N )
 	DaoTime *other = (DaoTime*)DaoValue_TryGetCdata( p[1] );
 	DaoTuple *res = DaoProcess_PutTuple( proc, 2 );
 	res->values[0]->xInteger.value = other->jday - self->jday;
-	res->values[1]->xFloat.value = difftime( other->value, self->value );
+	res->values[1]->xInteger.value = difftime( other->value, self->value );
 }
 
 static void DaoTime_Days( DaoProcess *proc, DaoValue *p[], int N )
@@ -589,7 +589,7 @@ static void DaoTime_Add( DaoProcess *proc, DaoValue *p[], int N )
 	int i;
 	int y, m, d;
 	for ( i = 1; i < N; i++ ){
-		daoint count = p[i]->xTuple.values[1]->xInteger.value;
+		dao_integer count = p[i]->xTuple.values[1]->xInteger.value;
 		switch ( p[i]->xTuple.values[0]->xEnum.value ){
 		case 0:	years = count; break;
 		case 1:	months = count; break;
@@ -690,7 +690,7 @@ static DaoFuncItem timeMeths[] =
 	{ DaoTime_LessOrEq,	"<=(invar a: time, invar b: time) => int" },
 
 	/*! Returns the difference between \a start and \a end time in days and seconds */
-	{ DaoTime_Diff,		"diff(invar start: time, invar end: time) => tuple<days: int, seconds: double>" },
+	{ DaoTime_Diff,		"diff(invar start: time, invar end: time) => tuple<days: int, seconds: int>" },
 
 	/*! Returns local time zone information:
 	 * -\c dst -- is Daylight Saving Time (DST) used

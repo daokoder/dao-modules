@@ -53,7 +53,7 @@ static void DaoScanner_Create( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoScanner *self = DaoScanner_New();
 	DString *str = p[0]->xString.value;
-	daoint pos = p[1]->xInteger.value;
+	dao_integer pos = p[1]->xInteger.value;
 	if ( pos < 0 ) pos = str->size + pos;
 	self->pos = ( pos > str->size )? str->size : pos;
 	self->context = DString_New();
@@ -76,7 +76,7 @@ static void DaoScanner_Position( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoScanner_SetPos( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
-	daoint pos = p[1]->xInteger.value;
+	dao_integer pos = p[1]->xInteger.value;
 	if ( pos < 0 )
 		pos = self->context->size + pos;
 	self->pos = ( pos > self->context->size )? self->context->size : pos;
@@ -97,7 +97,7 @@ static void DaoScanner_Append( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoScanner_FetchPeek( DaoProcess *proc, DaoValue *p[], int fetch )
 {
 	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
-	daoint count = p[1]->xInteger.value;
+	dao_integer count = p[1]->xInteger.value;
 	DString *sub;
 	if ( count < 0 ){
 		DaoProcess_RaiseError( proc, "Param", "Invalid number of bytes" );
@@ -173,7 +173,7 @@ static void DaoScanner_Seek( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoScanner_Matched( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
-	daoint group = p[1]->xInteger.value;
+	dao_integer group = p[1]->xInteger.value;
 	DString *res = DString_New();
 	if ( self->regex && self->start >= 0 ){
 		if ( group ){
@@ -191,7 +191,7 @@ static void DaoScanner_Matched( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoScanner_MatchedAt( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
-	daoint group = p[1]->xInteger.value;
+	dao_integer group = p[1]->xInteger.value;
 	if ( self->regex && self->start >= 0 ){
 		DaoTuple *res = DaoProcess_PutTuple( proc, 2 );
 		res->values[0]->xInteger.value = -1;
