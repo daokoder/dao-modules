@@ -490,11 +490,11 @@ static void DaoBinary_GetItem( DaoProcess *proc, DaoValue *p[], int N )
 	if ( offset < 0 )
 		DaoProcess_RaiseError( proc, "Index::Range", "Invalid offset" );
 	else if ( strcmp( tpname, "float" ) == 0 ){
-		if ( offset + sizeof(float) > size ){
+		if ( offset + sizeof(dao_float) > size ){
 			DaoProcess_RaiseError( proc, "Index::Range", "Invalid offset" );
 			return;
 		}
-		DaoProcess_PutFloat( proc, *(float*)data  );
+		DaoProcess_PutFloat( proc, *(dao_float*)data  );
 	}
 	else if ( N == 4 ){ // bit range
 		dao_integer count = p[3]->xInteger.value;
@@ -551,11 +551,11 @@ static void DaoBinary_SetItem( DaoProcess *proc, DaoValue *p[], int N )
 	if ( offset < 0 )
 		DaoProcess_RaiseError( proc, "Index::Range", "Invalid offset" );
 	else if ( p[3]->type == DAO_FLOAT ){
-		if ( offset + sizeof(float) > arr->size*sizeof(dao_integer) ){
+		if ( offset + sizeof(dao_float) > arr->size*sizeof(dao_integer) ){
 			DaoProcess_RaiseError( proc, "Index::Range", "Invalid offset" );
 			return;
 		}
-		*(float*)data  = p[3]->xFloat.value;
+		*(dao_float*)data  = p[3]->xFloat.value;
 	}
 	else if ( N == 5 ){ // bit range
 		dao_integer count = p[3]->xInteger.value;
