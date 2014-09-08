@@ -286,6 +286,10 @@ static void DaoTime_Set( DaoProcess *proc, DaoValue *p[], int N )
 	daoint i;
 	time_t value;
 	struct tm old = self->parts;
+	if ( !self->local ){
+		DaoProcess_RaiseError( proc, timeerr, "Only changing the parts of a local time is supported" );
+		return;
+	}
 	for ( i = 1; i < N; i++ ){
 		dao_integer val = p[i]->xTuple.values[1]->xInteger.value;
 		switch ( p[i]->xTuple.values[0]->xEnum.value ){
@@ -588,6 +592,10 @@ static void DaoTime_Add( DaoProcess *proc, DaoValue *p[], int N )
 	daoint days = 0;
 	int i;
 	int y, m, d;
+	if ( !self->local ){
+		DaoProcess_RaiseError( proc, timeerr, "Only adding to a local time is supported" );
+		return;
+	}
 	for ( i = 1; i < N; i++ ){
 		dao_integer count = p[i]->xTuple.values[1]->xInteger.value;
 		switch ( p[i]->xTuple.values[0]->xEnum.value ){
@@ -643,8 +651,10 @@ static DaoFuncItem timeMeths[] =
 	/*! Copy constructor */
 	{ DaoTime_Copy,		"time(invar other: time) => time" },
 
-	/*! Sets one or more time parts using named values */
-	{ DaoTime_Set,		"set(self: time, ...: tuple<enum<year,month,day,hour,min,sec>, int>)" },
+	/*! Sets one or more time parts using named values.
+	 *
+	 * \note Only changing the parts of a local time is supported */
+	{ DaoTime_Set,		"set(self: time, ...: tuple<enum<year,month,day,hour,min,sec>,int>)" },
 
 	/*! \c time_t value representing date and time information (number of seconds elapsed since the Epoch,
 	 * 1970-01-01 00:00:00, UTC) */
@@ -681,7 +691,9 @@ static DaoFuncItem timeMeths[] =
 	/*! Returns the number of day in the month or year of the given time depending on the \a period parameter */
 	{ DaoTime_Days,		"days(invar self: time, period: enum<month,year>) => int" },
 
-	/*! Adds the specified number of years, months or days (provided as named values) to the given time */
+	/*! Adds the specified number of years, months or days (provided as named values) to the given time.
+	 *
+	 * \note Only adding to a local time is supported */
 	{ DaoTime_Add,		"add(self: time, ...: tuple<enum<years,months,days>,int>)" },
 
 	/*! Time comparison */
