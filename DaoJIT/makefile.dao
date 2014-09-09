@@ -9,6 +9,8 @@ if( daovm == none || llvm == none ) return
 project.UseImportLibrary( daovm, "dao" )
 project.UseSharedLibrary( llvm )
 
+project.SetTargetPath( "../../lib/dao/modules" )
+
 project_objs = project.AddObjects( { "daoJIT.cpp" }, { "daoJIT.h" } )
 project_objs.AddCompilingFlag( "-fno-rtti" );
 

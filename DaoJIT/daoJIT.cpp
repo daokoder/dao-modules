@@ -63,28 +63,28 @@ Type *int8_type = NULL;
 Type *int16_type = NULL;
 Type *int32_type = NULL;
 Type *int32_type_p = NULL;
-Type *int64_type = NULL;
+//Type *int64_type = NULL;
 Type *daoint_type = NULL; // 32 or 64 bits
 Type *double_type = NULL;
 Type *size_t_type = NULL;
-StructType *complex_type = NULL;
+
+Type       *dao_integer_type = NULL;
+Type       *dao_float_type = NULL;
+StructType *dao_complex_type = NULL;
+
 VectorType *int8_vector2 = NULL;
 
 Type *void_type = NULL; // void
 
-PointerType *daoint_type_p = NULL; // 32 or 64 bits
-PointerType *double_type_p = NULL;
-PointerType *complex_type_p = NULL;
-
 ArrayType *daoint_array_type = NULL; // 32 or 64 bits
-ArrayType *float_array_type = NULL;
-ArrayType *double_array_type = NULL;
-ArrayType *complex_array_type = NULL;
+ArrayType *dao_integer_array_type = NULL; // 64 bits
+ArrayType *dao_float_array_type = NULL;
+ArrayType *dao_complex_array_type = NULL;
 
 PointerType *daoint_array_type_p = NULL; // 32 or 64 bits
-PointerType *float_array_type_p = NULL;
-PointerType *double_array_type_p = NULL;
-PointerType *complex_array_type_p = NULL;
+PointerType *dao_integer_array_type_p = NULL; // 64 bits
+PointerType *dao_float_array_type_p = NULL;
+PointerType *dao_complex_array_type_p = NULL;
 
 StructType *dstring_type = NULL; // DString
 PointerType *dstring_type_p = NULL; // DString*
@@ -313,7 +313,7 @@ void DaoJIT_LOAD( DaoValue *dA, DaoValue **dC )
 int DaoArray_number_op_array( DaoArray *C, DaoValue *A, DaoArray *B, short op, DaoProcess *proc );
 int DaoArray_array_op_number( DaoArray *C, DaoArray *A, DaoValue *B, short op, DaoProcess *proc );
 int DaoArray_ArrayArith( DaoArray *C, DaoArray *A, DaoArray *B, short op, DaoProcess *proc );
-void DaoJIT_SETI_ARRAY_I( DaoValue *C, daoint A, int *estatus )
+void DaoJIT_SETI_ARRAY_I( DaoValue *C, dao_integer A, int *estatus )
 {
 	int rc;
 	DaoInteger V = {DAO_INTEGER,0,0,0,1,0};
@@ -344,7 +344,7 @@ void DaoJIT_SETI_ARRAY_A( DaoValue *C, DaoValue *A, int *estatus )
 }
 
 
-void DaoJIT_BINOP_INTEGER_ARRAY( DaoValue *C, daoint A, DaoValue *B, int *estatus, int op )
+void DaoJIT_BINOP_INTEGER_ARRAY( DaoValue *C, dao_integer A, DaoValue *B, int *estatus, int op )
 {
 	int rc;
 	DaoInteger V = {DAO_INTEGER,0,0,0,1,0};
@@ -369,7 +369,7 @@ void DaoJIT_BINOP_COMPLEX_ARRAY( DaoValue *C, dao_complex A, DaoValue *B, int *e
 	if( rc == 0 ) *estatus = DAO_ERROR<<16;
 }
 
-void DaoJIT_ADD_INTEGER_ARRAY( DaoValue *C, daoint A, DaoValue *B, int *estatus )
+void DaoJIT_ADD_INTEGER_ARRAY( DaoValue *C, dao_integer A, DaoValue *B, int *estatus )
 {
 	DaoJIT_BINOP_INTEGER_ARRAY( C, A, B, estatus, DVM_ADD );
 }
@@ -382,7 +382,7 @@ void DaoJIT_ADD_COMPLEX_ARRAY( DaoValue *C, dao_complex A, DaoValue *B, int *est
 	DaoJIT_BINOP_COMPLEX_ARRAY( C, A, B, estatus, DVM_ADD );
 }
 
-void DaoJIT_SUB_INTEGER_ARRAY( DaoValue *C, daoint A, DaoValue *B, int *estatus )
+void DaoJIT_SUB_INTEGER_ARRAY( DaoValue *C, dao_integer A, DaoValue *B, int *estatus )
 {
 	DaoJIT_BINOP_INTEGER_ARRAY( C, A, B, estatus, DVM_SUB );
 }
@@ -395,7 +395,7 @@ void DaoJIT_SUB_COMPLEX_ARRAY( DaoValue *C, dao_complex A, DaoValue *B, int *est
 	DaoJIT_BINOP_COMPLEX_ARRAY( C, A, B, estatus, DVM_SUB );
 }
 
-void DaoJIT_MUL_INTEGER_ARRAY( DaoValue *C, daoint A, DaoValue *B, int *estatus )
+void DaoJIT_MUL_INTEGER_ARRAY( DaoValue *C, dao_integer A, DaoValue *B, int *estatus )
 {
 	DaoJIT_BINOP_INTEGER_ARRAY( C, A, B, estatus, DVM_MUL );
 }
@@ -408,7 +408,7 @@ void DaoJIT_MUL_COMPLEX_ARRAY( DaoValue *C, dao_complex A, DaoValue *B, int *est
 	DaoJIT_BINOP_COMPLEX_ARRAY( C, A, B, estatus, DVM_MUL );
 }
 
-void DaoJIT_DIV_INTEGER_ARRAY( DaoValue *C, daoint A, DaoValue *B, int *estatus )
+void DaoJIT_DIV_INTEGER_ARRAY( DaoValue *C, dao_integer A, DaoValue *B, int *estatus )
 {
 	DaoJIT_BINOP_INTEGER_ARRAY( C, A, B, estatus, DVM_DIV );
 }
@@ -421,7 +421,7 @@ void DaoJIT_DIV_COMPLEX_ARRAY( DaoValue *C, dao_complex A, DaoValue *B, int *est
 	DaoJIT_BINOP_COMPLEX_ARRAY( C, A, B, estatus, DVM_DIV );
 }
 
-void DaoJIT_MOD_INTEGER_ARRAY( DaoValue *C, daoint A, DaoValue *B, int *estatus )
+void DaoJIT_MOD_INTEGER_ARRAY( DaoValue *C, dao_integer A, DaoValue *B, int *estatus )
 {
 	DaoJIT_BINOP_INTEGER_ARRAY( C, A, B, estatus, DVM_MOD );
 }
@@ -434,7 +434,7 @@ void DaoJIT_MOD_COMPLEX_ARRAY( DaoValue *C, dao_complex A, DaoValue *B, int *est
 	DaoJIT_BINOP_COMPLEX_ARRAY( C, A, B, estatus, DVM_MOD );
 }
 
-void DaoJIT_POW_INTEGER_ARRAY( DaoValue *C, daoint A, DaoValue *B, int *estatus )
+void DaoJIT_POW_INTEGER_ARRAY( DaoValue *C, dao_integer A, DaoValue *B, int *estatus )
 {
 	DaoJIT_BINOP_INTEGER_ARRAY( C, A, B, estatus, DVM_POW );
 }
@@ -448,7 +448,7 @@ void DaoJIT_POW_COMPLEX_ARRAY( DaoValue *C, dao_complex A, DaoValue *B, int *est
 }
 
 
-void DaoJIT_BINOP_ARRAY_INTEGER( DaoValue *C, DaoValue *A, daoint B, int *estatus, int op )
+void DaoJIT_BINOP_ARRAY_INTEGER( DaoValue *C, DaoValue *A, dao_integer B, int *estatus, int op )
 {
 	int rc;
 	DaoInteger V = {DAO_INTEGER,0,0,0,1,0};
@@ -473,7 +473,7 @@ void DaoJIT_BINOP_ARRAY_COMPLEX( DaoValue *C, DaoValue *A, dao_complex B, int *e
 	if( rc == 0 ) *estatus = DAO_ERROR<<16;
 }
 
-void DaoJIT_ADD_ARRAY_INTEGER( DaoValue *C, DaoValue *A, daoint B, int *estatus )
+void DaoJIT_ADD_ARRAY_INTEGER( DaoValue *C, DaoValue *A, dao_integer B, int *estatus )
 {
 	DaoJIT_BINOP_ARRAY_INTEGER( C, A, B, estatus, DVM_ADD );
 }
@@ -486,7 +486,7 @@ void DaoJIT_ADD_ARRAY_COMPLEX( DaoValue *C, DaoValue *A, dao_complex B, int *est
 	DaoJIT_BINOP_ARRAY_COMPLEX( C, A, B, estatus, DVM_ADD );
 }
 
-void DaoJIT_SUB_ARRAY_INTEGER( DaoValue *C, DaoValue *A, daoint B, int *estatus )
+void DaoJIT_SUB_ARRAY_INTEGER( DaoValue *C, DaoValue *A, dao_integer B, int *estatus )
 {
 	DaoJIT_BINOP_ARRAY_INTEGER( C, A, B, estatus, DVM_SUB );
 }
@@ -499,7 +499,7 @@ void DaoJIT_SUB_ARRAY_COMPLEX( DaoValue *C, DaoValue *A, dao_complex B, int *est
 	DaoJIT_BINOP_ARRAY_COMPLEX( C, A, B, estatus, DVM_SUB );
 }
 
-void DaoJIT_MUL_ARRAY_INTEGER( DaoValue *C, DaoValue *A, daoint B, int *estatus )
+void DaoJIT_MUL_ARRAY_INTEGER( DaoValue *C, DaoValue *A, dao_integer B, int *estatus )
 {
 	DaoJIT_BINOP_ARRAY_INTEGER( C, A, B, estatus, DVM_MUL );
 }
@@ -512,7 +512,7 @@ void DaoJIT_MUL_ARRAY_COMPLEX( DaoValue *C, DaoValue *A, dao_complex B, int *est
 	DaoJIT_BINOP_ARRAY_COMPLEX( C, A, B, estatus, DVM_MUL );
 }
 
-void DaoJIT_DIV_ARRAY_INTEGER( DaoValue *C, DaoValue *A, daoint B, int *estatus )
+void DaoJIT_DIV_ARRAY_INTEGER( DaoValue *C, DaoValue *A, dao_integer B, int *estatus )
 {
 	DaoJIT_BINOP_ARRAY_INTEGER( C, A, B, estatus, DVM_DIV );
 }
@@ -525,7 +525,7 @@ void DaoJIT_DIV_ARRAY_COMPLEX( DaoValue *C, DaoValue *A, dao_complex B, int *est
 	DaoJIT_BINOP_ARRAY_COMPLEX( C, A, B, estatus, DVM_DIV );
 }
 
-void DaoJIT_MOD_ARRAY_INTEGER( DaoValue *C, DaoValue *A, daoint B, int *estatus )
+void DaoJIT_MOD_ARRAY_INTEGER( DaoValue *C, DaoValue *A, dao_integer B, int *estatus )
 {
 	DaoJIT_BINOP_ARRAY_INTEGER( C, A, B, estatus, DVM_MOD );
 }
@@ -538,7 +538,7 @@ void DaoJIT_MOD_ARRAY_COMPLEX( DaoValue *C, DaoValue *A, dao_complex B, int *est
 	DaoJIT_BINOP_ARRAY_COMPLEX( C, A, B, estatus, DVM_MOD );
 }
 
-void DaoJIT_POW_ARRAY_INTEGER( DaoValue *C, DaoValue *A, daoint B, int *estatus )
+void DaoJIT_POW_ARRAY_INTEGER( DaoValue *C, DaoValue *A, dao_integer B, int *estatus )
 {
 	DaoJIT_BINOP_ARRAY_INTEGER( C, A, B, estatus, DVM_POW );
 }
@@ -630,7 +630,7 @@ void DaoJIT_ADD_NE( DaoValue *dA, DaoValue *dB, DaoValue *dC )
 	dC->xInteger.value = (DString_Compare( dA->xString.value, dB->xString.value ) !=0);
 }
 // instruction index is passed in as estatus:
-daoint DaoJIT_GETI_SI( DaoValue *dA, daoint id, int *estatus )
+dao_integer DaoJIT_GETI_SI( DaoValue *dA, dao_integer id, int *estatus )
 {
 	DString *string = dA->xString.value;
 	char *mbs = string->chars;
@@ -641,7 +641,7 @@ daoint DaoJIT_GETI_SI( DaoValue *dA, daoint id, int *estatus )
 	}
 	return mbs[id];
 }
-void DaoJIT_SETI_SII( daoint ch, daoint id, DaoValue *dC, int *estatus )
+void DaoJIT_SETI_SII( dao_integer ch, dao_integer id, DaoValue *dC, int *estatus )
 {
 	DString *string = dC->xString.value;
 	char *mbs = string->chars;
@@ -652,7 +652,7 @@ void DaoJIT_SETI_SII( daoint ch, daoint id, DaoValue *dC, int *estatus )
 	}
 	mbs[id] = ch;
 }
-void DaoJIT_SETI_LI( DaoValue *dA, daoint id, DaoValue *dC, int *estatus )
+void DaoJIT_SETI_LI( DaoValue *dA, dao_integer id, DaoValue *dC, int *estatus )
 {
 	DaoList *list = (DaoList*) dC;
 	if( id <0 ) id += list->value->size;
@@ -662,7 +662,7 @@ void DaoJIT_SETI_LI( DaoValue *dA, daoint id, DaoValue *dC, int *estatus )
 	}
 	DaoValue_Copy( dA, list->value->items.pValue + id );
 }
-void DaoJIT_SETI_TI( DaoValue *dA, daoint id, DaoValue *dC, int *estatus )
+void DaoJIT_SETI_TI( DaoValue *dA, dao_integer id, DaoValue *dC, int *estatus )
 {
 	DaoTuple *tuple = (DaoTuple*) dC;
 	DaoType *type = NULL;
@@ -728,32 +728,31 @@ void DaoJIT_Init( DaoVmSpace *vms, DaoJIT *jit )
 	int8_type = Type::getInt8Ty( *llvm_context );
 	int16_type = Type::getInt16Ty( *llvm_context );
 	int32_type = Type::getInt32Ty( *llvm_context );
-	int64_type = Type::getInt64Ty( *llvm_context );
 	int8_vector2 = VectorType::get( int8_type, 2 );
 
 	daoint_type = int32_type;
 	if( sizeof(void*) == 8 ) daoint_type = Type::getInt64Ty( *llvm_context );
-	double_type = Type::getDoubleTy( *llvm_context );
 
-	std::vector<Type*> vc( 2, double_type );
-	complex_type = StructType::get( *llvm_context, vc );
+	dao_integer_type = Type::getInt64Ty( *llvm_context );
+	dao_float_type = Type::getDoubleTy( *llvm_context );
+	double_type = dao_float_type;
 
-	cxx_number_types[DAO_INTEGER - DAO_INTEGER] = daoint_type;
-	cxx_number_types[DAO_FLOAT   - DAO_INTEGER] = double_type;
-	cxx_number_types[DAO_COMPLEX - DAO_INTEGER] = complex_type;
+	std::vector<Type*> vc( 2, dao_float_type );
+	dao_complex_type = StructType::get( *llvm_context, vc );
 
-	daoint_type_p = PointerType::getUnqual( daoint_type );
-	double_type_p = PointerType::getUnqual( double_type );
-	complex_type_p = PointerType::getUnqual( complex_type );
+	cxx_number_types[DAO_INTEGER - DAO_INTEGER] = dao_integer_type;
+	cxx_number_types[DAO_FLOAT   - DAO_INTEGER] = dao_float_type;
+	cxx_number_types[DAO_COMPLEX - DAO_INTEGER] = dao_complex_type;
 
 	daoint_array_type = ArrayType::get( daoint_type, 0 );
-	double_array_type = ArrayType::get( double_type, 0 );
-	complex_array_type = ArrayType::get( complex_type, 0 );
+	dao_integer_array_type = ArrayType::get( dao_integer_type, 0 );
+	dao_float_array_type = ArrayType::get( dao_float_type, 0 );
+	dao_complex_array_type = ArrayType::get( dao_complex_type, 0 );
 
 	daoint_array_type_p = PointerType::getUnqual( daoint_array_type );
-	float_array_type_p = PointerType::getUnqual( float_array_type );
-	double_array_type_p = PointerType::getUnqual( double_array_type );
-	complex_array_type_p = PointerType::getUnqual( complex_array_type );
+	dao_integer_array_type_p = PointerType::getUnqual( dao_integer_array_type );
+	dao_float_array_type_p = PointerType::getUnqual( dao_float_array_type );
+	dao_complex_array_type_p = PointerType::getUnqual( dao_complex_array_type );
 
 	size_t_type = daoint_type;
 
@@ -796,21 +795,21 @@ void DaoJIT_Init( DaoVmSpace *vms, DaoJIT *jit )
 	daojit_variable_ptr_array_type_p = daojit_constant_ptr_array_type_p;
 
 
-	// type { i8, i8, i8, i8, i32, daoint }
+	// type { i8, i8, i8, i8, i32, dao_integer }
 	field_types.erase( field_types.begin()+5, field_types.end() );
-	field_types.push_back( daoint_type );
+	field_types.push_back( dao_integer_type );
 	daojit_integer_type = StructType::get( *llvm_context, field_types );
 	daojit_integer_type_p = PointerType::getUnqual( daojit_integer_type );
 	//daojit_integer_type_pp = PointerType::getUnqual( daojit_integer_type_p );
 
-	// type { i8, i8, i8, i8, i32, double }
+	// type { i8, i8, i8, i8, i32, dao_float }
 	field_types.erase( field_types.begin()+5, field_types.end() );
-	field_types.push_back( double_type );
+	field_types.push_back( dao_float_type );
 	daojit_float_type = StructType::get( *llvm_context, field_types );
 	daojit_float_type_p = PointerType::getUnqual( daojit_float_type );
 	//daojit_float_type_pp = PointerType::getUnqual( daojit_float_type_p );
 
-	field_types[5] = complex_type;
+	field_types[5] = dao_complex_type;
 	daojit_complex_type = StructType::get( *llvm_context, field_types );
 	daojit_complex_type_p = PointerType::getUnqual( daojit_complex_type );
 
@@ -877,18 +876,18 @@ void DaoJIT_Init( DaoVmSpace *vms, DaoJIT *jit )
 	field_types.push_back( int16_type ); // ndim
 	field_types.push_back( daoint_type ); // size
 	field_types.push_back( daoint_array_type_p ); // dims
-	field_types.push_back( daoint_array_type_p ); // data.i
+	field_types.push_back( dao_integer_array_type_p ); // data.i
 	field_types.push_back( void_type_p ); // original
 	field_types.push_back( void_type_p ); // slices
 
 	daojit_array_i_type = StructType::get( *llvm_context, field_types );
 	daojit_array_i_type_p = PointerType::getUnqual( daojit_array_i_type );
 
-	field_types[11] = double_array_type_p;
+	field_types[11] = dao_float_array_type_p;
 	daojit_array_f_type = StructType::get( *llvm_context, field_types );
 	daojit_array_f_type_p = PointerType::getUnqual( daojit_array_f_type );
 
-	field_types[11] = complex_array_type_p;
+	field_types[11] = dao_complex_array_type_p;
 	daojit_array_c_type = StructType::get( *llvm_context, field_types );
 	daojit_array_c_type_p = PointerType::getUnqual( daojit_array_c_type );
 
@@ -980,13 +979,13 @@ void DaoJIT_Init( DaoVmSpace *vms, DaoJIT *jit )
 
 	value2.push_back( int32_type_p );
 	value2[0] = daojit_value_type_p;
-	value2[1] = daoint_type;
+	value2[1] = dao_integer_type;
 	ft2 = FunctionType::get( void_type, value2, false );
 	daojit_array_set_items_i = Function::Create( ft2, linkage, "DaoJIT_SETI_ARRAY_I", llvm_module );
-	value2[1] = double_type;
+	value2[1] = dao_float_type;
 	ft2 = FunctionType::get( void_type, value2, false );
 	daojit_array_set_items_f = Function::Create( ft2, linkage, "DaoJIT_SETI_ARRAY_F", llvm_module );
-	value2[1] = complex_type;
+	value2[1] = dao_complex_type;
 	ft2 = FunctionType::get( void_type, value2, false );
 	daojit_array_set_items_c = Function::Create( ft2, linkage, "DaoJIT_SETI_ARRAY_C", llvm_module );
 	value2[1] = daojit_value_type_p;
@@ -995,7 +994,7 @@ void DaoJIT_Init( DaoVmSpace *vms, DaoJIT *jit )
 
 	value2.push_back( int32_type_p );
 	value2[0] = daojit_value_type_p;
-	value2[1] = daoint_type;
+	value2[1] = dao_integer_type;
 	value2[2] = daojit_value_type_p;
 	ft2 = FunctionType::get( void_type, value2, false );
 	daojit_array_add_integer_array = Function::Create( ft2, linkage, "DaoJIT_ADD_INTEGER_ARRAY", llvm_module );
@@ -1005,7 +1004,7 @@ void DaoJIT_Init( DaoVmSpace *vms, DaoJIT *jit )
 	daojit_array_mod_integer_array = Function::Create( ft2, linkage, "DaoJIT_MOD_INTEGER_ARRAY", llvm_module );
 	daojit_array_pow_integer_array = Function::Create( ft2, linkage, "DaoJIT_POW_INTEGER_ARRAY", llvm_module );
 
-	value2[1] = double_type;
+	value2[1] = dao_float_type;
 	ft2 = FunctionType::get( void_type, value2, false );
 	daojit_array_add_float_array = Function::Create( ft2, linkage, "DaoJIT_ADD_FLOAT_ARRAY", llvm_module );
 	daojit_array_sub_float_array = Function::Create( ft2, linkage, "DaoJIT_SUB_FLOAT_ARRAY", llvm_module );
@@ -1014,7 +1013,7 @@ void DaoJIT_Init( DaoVmSpace *vms, DaoJIT *jit )
 	daojit_array_mod_float_array = Function::Create( ft2, linkage, "DaoJIT_MOD_FLOAT_ARRAY", llvm_module );
 	daojit_array_pow_float_array = Function::Create( ft2, linkage, "DaoJIT_POW_FLOAT_ARRAY", llvm_module );
 
-	value2[1] = complex_type;
+	value2[1] = dao_complex_type;
 	ft2 = FunctionType::get( void_type, value2, false );
 	daojit_array_add_complex_array = Function::Create( ft2, linkage, "DaoJIT_ADD_COMPLEX_ARRAY", llvm_module );
 	daojit_array_sub_complex_array = Function::Create( ft2, linkage, "DaoJIT_SUB_COMPLEX_ARRAY", llvm_module );
@@ -1025,7 +1024,7 @@ void DaoJIT_Init( DaoVmSpace *vms, DaoJIT *jit )
 
 	value2[0] = daojit_value_type_p;
 	value2[1] = daojit_value_type_p;
-	value2[2] = daoint_type;
+	value2[2] = dao_integer_type;
 	ft2 = FunctionType::get( void_type, value2, false );
 	daojit_array_add_array_integer = Function::Create( ft2, linkage, "DaoJIT_ADD_ARRAY_INTEGER", llvm_module );
 	daojit_array_sub_array_integer = Function::Create( ft2, linkage, "DaoJIT_SUB_ARRAY_INTEGER", llvm_module );
@@ -1034,7 +1033,7 @@ void DaoJIT_Init( DaoVmSpace *vms, DaoJIT *jit )
 	daojit_array_mod_array_integer = Function::Create( ft2, linkage, "DaoJIT_MOD_ARRAY_INTEGER", llvm_module );
 	daojit_array_pow_array_integer = Function::Create( ft2, linkage, "DaoJIT_POW_ARRAY_INTEGER", llvm_module );
 
-	value2[2] = double_type;
+	value2[2] = dao_float_type;
 	ft2 = FunctionType::get( void_type, value2, false );
 	daojit_array_add_array_float = Function::Create( ft2, linkage, "DaoJIT_ADD_ARRAY_FLOAT", llvm_module );
 	daojit_array_sub_array_float = Function::Create( ft2, linkage, "DaoJIT_SUB_ARRAY_FLOAT", llvm_module );
@@ -1043,7 +1042,7 @@ void DaoJIT_Init( DaoVmSpace *vms, DaoJIT *jit )
 	daojit_array_mod_array_float = Function::Create( ft2, linkage, "DaoJIT_MOD_ARRAY_FLOAT", llvm_module );
 	daojit_array_pow_array_float = Function::Create( ft2, linkage, "DaoJIT_POW_ARRAY_FLOAT", llvm_module );
 
-	value2[2] = complex_type;
+	value2[2] = dao_complex_type;
 	ft2 = FunctionType::get( void_type, value2, false );
 	daojit_array_add_array_complex = Function::Create( ft2, linkage, "DaoJIT_ADD_ARRAY_COMPLEX", llvm_module );
 	daojit_array_sub_array_complex = Function::Create( ft2, linkage, "DaoJIT_SUB_ARRAY_COMPLEX", llvm_module );
@@ -1075,12 +1074,12 @@ void DaoJIT_Init( DaoVmSpace *vms, DaoJIT *jit )
 	daojit_string_eq = Function::Create( ft3, linkage, "DaoJIT_ADD_EQ", llvm_module );
 	daojit_string_ne = Function::Create( ft3, linkage, "DaoJIT_ADD_NE", llvm_module );
 
-	value3[1] = daoint_type;
+	value3[1] = dao_integer_type;
 	value3[2] = int32_type_p;
-	FunctionType *ft4 = FunctionType::get( daoint_type, value3, false );
+	FunctionType *ft4 = FunctionType::get( dao_integer_type, value3, false );
 	daojit_geti_si = Function::Create( ft4, linkage, "DaoJIT_GETI_SI", llvm_module );
 
-	value3[0] = daoint_type;
+	value3[0] = dao_integer_type;
 	value3[2] = daojit_value_type_p;
 	value3.push_back( int32_type_p );
 	ft4 = FunctionType::get( void_type, value3, false );
@@ -1695,12 +1694,16 @@ void DaoJitHandle::AddReturnCodeChecking( Value *retcode, int vmc )
 	SetInsertPoint( blfalse );
 	lastBlock = blfalse;
 }
+// index: dao_integer_type
+// size: any integer type
 Value* DaoJitHandle::AddIndexChecking( Value *index, Value *size, int vmc )
 {
 	BasicBlock *block = GetInsertBlock();
+
 	size = Dereference( size );
-	size = CreateIntCast( size, daoint_type, false );
-	Constant *zero = ConstantInt::get( daoint_type, 0 );
+	size = CreateIntCast( size, dao_integer_type, false );
+
+	Constant *zero = ConstantInt::get( dao_integer_type, 0 );
 	Value *index2 = CreateAdd( index, size );
 	Value *cmp = CreateICmpSLT( index, zero );
 	index = CreateSelect( cmp, index2, index );
@@ -1721,7 +1724,7 @@ Value* DaoJitHandle::GetArrayItem( int reg, int index, int vmc )
 	DaoType *type = routine->body->regType->items.pType[reg];
 	BasicBlock *current = GetInsertBlock();
 	ConstantPointerNull *null = ConstantPointerNull::get( void_type_p );
-	Constant *zero = ConstantInt::get( daoint_type, 0 );
+	Constant *zero = ConstantInt::get( dao_integer_type, 0 );
 	Constant *zero2 = ConstantInt::get( int32_type, 0 );
 	Value *value = GetLocalValue( reg );
 	int tid = DAO_INTEGER;
@@ -1759,8 +1762,8 @@ Value* DaoJitHandle::GetArrayItem( int reg, int index, int vmc )
 	Value *size = CreateConstGEP2_32( value, 0, 9 ); // array->size
 	id = AddIndexChecking( id, size, vmc );
 
-	value = CreateConstGEP2_32( value, 0, 11 ); // array->data.x: daoint/float/double**
-	value = Dereference( value ); // array->data.x: daoint/float/double*
+	value = CreateConstGEP2_32( value, 0, 11 ); // array->data.x: dao_integer/dao_float**
+	value = Dereference( value ); // array->data.x: dao_integer/dao_float*
 	std::vector<Value*> ids;
 	ids.push_back( zero );
 	ids.push_back( id );
@@ -1832,6 +1835,9 @@ Value* DaoJitHandle::GetArrayItemMI( int reg, int index, int vmc )
 		Value *dim = CreateLoad( CreateConstGEP2_32( dims, 0, i ) );
 		Value *acc = CreateLoad( CreateConstGEP2_32( accums, 0, i ) );
 		Value *idx = GetNumberOperand( reg + i + 1 );
+
+		idx = CreateIntCast( idx, daoint_type, false );
+
 		Value *idx2 = CreateAdd( idx, dim );
 		Value *cmp = CreateICmpSLT( idx, zero );
 		idx = CreateSelect( cmp, idx2, idx );
@@ -1866,7 +1872,7 @@ Value* DaoJitHandle::GetArrayItemMI( int reg, int index, int vmc )
 Value* DaoJitHandle::GetListItem( int reg, int index, int vmc )
 {
 	BasicBlock *current = GetInsertBlock();
-	Constant *zero = ConstantInt::get( daoint_type, 0 );
+	Constant *zero = ConstantInt::get( dao_integer_type, 0 );
 	Value *value = GetLocalValue( reg );
 	Value *id = GetNumberOperand( index );
 	SetInsertPoint( current );
@@ -2086,9 +2092,9 @@ Function* DaoJitHandle::Compile( int start, int end )
 	Argument *arg_context = jitFunction->arg_begin();
 	Constant *zero32 = ConstantInt::get( int32_type, 0 );
 	Constant *zero8 = ConstantInt::get( int8_type, 0 );
-	Constant *zero = ConstantInt::get( daoint_type, 0 );
-	Constant *double_zero = ConstantExpr::getSIToFP( zero, double_type );
-	Constant *complex_zero = ConstantStruct::get( complex_type, double_zero, double_zero, NULL );
+	Constant *dao_integer_zero = ConstantInt::get( dao_integer_type, 0 );
+	Constant *dao_float_zero = ConstantExpr::getSIToFP( dao_integer_zero, dao_float_type );
+	Constant *dao_complex_zero = ConstantStruct::get( dao_complex_type, dao_float_zero, dao_float_zero, NULL );
 	Value *type, *vdata, *dA, *dB, *dC, *real1, *real2, *imag1, *imag2, *tmp;
 	Value *value=NULL, *refer=NULL;
 	Type *numtype = NULL;
@@ -2146,7 +2152,7 @@ Function* DaoJitHandle::Compile( int start, int end )
 			switch( vmc->a ){
 			case DAO_NONE : break;
 			case DAO_INTEGER : break;
-			case DAO_FLOAT : value = CreateUIToFP( value, double_type ); break;
+			case DAO_FLOAT : value = CreateUIToFP( value, dao_float_type ); break;
 			default: goto Failed;
 			}
 			if( vmc->a ) StoreNumber( value, vmc->c );
@@ -2173,8 +2179,8 @@ Function* DaoJitHandle::Compile( int start, int end )
 		case DVM_MATH_F :
 			dB = GetNumberOperand( vmc->b );
 			switch( types[ vmc->b ]->tid ){
-			case DAO_INTEGER : dB = CreateSIToFP( dB, double_type ); break;
-			case DAO_FLOAT : dB = CreateFPCast( dB, double_type ); break;
+			case DAO_INTEGER : dB = CreateSIToFP( dB, dao_float_type ); break;
+			case DAO_FLOAT : dB = CreateFPCast( dB, dao_float_type ); break;
 			}
 			switch( vmc->a ){
 			case DVM_MATH_ABS  : mathfunc = daojit_abs_double;  break;
@@ -2208,12 +2214,12 @@ Function* DaoJitHandle::Compile( int start, int end )
 			value = sizeof(daoint) == 4 ? getInt32( vmc->b ) : getInt64( vmc->b );
 			switch( vmc->code ){
 			case DVM_DATA_C :
-				dA = CreateUIToFP( double_zero, double_type );
-				dB = CreateUIToFP( value, double_type );
-				value = ConstantStruct::get( complex_type, dA, dB, NULL );
+				dA = CreateUIToFP( dao_float_zero, dao_float_type );
+				dB = CreateUIToFP( value, dao_float_type );
+				value = ConstantStruct::get( dao_complex_type, dA, dB, NULL );
 				break;
 			case DVM_DATA_I : break;
-			case DVM_DATA_F : value = CreateUIToFP( value, double_type ); break;
+			case DVM_DATA_F : value = CreateUIToFP( value, dao_float_type ); break;
 			default: goto Failed;
 			}
 			StoreNumber( value, vmc->c );
@@ -2311,7 +2317,7 @@ Function* DaoJitHandle::Compile( int start, int end )
 			dA = GetNumberOperand( vmc->a );
 			switch( code ){
 			case DVM_MOVE_IF : 
-			case DVM_MOVE_FI : dA = CreateSIToFP( dA, double_type ); break;
+			case DVM_MOVE_FI : dA = CreateSIToFP( dA, dao_float_type ); break;
 			}
 			StoreNumber( dA, vmc->c );
 			break;
@@ -2319,42 +2325,42 @@ Function* DaoJitHandle::Compile( int start, int end )
 		case DVM_MOVE_CF :
 			dA = GetNumberOperand( vmc->a );
 			switch( code ){
-			case DVM_MOVE_CI : dA = CreateSIToFP( dA, double_type ); break;
-			case DVM_MOVE_CF : dA = CreateFPCast( dA, double_type ); break;
+			case DVM_MOVE_CI : dA = CreateSIToFP( dA, dao_float_type ); break;
+			case DVM_MOVE_CF : dA = CreateFPCast( dA, dao_float_type ); break;
 			}
-			dC = CreateBitCast( complex_zero, complex_type );
+			dC = CreateBitCast( dao_complex_zero, dao_complex_type );
 			dC = CreateInsertValue( dC, dA, fidx0 );
 			StoreNumber( dC, vmc->c );
 			break;
 		case DVM_NOT_I :
 			dA = GetNumberOperand( vmc->a );
-			dC = CreateICmpEQ( dA, zero );
+			dC = CreateICmpEQ( dA, dao_integer_zero );
 			dC = CreateIntCast( dC, daoint_type, false );
 			StoreNumber( dC, vmc->c );
 			break;
 		case DVM_NOT_F :
 			dA = GetNumberOperand( vmc->a );
-			dC = CreateFCmpOEQ( dA, double_zero );
+			dC = CreateFCmpOEQ( dA, dao_float_zero );
 			dC = CreateIntCast( dC, daoint_type, false );
 			StoreNumber( dC, vmc->c );
 			break;
 		case DVM_MINUS_I :
 			dA = GetNumberOperand( vmc->a );
-			dC = CreateSub( zero, dA );
+			dC = CreateSub( dao_integer_zero, dA );
 			StoreNumber( dC, vmc->c );
 			break;
 		case DVM_MINUS_F :
 			dA = GetNumberOperand( vmc->a );
-			dC = CreateFSub( double_zero, dA );
+			dC = CreateFSub( dao_float_zero, dA );
 			StoreNumber( dC, vmc->c );
 			break;
 		case DVM_MINUS_C :
 			dA = GetNumberOperand( vmc->a );
 			real1 = CreateExtractValue( dA, fidx0 );
 			imag1 = CreateExtractValue( dA, fidx1 );
-			real1 = CreateFSub( double_zero, real1 );
-			imag1 = CreateFSub( double_zero, imag1 );
-			dC = CreateBitCast( complex_zero, complex_type );
+			real1 = CreateFSub( dao_float_zero, real1 );
+			imag1 = CreateFSub( dao_float_zero, imag1 );
+			dC = CreateBitCast( dao_complex_zero, dao_complex_type );
 			dC = CreateInsertValue( dC, real1, fidx0 );
 			dC = CreateInsertValue( dC, imag1, fidx1 );
 			StoreNumber( dC, vmc->c );
@@ -2376,8 +2382,8 @@ Function* DaoJitHandle::Compile( int start, int end )
 			StoreNumber( value, vmc->c );
 			break;
 		case DVM_POW_III :
-			dA = dB = CreateSIToFP( GetNumberOperand( vmc->a ), double_type );
-			if( vmc->a != vmc->b ) dB = CreateSIToFP( GetNumberOperand( vmc->b ), double_type );
+			dA = dB = CreateSIToFP( GetNumberOperand( vmc->a ), dao_float_type );
+			if( vmc->a != vmc->b ) dB = CreateSIToFP( GetNumberOperand( vmc->b ), dao_float_type );
 			tmp = CreateCall2( daojit_pow_double, dA, dB );
 			tmp = CreateFPToSI( tmp, daoint_type );
 			StoreNumber( tmp, vmc->c );
@@ -2387,8 +2393,8 @@ Function* DaoJitHandle::Compile( int start, int end )
 			dA = dB = GetNumberOperand( vmc->a );
 			if( vmc->a != vmc->b ) dB = GetNumberOperand( vmc->b );
 			switch( code ){
-			case DVM_AND_III : value = CreateICmpEQ( dA, zero ); break;
-			case DVM_OR_III  : value = CreateICmpNE( dA, zero ); break;
+			case DVM_AND_III : value = CreateICmpEQ( dA, dao_integer_zero ); break;
+			case DVM_OR_III  : value = CreateICmpNE( dA, dao_integer_zero ); break;
 			}
 			value = CreateSelect( value, dA, dB );
 			StoreNumber( value, vmc->c );
@@ -2451,8 +2457,8 @@ Function* DaoJitHandle::Compile( int start, int end )
 			StoreNumber( value, vmc->c );
 			break;
 		case DVM_POW_FFF :
-			dA = dB = CreateFPCast( GetNumberOperand( vmc->a ), double_type );
-			if( vmc->a != vmc->b ) dB = CreateFPCast( GetNumberOperand( vmc->b ), double_type );
+			dA = dB = CreateFPCast( GetNumberOperand( vmc->a ), dao_float_type );
+			if( vmc->a != vmc->b ) dB = CreateFPCast( GetNumberOperand( vmc->b ), dao_float_type );
 			tmp = CreateCall2( daojit_pow_double, dA, dB );
 			StoreNumber( tmp, vmc->c );
 			break;
@@ -2461,8 +2467,8 @@ Function* DaoJitHandle::Compile( int start, int end )
 			dA = dB = GetNumberOperand( vmc->a );
 			if( vmc->a != vmc->b ) dB = GetNumberOperand( vmc->b );
 			switch( code ){
-			case DVM_AND_FFF : value = CreateFCmpOEQ( dA, double_zero ); break;
-			case DVM_OR_FFF  : value = CreateFCmpONE( dA, double_zero ); break;
+			case DVM_AND_FFF : value = CreateFCmpOEQ( dA, dao_float_zero ); break;
+			case DVM_OR_FFF  : value = CreateFCmpONE( dA, dao_float_zero ); break;
 			}
 			value = CreateSelect( value, dA, dB );
 			StoreNumber( value, vmc->c );
@@ -2524,7 +2530,7 @@ Function* DaoJitHandle::Compile( int start, int end )
 				dB = CreateFDiv( dB, dC );
 				break;
 			}
-			dC = CreateBitCast( complex_zero, complex_type );
+			dC = CreateBitCast( dao_complex_zero, dao_complex_type );
 			dC = CreateInsertValue( dC, dA, fidx0 );
 			dC = CreateInsertValue( dC, dB, fidx1 );
 			StoreNumber( dC, vmc->c );
@@ -2575,13 +2581,13 @@ Function* DaoJitHandle::Compile( int start, int end )
 		case DVM_TEST_I :
 			if( comparisons.find( i ) != comparisons.end() ) break;
 			dA = GetNumberOperand( vmc->a );
-			value = CreateICmpNE( dA, zero );
+			value = CreateICmpNE( dA, dao_integer_zero );
 			comparisons[i] = value;
 			break;
 		case DVM_TEST_F :
 			if( comparisons.find( i ) != comparisons.end() ) break;
 			dA = GetNumberOperand( vmc->a );
-			value = CreateFCmpONE( dA, double_zero );
+			value = CreateFCmpONE( dA, dao_float_zero );
 			comparisons[i] = value;
 			break;
 		case DVM_SWITCH :

@@ -502,7 +502,7 @@ static int DaoNetwork_SendArray( int sockfd, DaoArray *data )
 			}
 		}
 	}else if( numtype == DAO_FLOAT ){
-		double *vec = DaoArray_ToDouble( data );
+		dao_float *vec = DaoArray_ToFloat( data );
 		for(j=0; j<M; j++){
 			DaoPrintNumber( buf2, vec[j] );
 			len = strlen( buf2 ) + 1;
@@ -558,7 +558,7 @@ int DaoNetwork_ReceiveExt( DaoProcess *proc, int sockfd, DaoList *data )
 	DaoArray *arr = NULL;
 	DaoValue *item;
 	DString  *str = DString_New();
-	double *fv = NULL;
+	dao_float *fv = NULL;
 	DaoDataPacket *inpack;
 	int dpp = 0, count = 0;
 	char bufin[ MAX_DATA + MAX_DATA + 2 ];
@@ -648,7 +648,7 @@ int DaoNetwork_ReceiveExt( DaoProcess *proc, int sockfd, DaoList *data )
 						if( ( buf2 - inpack->data ) >= MAX_DATA ) break;
 					}
 				}else if( numtype == DAO_FLOAT ){
-					fv = DaoArray_ToDouble( arr );
+					fv = DaoArray_ToFloat( arr );
 					for(i=j; i<M; i++){
 						fv[i] = DaoParseNumber( buf2 );
 						while( *buf2 ) buf2 ++;

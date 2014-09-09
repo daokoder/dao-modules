@@ -201,9 +201,9 @@ static int dao_make_wrapper( DString *name, DaoType *routype, DString *cproto, D
 			break;
 		case DAO_COMPLEX :
 			DString_Append( cc, pname );
-			DString_AppendChars( cproto, "complex16 " );
+			DString_AppendChars( cproto, "dao_complex " );
 			DString_Append( cproto, pname );
-			DString_AppendChars( wrapper, "complex16 " );
+			DString_AppendChars( wrapper, "dao_complex " );
 			DString_Append( wrapper, pname );
 			DString_AppendChars( wrapper, " = DaoValue_TryGetComplex( _p[" );
 			DString_AppendChars( wrapper, sindex );
@@ -322,8 +322,8 @@ static int dao_make_wrapper( DString *name, DaoType *routype, DString *cproto, D
 			}
 			break;
 		case DAO_COMPLEX :
-			DString_InsertChars( cproto, "complex16 ", 0, 0, 0 );
-			DString_AppendChars( wrapper, "complex16 " );
+			DString_InsertChars( cproto, "dao_complex ", 0, 0, 0 );
+			DString_AppendChars( wrapper, "dao_complex " );
 			DString_AppendChars( wrapper, " _res = " );
 			DString_Append( wrapper, cc );
 			DString_AppendChars( wrapper, "DaoProcess_PutComplex( _proc, _res );\n" );
