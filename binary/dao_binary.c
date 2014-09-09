@@ -533,7 +533,7 @@ static void DaoBinary_GetItem( DaoProcess *proc, DaoValue *p[], int N )
 		case Binary_Word:	num = *(short*)data; break;
 		case Binary_UDWord: num = *(uint_t*)data; break;
 		case Binary_DWord:	num = *(int*)data; break;
-		case Binary_UQWord: num = *(unsigned dao_integer*)data; break;
+		case Binary_UQWord: num = *(dao_integer*)data; break;
 		case Binary_QWord:	num = *(dao_integer*)data; break;
 		}
 		DaoProcess_PutInteger( proc, num );
@@ -596,7 +596,7 @@ static void DaoBinary_SetItem( DaoProcess *proc, DaoValue *p[], int N )
 		case Binary_Word:	*(short*)data = num; break;
 		case Binary_UDWord: *(uint_t*)data = num; break;
 		case Binary_DWord:	*(int*)data = num; break;
-		case Binary_UQWord: *(unsigned dao_integer*)data = num; break;
+		case Binary_UQWord: *(dao_integer*)data = num; break;
 		case Binary_QWord:	*(dao_integer*)data = num; break;
 		}
 	}

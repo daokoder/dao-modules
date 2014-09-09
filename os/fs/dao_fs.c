@@ -608,7 +608,7 @@ int DInode_GetOwner( DInode *self, DString *name )
 #endif
 }
 
-int DInode_Resize( DInode *self, unsigned dao_integer size )
+int DInode_Resize( DInode *self, dao_integer size )
 {
 	int res = 0;
 #ifdef WIN32
