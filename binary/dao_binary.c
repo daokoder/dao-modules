@@ -247,7 +247,7 @@ int DString_DecodeHex( DString *self, DString *dest, daoint *errpos )
 	};
 	daoint i;
 	*errpos = -1;
-	if ( i%2 )
+	if ( self->size%2 )
 		return 0;
 	DString_Resize( dest, self->size/2 );
 	for ( i = 0; i < dest->size; i++ ){
@@ -325,7 +325,7 @@ static void DaoBinary_Read( DaoProcess *proc, DaoValue *p[], int N )
 	DaoStream *stream = &p[0]->xStream;
 	FILE* file = stream->file;
 	DaoArray *arr = &p[1]->xArray;
-	size_t count =  p[2]->xInteger.value;
+	dao_integer count =  p[2]->xInteger.value;
 	size_t size = 0;
 	DaoArray_Sliced( arr );
 	if( !file ){
@@ -353,7 +353,7 @@ static void DaoBinary_Unpack( DaoProcess *proc, DaoValue *p[], int N )
 	DaoArray *arr = &p[1]->xArray;
 	size_t sizes[] = {1, 2, 4};
 	size_t size =  sizes[p[2]->xEnum.value];
-	size_t count = p[3]->xInteger.value;
+	dao_integer count = p[3]->xInteger.value;
 	DaoArray_Sliced( arr );
 	if( !file ){
 		DaoProcess_RaiseError( proc, NULL, "The stream is not a file" );
@@ -384,10 +384,9 @@ static void DaoBinary_Pack( DaoProcess *proc, DaoValue *p[], int N )
 	DaoArray *arr = &p[0]->xArray;
 	size_t sizes[] = {1, 2, 4};
 	size_t size =  sizes[p[2]->xEnum.value];
-	size_t count = p[3]->xInteger.value, res = 0;
+	dao_integer count = p[3]->xInteger.value, res = 0;
 	size_t i;
 	DaoArray_Sliced( arr );
-	count = arr->size;
 	if( !file ){
 		DaoProcess_RaiseError( proc, NULL, "The stream is not a file" );
 		return;
@@ -437,7 +436,7 @@ static void DaoBinary_Write( DaoProcess *proc, DaoValue *p[], int N )
 	FILE* file = stream->file;
 	DaoArray *arr = &p[0]->xArray;
 	size_t size = 0;
-	size_t count = p[2]->xInteger.value;
+	dao_integer count = p[2]->xInteger.value;
 	DaoArray_Sliced( arr );
 	if( !file ){
 		DaoProcess_RaiseError( proc, "Param", "The stream is not a file" );
@@ -452,7 +451,7 @@ static void DaoBinary_Write( DaoProcess *proc, DaoValue *p[], int N )
 	case DAO_FLOAT:		size = sizeof(dao_float); break;
 	case DAO_COMPLEX:	size = sizeof(dao_complex); break;
 	}
-	if( !count || count > arr->size )
+	if( count <= 0 || count > arr->size )
 		count = arr->size;
 	DaoProcess_PutInteger( proc, fwrite( arr->data.p, size, count, file ) );
 }

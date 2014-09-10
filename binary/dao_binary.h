@@ -28,7 +28,7 @@
 #ifndef __DAO_BINARY__
 #define __DAO_BINARY__
 
-#include<dao.h>
+#include"dao.h"
 
 DAO_DLL void DString_EncodeBase64( DString *self, DString *dest );
 DAO_DLL int DString_DecodeBase64( DString *self, DString *dest, daoint *errpos );
