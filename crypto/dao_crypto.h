@@ -28,7 +28,7 @@
 #ifndef __DAO_CRYPTO__
 #define __DAO_CRYPTO__
 
-#include<dao.h>
+#include"dao.h"
 
 DAO_DLL void DString_MD5( DString *self, DString *md5 );
 DAO_DLL void DString_SHA1( DString *self, DString *sha1 );

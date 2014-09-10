@@ -392,11 +392,9 @@ static void DaoFormat( DaoProcess *proc, DaoValue *p[], int N )
 	int num, error, width, alignment, sign, precision, notation, argend, index, index2, indexed, centered, namelen;
 	int argnamelen;
 	char *mbs, buf[200], *name, *argname;
-	wchar_t *wcs, *wargname;
 	DString_Reserve( str, DString_Size( fmt ) );
 	format.name = NULL;
 
-	/*MBS*/
 	mbs = DString_GetData( fmt );
 	for( pos = 0; pos < DString_Size( fmt ); pos += 2){
 		num = error = alignment = sign = precision = notation = argend = index = indexed = centered = namelen = 0;

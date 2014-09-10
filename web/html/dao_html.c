@@ -53,7 +53,6 @@ DaoHtmlContext* DaoHtmlContext_New()
 
 void DaoHtmlContext_Delete( DaoHtmlContext *self )
 {
-	int i;
 	if ( self == NULL )
 		return;
 	DList_Delete( self->content );
