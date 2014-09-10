@@ -315,7 +315,6 @@ xml_error ParseXMLInstruction( XMLContext *ctx, DString *name, DString *data, DM
 {
 	char *end = strstr( ctx->pos, "?>" );
 	xml_error res;
-	daoint count;
 	if ( !end )
 		return XML_InstructionNotClosed;
 	res = ParseXMLName( ctx, name, namepool );
@@ -323,21 +322,13 @@ xml_error ParseXMLInstruction( XMLContext *ctx, DString *name, DString *data, DM
 		return res;
 	if ( strcmp( name->chars, "xml") == 0 )
 		return XML_ReservedInstructionName;
-	switch ( *ctx->pos ){
-	case '\r':
-	case '\n':
-	case ' ':
-	case '\t':
-		ctx->pos++;
-		break;
-	default:
-		ctx->len = 0;
-		return XML_InvalidSyntax;
-	}
 	if ( ctx->pos != end ){
-		if ( !count )
-			return XML_InvalidNameChar;
-		else {
+		daoint count = PassXMLWhitespace( ctx );
+		if ( !count ){
+			ctx->len = 0;
+			return XML_InvalidSyntax;
+		}
+		if ( ctx->pos != end ){
 			char *start = ctx->pos;
 			while ( ctx->pos < end )
 				if ( !IsXMLChar( GetChar( ctx ) ) )
@@ -727,11 +718,8 @@ void DeleteNodes( DArray **nodes )
 void DaoXMLElement_Delete( DaoXMLElement *self ){
 	if ( self->kind == XMLTextElement )
 		DString_Delete( self->c.text );
-	else {
+	else
 		DeleteNodes( &self->c.children );
-		if ( self->refs ) /* rollback in case one of the children called DaoXMLNode_AcquireParent() */
-			return;
-	}
 	if ( self->attribs )
 		DMap_Delete( self->attribs );
 	DString_DeleteData( &self->tag );
@@ -778,8 +766,12 @@ DaoXMLElement* DaoXMLNode_AcquireParent( DaoXMLNode *self )
 	DaoXMLElement *parent;
 	DMutex_Lock( &xmlmtx );
 	parent = self->parent;
-	if ( self->parent )
-		parent->refs++;
+	if ( self->parent ){
+		if ( self->parent->refs )
+			parent->refs++;
+		else
+			parent = NULL;
+	}
 	DMutex_Unlock( &xmlmtx );
 	return parent;
 }
