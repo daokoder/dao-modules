@@ -558,14 +558,14 @@ static void GRAPH_FindEdges( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem DaoxNodeMeths[]=
 {
-	{ NODE_GetWeight, "GetWeight( self :Node<@N,@E> ) => double" },
-	{ NODE_SetWeight, "SetWeight( self :Node<@N,@E>, weight :double )" },
-	{ NODE_GetValue, "GetValue( self :Node<@N,@E> ) => @N" },
-	{ NODE_SetValue, "SetValue( self :Node<@N,@E>, value :@N )" },
-	{ NODE_GetEdges, "Edges( self :Node<@N,@E>, set :enum<in,out> = $out ) => list<Edge<@N,@E>>" },
+	{ NODE_GetWeight, "GetWeight( self: Node<@N,@E> ) => float" },
+	{ NODE_SetWeight, "SetWeight( self: Node<@N,@E>, weight: float )" },
+	{ NODE_GetValue, "GetValue( self: Node<@N,@E> ) => @N" },
+	{ NODE_SetValue, "SetValue( self: Node<@N,@E>, value: @N )" },
+	{ NODE_GetEdges, "Edges( self: Node<@N,@E>, set: enum<in,out> = $out ) => list<Edge<@N,@E>>" },
 
-	{ NODE_Search, "Search( self :Node<@N,@E>, method :enum<breadth,depth> = $breadth, which :enum<first,all> = $first )[node :Node<@N,@E> =>int] => list<Node<@N,@E>>" },
-	// { NODE_Traverse, "Traverse( self :Node<@N,@E>, method :enum<breadth,depth> = $breadth ) [node :Node<@N,@E>]" } ,
+	{ NODE_Search, "Search( self: Node<@N,@E>, method: enum<breadth,depth> = $breadth, which: enum<first,all> = $first )[node: Node<@N,@E> =>int] => list<Node<@N,@E>>" },
+	// { NODE_Traverse, "Traverse( self: Node<@N,@E>, method: enum<breadth,depth> = $breadth ) [node: Node<@N,@E>]" } ,
 	{ NULL, NULL }
 };
 
@@ -577,11 +577,11 @@ DaoTypeBase DaoxNode_Typer =
 
 static DaoFuncItem DaoxEdgeMeths[]=
 {
-	{ EDGE_GetWeight, "GetWeight( self :Edge<@N,@E> ) => double" },
-	{ EDGE_SetWeight, "SetWeight( self :Edge<@N,@E>, weight :double )" },
-	{ EDGE_GetValue, "GetValue( self :Edge<@N,@E> ) => @E" },
-	{ EDGE_SetValue, "SetValue( self :Edge<@N,@E>, value :@E )" },
-	{ EDGE_GetNodes, "Nodes( self :Edge<@N,@E> ) => tuple<first:Node<@N,@E>,second:Node<@N,@E>>" },
+	{ EDGE_GetWeight, "GetWeight( self: Edge<@N,@E> ) => float" },
+	{ EDGE_SetWeight, "SetWeight( self: Edge<@N,@E>, weight: float )" },
+	{ EDGE_GetValue, "GetValue( self: Edge<@N,@E> ) => @E" },
+	{ EDGE_SetValue, "SetValue( self: Edge<@N,@E>, value: @E )" },
+	{ EDGE_GetNodes, "Nodes( self: Edge<@N,@E> ) => tuple<first:Node<@N,@E>,second:Node<@N,@E>>" },
 	{ NULL, NULL }
 };
 
@@ -595,27 +595,27 @@ DaoTypeBase DaoxEdge_Typer =
 static DaoFuncItem DaoxGraphMeths[]=
 {
 	/* allocaters must have names identical second the typer name: */
-	{ GRAPH_Graph,    "Graph<@N,@E>( dir :enum<undirected,directed>=$undirected )" },
-	{ GRAPH_GetNodes, "Nodes( self :Graph<@N,@E> ) => list<Node<@N,@E>>" },
-	{ GRAPH_GetEdges, "Edges( self :Graph<@N,@E> ) => list<Edge<@N,@E>>" },
-	{ GRAPH_AddNode, "AddNode( self :Graph<@N,@E> ) => Node<@N,@E>" },
-	{ GRAPH_AddEdge, "AddEdge( self :Graph<@N,@E>, first :Node<@N,@E>, second :Node<@N,@E> ) => Edge<@N,@E>" },
+	{ GRAPH_Graph,    "Graph<@N,@E>( dir: enum<undirected,directed>=$undirected )" },
+	{ GRAPH_GetNodes, "Nodes( self: Graph<@N,@E> ) => list<Node<@N,@E>>" },
+	{ GRAPH_GetEdges, "Edges( self: Graph<@N,@E> ) => list<Edge<@N,@E>>" },
+	{ GRAPH_AddNode, "AddNode( self: Graph<@N,@E> ) => Node<@N,@E>" },
+	{ GRAPH_AddEdge, "AddEdge( self: Graph<@N,@E>, first: Node<@N,@E>, second: Node<@N,@E> ) => Edge<@N,@E>" },
 
-	{ GRAPH_NodeCount, "NodeCount( self :Graph<@N,@E> ) => int" },
-	{ GRAPH_EdgeCount, "EdgeCount( self :Graph<@N,@E> ) => int" },
+	{ GRAPH_NodeCount, "NodeCount( self: Graph<@N,@E> ) => int" },
+	{ GRAPH_EdgeCount, "EdgeCount( self: Graph<@N,@E> ) => int" },
 
-	{ GRAPH_RandomInit, "RandomInit( self :Graph<@N,@E>, N :int, P :double ) => int" },
-	{ GRAPH_RemoveSingletonNodes, "RemoveSingletonNodes( self :Graph<@N,@E>, save :none|Graph<@N,@E> = none ) => int" },
+	{ GRAPH_RandomInit, "RandomInit( self: Graph<@N,@E>, N: int, P: float ) => int" },
+	{ GRAPH_RemoveSingletonNodes, "RemoveSingletonNodes( self: Graph<@N,@E>, save: none|Graph<@N,@E> = none ) => int" },
 
-	{ GRAPH_FindNodes, "FindNodes( self :Graph<@N,@E>, which :enum<first,all> = $first )[node :Node<@N,@E> =>int] => list<Node<@N,@E>>" },
-	{ GRAPH_FindEdges, "FindEdges( self :Graph<@N,@E>, which :enum<first,all> = $first )[node :Edge<@N,@E> =>int] => list<Edge<@N,@E>>" },
+	{ GRAPH_FindNodes, "FindNodes( self: Graph<@N,@E>, which: enum<first,all> = $first )[node: Node<@N,@E> =>int] => list<Node<@N,@E>>" },
+	{ GRAPH_FindEdges, "FindEdges( self: Graph<@N,@E>, which: enum<first,all> = $first )[node: Edge<@N,@E> =>int] => list<Edge<@N,@E>>" },
 
-	//{ GRAPH_Distance, "Distance( self :Graph<@N,@E>, start :Node<@N,@E>, end :Node<@N,@E> ) => int" },
-	//{ GRAPH_Distances, "Distances( self :Graph<@N,@E>, start :Node<@N,@E> ) => list<tuple<end:Node<@N,@E>,dist:int>>" },
-	//{ GRAPH_Distances, "Distances( self :Graph<@N,@E> ) => list<tuple<start:Node<@N,@E>,end:Node<@N,@E>,dist:int>>" },
+	//{ GRAPH_Distance, "Distance( self: Graph<@N,@E>, start: Node<@N,@E>, end: Node<@N,@E> ) => int" },
+	//{ GRAPH_Distances, "Distances( self: Graph<@N,@E>, start: Node<@N,@E> ) => list<tuple<end:Node<@N,@E>,dist:int>>" },
+	//{ GRAPH_Distances, "Distances( self: Graph<@N,@E> ) => list<tuple<start:Node<@N,@E>,end:Node<@N,@E>,dist:int>>" },
 
-	{ GRAPH_ConnectedComponents, "ConnectedComponents( self :Graph<@N,@E> ) => list<Graph<@N,@E>>" },
-	//{ GRAPH_MininumSpanTree, "MininumSpanTree( self :Graph<@N,@E> ) => Graph<Node<@N,@E>,@E>" },
+	{ GRAPH_ConnectedComponents, "ConnectedComponents( self: Graph<@N,@E> ) => list<Graph<@N,@E>>" },
+	//{ GRAPH_MininumSpanTree, "MininumSpanTree( self: Graph<@N,@E> ) => Graph<Node<@N,@E>,@E>" },
 
 	{ NULL, NULL }
 };
@@ -647,7 +647,7 @@ static void GD_GetGraph( DaoProcess *proc, DaoValue *p[], int N )
 }
 static DaoFuncItem DaoxGraphDataMeths[]=
 {
-	{ GD_GetGraph, "GetGraph( self :GraphData ) => none|Graph<any,any>" },
+	{ GD_GetGraph, "GetGraph( self: GraphData ) => none|Graph<any,any>" },
 	{ NULL, NULL }
 };
 
@@ -779,12 +779,12 @@ static void GMF_GetGraphFlow( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem DaoxGraphMFMeths[]=
 {
 	{ GMF_New,     "GraphMaxFlow()" },
-	{ GMF_Init,    "Init( self :GraphMaxFlow, graph :Graph<@N,@E> )" },
-	{ GMF_Compute, "Compute( self :GraphMaxFlow, source :Node<@N,@E>, sink :Node<@N,@E> ) => int" },
-	{ GMF_SetCapacity, "SetCapacity( self :GraphMaxFlow, edge :Edge<@N,@E>, capacity :double )" },
-	{ GMF_GetCapacity, "GetCapacity( self :GraphMaxFlow, edge :Edge<@N,@E> ) => double" },
-	{ GMF_GetEdgeFlow,  "GetFlow( self :GraphMaxFlow, edge :Edge<@N,@E> ) => double" },
-	{ GMF_GetGraphFlow, "GetFlow( self :GraphMaxFlow ) => double" },
+	{ GMF_Init,    "Init( self: GraphMaxFlow, graph: Graph<@N,@E> )" },
+	{ GMF_Compute, "Compute( self: GraphMaxFlow, source: Node<@N,@E>, sink: Node<@N,@E> ) => int" },
+	{ GMF_SetCapacity, "SetCapacity( self: GraphMaxFlow, edge: Edge<@N,@E>, capacity: float )" },
+	{ GMF_GetCapacity, "GetCapacity( self: GraphMaxFlow, edge: Edge<@N,@E> ) => float" },
+	{ GMF_GetEdgeFlow,  "GetFlow( self: GraphMaxFlow, edge: Edge<@N,@E> ) => float" },
+	{ GMF_GetGraphFlow, "GetFlow( self: GraphMaxFlow ) => float" },
 	{ NULL, NULL }
 };
 

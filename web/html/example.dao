@@ -1,4 +1,4 @@
-load html import html
+load web.html import html
 
 htmlForm = fragment {
 	form(id="login_form", method=$post, action="#"){
