@@ -36,8 +36,6 @@
 #include"math.h"
 #include"errno.h"
 
-#include"daoThread.h"
-
 #ifdef UNIX
 
 // gethostby* is not reentrant on Unix, synchronization is desirable
@@ -73,7 +71,7 @@ typedef size_t socklen_t;
 #include"dao.h"
 #include"daoValue.h"
 #include"daoStream.h"
-
+#include"daoThread.h"
 
 #define BACKLOG 1000 /*  how many pending connections queue will hold */
 #define MAX_DATA 512 /*  max number of bytes we can get at once */
@@ -310,15 +308,22 @@ int DaoNetwork_Receive( int sockfd, DString *buf, int max )
 }
 
 enum {
-	Shutdown_Receive = 0,
-	Shutdown_Send = 1,
-	Shutdown_Both = 2
+	Shutdown_None = 0,
+	Shutdown_Receive = 1,
+	Shutdown_Send = 2,
 };
 
-typedef int shutdown_flag;
+typedef short shutdown_flag;
 
 int DaoNetwork_Shutdown( int sockfd, shutdown_flag flag )
 {
+	int sf;
+	if ( ( flag & Shutdown_Receive ) && ( flag & Shutdown_Send ) )
+		sf = 2;
+	else if ( flag & Shutdown_Send )
+		sf = 1;
+	else
+		sf = 0;
 	return shutdown( sockfd, flag );
 }
 
@@ -684,13 +689,14 @@ enum {
 	Socket_Listening
 };
 
-typedef int socket_state;
+typedef short socket_state;
 typedef struct DaoSocket DaoSocket;
 
 struct DaoSocket
 {
 	int id;
 	socket_state state;
+	shutdown_flag shutflag;
 };
 
 extern DaoTypeBase socketTyper;
@@ -701,6 +707,7 @@ static DaoSocket* DaoSocket_New(  )
 	DaoSocket *self = dao_malloc( sizeof(DaoSocket) );
 	self->id = -1;
 	self->state = Socket_Closed;
+	self->shutflag = Shutdown_None;
 	return self;
 }
 
@@ -709,6 +716,7 @@ static int DaoSocket_Shutdown( DaoSocket *self, shutdown_flag flag )
 	if( self->id != -1 ){
 		if ( DaoNetwork_Shutdown( self->id, flag ) != 0 )
 			return -1;
+		self->shutflag = flag;
 	}
 	return 0;
 }
@@ -719,6 +727,7 @@ static void DaoSocket_Close( DaoSocket *self )
 		DaoNetwork_Close( self->id );
 		self->id = -1;
 		self->state = Socket_Closed;
+		self->shutflag = Shutdown_None;
 	}
 }
 
@@ -957,6 +966,19 @@ static void DaoSocket_Lib_GetStream( DaoProcess *proc, DaoValue *par[], int N  )
 	DaoProcess_PutValue( proc, (DaoValue*)stream );
 }
 
+static void DaoSocket_Lib_Check( DaoProcess *proc, DaoValue *par[], int N  )
+{
+	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	int res = 0, open = ( self->state == Socket_Bound || self->state == Socket_Connected );
+	switch ( par[1]->xEnum.value ){
+	case 0:	res = open && !( self->shutflag & Shutdown_Receive ); break;
+	case 1: res = open && !( self->shutflag & Shutdown_Send ); break;
+	case 2:	res = open; break;
+	case 3:	res = open && !( self->shutflag & Shutdown_Receive ); break;
+	}
+	DaoProcess_PutEnum( proc, res? "true" : "false" );
+}
+
 static DaoFuncItem socketMeths[] =
 {
 	/*! Binds the socket to \a port using \a address options if specified. For the description of \a address, see \c net.bind() */
@@ -975,14 +997,23 @@ static DaoFuncItem socketMeths[] =
 	/*! Sends data \a data */
 	{  DaoSocket_Lib_Send,          "send( self: socket, data: string )" },
 
+	/*! Identical to `send()`; required to satisfy `io::device` interface */
+	{  DaoSocket_Lib_Send,          "write( self: socket, data: string )" },
+
 	/*! Receives at most \a limit bytes and returnes the received data */
 	{  DaoSocket_Lib_Receive,       "receive( self: socket, limit = 512 ) => string" },
+
+	/*! Identical to `receive()`; required to satisfy `io::device` interface */
+	{  DaoSocket_Lib_Receive,       "read( self: socket, count = -1 ) => string" },
 
 	/*! Sends data via the internal serialization protocol */
 	{  DaoSocket_Lib_SendDao,       "send_dao( self: socket, ... )" },
 
 	/*! Receives data via the internal serialization protocol */
 	{  DaoSocket_Lib_ReceiveDao,    "receive_dao( self: socket ) => list<int|float|complex|string|array>" },
+
+	/*! Checks the property specified by \a what; required to satisfy `io::device` interface  */
+	{  DaoSocket_Lib_Check,			"check(self: socket, what: enum<readable,writable,open,eof>) => bool" },
 
 	/*! Peer name */
 	{  DaoSocket_Lib_GetPeerName,   ".peername( invar self: socket ) => string" },
