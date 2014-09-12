@@ -1,7 +1,7 @@
 load web.json
 
 data = {
-	"module" =>               (any)"DaoJSON",
+	"module" =>               (json::Data) "DaoJSON",
 	"descriptioin" =>         "JSON serializer/parser",
 	"external dependences" => none,
 	"classes" =>              0,

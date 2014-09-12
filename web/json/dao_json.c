@@ -37,6 +37,8 @@
 
 static const char jsonerr[] = "JSON";
 static DaoType *booltype;
+static DaoType *json_list_type;
+static DaoType *json_map_type;
 
 void JSON_Indent( DString *text, int indent )
 {
@@ -310,6 +312,7 @@ DaoValue* JSON_ParseArray( DaoProcess *process, DaoValue *exlist, char* *text, i
 	DaoValue *value;
 	int coma = 0;
 	(*text)++;
+	DaoList_SetType( list, json_list_type );
 	for( ;; ){
 		data = JSON_FindData( *text, line );
 		if( data == NULL ){
@@ -368,6 +371,7 @@ DaoValue* JSON_ParseObject( DaoProcess *process, DaoValue *exmap, char* *text, i
 	DaoValue **val = &key;
 	int coma = 0, colon = 0;
 	(*text)++;
+	DaoMap_SetType( map, json_map_type );
 	for( ;; ){
 		data = JSON_FindData( *text, line );
 		if( data == NULL ){
@@ -497,7 +501,7 @@ static DaoFuncItem jsonMeths[] =
 	 * - none => null
 	 * - enum<false:true> => bool
 	 */
-	{ JSON_Serialize,	"serialize(invar data: map<string,@V>|list<@V>, style: enum<pretty,compact> = $pretty) => string" },
+	{ JSON_Serialize,	"serialize(invar data: map<string,Data>|list<Data>, style: enum<pretty,compact> = $pretty) => string" },
 
 	/*! Parses JSON in \a str and returns the corresponding map or list.
 	 *
@@ -508,7 +512,7 @@ static DaoFuncItem jsonMeths[] =
 	 * - null   => none
 	 * - bool   => enum<false:true>
 	 */
-	{ JSON_Deserialize,	"parse(str: string) => map<string,any>|list<any>" },
+	{ JSON_Deserialize,	"parse(str: string) => map<string,Data>|list<Data>" },
 	{ NULL, NULL }
 };
 
@@ -519,6 +523,9 @@ DAO_DLL int DaoJSON_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	booltype = DaoNamespace_FindType( ns, bname );
 	DString_Delete( bname );
 	jsonns = DaoNamespace_GetNamespace( ns, "json" );
+	DaoNamespace_TypeDefine( jsonns, "none|int|float|string|enum<false:true>|list<Data>|map<string,Data>", "Data" );
 	DaoNamespace_WrapFunctions( jsonns, jsonMeths );
+	json_list_type = DaoNamespace_TypeDefine( jsonns, "list<Data>", "JsonArray" );
+	json_map_type = DaoNamespace_TypeDefine( jsonns, "map<string,Data>", "JsonObject" );
 	return 0;
 }

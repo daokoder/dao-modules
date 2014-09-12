@@ -147,21 +147,21 @@ static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 			switch( itp->tid ){
 			case DAO_INTEGER :
 				if( itp == daox_ffi_int_types[ DAO_FFI_UINT8 ] ){
-					DaoArray_ToUByte( array );
+					DaoArray_ToUInt8( array );
 				}else if( itp == daox_ffi_int_types[ DAO_FFI_SINT8 ] ){
-					DaoArray_ToSByte( array );
+					DaoArray_ToSInt8( array );
 				}else if( itp == daox_ffi_int_types[ DAO_FFI_UINT16 ] ){
-					DaoArray_ToUShort( array );
+					DaoArray_ToUInt16( array );
 				}else if( itp == daox_ffi_int_types[ DAO_FFI_SINT16 ] ){
-					DaoArray_ToSShort( array );
+					DaoArray_ToSInt16( array );
 				}else if( itp == daox_ffi_int_types[ DAO_FFI_UINT32 ] ){
-					DaoArray_ToUInt( array );
+					DaoArray_ToUInt32( array );
 				}else{
-					DaoArray_ToSInt( array );
+					DaoArray_ToSInt32( array );
 				}
 				break;
 			case DAO_FLOAT :
-				DaoArray_ToFloat( array );
+				DaoArray_ToFloat32( array );
 				break;
 			case DAO_COMPLEX :
 				break;
@@ -223,21 +223,21 @@ static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 			switch( itp->tid ){
 			case DAO_INTEGER :
 				if( itp == daox_ffi_int_types[ DAO_FFI_UINT8 ] ){
-					DaoArray_FromUByte( array );
+					DaoArray_FromUInt8( array );
 				}else if( itp == daox_ffi_int_types[ DAO_FFI_SINT8 ] ){
-					DaoArray_FromSByte( array );
+					DaoArray_FromSInt8( array );
 				}else if( itp == daox_ffi_int_types[ DAO_FFI_UINT16 ] ){
-					DaoArray_FromUShort( array );
+					DaoArray_FromUInt16( array );
 				}else if( itp == daox_ffi_int_types[ DAO_FFI_SINT16 ] ){
-					DaoArray_FromSShort( array );
+					DaoArray_FromSInt16( array );
 				}else if( itp == daox_ffi_int_types[ DAO_FFI_UINT32 ] ){
-					DaoArray_FromUInt( array );
+					DaoArray_FromUInt32( array );
 				}else{
-					DaoArray_FromSInt( array );
+					DaoArray_FromSInt32( array );
 				}
 				break;
 			case DAO_FLOAT :
-				DaoArray_FromFloat( array );
+				DaoArray_FromFloat32( array );
 				break;
 			case DAO_COMPLEX :
 				break;
