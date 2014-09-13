@@ -31,7 +31,7 @@
 #include<math.h>
 #include"daoString.h"
 #include"daoValue.h"
-#include "dao_crypto.h"
+#include"dao_crypto.h"
 
 #ifdef WIN32
 #include<wincrypt.h>
@@ -194,22 +194,38 @@ void DString_SHA1( DString *self, DString *sha1 )
 {
 	uint_t K[] = {0x5A827999, 0x6ED9EBA1, 0x8F1BBCDC, 0xCA62C1D6};
 	uint_t H[] = {0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0};
-	DString *str = DString_Copy( self );
-	unsigned long long bits = ( (unsigned long long)str->size )*8;
+	unsigned long long bits = ( (unsigned long long)self->size )*8;
 	uint_t W[80], TEMP, A, B, C, D, E;
-	daoint i;
-	int t, pad;
-	DString_AppendChar( str, 0x80 );
-	pad = 64 - str->size%64;
-	if ( pad < 8 )
-		pad += 64;
-	DString_Resize( str, str->size + pad );
-	for ( i = 0; i < 8; i++ )
-		str->chars[str->size - i - 1] = ( bits >> 8*i ) & 0xFF;
-	for ( i = 0; i < str->size; i += 64 ){
-		uchar_t *chs = str->chars + i;
-		for ( t = 0; t < 16; t++ )
-			W[t] = ( chs[t*4] << 24 ) | ( chs[t*4 + 1] << 16 ) | ( chs[t*4 + 2] << 8 ) | chs[t*4 + 3];
+	uchar_t buf[64];
+	daoint i, N = self->size + 1;
+	int t, extra = 0;
+	for ( i = 0; i < N; i += 64 ){
+		if ( extra ){ /* extra pass for the bit count, no data fetching */
+			for ( t = 0; t < 16; t++ )
+				W[t] = 0;
+			W[14] = bits >> 32;
+			W[15] = bits & 0xFFFFFFFF;
+		}
+		else { /* usual processing */
+			uchar_t *chs = self->chars + i;
+			int limit = ( N - i > 64 )? 64 : N - i - 1;
+			if ( limit < 64 ){ /* original data ended, forming the last block in a buffer */
+				if ( limit )
+					memcpy( buf, chs, limit );
+				buf[limit] = 0x80;
+				memset( buf + limit + 1, 0, 63 - limit );
+				if ( limit > 55 ){ /* no room for the bit count, extra pass is required */
+					extra = 1;
+					N += 127 - limit;
+				}
+				else /* appending the bit count */
+					for ( i = 0; i < 8; i++ )
+						buf[63 - i] = ( bits >> 8*i ) & 0xFF;
+				chs = buf;
+			}
+			for ( t = 0; t < 16; t++ )
+				W[t] = ( chs[t*4] << 24 ) | ( chs[t*4 + 1] << 16 ) | ( chs[t*4 + 2] << 8 ) | chs[t*4 + 3];
+		}
 		for ( t = 16; t < 80; t++ )
 			W[t] = SHA1_S( W[t - 3] ^ W[t - 8] ^ W[t - 14] ^ W[t - 16], 1 );
 		A = H[0];
@@ -233,7 +249,7 @@ void DString_SHA1( DString *self, DString *sha1 )
 	}
 	DString_Resize( sha1, 40 );
 	snprintf( sha1->chars, sha1->size, "%x%x%x%x%x", H[0], H[1], H[2], H[3], H[4] );
-	DString_Delete( str );
+	DString_Delete( self );
 }
 
 /* Corrected Block Tiny Encryption Algorithm (Corrected Block TEA, or XXTEA)
