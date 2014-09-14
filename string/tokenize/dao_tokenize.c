@@ -29,7 +29,26 @@
 #include<string.h>
 #include"daoString.h"
 #include"daoValue.h"
+#include"daoLexer.h"
 
+static void DaoAUX_Tokenize( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DString *source = p[0]->xString.value;
+	DaoList *list = DaoProcess_PutList( proc );
+	DaoLexer *lexer = DaoLexer_New();
+	DList *tokens = lexer->tokens;
+	int i, rc = 0;
+	rc = DaoLexer_Tokenize( lexer, source->chars, DAO_LEX_COMMENT|DAO_LEX_SPACE );
+	if( rc ){
+		DaoString *str = DaoString_New(1);
+		for(i=0; i<tokens->size; i++){
+			DString_Assign( str->value, & tokens->items.pToken[i]->string );
+			DList_Append( list->value, (DaoValue*) str );
+		}
+		DaoString_Delete( str );
+	}
+	DaoLexer_Delete( lexer );
+}
 
 static void DaoSTR_Tokenize( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -95,9 +114,10 @@ static void DaoSTR_Tokenize( DaoProcess *proc, DaoValue *p[], int N )
 	if( str->size > 0 ) DList_Append( list->value, value );
 	DaoString_Delete( (DaoString*) value );
 }
-const char *p = "tokenize( source :string, seps :string, quotes='', backslash=0, simplify=0 )=>list<string>";
+const char *p = "tokenize( source: string, seps: string, quotes='', backslash=0, simplify=0 )=>list<string>";
 DAO_DLL int DaoTokenize_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
+	DaoNamespace_WrapFunction( ns, DaoAUX_Tokenize, "tokenize( source: string )=>list<string>" );
 	DaoNamespace_WrapFunction( ns, DaoSTR_Tokenize, p );
 	return 0;
 }

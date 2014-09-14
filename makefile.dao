@@ -11,6 +11,14 @@ if( modules.SourcePath() != modules.BinaryPath() ){
 	modules.AddCommand( "addpath:", "$(DAOMAKE) copy " + src + " " + dest );
 }
 
+modules.AddDirectory( "syslib", "syslib" )
+modules.AddDirectory( "math", "math" )
+modules.AddDirectory( "meta", "meta" )
+modules.AddDirectory( "bigint", "bigint" )
+modules.AddDirectory( "coroutine", "coroutine" )
+modules.AddDirectory( "protobject", "protobject" )
+modules.AddDirectory( "serializer", "serializer" )
+modules.AddDirectory( "dataframe", "dataframe" )
 
 if( DaoMake::IsDir( "DaoJIT" ) ) modules.AddDirectory( "DaoJIT", "DaoJIT" );
 
