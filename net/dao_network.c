@@ -36,6 +36,11 @@
 #include"math.h"
 #include"errno.h"
 
+#include"dao.h"
+#include"daoValue.h"
+#include"daoStream.h"
+#include"daoThread.h"
+
 #ifdef UNIX
 
 // gethostby* is not reentrant on Unix, synchronization is desirable
@@ -67,11 +72,6 @@ typedef size_t socklen_t;
 #define fdopen _fdopen
 
 #endif
-
-#include"dao.h"
-#include"daoValue.h"
-#include"daoStream.h"
-#include"daoThread.h"
 
 #define BACKLOG 1000 /*  how many pending connections queue will hold */
 #define MAX_DATA 512 /*  max number of bytes we can get at once */

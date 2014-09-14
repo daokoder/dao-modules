@@ -326,7 +326,7 @@ DAO_DLL int DaoCGI_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 
 	vmMaster = vmSpace;
 
-	daox_type_namestream = DaoNamespace_TypeDefine( ns, "tuple<file:string,size:int,data:io::stream>", "HttpUpload" );
+	daox_type_namestream = DaoNamespace_DefineType( ns, "tuple<file:string,size:int,data:io::stream>", "HttpUpload" );
 	daox_type_filemap = DaoNamespace_ParseType( ns, "map<string,HttpUpload>" );
 
 	DaoNamespace_WrapFunctions( ns, cgiMeths );

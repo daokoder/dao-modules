@@ -404,7 +404,7 @@ DAO_DLL int DaoClinker_OnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 	daox_ffi_type = DaoNamespace_WrapType( ns, & DaoFFI_Typer, 0 );
 	for(i=0; i<DAO_FFI_SINT64; i++){
 		DString mbs = DString_WrapChars( alias[i] );
-		daox_ffi_int_types[i] = DaoNamespace_TypeDefine( ns, "int", ctype[i] );
+		daox_ffi_int_types[i] = DaoNamespace_DefineType( ns, "int", ctype[i] );
 		if( i < DAO_FFI_SINT32 ){
 			DaoNamespace_AddType( ns, & mbs, daox_ffi_int_types[i] );
 			DaoNamespace_AddTypeConstant( ns, & mbs, daox_ffi_int_types[i] );

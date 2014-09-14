@@ -644,10 +644,10 @@ DAO_DLL int DaoHtml_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	attrns = DaoNamespace_GetNamespace( htmlns, "attr" );
 	DaoNamespace_AddConstValue( ns, "html", (DaoValue*)htmlns );
 	DaoNamespace_AddConstValue( htmlns, "attr", (DaoValue*)attrns );
-	DaoNamespace_TypeDefine( attrns, html_global_attr, "global" );
-	DaoNamespace_TypeDefine( attrns, html_step_attr, "step" );
-	DaoNamespace_TypeDefine( attrns, html_target_attr, "target" );
-	DaoNamespace_TypeDefine( attrns, html_formtarget_attr, "formtarget" );
+	DaoNamespace_DefineType( attrns, html_global_attr, "global" );
+	DaoNamespace_DefineType( attrns, html_step_attr, "step" );
+	DaoNamespace_DefineType( attrns, html_target_attr, "target" );
+	DaoNamespace_DefineType( attrns, html_formtarget_attr, "formtarget" );
 	DaoNamespace_WrapFunctions( htmlns, htmlMeths );
 	return 0;
 }

@@ -714,16 +714,16 @@ DAO_DLL int DaoCxx_OnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 
 	DaoNamespace_AddCodeInliner( ns, "cxx", dao_cxx_inliner );
 	DaoNamespace_AddCodeInliner( ns, "cpp", dao_cxx_inliner );
-	DaoNamespace_TypeDefine( ns, "int", "short" );
-	DaoNamespace_TypeDefine( ns, "int", "size_t" );
-	DaoNamespace_TypeDefine( ns, "int", "int8_t" );
-	DaoNamespace_TypeDefine( ns, "int", "uint8_t" );
-	DaoNamespace_TypeDefine( ns, "int", "int16_t" );
-	DaoNamespace_TypeDefine( ns, "int", "uint16_t" );
-	DaoNamespace_TypeDefine( ns, "int", "int32_t" );
-	DaoNamespace_TypeDefine( ns, "int", "uint32_t" );
-	DaoNamespace_TypeDefine( ns, "int", "int64_t" );
-	DaoNamespace_TypeDefine( ns, "int", "uint64_t" );
+	DaoNamespace_DefineType( ns, "int", "short" );
+	DaoNamespace_DefineType( ns, "int", "size_t" );
+	DaoNamespace_DefineType( ns, "int", "int8_t" );
+	DaoNamespace_DefineType( ns, "int", "uint8_t" );
+	DaoNamespace_DefineType( ns, "int", "int16_t" );
+	DaoNamespace_DefineType( ns, "int", "uint16_t" );
+	DaoNamespace_DefineType( ns, "int", "int32_t" );
+	DaoNamespace_DefineType( ns, "int", "uint32_t" );
+	DaoNamespace_DefineType( ns, "int", "int64_t" );
+	DaoNamespace_DefineType( ns, "int", "uint64_t" );
 	ns = DaoVmSpace_GetNamespace( vms, "io" );
 	dao_type_stream2 = DaoNamespace_FindTypeChars( ns, "stream" );
 	return 0;
