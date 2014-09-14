@@ -1309,10 +1309,9 @@ static void FS_NormPath( DaoProcess *proc, DaoValue *p[], int N )
 static void FS_Exists( DaoProcess *proc, DaoValue *p[], int N )
 {
 	char_t *path = CharsToTChars( p[0]->xString.value->chars );
-	DInode *fsnode = DInode_New();
-	DaoProcess_PutEnum( proc, DInode_Open( fsnode, path ) == 0? "true" : "false" );
+	stat_t info;
+	DaoProcess_PutEnum( proc, stat( path, &info ) == 0? "true" : "false" );
 	FreeTChars( path );
-	DInode_Delete( fsnode );
 }
 
 static void FS_Roots( DaoProcess *proc, DaoValue *p[], int N )
