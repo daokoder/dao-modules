@@ -1,7 +1,7 @@
 load dataframe
 
 # Create a 2D matrix:
-matrix = array<double>( 16 ){ [i] [ -1.0D : -1 : 8] + 1.51*i }
+matrix = array<float>( 16 ){ [i] [ -1.0 : -1 : 8] + 1.51*i }
 
 # Create a 2D dataframe from the matrix:
 dframe2d = DataFrame( matrix )
@@ -62,7 +62,7 @@ dframe2d[1:5,:3].ScanColumns { [value,column]
 
 
 # Create a 3D matrix:
-matrix3d = array<double>(3){ [i] matrix + i }
+matrix3d = array<float>(3){ [i] matrix + i }
 matrix3d.permute( [ 2, 1, 0 ] )
 
 # Create 3D dataframe:

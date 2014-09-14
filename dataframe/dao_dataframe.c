@@ -38,6 +38,7 @@
 #include "daoGC.h"
 
 
+#ifdef DAO_WITH_NUMARRAY
 
 static int DaoType_GetDataSize( DaoType *self )
 {
@@ -1175,11 +1176,11 @@ static void FRAME_PRINT( DaoProcess *proc, DaoValue *p[], int n )
 		sprintf( label->chars, " (Slices from DataFrame[%p])", original );
 		DaoStream_WriteChars( stream, label->chars );
 	}
-	sprintf( label->chars, "\nDimensions: Rows=%" DAO_INT_FORMAT ";", N );
+	sprintf( label->chars, "\nDimensions: Rows=%" DAO_INT ";", N );
 	DaoStream_WriteChars( stream, label->chars );
-	sprintf( label->chars, " Cols=%" DAO_INT_FORMAT ";", M );
+	sprintf( label->chars, " Cols=%" DAO_INT ";", M );
 	DaoStream_WriteChars( stream, label->chars );
-	sprintf( label->chars, " Deps=%" DAO_INT_FORMAT ";\n", K );
+	sprintf( label->chars, " Deps=%" DAO_INT ";\n", K );
 	DaoStream_WriteChars( stream, label->chars );
 
 	idwidth = 1 + (int)log10(N+1);
@@ -1188,7 +1189,7 @@ static void FRAME_PRINT( DaoProcess *proc, DaoValue *p[], int n )
 		int width = 1 + (int)log10(ii+1);
 		if( width > idwidth ) idwidth = width;
 	}
-	sprintf( idfmt, "%%%i%s:", idwidth, DAO_INT_FORMAT );
+	sprintf( idfmt, "%%%i%s:", idwidth, DAO_INT );
 
 	if( M == 1 ){
 		maxwidth = 64;
@@ -1312,7 +1313,7 @@ static void FRAME_PRINT( DaoProcess *proc, DaoValue *p[], int n )
 			}
 			if( J == j ) J += 1;
 
-			sprintf( buf, "from %" DAO_INT_FORMAT " to %" DAO_INT_FORMAT ":\n", j, J-1 );
+			sprintf( buf, "from %" DAO_INT " to %" DAO_INT ":\n", j, J-1 );
 			DaoStream_WriteChars( stream, j == 0 ? "| Columns " : "> Columns " );
 			DaoStream_WriteChars( stream, buf );
 
@@ -1409,7 +1410,7 @@ static void FRAME_PRINT( DaoProcess *proc, DaoValue *p[], int n )
 						sprintf( fmt, "%%-%is", width );
 						snprintf( buf, width+1, fmt, " " );
 					}else if( value->type == DAO_INTEGER ){
-						sprintf( fmt, "%%%i%s", width, DAO_INT_FORMAT );
+						sprintf( fmt, "%%%i%s", width, DAO_INT );
 						snprintf( buf, width+1, fmt, value->xInteger.value );
 					}else if( value->type == DAO_FLOAT ){
 						double f = DaoValue_GetFloat( value );
@@ -1840,3 +1841,11 @@ DAO_DLL int DaoDataframe_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace_DefineType( ns, "none|int|string|tuple<none,none>|tuple<int,int>|tuple<string,string>|tuple<int|string,none>|tuple<none,int|string>", "DataFrame_IndexType" );
 	return 0;
 }
+
+#else
+DAO_DLL int DaoDataframe_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+{
+	DaoStream_WriteChars( vmSpace->errorStream, "ERROR: dataframe need numeric array!" );
+	return 1;
+}
+#endif

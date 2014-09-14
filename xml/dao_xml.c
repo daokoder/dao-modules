@@ -1507,7 +1507,7 @@ void RaiseValidationError( DaoProcess *proc, xml_error error, daoint pos )
 {
 	char buf[100];
 	GetXMLErrorMessage( error, buf );
-	snprintf( buf + strlen( buf ), sizeof(buf) - strlen( buf ), " at index %" DAO_INT_FORMAT, pos );
+	snprintf( buf + strlen( buf ), sizeof(buf) - strlen( buf ), " at index %" DAO_INT, pos );
 	DaoProcess_RaiseError( proc, xmlerr, buf );
 }
 
@@ -1819,7 +1819,7 @@ int CheckAttrValue( DaoProcess *proc, DString *attr, DString *value )
 	if ( pos >= 0 ){
 		char buf[200];
 		GetXMLErrorMessage( XML_InvalidChar, buf );
-		snprintf( buf + strlen( buf ), sizeof(buf) - strlen( buf ), " at index %" DAO_INT_FORMAT " in the value of attribute '%s'",
+		snprintf( buf + strlen( buf ), sizeof(buf) - strlen( buf ), " at index %" DAO_INT " in the value of attribute '%s'",
 				  pos, attr->chars );
 		DaoProcess_RaiseError( proc, xmlerr, buf );
 		return 0;
@@ -2405,7 +2405,7 @@ int WriteContent( DaoProcess *proc, DaoXMLElement *dest, DString *tag, DaoValue 
 				if ( pos >= 0 ){
 					char buf[200];
 					GetXMLErrorMessage( XML_InvalidChar, buf );
-					snprintf( buf + strlen( buf ), sizeof(buf) - strlen( buf ), " at index %" DAO_INT_FORMAT " in the content of element '%s'",
+					snprintf( buf + strlen( buf ), sizeof(buf) - strlen( buf ), " at index %" DAO_INT " in the content of element '%s'",
 							  pos, el->tag.chars );
 					DaoProcess_RaiseError( proc, xmlerr, buf );
 					DaoXMLElement_Delete( el );

@@ -214,6 +214,7 @@ static int PrintValue( DaoValue *value, DString *dest, Format *format, DString *
 				error = 4;
 		}
 		break;
+#ifdef DAO_WITH_NUMARRAY
 	case DAO_ARRAY:
 		valarray = DaoValue_CastArray( value );
 		if( sliced ){
@@ -292,6 +293,7 @@ static int PrintValue( DaoValue *value, DString *dest, Format *format, DString *
 			dao_free( number );
 		}
 		break;
+#endif
 	case DAO_TUPLE:
 		valtuple = DaoValue_CastTuple( value );
 		if( format->name ){

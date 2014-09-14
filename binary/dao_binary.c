@@ -293,7 +293,7 @@ static void DaoBinary_Decode( DaoProcess *proc, DaoValue *p[], int N )
 				DaoProcess_RaiseError( proc, "Bin", "Not a valid Base64-encoded string" );
 			else {
 				char buf[50];
-				snprintf( buf, sizeof(buf), "Non-Base64 character at index %" DAO_INT_FORMAT, errpos );
+				snprintf( buf, sizeof(buf), "Non-Base64 character at index %" DAO_INT, errpos );
 				DaoProcess_RaiseError( proc, "Bin", buf );
 			}
 		}
@@ -304,7 +304,7 @@ static void DaoBinary_Decode( DaoProcess *proc, DaoValue *p[], int N )
 				DaoProcess_RaiseError( proc, "Bin", "Not a valid Z85-encoded string" );
 			else {
 				char buf[50];
-				snprintf( buf, sizeof(buf), "Non-Z85 character at index %" DAO_INT_FORMAT, errpos );
+				snprintf( buf, sizeof(buf), "Non-Z85 character at index %" DAO_INT, errpos );
 				DaoProcess_RaiseError( proc, "Bin", buf );
 			}
 		}
@@ -314,7 +314,7 @@ static void DaoBinary_Decode( DaoProcess *proc, DaoValue *p[], int N )
 			DaoProcess_RaiseError( proc, "Bin", "Not a valid hex-encoded string" );
 		else {
 			char buf[50];
-			snprintf( buf, sizeof(buf), "Non-hex character at index %" DAO_INT_FORMAT, errpos );
+			snprintf( buf, sizeof(buf), "Non-hex character at index %" DAO_INT, errpos );
 			DaoProcess_RaiseError( proc, "Bin", buf );
 		}
 	}
