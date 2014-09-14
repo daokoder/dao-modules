@@ -1599,8 +1599,7 @@ DAO_DLL int DaoFS_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *fsns;
 	FS_INIT();
-	fsns = DaoVmSpace_GetNamespace( vmSpace, "fs" );
-	DaoNamespace_AddConstValue( ns, "fs", (DaoValue*)fsns );
+	fsns = DaoNamespace_GetNamespace( ns, "fs" );
 	daox_type_entry = DaoNamespace_WrapType( fsns, & entryTyper, 1 );
 	daox_type_file = DaoNamespace_WrapType( fsns, & fileTyper, 1 );
 	daox_type_dir = DaoNamespace_WrapType( fsns, & dirTyper, 1 );

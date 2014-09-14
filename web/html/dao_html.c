@@ -642,8 +642,6 @@ DAO_DLL int DaoHtml_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace *htmlns, *attrns;
 	htmlns = DaoNamespace_GetNamespace( ns, "html" );
 	attrns = DaoNamespace_GetNamespace( htmlns, "attr" );
-	DaoNamespace_AddConstValue( ns, "html", (DaoValue*)htmlns );
-	DaoNamespace_AddConstValue( htmlns, "attr", (DaoValue*)attrns );
 	DaoNamespace_DefineType( attrns, html_global_attr, "global" );
 	DaoNamespace_DefineType( attrns, html_step_attr, "step" );
 	DaoNamespace_DefineType( attrns, html_target_attr, "target" );

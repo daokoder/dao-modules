@@ -3233,8 +3233,7 @@ DAO_DLL int DaoXML_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *xmlns;
 	DMutex_Init( &xmlmtx );
-	xmlns = DaoVmSpace_GetNamespace( vmSpace, "xml" );
-	DaoNamespace_AddConstValue( ns, "xml", (DaoValue*)xmlns );
+	xmlns = DaoNamespace_GetNamespace( ns, "xml" );
 	daox_type_xmlinst = DaoNamespace_WrapType( xmlns, &xmlInstTyper, 1 );
 	daox_type_xmlcdata = DaoNamespace_WrapType( xmlns, &xmlCdataTyper, 1 );
 	daox_type_xmlelem = DaoNamespace_WrapType( xmlns, &xmlElemTyper, 1 );

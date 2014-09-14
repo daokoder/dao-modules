@@ -623,8 +623,7 @@ static DaoFuncItem statMeths[] =
 DAO_DLL int DaoStatistics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *statns;
-	statns = DaoVmSpace_GetNamespace( vmSpace, "stat" );
-	DaoNamespace_AddConstValue( ns, "stat", (DaoValue*)statns );
+	statns = DaoNamespace_GetNamespace( ns, "stat" );
 	DaoNamespace_WrapFunctions( statns, statMeths );
 	return 0;
 }

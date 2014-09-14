@@ -1281,7 +1281,6 @@ void DaoNetwork_Init( DaoVmSpace *vms, DaoNamespace *ns )
 DAO_DLL int DaoNet_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *netns = DaoNamespace_GetNamespace( ns, "net" );
-	DaoNamespace_AddConstValue( ns, "net", (DaoValue*)netns );
 	daox_type_socket = DaoNamespace_WrapType( netns, & socketTyper, 1 );
 	DaoNamespace_WrapFunctions( netns, netMeths );
 	DaoNetwork_Init( vmSpace, ns );

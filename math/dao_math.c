@@ -428,25 +428,26 @@ static DaoFuncItem mathMeths[]=
 
 DaoNumItem mathConsts[] =
 {
-	{ "MATH_E",        DAO_FLOAT, M_E },
-	{ "MATH_LOG2E",    DAO_FLOAT, M_LOG2E },
-	{ "MATH_LOG10E",   DAO_FLOAT, M_LOG10E },
-	{ "MATH_LN2",      DAO_FLOAT, M_LN2 },
-	{ "MATH_LN10",     DAO_FLOAT, M_LN10 },
-	{ "MATH_PI",       DAO_FLOAT, M_PI },
-	{ "MATH_PI_2",     DAO_FLOAT, M_PI_2 },
-	{ "MATH_PI_4",     DAO_FLOAT, M_PI_4 },
-	{ "MATH_1_PI",     DAO_FLOAT, M_1_PI },
-	{ "MATH_2_PI",     DAO_FLOAT, M_2_PI },
-	{ "MATH_2_SQRTPI", DAO_FLOAT, M_2_SQRTPI },
-	{ "MATH_SQRT2",    DAO_FLOAT, M_SQRT2 },
-	{ "MATH_SQRT1_2",  DAO_FLOAT, M_SQRT1_2 },
+	{ "E",        DAO_FLOAT, M_E },
+	{ "LOG2E",    DAO_FLOAT, M_LOG2E },
+	{ "LOG10E",   DAO_FLOAT, M_LOG10E },
+	{ "LN2",      DAO_FLOAT, M_LN2 },
+	{ "LN10",     DAO_FLOAT, M_LN10 },
+	{ "PI",       DAO_FLOAT, M_PI },
+	{ "PI_2",     DAO_FLOAT, M_PI_2 },
+	{ "PI_4",     DAO_FLOAT, M_PI_4 },
+	{ "1_PI",     DAO_FLOAT, M_1_PI },
+	{ "2_PI",     DAO_FLOAT, M_2_PI },
+	{ "2_SQRTPI", DAO_FLOAT, M_2_SQRTPI },
+	{ "SQRT2",    DAO_FLOAT, M_SQRT2 },
+	{ "SQRT1_2",  DAO_FLOAT, M_SQRT1_2 },
 	{ NULL, 0.0, 0.0 }
 };
 
 DAO_DLL int DaoMath_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	DaoNamespace_WrapFunctions( ns, mathMeths );
-	DaoNamespace_AddConstNumbers( ns, mathConsts );
+	DaoNamespace *mathns = DaoNamespace_GetNamespace( ns, "math" );
+	DaoNamespace_WrapFunctions( mathns, mathMeths );
+	DaoNamespace_AddConstNumbers( mathns, mathConsts );
 	return 0;
 }

@@ -243,7 +243,7 @@ static DaoFuncItem zipMeths[]=
 	{ ZIP_Decompress,   "decompress( source: string ) => string" },
 	{ ZIP_Open,			"open(file: string, mode: string) => stream" },
 	{ ZIP_Open,			"open(fileno: int, mode: string) => stream" },
-	{ ZIP_ReadFile,		"read(file: string, silent: bool = $false) => string" },
+	{ ZIP_ReadFile,		"read(file: string, silent = bool::false) => string" },
 	{ NULL, NULL }
 };
 

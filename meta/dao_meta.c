@@ -962,12 +962,9 @@ static DaoFuncItem metaMeths[]=
 	{ NULL, NULL }
 };
 
-DaoTypeBase metaTyper = {
-	"meta", NULL, NULL, metaMeths, {NULL}, {0}, NULL, NULL
-};
-
 DAO_DLL int DaoMeta_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	DaoNamespace_WrapType( ns, & metaTyper, 1 );
+	DaoNamespace *metans = DaoNamespace_GetNamespace( ns, "meta" );
+	DaoNamespace_WrapType( metans, & metaTyper, 1 );
 	return 0;
 }

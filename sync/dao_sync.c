@@ -967,7 +967,6 @@ DaoTypeBase guardTyper = {
 DAO_DLL int DaoSync_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *syncns = DaoNamespace_GetNamespace( ns, "sync" );
-	DaoNamespace_AddConstValue( ns, "sync", (DaoValue*)syncns );
 	dao_type_mutex   = DaoNamespace_WrapType( syncns, & mutexTyper, 0 );
 	dao_type_condvar = DaoNamespace_WrapType( syncns, & condvTyper, 0 );
 	dao_type_sema    = DaoNamespace_WrapType( syncns, & semaTyper, 0 );
