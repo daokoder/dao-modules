@@ -963,7 +963,7 @@ static void FSNode_Exists( DaoProcess *proc, DaoValue *p[], int N )
 		return;
 	}
 	child = DInode_New();
-	DaoProcess_PutEnum( proc, DInode_SubInode( self, path, 0, child, 1 ) == 0? "true" : "false" ); // !!!
+	DaoProcess_PutEnum( proc, DInode_SubInode( self, path, 0, child, 1 ) == 0? "true" : "false" );
 	FreeTChars( path );
 	DInode_Delete( child );
 }
@@ -992,19 +992,13 @@ static void FSNode_Child( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	tcscat( buf, path );
 	if( ( res = DInode_Open( child, buf ) ) != 0 ){
-		char errbuf[MAX_ERRMSG + MAX_PATH + 3];
+		DaoProcess_PutNone( proc );
 		DInode_Delete( child );
-		if( res == -1 )
-			strcpy( errbuf, "File object is not a directory" );
-		else
-			GetErrorMessage( errbuf, res, 0 );
-		snprintf( errbuf + strlen( errbuf ), sizeof(errbuf), ": %"T_FMT";", buf );
-		DaoProcess_RaiseError( proc, fserr, errbuf );
-		return;                                  
+		goto Exit;
 	}
 	DaoProcess_PutCdata( proc, (void*)child, child->type == 0? daox_type_dir : daox_type_file );
 Exit:
-	FreeTChars( buf );
+	FreeTChars( path );
 }
 
 static void DInode_Children( DInode *self, DaoProcess *proc, int type, DString *pat, int ft )
@@ -1530,10 +1524,10 @@ static DaoFuncItem dirMeths[] =
 	 * where \a filter type is defined by \a filtering and can be either a wildcard pattern or Dao string pattern */
 	{ FSNode_Dirs,		"dirs(invar self: dir, filter = '*', filtering: enum<wildcard,pattern> = $wildcard) => list<dir>" },
 
-	/*! Returns sub-entry given its relative \a path */
-	{ FSNode_Child,		"[](invar self: dir, path: string) => entry" },
+	/*! Returns sub-entry given its relative \a path, or \c none if \a path does not point to existing file or directory */
+	{ FSNode_Child,		"[](invar self: dir, path: string) => entry|none" },
 
-	/*! Returns \c true if sub-entry specified by relative \a path exists */
+	/*! Returns \c $true if relative \a path points to existing file or directory */
 	{ FSNode_Exists,	"exists(invar self: dir, path: string) => bool" },
 
 	/*! Creates file with unique name prefixed by \a prefix in this directory. Returns the corresponding entry */
