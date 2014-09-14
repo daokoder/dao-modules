@@ -577,7 +577,7 @@ static DaoFuncItem htmlMeths[] =
 	{ Html_Tag,			"mark(...: attr::global)[ => string|none ]" },
 	{ Html_Tag,			"menu(kind: enum<toolbar,context>, ...: tuple<enum<label>, string> | attr::global)[ => string|none ]" },
 	{ Html_EmptyTag,	"meta(...: tuple<enum<name,content>, string> | attr::global)" },
-	{ Html_EmptyTag,	"meta(...: tuple<enum<http_eqiv>, enum<refresh,default_style,content_type>> | tuple<enum<content>, string> | "
+	{ Html_EmptyTag,	"meta(...: tuple<enum<http_equiv>, enum<refresh,default_style,content_type>> | tuple<enum<content>, string> | "
 								  "attr::global)" },
 	{ Html_EmptyTag,	"meta(...: tuple<enum<charset>, string> | attr::global)" },
 	{ Html_Tag, 		"meter(...: tuple<enum<value,min,low,high,max,optimum>, float> | attr::global)[ => string|none ]" },
