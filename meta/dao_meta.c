@@ -965,6 +965,6 @@ static DaoFuncItem metaMeths[]=
 DAO_DLL int DaoMeta_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *metans = DaoNamespace_GetNamespace( ns, "meta" );
-	DaoNamespace_WrapType( metans, & metaTyper, 1 );
+	DaoNamespace_WrapFunctions( metans, metaMeths );
 	return 0;
 }
