@@ -34,7 +34,7 @@ class [dir](#dir): entry
  - routine [entries](#entries)(invar _self_: dir, _filter_ = '*', _filtering_: enum&lt;wildcard,pattern&gt; = $wildcard) => list&lt;entry&gt;
  - routine [files](#files)(invar _self_: dir, _filter_ = '*', _filtering_: enum&lt;wildcard,pattern&gt; = $wildcard) => list&lt;file&gt;
  - routine [dirs](#dirs)(invar _self_: dir, _filter_ = '*', _filtering_: enum&lt;wildcard,pattern&lt;= $wildcard) => list&lt;dir&gt;
- - routine [<span>[]</span>](#op_index)(invar _self_: dir, _path_: string) => entry
+ - routine [<span>[]</span>](#op_index)(invar _self_: dir, _path_: string) => entry|none
  - routine [exists](#exists)(invar _self_: dir, _path_: string) => bool
  - routine [mktemp](#mktemp)(_self_: dir, _prefix_ = '') => file
 
@@ -185,9 +185,9 @@ dirs(invar self: dir, filter = '*', filtering: enum<wildcard,pattern> = $wildcar
 Returns the list of inner directories with names matching *filter*, where *filter* type is defined by *filtering* and can be either a wildcard pattern or Dao string pattern
 <a name="op_index"></a>
 ```ruby
-[](invar self: dir, path: string) => entry
+[](invar self: dir, path: string) => entry|none
 ```
-Returns sub-entry given its relative *path*
+Returns sub-entry given its relative *path*, or `none` if *path* does not point to existing file or directory
 <a name="exists"></a>
 ```ruby
 exists(invar self: dir, path: string) => bool
@@ -227,7 +227,7 @@ Returns absolute form of *path*, which must point to an existing file or directo
 ```ruby
 exists(path: string) => bool
 ```
-Returns `$true` if *path* exists and points to a file or directory
+Returns `$true` if *path* exists
 <a name="roots"></a>
 ```ruby
 roots() => list<string>

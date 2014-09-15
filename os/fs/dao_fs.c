@@ -1577,7 +1577,7 @@ static DaoFuncItem fsMeths[] =
 	 * with '/' */
 	{ FS_NormPath,	"realpath(path: string) => string" },
 
-	/*! Returns \c true if \a path exists and points to a file or directory */
+	/*! Returns \c true if \a path exists */
 	{ FS_Exists,	"exists(path: string) => bool" },
 
 	/*! On Windows, returns list of root directories (drives). On other systems returns {'/'} */
