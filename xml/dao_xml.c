@@ -3167,7 +3167,7 @@ static void DaoXMLWriter_Doctype( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem xmlWriterMeths[] =
 {
 	/*! Creates XML writer which writes to stream \a dest */
-	{ DaoXMLWriter_Create,	"Writer(dest: io::stream) => Writer" },
+	{ DaoXMLWriter_Create,	"Writer(dest: io::Stream) => Writer" },
 
 	/*! Creates XML writer which writes to internal string stream */
 	{ DaoXMLWriter_Create,	"Writer() => Writer" },
