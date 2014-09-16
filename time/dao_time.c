@@ -119,13 +119,13 @@ static void DaoTime_Get( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = DaoTime_New();
 	if ( time( &self->value ) == (time_t)-1 ){
-		DaoProcess_RaiseError( proc, timeerr, "Failed to get current time" );
+		DaoProcess_RaiseError( proc, timeerr, "Failed to get current datetime" );
 		DaoTime_Delete( self );
 		return;
 	}
 	self->local = ( p[0]->xEnum.value == 0 );
 	if ( !DaoTime_GetTime( self ) ){
-		DaoProcess_RaiseError( proc, timeerr, "Failed to get current time" );
+		DaoProcess_RaiseError( proc, timeerr, "Failed to get current datetime" );
 		DaoTime_Delete( self );
 		return;
 	}
@@ -139,7 +139,7 @@ static void DaoTime_Time( DaoProcess *proc, DaoValue *p[], int N )
 	self->value = p[0]->xInteger.value;
 	self->local = ( p[1]->xEnum.value == 0 );
 	if ( !DaoTime_GetTime( self ) ){
-		DaoProcess_RaiseError( proc, timeerr, "Invalid time" );
+		DaoProcess_RaiseError( proc, timeerr, "Invalid datetime" );
 		DaoTime_Delete( self );
 		return;
 	}
@@ -160,7 +160,7 @@ static void DaoTime_MakeTime( DaoProcess *proc, DaoValue *p[], int N )
 	self->parts.tm_sec = p[5]->xInteger.value;
 	self->value = mktime( &self->parts );
 	if ( self->value == (time_t)-1){
-		DaoProcess_RaiseError( proc, timeerr, "Invalid time" );
+		DaoProcess_RaiseError( proc, timeerr, "Invalid datetime" );
 		DaoTime_Delete( self );
 		return;
 	}
@@ -210,7 +210,7 @@ static void DaoTime_Parse( DaoProcess *proc, DaoValue *p[], int N )
 		goto Error;
 	self->local = 1;
 	if ( time( &self->value ) == (time_t)-1 ){
-		DaoProcess_RaiseError( proc, timeerr, "Failed to get current time" );
+		DaoProcess_RaiseError( proc, timeerr, "Failed to get current datetime" );
 		DaoTime_Delete( self );
 		return;
 	}
@@ -262,7 +262,7 @@ static void DaoTime_Parse( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	self->value = mktime( &self->parts );
 	if ( self->value == (time_t)-1){
-		DaoProcess_RaiseError( proc, timeerr, "Invalid time" );
+		DaoProcess_RaiseError( proc, timeerr, "Invalid datetime" );
 		DaoTime_Delete( self );
 		return;
 	}
@@ -287,7 +287,7 @@ static void DaoTime_Set( DaoProcess *proc, DaoValue *p[], int N )
 	time_t value;
 	struct tm old = self->parts;
 	if ( !self->local ){
-		DaoProcess_RaiseError( proc, timeerr, "Only changing the parts of a local time is supported" );
+		DaoProcess_RaiseError( proc, timeerr, "Only changing the parts of a local datetime is supported" );
 		return;
 	}
 	for ( i = 1; i < N; i++ ){
@@ -305,7 +305,7 @@ static void DaoTime_Set( DaoProcess *proc, DaoValue *p[], int N )
 	value = mktime( &self->parts );
 	if ( value == (time_t)-1){
 		self->parts = old;
-		DaoProcess_RaiseError( proc, timeerr, "Invalid time" );
+		DaoProcess_RaiseError( proc, timeerr, "Invalid datetime" );
 		return;
 	}
 	self->value = value;
@@ -543,6 +543,10 @@ static void DaoTime_Diff( DaoProcess *proc, DaoValue *p[], int N )
 	DaoTime *start = (DaoTime*)DaoValue_TryGetCdata( p[0] );
 	DaoTime *end = (DaoTime*)DaoValue_TryGetCdata( p[1] );
 	DaoTuple *res = DaoProcess_PutTuple( proc, 2 );
+	if ( start->local != end->local ){
+		DaoProcess_RaiseError( proc, timeerr, "Start and end datetime should be of the same kind (local or utc)" );
+		return;
+	}
 	res->values[0]->xInteger.value = end->jday - start->jday;
 	res->values[1]->xInteger.value = end->value - start->value;
 }
@@ -602,14 +606,14 @@ static void DaoTime_Add( DaoProcess *proc, DaoValue *p[], int N )
 		if ( !DaoTime_GetTime( self ) ){
 			self->value = oldt;
 			self->parts = oldtm;
-			DaoProcess_RaiseError( proc, timeerr, "Invalid resulting time" );
+			DaoProcess_RaiseError( proc, timeerr, "Invalid resulting datetime" );
 		}
 		else
 			DaoTime_CalcJulianDay( self );
 		return;
 	}
 	if ( !self->local ){
-		DaoProcess_RaiseError( proc, timeerr, "Adding years, months and days is only supported for a local time" );
+		DaoProcess_RaiseError( proc, timeerr, "Adding years, months and days is only supported for a local datetime" );
 		return;
 	}
 	for ( i = 1; i < N; i++ ){
@@ -651,102 +655,112 @@ static void DaoTime_Add( DaoProcess *proc, DaoValue *p[], int N )
 		self->value = oldt;
 		self->parts = oldtm;
 		self->jday = oldj;
-		DaoProcess_RaiseError( proc, timeerr, "Invalid resulting time" );
+		DaoProcess_RaiseError( proc, timeerr, "Invalid resulting datetime" );
 	}
 }
 
 static DaoFuncItem timeMeths[] =
 {
-	/*! Returns current time of the given \a kind */
-	{ DaoTime_Get,		"Time(kind: enum<local,utc> = $local) => Time" },
-
-	/*! Returns time with \c time_t value \a value and the given \a kind */
-	{ DaoTime_Time,		"Time(value: int, kind: enum<local,utc> = $local) => Time" },
-
-	/*! Returns local time composing of the specified \a year, \a month, \a day, \a hour, \a min and \a sec */
-	{ DaoTime_MakeTime,	"Time(year: int, month: int, day: int, hour = 0, min = 0, sec = 0) => Time" },
-
-	/*! Returns local time parsed from \a value, which should contain date ('YYYY-MM-DD', 'YYYY-MM' or 'MM-DD')
-	 * and/or time ('HH:MM:SS' or 'HH:MM') separated by ' ' */
-	{ DaoTime_Parse,	"Time(value: string) => Time" },
-
-	/*! Copy constructor */
-	{ DaoTime_Copy,		"Time(invar other: time) => Time" },
-
-	/*! Sets one or more time parts using named values.
+	/*! Sets one or more datetime parts using named values.
 	 *
-	 * \note Only changing the parts of a local time is supported */
-	{ DaoTime_Set,		"set(self: Time, ...: tuple<enum<year,month,day,hour,min,sec>,int>)" },
+	 * \note Only changing the parts of a local datetime is supported */
+	{ DaoTime_Set,		"set(self: DateTime, ...: tuple<enum<year,month,day,hour,min,sec>,int>)" },
 
 	/*! \c time_t value representing date and time information (number of seconds elapsed since the Epoch,
 	 * 1970-01-01 00:00:00, UTC) */
-	{ DaoTime_Value,	".value(invar self: Time) => int" },
+	{ DaoTime_Value,	".value(invar self: DateTime) => int" },
 
-	/*! Returns time kind with regard to the time zone: UTC or local */
-	{ DaoTime_Type,		".kind(invar self: Time) => enum<local,utc>" },
+	/*! Returns datetime kind with regard to the time zone: UTC or local */
+	{ DaoTime_Type,		".kind(invar self: DateTime) => enum<local,utc>" },
 
-	/*! Converts time to the given \a kind */
-	{ DaoTime_Convert,	"convert(self: Time, kind: enum<local,utc>)" },
+	/*! Converts datetime to the given \a kind */
+	{ DaoTime_Convert,	"convert(self: DateTime, kind: enum<local,utc>)" },
 
-	/*! Specific time part */
-	{ DaoTime_Second,	".sec(invar self: Time) => int" },
-	{ DaoTime_Minute,	".min(invar self: Time) => int" },
-	{ DaoTime_Hour,		".hour(invar self: Time) => int" },
-	{ DaoTime_Day,		".day(invar self: Time) => int" },
-	{ DaoTime_Month,	".month(invar self: Time) => int" },
-	{ DaoTime_Year,		".year(invar self: Time) => int" },
+	/*! Specific datetime part */
+	{ DaoTime_Second,	".sec(invar self: DateTime) => int" },
+	{ DaoTime_Minute,	".min(invar self: DateTime) => int" },
+	{ DaoTime_Hour,		".hour(invar self: DateTime) => int" },
+	{ DaoTime_Day,		".day(invar self: DateTime) => int" },
+	{ DaoTime_Month,	".month(invar self: DateTime) => int" },
+	{ DaoTime_Year,		".year(invar self: DateTime) => int" },
 
 	/*! Day of week */
-	{ DaoTime_WeekDay,	".wday(invar self: Time) => int" },
+	{ DaoTime_WeekDay,	".wday(invar self: DateTime) => int" },
 
 	/*! Day of year */
-	{ DaoTime_YearDay,	".yday(invar self: Time) => int" },
+	{ DaoTime_YearDay,	".yday(invar self: DateTime) => int" },
 
-	/*! Returns time formatted to string using \a format, which follows the rules for C \c strftime() */
-	{ DaoTime_Format,	"format(invar self: Time, format = '') => string" },
+	/*! Returns datetime formatted to string using \a format, which follows the rules for C \c strftime() */
+	{ DaoTime_Format,	"format(invar self: DateTime, format = '') => string" },
 
-	/*! Returns time formatted to string using template \a format. \a names can specify custome names for months
+	/*! Returns datetime formatted to string using template \a format. \a names can specify custome names for months
 	 * ('month' => {<12 names>}), days of week ('week' => {<7 names>}), days of year ('day' => {<365/366 names>}) or
 	 * halfday names ('halfday' => {<2 names>}) */
-	{ DaoTime_Format2,	"format(invar self: Time, invar names: map<string,list<string>>, format = '%Y-%M-%D, %H:%I:%S' ) => string" },
+	{ DaoTime_Format2,	"format(invar self: DateTime, invar names: map<string,list<string>>, format = '%Y-%M-%D, %H:%I:%S' ) => string" },
 
-	/*! Returns the number of day in the month or year of the given time depending on the \a period parameter */
-	{ DaoTime_Days,		"days(invar self: Time, period: enum<month,year>) => int" },
+	/*! Returns the number of day in the month or year of the given datetime depending on the \a period parameter */
+	{ DaoTime_Days,		"days(invar self: DateTime, period: enum<month,year>) => int" },
 
-	/*! Adds the specified number of years, months or days (provided as named values) to the given time.
+	/*! Adds the specified number of years, months or days (provided as named values) to the given datetime.
 	 *
-	 * \note Adding years, months and days is only supported for a local time*/
-	{ DaoTime_Add,		"add(self: Time, ...: tuple<enum<years,months,days>,int>)" },
+	 * \note Adding years, months and days is only supported for a local datetime*/
+	{ DaoTime_Add,		"add(self: DateTime, ...: tuple<enum<years,months,days>,int>)" },
 
-	/*! Adds the specified number of \a seconds to the given time (works for both local and global time) */
-	{ DaoTime_Add,		"add(self: Time, seconds: int)" },
+	/*! Adds the specified number of \a seconds to the given datetime (may be used for both local and global datetime) */
+	{ DaoTime_Add,		"add(self: DateTime, seconds: int)" },
 
-	/*! Time comparison */
-	{ DaoTime_Equal,	"==(invar a: Time, invar b: Time) => int" },
-	{ DaoTime_NotEqual,	"!=(invar a: Time, invar b: Time) => int" },
-	{ DaoTime_Lesser,	"<(invar a: Time, invar b: Time) => int" },
-	{ DaoTime_LessOrEq,	"<=(invar a: Time, invar b: Time) => int" },
+	/*! Datetime comparison */
+	{ DaoTime_Equal,	"==(invar a: DateTime, invar b: DateTime) => int" },
+	{ DaoTime_NotEqual,	"!=(invar a: DateTime, invar b: DateTime) => int" },
+	{ DaoTime_Lesser,	"<(invar a: DateTime, invar b: DateTime) => int" },
+	{ DaoTime_LessOrEq,	"<=(invar a: DateTime, invar b: DateTime) => int" },
+	{ NULL, NULL }
+};
 
-	/*! Returns the difference between \a start and \a end time in days and seconds */
-	{ DaoTime_Diff,		"diff(invar start: Time, invar end: Time) => tuple<days: int, seconds: int>" },
+/*! Represents date and time information */
+DaoTypeBase timeTyper = {
+	"DateTime", NULL, NULL, timeMeths, {NULL}, {0},
+	(FuncPtrDel)DaoTime_Delete, NULL
+};
+
+static DaoFuncItem timeFuncs[] =
+{
+	/*! Returns current datetime of the given \a kind */
+	{ DaoTime_Get,		"now(kind: enum<local,utc> = $local) => DateTime" },
+
+	/*! Returns datetime of the given \a kind corresponding to \c time_t \a value */
+	{ DaoTime_Time,		"from_value(value: int, kind: enum<local,utc> = $local) => DateTime" },
+
+	/*! Returns local datetime composed of the specified \a year, \a month, \a day, \a hour, \a min and \a sec */
+	{ DaoTime_MakeTime,	"make(year: int, month: int, day: int, hour = 0, min = 0, sec = 0) => DateTime" },
+
+	/*! Returns local datetime parsed from \a value, which should contain date ('YYYY-MM-DD', 'YYYY-MM' or 'MM-DD')
+	 * and/or time ('HH:MM:SS' or 'HH:MM') separated by ' ' */
+	{ DaoTime_Parse,	"parse(value: string) => DateTime" },
+
+	/*! Returns \a other copy */
+	{ DaoTime_Copy,		"copy(invar other: DateTime) => DateTime" },
+
+	/*! Returns the difference between \a start and \a end datetime in days and seconds.
+	 *
+	 * \note \a start and \a end should be of the same kind */
+	{ DaoTime_Diff,		"diff(invar start: DateTime, invar end: DateTime) => tuple<days: int, seconds: int>" },
 
 	/*! Returns local time zone information (environment variable *TZ*):
 	 * -\c dst -- is Daylight Saving Time (DST) used
 	 * -\c shift -- shift in seconds from GMT;
 	 * -\c name -- zone name
-	 * -\c dstName -- DST zone name */
-	{ DaoTime_Zone,		".zone() => tuple<dst: int, shift: int, name: string, dstName: string>" },
+	 * -\c dstName -- DST zone name
+	 *
+	 * \note You can set *TZ* using `sys.putenv()` in order to work with datetime from a different time zone */
+	{ DaoTime_Zone,		"zone() => tuple<dst: int, shift: int, name: string, dstName: string>" },
 	{ NULL, NULL }
-};
-
-/*! Provides ability to obtain and operate date and time information */
-DaoTypeBase timeTyper = {
-	"Time", NULL, NULL, timeMeths, {NULL}, {0},
-	(FuncPtrDel)DaoTime_Delete, NULL
 };
 
 DAO_DLL int DaoTime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	daox_type_time = DaoNamespace_WrapType( ns, &timeTyper, 1 );
+	DaoNamespace *timens = DaoNamespace_GetNamespace( ns, "time" );
+	daox_type_time = DaoNamespace_WrapType( timens, &timeTyper, 1 );
+	DaoNamespace_WrapFunctions( timens, timeFuncs );
 	return 0;
 }
