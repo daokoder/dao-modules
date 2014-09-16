@@ -1,6 +1,6 @@
 load string.template
 
-source = 
+source =
 @[]
 <div class="post">
   <h1>By {{author.firstName}} {{author.lastName}}</h1>
@@ -62,6 +62,6 @@ var context2 =
 );
 
 
-io.writeln( source.template( context ) )
+io.writeln( str::template( source, context ) )
 
-io.writeln( source.template( context2 ) )
+io.writeln( str::template( source, context2 ) )
