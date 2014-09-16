@@ -337,6 +337,8 @@ DaoTypeBase scannerTyper = {
 
 DAO_DLL int DaoScanner_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	daox_type_scanner = DaoNamespace_WrapType( ns, &scannerTyper, 1 );
+	DaoNamespace *strns = DaoVmSpace_GetNamespace( vmSpace, "str" );
+	DaoNamespace_AddConstValue( ns, "str", (DaoValue*)strns );
+	daox_type_scanner = DaoNamespace_WrapType( strns, &scannerTyper, 1 );
 	return 0;
 }

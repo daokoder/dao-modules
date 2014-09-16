@@ -729,6 +729,8 @@ static DaoFuncItem formatMeths[] =
 
 DAO_DLL int DaoFormat_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	DaoNamespace_WrapFunctions( ns, formatMeths );
+	DaoNamespace *strns = DaoVmSpace_GetNamespace( vmSpace, "str" );
+	DaoNamespace_AddConstValue( ns, "str", (DaoValue*)strns );
+	DaoNamespace_WrapFunctions( strns, formatMeths );
 	return 0;
 }

@@ -418,6 +418,8 @@ static void DaoTemplate( DaoProcess *proc, DaoValue *p[], int N )
 
 DAO_DLL int DaoTemplate_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	DaoNamespace_WrapFunction( ns, (DaoCFunction)DaoTemplate, "template( self: string, content : list<any>|map<string,any>|tuple )=>string" );
+	DaoNamespace *strns = DaoVmSpace_GetNamespace( vmSpace, "str" );
+	DaoNamespace_AddConstValue( ns, "str", (DaoValue*)strns );
+	DaoNamespace_WrapFunction( strns, (DaoCFunction)DaoTemplate, "template( self: string, content : list<any>|map<string,any>|tuple )=>string" );
 	return 0;
 }

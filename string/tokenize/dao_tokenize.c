@@ -117,7 +117,9 @@ static void DaoSTR_Tokenize( DaoProcess *proc, DaoValue *p[], int N )
 const char *p = "tokenize( source: string, seps: string, quotes='', backslash=0, simplify=0 )=>list<string>";
 DAO_DLL int DaoTokenize_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	DaoNamespace_WrapFunction( ns, DaoAUX_Tokenize, "tokenize( source: string )=>list<string>" );
-	DaoNamespace_WrapFunction( ns, DaoSTR_Tokenize, p );
+	DaoNamespace *strns = DaoVmSpace_GetNamespace( vmSpace, "str" );
+	DaoNamespace_AddConstValue( ns, "str", (DaoValue*)strns );
+	DaoNamespace_WrapFunction( strns, DaoAUX_Tokenize, "tokenize( source: string )=>list<string>" );
+	DaoNamespace_WrapFunction( strns, DaoSTR_Tokenize, p );
 	return 0;
 }
