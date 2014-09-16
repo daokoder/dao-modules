@@ -141,11 +141,11 @@ static void DaoMutex_Lib_Protect( DaoProcess *proc, DaoValue *p[], int n )
 }
 static DaoFuncItem mutexMeths[] =
 {
-	{ DaoMutex_Lib_Mutex,     "mutex()=>mutex" },
-	{ DaoMutex_Lib_Lock,      "lock( self : mutex )" },
-	{ DaoMutex_Lib_Unlock,    "unlock( self : mutex )" },
-	{ DaoMutex_Lib_TryLock,   "trylock( self : mutex )=>bool" },
-	{ DaoMutex_Lib_Protect,   "protect( self : mutex )[]" },
+	{ DaoMutex_Lib_Mutex,     "Mutex() => Mutex" },
+	{ DaoMutex_Lib_Lock,      "lock( self: Mutex )" },
+	{ DaoMutex_Lib_Unlock,    "unlock( self: Mutex )" },
+	{ DaoMutex_Lib_TryLock,   "trylock( self: Mutex ) => bool" },
+	{ DaoMutex_Lib_Protect,   "protect( self: Mutex )[]" },
 	{ NULL, NULL }
 };
 static void DaoMutex_Delete( DaoMutex *self )
@@ -157,7 +157,7 @@ static void DaoMutex_Delete( DaoMutex *self )
 
 DaoTypeBase mutexTyper =
 {
-	"mutex", NULL, NULL, (DaoFuncItem*) mutexMeths, {0}, {0},
+	"Mutex", NULL, NULL, (DaoFuncItem*) mutexMeths, {0}, {0},
 	(FuncPtrDel) DaoMutex_Delete, NULL
 };
 
@@ -210,17 +210,17 @@ static void DaoCondV_Lib_BroadCast( DaoProcess *proc, DaoValue *par[], int N )
 }
 static DaoFuncItem condvMeths[] =
 {
-	{ DaoCondV_Lib_CondVar,   "condition()=>condition" },
-	{ DaoCondV_Lib_Wait,      "wait( self : condition, mtx : mutex )" },
-	{ DaoCondV_Lib_TimedWait, "timedwait( self : condition, mtx : mutex, seconds :float )=>bool" },
-	{ DaoCondV_Lib_Signal,    "signal( self : condition )" },
-	{ DaoCondV_Lib_BroadCast, "broadcast( self : condition )" },
+	{ DaoCondV_Lib_CondVar,   "Condition() => Condition" },
+	{ DaoCondV_Lib_Wait,      "wait( self: Condition, mtx: Mutex )" },
+	{ DaoCondV_Lib_TimedWait, "timedwait( self: Condition, mtx: Mutex, seconds: float ) => bool" },
+	{ DaoCondV_Lib_Signal,    "signal( self: Condition )" },
+	{ DaoCondV_Lib_BroadCast, "broadcast( self: Condition )" },
 	{ NULL, NULL }
 };
 
 DaoTypeBase condvTyper =
 {
-	"condition", NULL, NULL, (DaoFuncItem*) condvMeths, {0}, {0},
+	"Condition", NULL, NULL, (DaoFuncItem*) condvMeths, {0}, {0},
 	(FuncPtrDel) DaoCondVar_Delete, NULL
 };
 DaoCondVar* DaoCondVar_New()
@@ -291,17 +291,17 @@ static void DaoSema_Lib_Protect( DaoProcess *proc, DaoValue *p[], int n )
 }
 static DaoFuncItem semaMeths[] =
 {
-	{ DaoSema_Lib_Sema,      "semaphore( value = 0 )=>semaphore" },
-	{ DaoSema_Lib_Wait,      "wait( self : semaphore )" },
-	{ DaoSema_Lib_Post,      "post( self : semaphore )" },
-	{ DaoSema_Lib_SetValue,  "setvalue( self : semaphore, n :int )" },
-	{ DaoSema_Lib_GetValue,  "getvalue( self : semaphore )=>int" },
-	{ DaoSema_Lib_Protect,   "protect( self : semaphore )[]" },
+	{ DaoSema_Lib_Sema,      "Semaphore( value = 0 ) => Semaphore" },
+	{ DaoSema_Lib_Wait,      "wait( self: Semaphore )" },
+	{ DaoSema_Lib_Post,      "post( self: Semaphore )" },
+	{ DaoSema_Lib_SetValue,  ".value=( self: Semaphore, value: int )" },
+	{ DaoSema_Lib_GetValue,  ".value( self: Semaphore ) => int" },
+	{ DaoSema_Lib_Protect,   "protect( self: Semaphore )[]" },
 	{ NULL, NULL }
 };
 DaoTypeBase semaTyper =
 {
-	"semaphore", NULL, NULL, (DaoFuncItem*) semaMeths, {0}, {0},
+	"Semaphore", NULL, NULL, (DaoFuncItem*) semaMeths, {0}, {0},
 	(FuncPtrDel) DaoSema_Delete, NULL
 };
 DaoSema* DaoSema_New( int n )
@@ -542,37 +542,37 @@ static void DaoState_Waitlist( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem stateMeths[] =
 {
 	/*! Constructs state object containing the given \a value */
-	{ DaoState_Create,   "state<@T>( value: @T )" },
+	{ DaoState_Create,   "State<@T>( value: @T )" },
 
 	/*! Reads the value and returns it */
-	{ DaoState_Value,    "value( self: state<@T> ) => @T" },
+	{ DaoState_Value,    ".value( self: State<@T> ) => @T" },
 
 	/*! Set the value to \a value and returns the old value */
-	{ DaoState_Set,	     "set( self: state<@T>, value: @T ) => @T" },
+	{ DaoState_Set,	     "set( self: State<@T>, value: @T ) => @T" },
 
 	/*! If the current value is equal to \a from, sets the value to \a into and returns \c true. Otherwise the value is not changed
 	 * and \c false is returned */
-	{ DaoState_TestSet,  "alter( self: state<@T>, from: @T, into: @T ) => bool" },
+	{ DaoState_TestSet,  "alter( self: State<@T>, from: @T, into: @T ) => bool" },
 
 	/*! Adds the give \a value to the current value */
-	{ DaoState_FetchAdd, "add( self: state<@T<int|float|complex>>, value: @T ) => @T" },
+	{ DaoState_FetchAdd, "add( self: State<@T<int|float|complex>>, value: @T ) => @T" },
 
 	/*! Substitutes the given \a value from the current value */
-	{ DaoState_FetchSub, "sub( self: state<@T<int|float|complex>>, value: @T ) => @T" },
+	{ DaoState_FetchSub, "sub( self: State<@T<int|float|complex>>, value: @T ) => @T" },
 
 	/*! Blocks the current thread until the specified \a value is set, or until the end of \a timeout given in seconds (if \a timeout is positive)
 	 * Returns \c true if not timed out */
-	{ DaoState_WaitFor,  "wait( self: state<@T>, value: @T, timeout: float = -1 ) => bool" },
+	{ DaoState_WaitFor,  "wait( self: State<@T>, value: @T, timeout: float = -1 ) => bool" },
 
 	/*! Returns the list of all values currently awaited from the state by all threads */
-	{ DaoState_Waitlist, "waitlist( self: state<@T> ) => list<@T>" },
+	{ DaoState_Waitlist, ".waitlist( self: State<@T> ) => list<@T>" },
 	{ NULL, NULL }
 };
 
 /*! Represents state of an object or process in multithreaded environment. Uses the semantics of atomic operations to concurrently access and modify
  * the underlying data. Provides the ability to wait until a specific value is set by another thread, abstracting over conditional variables */
 DaoTypeBase stateTyper = {
-	"state<@T>", NULL, NULL, stateMeths, {NULL}, {0},
+	"State<@T>", NULL, NULL, stateMeths, {NULL}, {0},
 	(FuncPtrDel)DaoState_Delete, DaoState_GetGCFields
 };
 
@@ -820,39 +820,39 @@ static void DaoQueue_Join( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem queueMeths[] =
 {
 	/*! Constructs the queue given the maximum \a capacity */
-	{ DaoQueue_Create,   "queue<@T>( capacity = 0 )" },
+	{ DaoQueue_Create,   "Queue<@T>( capacity = 0 )" },
 
 	/*! Returns queue size */
-	{ DaoQueue_Size,     "size( self: queue<@T> ) => int" },
+	{ DaoQueue_Size,     ".size( self: Queue<@T> ) => int" },
 
 	/*! Returns queue capacity */
-	{ DaoQueue_Capacity, "capacity( self: queue<@T> ) => int" },
+	{ DaoQueue_Capacity, ".capacity( self: Queue<@T> ) => int" },
 
 	/*! Pushes \a value to the queue, blocks if queue size equals its capacity */
-	{ DaoQueue_Push,     "push( self: queue<@T>, value: @T )" },
+	{ DaoQueue_Push,     "push( self: Queue<@T>, value: @T )" },
 
 	/*! Tries to push \a value to the queue within the given \a timeout interval (in case of negative value, waits indefinitely).
 	 * Returns \c true if \a value was successfully pushed */
-	{ DaoQueue_TryPush,  "trypush( self: queue<@T>, value: @T, timeout: float = 0 ) => bool" },
+	{ DaoQueue_TryPush,  "trypush( self: Queue<@T>, value: @T, timeout: float = 0 ) => bool" },
 
 	/*! Pops \a value from the queue, blocks if queue size is zero */
-	{ DaoQueue_Pop,      "pop( self: queue<@T> ) => @T" },
+	{ DaoQueue_Pop,      "pop( self: Queue<@T> ) => @T" },
 
 	/*! Tries to pop \a value from the queue within the given \a timeout interval (in case of negative value, waits indefinitely). On success,
 	 * returns the popped value */
-	{ DaoQueue_TryPop,   "trypop( self: queue<@T>, timeout: float = 0 ) => @T|none" },
+	{ DaoQueue_TryPop,   "trypop( self: Queue<@T>, timeout: float = 0 ) => @T|none" },
 
 	/*! Moves all elements of \a other to this queue, leaving \a other empty */
-	{ DaoQueue_Merge,    "merge( self: queue<@T>, other: queue<@T> )" },
+	{ DaoQueue_Merge,    "merge( self: Queue<@T>, other: Queue<@T> )" },
 
 	/*! Blocks until the queue is emptied */
-	{ DaoQueue_Join,     "wait_empty( self: queue<@T> )" },
+	{ DaoQueue_Join,     "wait_empty( self: Queue<@T> )" },
 	{ NULL, NULL }
 };
 
 /*! Synchronized queue. Unlike mt::channel, does not deep-copies the data and has no constraints on the type of the elements */
 DaoTypeBase queueTyper = {
-	"queue<@T>", NULL, NULL, queueMeths, {NULL}, {0},
+	"Queue<@T>", NULL, NULL, queueMeths, {NULL}, {0},
 	(FuncPtrDel)DaoQueue_Delete, DaoQueue_GetGCFields
 };
 

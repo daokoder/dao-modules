@@ -1,6 +1,6 @@
 load xml
 
-text = 
+text =
 @[xml]<?xml version="1.0" encoding="utf-8"?>
 	<root>
 		<?pi data?>
@@ -20,11 +20,11 @@ root = doc.root
 io.writeln('<', root.tag, root.empty? '/>' : '>')
 
 # processing instruction
-pi = (xml::instruction)root.child(0)
+pi = (xml::Instruction)root.child(0)
 io.writeln('<?', pi.target, pi.data, '?>' )
 
 # character data
-cd = (xml::chardata)root.child(1)
+cd = (xml::CharData)root.child(1)
 io.writeln('chardata:', cd.kind, cd.data)
 
 # getting a sub-element
@@ -42,4 +42,4 @@ io.writeln('inner attribs:', inner.map($attribs, type(tuple<a: enum<yes,no>, b: 
 gr.extend(el2 = (inner1 = 'str', inner2 = 1))
 
 # serializing to XML
-io.writeln(doc.toXML())
+io.writeln(doc.serialize())

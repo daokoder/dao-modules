@@ -35,8 +35,8 @@ private
 	routine EncodeInt32( value: int )
 	routine EncodeString( data: string )
 
-	routine EncodeFile( entry: fs::file, depth = 1 )
-	routine EncodeDir( entry: fs::dir, depth = 1 )
+	routine EncodeFile( entry: fs::File, depth = 1 )
+	routine EncodeDir( entry: fs::Dir, depth = 1 )
 
 	routine AddFile( path: string, depth = 1 )
 	routine AddDir( path: string, depth = 1 )
@@ -83,7 +83,7 @@ routine Archive::EncodeString( data: string )
 	buffers.append( data )
 }
 
-routine Archive::EncodeFile( entry: fs::file, depth = 1 )
+routine Archive::EncodeFile( entry: fs::File, depth = 1 )
 {
 	if( depth > 0xff ) std::error( "Directory depth higher than 255" )
 
@@ -102,7 +102,7 @@ routine Archive::EncodeFile( entry: fs::file, depth = 1 )
 
 	EncodeString( io::read( entry.path ) )
 }
-routine Archive::EncodeDir( entry: fs::dir, depth = 1 )
+routine Archive::EncodeDir( entry: fs::Dir, depth = 1 )
 {
 	if( depth > 0xff ) std::error( "Directory depth higher than 255" )
 

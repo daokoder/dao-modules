@@ -982,62 +982,62 @@ static void DaoSocket_Lib_Check( DaoProcess *proc, DaoValue *par[], int N  )
 static DaoFuncItem socketMeths[] =
 {
 	/*! Binds the socket to \a port using \a address options if specified. For the description of \a address, see \c net.bind() */
-	{  DaoSocket_Lib_Bind,          "bind( self: socket, port: int )" },
-	{  DaoSocket_Lib_Bind,          "bind( self: socket, port: int, address: enum<shared;exclusive;reused> )" },
+	{  DaoSocket_Lib_Bind,          "bind( self: Socket, port: int )" },
+	{  DaoSocket_Lib_Bind,          "bind( self: Socket, port: int, address: enum<shared;exclusive;reused> )" },
 
 	/*! Listens the socket using \a backLog as the maximum size of the queue of pending connections */
-	{  DaoSocket_Lib_Listen,        "listen( self: socket, backLog = 10 )" },
+	{  DaoSocket_Lib_Listen,        "listen( self: Socket, backLog = 10 )" },
 
 	/*! Accepts connection */
-	{  DaoSocket_Lib_Accept,        "accept( self: socket ) => socket" },
+	{  DaoSocket_Lib_Accept,        "accept( self: Socket ) => socket" },
 
 	/*! Connects to \a host : \a port */
-	{  DaoSocket_Lib_Connect,       "connect( self: socket, host: string, port: int )" },
+	{  DaoSocket_Lib_Connect,       "connect( self: Socket, host: string, port: int )" },
 
 	/*! Sends data \a data */
-	{  DaoSocket_Lib_Send,          "send( self: socket, data: string )" },
+	{  DaoSocket_Lib_Send,          "send( self: Socket, data: string )" },
 
-	/*! Identical to `send()`; required to satisfy `io::device` interface */
-	{  DaoSocket_Lib_Send,          "write( self: socket, data: string )" },
+	/*! Identical to `send()`; required to satisfy `io::Device` interface */
+	{  DaoSocket_Lib_Send,          "write( self: Socket, data: string )" },
 
 	/*! Receives at most \a limit bytes and returnes the received data */
-	{  DaoSocket_Lib_Receive,       "receive( self: socket, limit = 512 ) => string" },
+	{  DaoSocket_Lib_Receive,       "receive( self: Socket, limit = 512 ) => string" },
 
-	/*! Identical to `receive()`; required to satisfy `io::device` interface */
-	{  DaoSocket_Lib_Receive,       "read( self: socket, count = -1 ) => string" },
+	/*! Identical to `receive()`; required to satisfy `io::Device` interface */
+	{  DaoSocket_Lib_Receive,       "read( self: Socket, count = -1 ) => string" },
 
 	/*! Sends data via the internal serialization protocol */
-	{  DaoSocket_Lib_SendDao,       "send_dao( self: socket, ... )" },
+	{  DaoSocket_Lib_SendDao,       "send_dao( self: Socket, ... )" },
 
 	/*! Receives data via the internal serialization protocol */
-	{  DaoSocket_Lib_ReceiveDao,    "receive_dao( self: socket ) => list<int|float|complex|string|array>" },
+	{  DaoSocket_Lib_ReceiveDao,    "receive_dao( self: Socket ) => list<int|float|complex|string|array>" },
 
-	/*! Checks the property specified by \a what; required to satisfy `io::device` interface  */
-	{  DaoSocket_Lib_Check,			"check(self: socket, what: enum<readable,writable,open,eof>) => bool" },
+	/*! Checks the property specified by \a what; required to satisfy `io::Device` interface  */
+	{  DaoSocket_Lib_Check,			"check(self: Socket, what: enum<readable,writable,open,eof>) => bool" },
 
 	/*! Peer name */
-	{  DaoSocket_Lib_GetPeerName,   ".peername( invar self: socket ) => string" },
+	{  DaoSocket_Lib_GetPeerName,   ".peername( invar self: Socket ) => string" },
 
 	/*! Socket file descriptor */
-	{  DaoSocket_Lib_Id,            ".id( invar self: socket ) => int" },
+	{  DaoSocket_Lib_Id,            ".id( invar self: Socket ) => int" },
 
 	/*! Current socket state */
-	{  DaoSocket_Lib_State,         ".state( invar self: socket ) => enum<closed,bound,listening,connected>" },
+	{  DaoSocket_Lib_State,         ".state( invar self: Socket ) => enum<closed,bound,listening,connected>" },
 
 	/*! Shuts down the connection, stopping further operations specified by \a what */
-	{  DaoSocket_Lib_Shutdown,      "shutdown( self: socket, what: enum<send,receive,both> )" },
+	{  DaoSocket_Lib_Shutdown,      "shutdown( self: Socket, what: enum<send,receive,both> )" },
 
 	/*! Closes the socket */
-	{  DaoSocket_Lib_Close,         "close( self: socket )" },
+	{  DaoSocket_Lib_Close,         "close( self: Socket )" },
 
 	/*! Returns stream opened with \a mode bound to the socket
 	 * \warning Not supported on Windows */
-	{  DaoSocket_Lib_GetStream,     "open( invar self: socket, mode: string ) => io::stream" },
+	{  DaoSocket_Lib_GetStream,     "open( invar self: Socket, mode: string ) => io::Stream" },
 	{ NULL, NULL }
 };
 
 DaoTypeBase socketTyper = {
-	"socket", NULL, NULL, socketMeths, {0}, {0}, (FuncPtrDel)DaoSocket_Delete, NULL
+	"Socket", NULL, NULL, socketMeths, {0}, {0}, (FuncPtrDel)DaoSocket_Delete, NULL
 };
 
 static void DaoNetLib_Bind( DaoProcess *proc, DaoValue *par[], int N  )
@@ -1238,12 +1238,11 @@ static DaoFuncItem netMeths[] =
 	 * -\c reused -- rebinds the socket even if the address and port are already bound by another socket (non-exclusively)
 	 * (SO_REUSEADDR on Windows, ignored on Unix)
 	*/
-	{  DaoNetLib_Bind,          "bind( port: int ) => socket" },
-	{  DaoNetLib_Bind,          "bind( port: int, address: enum<shared;exclusive;reused> ) => socket" },
+	{  DaoNetLib_Bind,          "bind( port: int ) => Socket" },
+	{  DaoNetLib_Bind,          "bind( port: int, address: enum<shared;exclusive;reused> ) => Socket" },
 
 	/*! Returns socket connected to \a host : \a port */
-	{  DaoNetLib_Connect,       "connect( host: string, port: int ) => socket" },
-	{  DaoNetLib_Connect,       "connect( host: string, port: int ) => socket" },
+	{  DaoNetLib_Connect,       "connect( host: string, port: int ) => Socket" },
 
 	/*! Returns information for host with the given \a id, which may be either name or address */
 	{  DaoNetLib_GetHost,       "host( id: string ) => tuple<name: string, aliases: list<string>, addresses: list<string>>" },
@@ -1255,7 +1254,7 @@ static DaoFuncItem netMeths[] =
 	 * Returns sub-lists of \a read and \a write containing available objects
 	 * \warning On Windows, selecting streams is not supported	*/
 	{  DaoNetLib_Select,
-		"select( invar read: list<@X<io::stream|socket>>, invar write: list<@Y<io::stream|socket>>,"
+		"select( invar read: list<@X<io::Stream|Socket>>, invar write: list<@Y<io::Stream|Socket>>,"
 				"timeout: float )=>tuple<read: list<@X>, write: list<@Y>>" },
 	{ NULL, NULL }
 };

@@ -283,55 +283,55 @@ static void DaoScanner_Precedes( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem scannerMeths[] =
 {
 	/*! Constructs scanner operating on string \a context starting at position \a pos */
-	{ DaoScanner_Create,	"scanner(context: string, pos = 0) => scanner" },
+	{ DaoScanner_Create,	"Scanner(context: string, pos = 0) => Scanner" },
 
 	/*! String being scanned */
-	{ DaoScanner_Context,	".context(invar self: scanner) => string" },
+	{ DaoScanner_Context,	".context(invar self: Scanner) => string" },
 
 	/*! Current position */
-	{ DaoScanner_Position,	".pos(invar self: scanner) => int" },
-	{ DaoScanner_SetPos,	".pos(self: scanner, pos: int)" },
+	{ DaoScanner_Position,	".pos(invar self: Scanner) => int" },
+	{ DaoScanner_SetPos,	".pos(self: Scanner, pos: int)" },
 
 	/*! Number of bytes left to scan (from the current position to the end of the context) */
-	{ DaoScanner_Rest,		".rest(invar self: scanner) => int" },
+	{ DaoScanner_Rest,		".rest(invar self: Scanner) => int" },
 
 	/*! Appends \a str to the context string */
-	{ DaoScanner_Append,	"append(self: scanner, str: string)" },
+	{ DaoScanner_Append,	"append(self: Scanner, str: string)" },
 
 	/*! Returns \a count bytes starting from the current position and advances the scanner */
-	{ DaoScanner_Fetch,		"fetch(self: scanner, count: int) => string" },
+	{ DaoScanner_Fetch,		"fetch(self: Scanner, count: int) => string" },
 
 	/*! Returns \a count bytes starting from the current position without advancing the scanner */
-	{ DaoScanner_Peek,		"peek(invar self: scanner, count: int) => string" },
+	{ DaoScanner_Peek,		"peek(invar self: Scanner, count: int) => string" },
 
 	/*! Mathes \a pattern immediately at the current position; on success, the scanner is advanced and its last match information is updated.
 	 * Returns the number of bytes the scanner has advanced through */
-	{ DaoScanner_Scan,		"scan(self: scanner, pattern: string) => int" },
+	{ DaoScanner_Scan,		"scan(self: Scanner, pattern: string) => int" },
 
 	/*! Mathes \a pattern anywhere in the string after the current position; on success, the scanner is advanced and its last match
 	 * information is updated. Returns the number of bytes the scanner has advanced through */
-	{ DaoScanner_Seek,		"seek(self: scanner, pattern: string) => int" },
+	{ DaoScanner_Seek,		"seek(self: Scanner, pattern: string) => int" },
 
 	/*! The last matched sub-string or its group \a group (if \a group is greater then zero) */
-	{ DaoScanner_Matched,	"matched(invar self: scanner, group = 0) => string" },
+	{ DaoScanner_Matched,	"matched(invar self: Scanner, group = 0) => string" },
 
 	/*! Position of the last matched sub-string or its group \a group (if \a group is greater then zero) */
-	{ DaoScanner_MatchedAt,	"matched_pos(invar self: scanner, group = 0) => tuple<start: int, end: int>|none" },
+	{ DaoScanner_MatchedAt,	"matched_pos(invar self: Scanner, group = 0) => tuple<start: int, end: int>|none" },
 
 	/*! Line number at the current position */
-	{ DaoScanner_Line,		"line(invar self: scanner) => int" },
+	{ DaoScanner_Line,		"line(invar self: Scanner) => int" },
 
 	/*! Matches \a pattern immediately before the current position without affecting the state of the scanner */
-	{ DaoScanner_Follows,	"follows(invar self: scanner, pattern: string) => bool" },
+	{ DaoScanner_Follows,	"follows(invar self: Scanner, pattern: string) => bool" },
 
 	/*! Matches \a pattern immediately after the current position without affecting the state of the scanner */
-	{ DaoScanner_Precedes,	"precedes(invar self: scanner, pattern: string) => bool" },
+	{ DaoScanner_Precedes,	"precedes(invar self: Scanner, pattern: string) => bool" },
 	{ NULL, NULL }
 };
 
 /*! Provides way to successively process textual data using Dao string patterns */
 DaoTypeBase scannerTyper = {
-	"scanner", NULL, NULL, scannerMeths, {NULL}, {0},
+	"Scanner", NULL, NULL, scannerMeths, {NULL}, {0},
 	(FuncPtrDel)DaoScanner_Delete, NULL
 };
 

@@ -222,18 +222,18 @@ static void ZIP_ReadFile( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem zipstreamMeths[] =
 {
-	{ ZIP_Open,				"stream(file: string, mode: string) => stream" },
-	{ ZIP_Open,				"stream(fileno: int, mode: string) => stream" },
-	{ DaoZipStream_Read,	"read(self: stream, count = -1) => string" },
-	{ DaoZipStream_Write,	"write(self: stream, data: string)" },
-	{ DaoZipStream_Check,	"check(self: stream, what: enum<readable,writable,open,eof>) => bool" },
-	{ DaoZipStream_LibClose,"close(self: stream)" },
+	{ ZIP_Open,				"Stream(file: string, mode: string) => Stream" },
+	{ ZIP_Open,				"Stream(fileno: int, mode: string) => Stream" },
+	{ DaoZipStream_Read,	"read(self: Stream, count = -1) => string" },
+	{ DaoZipStream_Write,	"write(self: Stream, data: string)" },
+	{ DaoZipStream_Check,	"check(self: Stream, what: enum<readable,writable,open,eof>) => bool" },
+	{ DaoZipStream_LibClose,"close(self: Stream)" },
 	{ NULL, NULL }
 };
 
 DaoTypeBase zipstreamTyper =
 {
-	"stream", NULL, NULL, (DaoFuncItem*) zipstreamMeths, {0}, {0},
+	"Stream", NULL, NULL, (DaoFuncItem*) zipstreamMeths, {0}, {0},
 	(FuncPtrDel) DaoZipStream_Delete, NULL
 };
 
@@ -241,8 +241,8 @@ static DaoFuncItem zipMeths[]=
 {
 	{ ZIP_Compress,     "compress( source: string ) => string" },
 	{ ZIP_Decompress,   "decompress( source: string ) => string" },
-	{ ZIP_Open,			"open(file: string, mode: string) => stream" },
-	{ ZIP_Open,			"open(fileno: int, mode: string) => stream" },
+	{ ZIP_Open,			"open(file: string, mode: string) => Stream" },
+	{ ZIP_Open,			"open(fileno: int, mode: string) => Stream" },
 	{ ZIP_ReadFile,		"read(file: string, silent = bool::false) => string" },
 	{ NULL, NULL }
 };

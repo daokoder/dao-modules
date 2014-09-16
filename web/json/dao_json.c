@@ -525,7 +525,5 @@ DAO_DLL int DaoJSON_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	jsonns = DaoNamespace_GetNamespace( ns, "json" );
 	DaoNamespace_DefineType( jsonns, "none|int|float|string|enum<false:true>|list<Data>|map<string,Data>", "Data" );
 	DaoNamespace_WrapFunctions( jsonns, jsonMeths );
-	json_list_type = DaoNamespace_DefineType( jsonns, "list<Data>", NULL );
-	json_map_type = DaoNamespace_DefineType( jsonns, "map<string,Data>", NULL );
 	return 0;
 }

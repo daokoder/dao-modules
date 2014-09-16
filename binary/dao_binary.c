@@ -601,25 +601,25 @@ static void DaoBinary_SetItem( DaoProcess *proc, DaoValue *p[], int N )
 	}
 }
 
-/*! \note All the routines below accepting \c io::stream expect a file stream only */
+/*! \note All the routines below accepting \c io::Stream expect a file stream only */
 static DaoFuncItem binMeths[] =
 {
 	/*! Reads \a count elements from \a source to \a dest. If \a count is zero, or greater than \a dest size,
 	 * \a dest size is assumed. Returns the number of elements actually read */
-	{ DaoBinary_Read,		"read(source: io::stream, dest: array<@T>, count = 0) => int" },
+	{ DaoBinary_Read,		"read(source: io::Stream, dest: array<@T>, count = 0) => int" },
 
 	/*! Reads \a count chunks of size \a size from \a source into \a dest so that each chunk corresponds to a single
 	 * \a dest element (with possible widening). If \a count is zero, or greater than \a dest element size, \a dest
 	 * element size is assumed. Returns the number of chunks actually read */
-	{ DaoBinary_Unpack,		"unpack(source: io::stream, dest: array<int>, size: enum<byte,word,dword>, count = 0) => int" },
+	{ DaoBinary_Unpack,		"unpack(source: io::Stream, dest: array<int>, size: enum<byte,word,dword>, count = 0) => int" },
 
 	/*! Writes \a count chunks of size \a size to \a dest so that each \a source element corresponds to a single chunk
 	 * (with possible narrowing). Returns the number of chunks actually written */
-	{ DaoBinary_Pack,		"pack(invar source: array<int>, dest: io::stream, size: enum<byte,word,dword>, count = 0) => int" },
+	{ DaoBinary_Pack,		"pack(invar source: array<int>, dest: io::Stream, size: enum<byte,word,dword>, count = 0) => int" },
 
 	/*! Writes \a count elements from \a source to \a dest. If \c count is zero, or greater than \a dest size, all \a dest data is
 	 * written. Returns the number of elements actually written */
-	{ DaoBinary_Write,		"write(invar source: array<@T>, dest: io::stream, count = 0) => int" },
+	{ DaoBinary_Write,		"write(invar source: array<@T>, dest: io::Stream, count = 0) => int" },
 
 	/*! Reads value described by \a what from \a source at the given byte \a offset */
 	{ DaoBinary_GetItem,	"get(invar source: array<int>|string, what: enum<byte,ubyte,word,uword,dword,udword,qword,uqword>,"

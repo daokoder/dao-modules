@@ -401,7 +401,7 @@ static DaoFuncItem htmlMeths[] =
 {
 	/*! Returns HTML 5 document composed from content specified in the code section. Includes '<!DOCTYPE html>' and 'html' tag with
 	 * the specified attributes */
-	{ Html_Document,	"document(...: tuple<enum<manifest,xml_lang>, string> | attr::global)[] => string" },
+	{ Html_Document,	"document(...: tuple<enum<manifest,xml_lang>, string> | GlobalAttr)[] => string" },
 
 	/*! Returns HTML 5 code fragment composed from content specified in the code section. */
 	{ Html_Fragment,	"fragment()[] => string" },
@@ -423,7 +423,7 @@ static DaoFuncItem htmlMeths[] =
 	 * arguments may include arbitrary HTML code.
 	 *
 	 * Element attributes may be specified via variadic parameters, each of which is either a named value (attribute with a value)
-	 * or \c enum (void attribute). All tag routines support parameters of type `attr::global`, which covers all global HTML attributes.
+	 * or \c enum (void attribute). All tag routines support parameters of type `GlobalAttr`, which covers all global HTML attributes.
 	 *
 	 * Routine names mostly match those of HTML tags; however, there are few exceptions made to avoid naming conflicts:
 	 * - 'a' -> 'anchor';
@@ -447,205 +447,204 @@ static DaoFuncItem htmlMeths[] =
 	 * Additionally, \c button(), \c command() and \c input() do not accept 'type' attribute as named value, instead expecting single
 	 * \c enum value as the first, non-variadic routine argument. This allows to provide overloaded version of these routines with
 	 * different parameter sets similar to HTML specification for these tags. */
-	{ Html_Tag,			"anchor(...: tuple<enum<href,hreflang,media,_type>, string> | attr::target | "
+	{ Html_Tag,			"anchor(...: tuple<enum<href,hreflang,media,_type>, string> | Target | "
 									"tuple<enum<rel>, enum<alternate;author;bookmark;help;license;next;nofollow;noreferrer;prefetch;"
-														  "prev;search;tag>> | attr::global)[ => string|none ]" },
-	{ Html_Tag,			"abbrev(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"address(...: attr::global)[ => string|none ]" },
-	{ Html_EmptyTag,	"area(...: tuple<enum<alt,href,media,hreflang,_type>, string> | attr::target | "
+														  "prev;search;tag>> | GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"abbrev(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"address(...: GlobalAttr)[ => string|none ]" },
+	{ Html_EmptyTag,	"area(...: tuple<enum<alt,href,media,hreflang,_type>, string> | Target | "
 								  "tuple<enum<shape>, enum<rect,circle,poly,default>> | tuple<enum<coords>, tuple<...: int>> | "
 								  "tuple<enum<rel>, enum<alternate;author;bookmark;help;license;next;nofollow;noreferrer;prefetch;"
-														"prev;search;tag>> | attr::global)" },
-	{ Html_Tag,			"article(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"aside(...: attr::global)[ => string|none ]" },
+														"prev;search;tag>> | GlobalAttr)" },
+	{ Html_Tag,			"article(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"aside(...: GlobalAttr)[ => string|none ]" },
 	{ Html_Tag,			"audio(...: enum<autoplay,preload,controls,loop,muted> | tuple<enum<preload>, enum<none,metadata,auto>> | "
-								   "tuple<enum<mediagroup,src>, string> | attr::global)[ => string|none ]" },
-	{ Html_EmptyTag,	"base(...: tuple<enum<href>, string> | attr::target | attr::global)" },
-	{ Html_Tag,			"bdi(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"bdo(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"blockquote(...: tuple<enum<cite>, string> | attr::global)[ => string|none ]" },
+								   "tuple<enum<mediagroup,src>, string> | GlobalAttr)[ => string|none ]" },
+	{ Html_EmptyTag,	"base(...: tuple<enum<href>, string> | Target | GlobalAttr)" },
+	{ Html_Tag,			"bdi(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"bdo(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"blockquote(...: tuple<enum<cite>, string> | GlobalAttr)[ => string|none ]" },
 	{ Html_Tag,			"body(...: tuple<enum<onafterprint,onbeforeprint,onbeforeunload,onhashchange,onmessage,onoffline,ononline,"
 											 "onpagehide,onpageshow,onpopstate,onresize,onstorage,onunload>, string> | "
-								  "attr::global)[ => string|none ]" },
-	{ Html_Tag,			"bold(...: attr::global)[ => string|none ]" },
-	{ Html_EmptyTag,	"br(...: attr::global)" },
+								  "GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"bold(...: GlobalAttr)[ => string|none ]" },
+	{ Html_EmptyTag,	"br(...: GlobalAttr)" },
 	{ Html_Tag,			"button(kind: enum<submit>, ...: "
-							   "tuple<enum<name,form,value,formaction,formenctype>, string> | attr::formtarget |  "
-							   "enum<disabled,autofocus,formnovalidate> | tuple<enum<formmethod>, enum<get,post>> | attr::global)"
+							   "tuple<enum<name,form,value,formaction,formenctype>, string> | FormTarget |  "
+							   "enum<disabled,autofocus,formnovalidate> | tuple<enum<formmethod>, enum<get,post>> | GlobalAttr)"
 							   "[ => string|none ]" },
 	{ Html_Tag,			"button(kind: enum<reset,button>, ...: tuple<enum<name,form,value>, string> | enum<disabled,autofocus> | "
-															  "attr::global)[ => string|none ]" },
-	{ Html_Tag,			"canvas(...: tuple<enum<height,width>, int> | attr::global)[ => string|none ]" },
-	{ Html_Tag,			"caption(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"cite(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"code(...: attr::global)[ => string|none ]" },
-	{ Html_EmptyTag,	"col(...: tuple<enum<span>, int> | attr::global)" },
-	{ Html_Tag,			"colgroup(...: tuple<enum<span>, int> | attr::global)[ => string|none ]" },
-	{ Html_EmptyTag,	"command(kind: enum<command>, ...: tuple<enum<label,icon>, string> | enum<disabled> | attr::global)" },
+															  "GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"canvas(...: tuple<enum<height,width>, int> | GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"caption(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"cite(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"code(...: GlobalAttr)[ => string|none ]" },
+	{ Html_EmptyTag,	"col(...: tuple<enum<span>, int> | GlobalAttr)" },
+	{ Html_Tag,			"colgroup(...: tuple<enum<span>, int> | GlobalAttr)[ => string|none ]" },
+	{ Html_EmptyTag,	"command(kind: enum<command>, ...: tuple<enum<label,icon>, string> | enum<disabled> | GlobalAttr)" },
 	{ Html_EmptyTag,	"command(kind: enum<radio>, ...: tuple<enum<radiogroup,icon,label>, string> | enum<checked,disabled> | "
-														"attr::global)" },
+														"GlobalAttr)" },
 	{ Html_EmptyTag,	"command(kind: enum<checkbox>, ...: tuple<enum<label,icon>, string> | enum<checked,disabled> | "
-														   "attr::global)" },
-	{ Html_Tag,			"datalist(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"dd(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"del(...: tuple<enum<cite,datetime>, string> | attr::global)[ => string|none ]" },
-	{ Html_Tag,			"details(...: enum<open> | attr::global)[ => string|none ]" },
-	{ Html_Tag,			"dfn(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"div(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"dl(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"dt(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"em(...: attr::global)[ => string|none ]" },
-	{ Html_EmptyTag,	"embed(...: tuple<enum<src,_type>, string> | tuple<enum<height,width>, int> | attr::global)" },
-	{ Html_Tag,			"fieldset(...: tuple<enum<name,form>, string> | enum<disabled> | attr::global)[ => string|none ]" },
-	{ Html_Tag,			"figcaption(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"figure(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"footer(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"form(...: tuple<enum<action,enctype,name,accept_charset>, string> | attr::target | enum<novalidate> | "
-								  "tuple<enum<method>, enum<get,post>> | tuple<enum<autocomplete>, enum<on,off>> | attr::global)"
+														   "GlobalAttr)" },
+	{ Html_Tag,			"datalist(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"dd(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"del(...: tuple<enum<cite,datetime>, string> | GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"details(...: enum<open> | GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"dfn(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"div(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"dl(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"dt(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"em(...: GlobalAttr)[ => string|none ]" },
+	{ Html_EmptyTag,	"embed(...: tuple<enum<src,_type>, string> | tuple<enum<height,width>, int> | GlobalAttr)" },
+	{ Html_Tag,			"fieldset(...: tuple<enum<name,form>, string> | enum<disabled> | GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"figcaption(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"figure(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"footer(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"form(...: tuple<enum<action,enctype,name,accept_charset>, string> | Target | enum<novalidate> | "
+								  "tuple<enum<method>, enum<get,post>> | tuple<enum<autocomplete>, enum<on,off>> | GlobalAttr)"
 							"[ => string|none ]" },
-	{ Html_Tag,			"h1(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"h2(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"h3(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"h4(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"h5(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"h6(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"head(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"header(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"hgroup(...: attr::global)[ => string|none ]" },
-	{ Html_EmptyTag,	"hr(...: attr::global)" },
+	{ Html_Tag,			"h1(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"h2(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"h3(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"h4(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"h5(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"h6(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"head(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"header(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"hgroup(...: GlobalAttr)[ => string|none ]" },
+	{ Html_EmptyTag,	"hr(...: GlobalAttr)" },
 	{ Html_Tag,			"iframe(...: tuple<enum<src,srcdoc,name>, string> | tuple<enum<height,width>, int> | "
 									"tuple<enum<sandbox>, enum<allow_forms;allow_scripts;allow_top_navigation;allow_same_origin>> | "
-									"enum<sandbox,seamless> | attr::global)[ => string|none ]" },
-	{ Html_EmptyTag,	"img(...: tuple<enum<src,alt,usemap>, string> | tuple<enum<height,width>, int> | enum<ismap> | attr::global)" },
+									"enum<sandbox,seamless> | GlobalAttr)[ => string|none ]" },
+	{ Html_EmptyTag,	"img(...: tuple<enum<src,alt,usemap>, string> | tuple<enum<height,width>, int> | enum<ismap> | GlobalAttr)" },
 	{ Html_EmptyTag,	"input(kind: enum<text,search>, ...: "
 							  "tuple<enum<name,form,value,list,pattern,placeholder,dirname>, string> | "
 							  "tuple<enum<maxlength,size>, int> | enum<disabled,readonly,autofocus,required> | "
-							  "tuple<enum<autocomplete>, enum<on,off>> | attr::global)" },
+							  "tuple<enum<autocomplete>, enum<on,off>> | GlobalAttr)" },
 	{ Html_EmptyTag,	"input(kind: enum<password>, ...: "
 							  "tuple<enum<name,form,value,placeholder>, string> | tuple<enum<maxlength,size>, int> | "
-							  "enum<disabled,readonly,autofocus,required> | tuple<enum<autocomplete>, enum<on,off>> | attr::global)" },
+							  "enum<disabled,readonly,autofocus,required> | tuple<enum<autocomplete>, enum<on,off>> | GlobalAttr)" },
 	{ Html_EmptyTag,	"input(kind: enum<checkbox,radio>, ...: tuple<enum<name,form,value>, string> | "
-															   "enum<checked,disabled,autofocus,required> | attr::global)" },
+															   "enum<checked,disabled,autofocus,required> | GlobalAttr)" },
 	{ Html_EmptyTag,	"input(kind: enum<button,reset>, ...: tuple<enum<name,form,value>, string> | enum<disabled,autofocus> | "
-															 "attr::global)" },
+															 "GlobalAttr)" },
 	{ Html_EmptyTag,	"input(kind: enum<submit>, ...: "
 							  "tuple<enum<name,form,value>, string> | enum<disabled,autofocus> | "
-							  "tuple<enum<formaction,formenctype>, string> | enum<formnovalidate> | attr::formtarget | "
-							  "tuple<enum<formmethod>, enum<get,post>> | attr::global)" },
+							  "tuple<enum<formaction,formenctype>, string> | enum<formnovalidate> | FormTarget | "
+							  "tuple<enum<formmethod>, enum<get,post>> | GlobalAttr)" },
 	{ Html_EmptyTag,	"input(kind: enum<file>, ...: tuple<enum<name,form,accept>, string> | "
-													 "enum<disabled,autofocus,required,multiple> | attr::global)" },
-	{ Html_EmptyTag,	"input(kind: enum<hidden>, ...: tuple<enum<name,form,value>, string> | enum<disabled> | attr::global)" },
+													 "enum<disabled,autofocus,required,multiple> | GlobalAttr)" },
+	{ Html_EmptyTag,	"input(kind: enum<hidden>, ...: tuple<enum<name,form,value>, string> | enum<disabled> | GlobalAttr)" },
 	{ Html_EmptyTag,	"input(kind: enum<image>, ...: "
 							  "tuple<enum<name,form,alt,src>, string> | enum<disabled,autofocus> | "
-							  "tuple<enum<formaction,formenctype>, string> | enum<formnovalidate> | attr::formtarget | "
-							  "tuple<enum<formmethod>, enum<get,post>> | tuple<enum<height,width>, int> | attr::global)" },
+							  "tuple<enum<formaction,formenctype>, string> | enum<formnovalidate> | FormTarget | "
+							  "tuple<enum<formmethod>, enum<get,post>> | tuple<enum<height,width>, int> | GlobalAttr)" },
 	{ Html_EmptyTag,	"input(kind: enum<datetime,datetime_local,date,month,time,week>, ...: "
 							  "tuple<enum<name,form,value,list,min,max>, string> | enum<disabled,autofocus,readonly,required> | "
-							  "tuple<enum<autocomplete>, enum<on,off>> | attr::step | attr::global)" },
+							  "tuple<enum<autocomplete>, enum<on,off>> | Step | GlobalAttr)" },
 	{ Html_EmptyTag,	"input(kind: enum<number>, ...: "
-							  "tuple<enum<name,form,value,list,placeholder>, string> | tuple<enum<min,max>, float> | attr::step | "
-							  "enum<disabled,autofocus,readonly,required> | tuple<enum<autocomplete>, enum<on,off>> | attr::global)" },
+							  "tuple<enum<name,form,value,list,placeholder>, string> | tuple<enum<min,max>, float> | Step | "
+							  "enum<disabled,autofocus,readonly,required> | tuple<enum<autocomplete>, enum<on,off>> | GlobalAttr)" },
 	{ Html_EmptyTag,	"input(kind: enum<range>, ...: "
 							  "tuple<enum<name,form,value,list>, string> | tuple<enum<min,max>, float> | enum<disabled,autofocus> | "
-							  "tuple<enum<autocomplete>, enum<on,off>> | attr::step | attr::global)" },
+							  "tuple<enum<autocomplete>, enum<on,off>> | Step | GlobalAttr)" },
 	{ Html_EmptyTag,	"input(kind: enum<email>, ...: "
 							  "tuple<enum<name,form,value,list,pattern,placeholder>, string> | "
 							  "tuple<enum<maxlength,size>, int> | enum<disabled,readonly,autofocus,required,multiple> | "
-							  "tuple<enum<autocomplete>, enum<on,off>> | attr::global)" },
+							  "tuple<enum<autocomplete>, enum<on,off>> | GlobalAttr)" },
 	{ Html_EmptyTag,	"input(kind: enum<url,tel>, ...: "
 							  "tuple<enum<name,form,value,list,pattern,placeholder>, string> | "
 							  "tuple<enum<maxlength,size>, int> | enum<disabled,readonly,autofocus,required> | "
-							  "tuple<enum<autocomplete>, enum<on,off>> | attr::global)" },
+							  "tuple<enum<autocomplete>, enum<on,off>> | GlobalAttr)" },
 	{ Html_EmptyTag,	"input(kind: enum<color>, ...: "
 							  "tuple<enum<name,form,value,list,pattern,placeholder,dir>, string> | "
 							  "tuple<enum<maxlength,size>, int> | enum<disabled,readonly,autofocus,required,multiple> | "
-							  "tuple<enum<autocomplete>, enum<on,off>> | attr::global)" },
+							  "tuple<enum<autocomplete>, enum<on,off>> | GlobalAttr)" },
 	{ Html_EmptyTag,	"input(kind: enum<color>, ...: tuple<enum<name,form,list,value>, string> | enum<disabled,autofocus> | "
-													  "tuple<enum<autocomplete>, enum<on,off>> | attr::global)" },
-	{ Html_Tag,			"ins(...: tuple<enum<cite,datetime>, string> | attr::global)[ => string|none ]" },
-	{ Html_Tag,			"italic(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"kbd(...: attr::global)[ => string|none ]" },
+													  "tuple<enum<autocomplete>, enum<on,off>> | GlobalAttr)" },
+	{ Html_Tag,			"ins(...: tuple<enum<cite,datetime>, string> | GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"italic(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"kbd(...: GlobalAttr)[ => string|none ]" },
 	{ Html_Tag,			"keygen(...: tuple<enum<challenge,name,form>, string> | tuple<enum<keytype>, enum<rsa>> | "
-									"enum<autofocus,disabled> | attr::global)[ => string|none ]" },
-	{ Html_Tag,			"label(...: tuple<enum<id,_for,form>, string> | attr::global)[ => string|none ]" },
-	{ Html_Tag,			"legend(...: tuple<enum<value>, int> | attr::global)[ => string|none ]" },
-	{ Html_Tag,			"li(...: tuple<enum<value>, int> | attr::global)[ => string|none ]" },
+									"enum<autofocus,disabled> | GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"label(...: tuple<enum<id,_for,form>, string> | GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"legend(...: tuple<enum<value>, int> | GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"li(...: tuple<enum<value>, int> | GlobalAttr)[ => string|none ]" },
 	{ Html_EmptyTag,	"link(...: tuple<enum<href,hreflang,media,_type,sizes>, string> | "
 								  "tuple<enum<rel>, enum<alternate;author;help;icon;license;next;prefetch;prev;search;stylesheet>> | "
-								  "attr::global)" },
-	{ Html_Tag,			"map(...: tuple<enum<name>, string> | attr::global)[ => string|none ]" },
-	{ Html_Tag,			"mark(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"menu(kind: enum<toolbar,context>, ...: tuple<enum<label>, string> | attr::global)[ => string|none ]" },
-	{ Html_EmptyTag,	"meta(...: tuple<enum<name,content>, string> | attr::global)" },
+								  "GlobalAttr)" },
+	{ Html_Tag,			"map(...: tuple<enum<name>, string> | GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"mark(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"menu(kind: enum<toolbar,context>, ...: tuple<enum<label>, string> | GlobalAttr)[ => string|none ]" },
+	{ Html_EmptyTag,	"meta(...: tuple<enum<name,content>, string> | GlobalAttr)" },
 	{ Html_EmptyTag,	"meta(...: tuple<enum<http_equiv>, enum<refresh,default_style,content_type>> | tuple<enum<content>, string> | "
-								  "attr::global)" },
-	{ Html_EmptyTag,	"meta(...: tuple<enum<charset>, string> | attr::global)" },
-	{ Html_Tag, 		"meter(...: tuple<enum<value,min,low,high,max,optimum>, float> | attr::global)[ => string|none ]" },
-	{ Html_Tag,			"nav(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"noscript(...: attr::global)[ => string|none ]" },
+								  "GlobalAttr)" },
+	{ Html_EmptyTag,	"meta(...: tuple<enum<charset>, string> | GlobalAttr)" },
+	{ Html_Tag, 		"meter(...: tuple<enum<value,min,low,high,max,optimum>, float> | GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"nav(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"noscript(...: GlobalAttr)[ => string|none ]" },
 	{ Html_Tag,			"object(...: tuple<enum<data,_type,usemap,name,form>, string> | tuple<enum<height,width>, int> | "
-									"attr::global)[ => string|none ]" },
-	{ Html_Tag,			"ol(...: tuple<enum<_type>, string> | tuple<enum<start>, int> | enum<reversed> | attr::global)"
+									"GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"ol(...: tuple<enum<_type>, string> | tuple<enum<start>, int> | enum<reversed> | GlobalAttr)"
 						  "[ => string|none ]" },
-	{ Html_Tag,			"optgroup(...: tuple<enum<label>, string> | enum<disabled> | attr::global)[ => string|none ]" },
-	{ Html_Tag,			"option(...: tuple<enum<label,value>, string> | enum<disabled,selected> | attr::global)[ => string|none ]" },
-	{ Html_Tag,			"output(...: tuple<enum<name,form,_for>, string> | attr::global)[ => string|none ]" },
-	{ Html_Tag,			"paragraph(...: attr::global)[ => string|none ]" },
-	{ Html_EmptyTag,	"param(...: tuple<enum<name,value>, string> | attr::global)" },
-	{ Html_Tag,			"pre(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"progress(...: tuple<enum<value,max>, float> | attr::global)[ => string|none ]" },
-	{ Html_Tag,			"quoted(...: tuple<enum<cite>, string> | attr::global)[ => string|none ]" },
-	{ Html_Tag,			"rp(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"ruby(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"struck(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"samp(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"script(...: tuple<enum<_type,src,charset>, string> | enum<defer,async> | attr::global)[ => string|none ]" },
-	{ Html_Tag,			"section(...: attr::global)[ => string|none ]" },
+	{ Html_Tag,			"optgroup(...: tuple<enum<label>, string> | enum<disabled> | GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"option(...: tuple<enum<label,value>, string> | enum<disabled,selected> | GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"output(...: tuple<enum<name,form,_for>, string> | GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"paragraph(...: GlobalAttr)[ => string|none ]" },
+	{ Html_EmptyTag,	"param(...: tuple<enum<name,value>, string> | GlobalAttr)" },
+	{ Html_Tag,			"pre(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"progress(...: tuple<enum<value,max>, float> | GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"quoted(...: tuple<enum<cite>, string> | GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"rp(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"ruby(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"struck(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"samp(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"script(...: tuple<enum<_type,src,charset>, string> | enum<defer,async> | GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"section(...: GlobalAttr)[ => string|none ]" },
 	{ Html_Tag,			"select(...: tuple<enum<name,form>, string> | tuple<enum<size>, int> | "
-									"enum<disabled,multiple,autofocus,required> | attr::global)[ => string|none ]" },
-	{ Html_Tag,			"small(...: attr::global)[ => string|none ]" },
-	{ Html_EmptyTag,	"source(...: tuple<enum<_type,src,media>, string> | attr::global)" },
-	{ Html_Tag,			"span(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"strong(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"style(...: tuple<enum<_type,media>, string> | enum<scoped> | attr::global)[ => string|none ]" },
-	{ Html_Tag,			"sub(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"summary(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"sup(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"table(...: tuple<enum<border>, string> | attr::global)[ => string|none ]" },
-	{ Html_Tag,			"tbody(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"td(...: tuple<enum<colspan,rowspan>, int> | tuple<enum<headers>, list<string>> | attr::global)"
+									"enum<disabled,multiple,autofocus,required> | GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"small(...: GlobalAttr)[ => string|none ]" },
+	{ Html_EmptyTag,	"source(...: tuple<enum<_type,src,media>, string> | GlobalAttr)" },
+	{ Html_Tag,			"span(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"strong(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"style(...: tuple<enum<_type,media>, string> | enum<scoped> | GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"sub(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"summary(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"sup(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"table(...: tuple<enum<border>, string> | GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"tbody(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"td(...: tuple<enum<colspan,rowspan>, int> | tuple<enum<headers>, list<string>> | GlobalAttr)"
 						  "[ => string|none ]" },
 	{ Html_Tag,			"textarea(...: tuple<enum<name,form,placeholder,dirname>, string> | "
 									  "enum<disabled,readonly,autofocus,required> | tuple<enum<maxlength,rows,cols>, int> | "
-									  "tuple<enum<wrap>, enum<hard,soft>> | attr::global)[ => string|none ]" },
-	{ Html_Tag,			"tfoot(...: attr::global)[ => string|none ]" },
+									  "tuple<enum<wrap>, enum<hard,soft>> | GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"tfoot(...: GlobalAttr)[ => string|none ]" },
 	{ Html_Tag,			"th(...: tuple<enum<scope>, enum<row,col,rowgroup,colgroup>> | tuple<enum<colspan,rowspan>, int> | "
-								"tuple<enum<headers>, list<string>> | attr::global)[ => string|none ]" },
-	{ Html_Tag,			"thead(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"time(...: tuple<enum<datetime>, string> | attr::global)[ => string|none ]" },
-	{ Html_Tag,			"title(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"tr(...: attr::global)[ => string|none ]" },
+								"tuple<enum<headers>, list<string>> | GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"thead(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"time(...: tuple<enum<datetime>, string> | GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"title(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"tr(...: GlobalAttr)[ => string|none ]" },
 	{ Html_EmptyTag,	"track(...: tuple<enum<kind>, enum<subtitles,captions,descriptions,chapters,metadata>> | "
-								   "tuple<enum<src,srclang,label>, string> | enum<default> | attr::global)" },
-	{ Html_Tag,			"underlined(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"ul(...: attr::global)[ => string|none ]" },
-	{ Html_Tag,			"variable(...: attr::global)[ => string|none ]" },
+								   "tuple<enum<src,srclang,label>, string> | enum<default> | GlobalAttr)" },
+	{ Html_Tag,			"underlined(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"ul(...: GlobalAttr)[ => string|none ]" },
+	{ Html_Tag,			"variable(...: GlobalAttr)[ => string|none ]" },
 	{ Html_Tag,			"video(...: tuple<enum<preload>, enum<none,metadata,auto>> | enum<autoplay,controls,loop,muted> | "
-								   "tuple<enum<poster,mediagroup,src>, string> | tuple<enum<height,width>, int> | attr::global)"
+								   "tuple<enum<poster,mediagroup,src>, string> | tuple<enum<height,width>, int> | GlobalAttr)"
 							 "[ => string|none ]" },
-	{ Html_EmptyTag,	"wbr(...: attr::global)" },
+	{ Html_EmptyTag,	"wbr(...: GlobalAttr)" },
 	{ NULL, NULL }
 };
 
 DAO_DLL int DaoHtml_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	DaoNamespace *htmlns, *attrns;
+	DaoNamespace *htmlns;
 	htmlns = DaoNamespace_GetNamespace( ns, "html" );
-	attrns = DaoNamespace_GetNamespace( htmlns, "attr" );
-	DaoNamespace_DefineType( attrns, html_global_attr, "global" );
-	DaoNamespace_DefineType( attrns, html_step_attr, "step" );
-	DaoNamespace_DefineType( attrns, html_target_attr, "target" );
-	DaoNamespace_DefineType( attrns, html_formtarget_attr, "formtarget" );
+	DaoNamespace_DefineType( htmlns, html_global_attr, "GlobalAttr" );
+	DaoNamespace_DefineType( htmlns, html_step_attr, "Step" );
+	DaoNamespace_DefineType( htmlns, html_target_attr, "Target" );
+	DaoNamespace_DefineType( htmlns, html_formtarget_attr, "FormTarget" );
 	DaoNamespace_WrapFunctions( htmlns, htmlMeths );
 	return 0;
 }

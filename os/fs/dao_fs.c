@@ -1439,138 +1439,138 @@ static void FS_HomeDir( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem entryMeths[] =
 {
-	/*! Returns new \c entry bound to \a path of file or directory */
-	{ FSNode_New,		"entry(path: string) => entry" },
-
 	/*! Full path */
-	{ FSNode_Path,		".path(invar self: entry) => string" },
+	{ FSNode_Path,		".path(invar self: Entry) => string" },
 
 	/*! Entry name (last component of path) */
-	{ FSNode_Name,		".name(invar self: entry) => string" },
+	{ FSNode_Name,		".name(invar self: Entry) => string" },
 
 	/*! Base name (up to, but not including, the first '.' in name) */
-	{ FSNode_BaseName,	".basename(invar self: entry) => string" },
+	{ FSNode_BaseName,	".basename(invar self: Entry) => string" },
 
 	/*! Name part after the last '.' */
-	{ FSNode_Suffix,	".suffix(invar self: entry) => string" },
+	{ FSNode_Suffix,	".suffix(invar self: Entry) => string" },
 
 	/*! File object kind: file or directory */
-	{ FSNode_Type,		".kind(invar self: entry ) => enum<file, dir>" },
+	{ FSNode_Type,		".kind(invar self: Entry ) => enum<file,dir>" },
 
 	/*! Directory which contains this entry */
-	{ FSNode_Parent,	".dirup(invar self: entry)=> dir|none" },
+	{ FSNode_Parent,	".dirup(invar self: Entry)=> Dir|none" },
 
 	/*! Time of creation, last modification and access (use \c time module to operate it) */
-	{ FSNode_Time,		".time(invar self: entry) => tuple<created: int, modified: int, accessed: int>" },
+	{ FSNode_Time,		".time(invar self: Entry) => tuple<created: int, modified: int, accessed: int>" },
 
 	/*! Owner name */
-	{ FSNode_Owner,		".owner(invar self: entry) => string" },
+	{ FSNode_Owner,		".owner(invar self: Entry) => string" },
 
 	/*! Access mode as a combination of 'r', 'w' and 'x' flags. On Windows, only permissions for the current user are affected */
-	{ FSNode_Access,	".access(invar self: entry) => tuple<user: string, group: string, other: string>" },
-	{ FSNode_SetAccess,	".access=(self: entry, value: tuple<user: string, group: string, other: string>)" },
+	{ FSNode_Access,	".access(invar self: Entry) => tuple<user: string, group: string, other: string>" },
+	{ FSNode_SetAccess,	".access=(self: Entry, value: tuple<user: string, group: string, other: string>)" },
 
 	/*! Moves (renames) entry within the file system so that its full path becomes \a path. \a path may end with directory separator,
 	 * omitting the entry name, in which case the current name is assumed */
-	{ FSNode_Rename,	"move(self: entry, path: string)" },
+	{ FSNode_Rename,	"move(self: Entry, path: string)" },
 
 	/*! Deletes file or empty directory
 	 *
 	 * \note Doing this does not invalidate the entry */
-	{ FSNode_Remove,	"delete(self: entry)" },
+	{ FSNode_Remove,	"delete(self: Entry)" },
 
 	/*! Re-reads all entry attributes */
-	{ FSNode_Update,	"refresh(self: entry)" },
+	{ FSNode_Update,	"refresh(self: Entry)" },
 	{ NULL, NULL }
 };
 
 static DaoFuncItem fileMeths[] =
 {
-	/*! Returns \a file object bound to \a path if it points to a file, otherwise raises exception */
-	{ FS_NewFile,		"file(path: string) => file" },
-
 	/*! Size of the file in bytes */
-	{ FSNode_Size,		".size(invar self: file) => int" },
+	{ FSNode_Size,		".size(invar self: File) => int" },
 
 	/*! Resizes the file to the given \a size */
-	{ FSNode_Resize,	".size=(self: file, size: int)" },
+	{ FSNode_Resize,	".size=(self: File, size: int)" },
 
-	/*! Copies the file and returns \c file object of its copy */
-	{ FSNode_Copy,		"copy(self: file, path: string) => file" },
+	/*! Copies the file and returns \c File object of its copy */
+	{ FSNode_Copy,		"copy(self: File, path: string) => File" },
 	{ NULL, NULL }
 };
 
 static DaoFuncItem dirMeths[] =
 {
-	/*! Returns \c dir object bount to \a path if it points to a directory, otherwise raises exception */
-	{ FS_NewDir,		"dir(path: string) => dir" },
+	/*! Creates new file given relative \a path and returns its \c File object */
+	{ FSNode_Makefile,	"mkfile(self: Dir, path: string) => File" },
 
-	/*! Creates new file given relative \a path and returns its \c file object */
-	{ FSNode_Makefile,	"mkfile(self: dir, path: string) => file" },
-
-	/*! Creates new directory given relative \a path and returns its \c dir object */
-	{ FSNode_Makedir,	"mkdir(self: dir, path: string) => dir" },
+	/*! Creates new directory given relative \a path and returns its \c Dir object */
+	{ FSNode_Makedir,	"mkdir(self: Dir, path: string) => Dir" },
 
 	/*! Returns the list of inner entries with names matching \a filter,
 	 * where \a filter type is defined by \a filtering and can be either a wildcard pattern or Dao string pattern */
-	{ FSNode_Children,	"entries(invar self: dir, filter = '*', filtering: enum<wildcard,pattern> = $wildcard) => list<entry>" },
+	{ FSNode_Children,	"entries(invar self: Dir, filter = '*', filtering: enum<wildcard,pattern> = $wildcard) => list<Entry>" },
 
 	/*! Returns the list of inner files with names matching \a filter,
 	 * where \a filter type is defined by \a filtering and can be either a wildcard pattern or Dao string pattern */
-	{ FSNode_Files,		"files(invar self: dir, filter = '*', filtering: enum<wildcard,pattern> = $wildcard) => list<file>" },
+	{ FSNode_Files,		"files(invar self: Dir, filter = '*', filtering: enum<wildcard,pattern> = $wildcard) => list<File>" },
 
 	/*! Returns the list of inner directories with names matching \a filter,
 	 * where \a filter type is defined by \a filtering and can be either a wildcard pattern or Dao string pattern */
-	{ FSNode_Dirs,		"dirs(invar self: dir, filter = '*', filtering: enum<wildcard,pattern> = $wildcard) => list<dir>" },
+	{ FSNode_Dirs,		"dirs(invar self: Dir, filter = '*', filtering: enum<wildcard,pattern> = $wildcard) => list<Dir>" },
 
 	/*! Returns sub-entry given its relative \a path, or \c none if \a path does not point to existing file or directory */
-	{ FSNode_Child,		"[](invar self: dir, path: string) => entry|none" },
+	{ FSNode_Child,		"[](invar self: Dir, path: string) => Entry|none" },
 
 	/*! Returns \c $true if relative \a path points to existing file or directory */
-	{ FSNode_Exists,	"exists(invar self: dir, path: string) => bool" },
+	{ FSNode_Exists,	"exists(invar self: Dir, path: string) => bool" },
 
 	/*! Creates file with unique name prefixed by \a prefix in this directory. Returns the corresponding entry */
-	{ FSNode_Mktemp,	"mktemp(self: dir, prefix = '') => file" },
+	{ FSNode_Mktemp,	"mktemp(self: Dir, prefix = '') => File" },
 	{ NULL, NULL }
 };
 
 /*! \brief Provides platform-independent interface for manipulating files and directories.
  *
- * \c entry represents a generic file system object, namely a file or directory (links and other special types of file-like objects are
- * not supported). \c entry is inherited by \c file and \c dir, which provide operations specific to files and directories accordingly.
+ * \c Entry represents a generic file system object, namely a file or directory (links and other special types of file-like objects are
+ * not supported). \c Entry is inherited by \c File and \c Dir, which provide operations specific to files and directories accordingly.
  *
- * A file object is operated by its name, no descriptors or locks are kept for the lifetime of the associated \c entry. File attributes
+ * A file object is operated by its name, no descriptors or locks are kept for the lifetime of the associated \c Entry. File attributes
  * are cached and are only updated when necessary (e.g., \c resize() will update the size attribute); use \c refresh() to re-read them.
  *
- * \c entry uses '/' as the unified path separator on all platforms, Windows paths (including UNC) are automatically normalized to
+ * \c Entry uses '/' as the unified path separator on all platforms, Windows paths (including UNC) are automatically normalized to
  * this form. Relative paths and symbolic links are automatically expanded to their absolute form.
  *
  * \note On Windows, all path strings are assumed to be encoded in UTF-8, and are implicitly converted to UTF-16 in order to support
  * Unicode file names on this platform.
  */
 DaoTypeBase entryTyper = {
-	"entry", NULL, NULL, entryMeths, {NULL}, {0}, (FuncPtrDel)DInode_Delete, NULL
+	"Entry", NULL, NULL, entryMeths, {NULL}, {0}, (FuncPtrDel)DInode_Delete, NULL
 };
 
 DaoTypeBase fileTyper = {
-	"file", NULL, NULL, fileMeths, {&entryTyper, NULL}, {0}, (FuncPtrDel)DInode_Delete, NULL
+	"File", NULL, NULL, fileMeths, {&entryTyper, NULL}, {0}, (FuncPtrDel)DInode_Delete, NULL
 };
 
 DaoTypeBase dirTyper = {
-	"dir", NULL, NULL, dirMeths, {&entryTyper, NULL}, {0}, (FuncPtrDel)DInode_Delete, NULL
+	"Dir", NULL, NULL, dirMeths, {&entryTyper, NULL}, {0}, (FuncPtrDel)DInode_Delete, NULL
 };
 
 static DaoFuncItem fsMeths[] =
 {
+	/*! Returns new \c Entry bound to \a path of file or directory */
+	{ FSNode_New,	"entry(path: string) => Entry" },
+
+	/*! Returns \c File object bound to \a path if it points to a file, otherwise raises exception */
+	{ FS_NewFile,	"file(path: string) => File" },
+
+	/*! Returns \c Dir object bount to \a path if it points to a directory, otherwise raises exception */
+	{ FS_NewDir,	"dir(path: string) => Dir" },
+
 	/*! Returns the current working directory */
-	{ FS_CWD,		"cwd() => dir" },
+	{ FS_CWD,		"cwd() => Dir" },
 
 	/*! Makes \a dir the current working directory */
-	{ FS_SetCWD,	"cd(invar path: dir)" },
+	{ FS_SetCWD,	"cd(invar path: Dir)" },
 	{ FS_SetCWD2,	"cd(path: string)" },
 
 	/*! Returns list of names of all file objects in the directory specified by \a path */
-	{ FS_ListDir,	"ls(invar path: dir) => list<string>" },
+	{ FS_ListDir,	"ls(invar path: Dir) => list<string>" },
 	{ FS_ListDir2,	"ls(path = '.') => list<string>" },
 
 	/*! Returns absolute form of \a path, which must point to an existing file or directory. On Windows, replaces all '\' in path
@@ -1584,7 +1584,7 @@ static DaoFuncItem fsMeths[] =
 	{ FS_Roots,		"roots() => list<string>" },
 
 	/*! Returns home directory for the current user (on Windows, 'Documents' directory is assumed) */
-	{ FS_HomeDir,	"home() => dir" },
+	{ FS_HomeDir,	"home() => Dir" },
 	{ NULL, NULL }
 };
 
