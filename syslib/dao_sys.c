@@ -57,7 +57,7 @@ static void SYS_Ctime( DaoProcess *proc, DaoValue *p[], int N )
 {
 	struct tm *ctime;
 	time_t t = (time_t)p[0]->xInteger.value;
-	DaoTuple *tuple = DaoProcess_PutTuple( proc, 0 );
+	DaoTuple *tuple = DaoProcess_PutTuple( proc, 7 );
 	DaoValue **items = tuple->values;
 	if( t == 0 ) t = time(NULL);
 	ctime = gmtime( & t );
@@ -356,15 +356,15 @@ static void SYS_EnvVars( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem sysMeths[]=
 {
-	{ SYS_Shell,     "shell( command :string )=>int" },
-	{ SYS_Popen,     "popen( cmd :string, mode :string )=>io::stream" },
-	{ SYS_Sleep,     "sleep( seconds :float )" },
+	{ SYS_Shell,     "shell( command: string )=>int" },
+	{ SYS_Popen,     "popen( cmd: string, mode: string )=>io::Stream" },
+	{ SYS_Sleep,     "sleep( seconds: float )" },
 	{ SYS_Exit,      "exit( code=0 )" },
 	{ SYS_Clock,     "clock()=>float" },
 	{ SYS_Ctime,     "ctime( time=0 )=>tuple<year:int,month:int,day:int,wday:int,hour:int,minute:int,second:int>" },
-	{ SYS_Ctimef,    "ctimef( time=0, format=\"%Y-%M-%D, %H:%I:%S\", names : map<string,list<string>> = {=>} )=>string" },
-	{ SYS_Time,      "time(  )=>int" },
-	{ SYS_Time2,     "time( tm : tuple<year:int,month:int,day:int,wday:int,hour:int,minute:int,second:int> )=>int" },
+	{ SYS_Ctimef,    "ctimef( time=0, format=\"%Y-%M-%D, %H:%I:%S\", names: map<string,list<string>> = {=>} )=>string" },
+	{ SYS_Time,      "time( )=>int" },
+	{ SYS_Time2,     "time( tm: tuple<year:int,month:int,day:int,wday:int,hour:int,minute:int,second:int> )=>int" },
 	{ SYS_SetLocale, "setlocale( category: enum<all,collate,ctype,monetary,numeric,time> = $all, locale = \"\" )=>string" },
 	{ SYS_EnvVars,   "getenv() => map<string,string>"},
 	{ SYS_GetEnv,    "getenv( name: string )=>string" },

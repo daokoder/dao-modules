@@ -1138,7 +1138,7 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 	struct timeval tv;
 	int i;
 	fd_set set1, set2;
-	DaoTuple *tuple = DaoProcess_PutTuple( proc, 0 );
+	DaoTuple *tuple = DaoProcess_PutTuple( proc, 2 );
 	DaoList *list1 = DaoValue_CastList( par[0] );
 	DaoList *list2 = DaoValue_CastList( par[1] );
 	DaoList *reslist;

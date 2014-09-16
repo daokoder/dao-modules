@@ -10,7 +10,7 @@ const funcs =
 	'test_array_short( p : array<short> )' ,
 	'test_array_float( p : array<float> )' ,
 #	'test_array_double( p : array<double> )' ,
-	'test_stream( s : io::stream )' ,
+	'test_stream( s : io::Stream )' ,
 }
 
 const types = 

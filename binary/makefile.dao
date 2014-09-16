@@ -13,7 +13,7 @@ dao_binary_objs  = project.AddObjects( { "dao_binary.c" } )
 dao_binary_dll  = project.AddSharedLibrary( "dao_binary", dao_binary_objs )
 dao_binary_lib  = project.AddStaticLibrary( "dao_binary", dao_binary_objs )
 
-path = DaoMake::MakePath( daovm.GetPath( "MOD-PATH" ), "binary" )
+path = daovm.GetPath( "MOD-PATH" )
 
 project.GenerateFinder( $TRUE );
 project.Install( path, dao_binary_dll );

@@ -312,8 +312,8 @@ void DaoCGI_SendFile( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem cgiMeths[]=
 {
-	{ DaoCGI_RandomString,  "random_string( n:int, alnum=1 )=>string" },
-	{ DaoCGI_SendFile,  "sendfile( file :string, mime='text/plain', notfound='' )=>string" },
+	{ DaoCGI_RandomString,  "random_string( n: int, alnum=1 )=>string" },
+	{ DaoCGI_SendFile,  "sendfile( file: string, mime='text/plain', notfound='' )=>string" },
 	{ NULL, NULL }
 };
 
@@ -327,8 +327,8 @@ DAO_DLL int DaoCGI_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	vmMaster = vmSpace;
 
 	ns = DaoNamespace_GetNamespace( ns, "cgi" );
-	daox_type_namestream = DaoNamespace_DefineType( ns, "tuple<file:string,size:int,data:io::stream>", "HttpUpload" );
-	daox_type_filemap = DaoNamespace_ParseType( ns, "map<string,HttpUpload>" );
+	daox_type_namestream = DaoNamespace_DefineType( ns, "tuple<file:string,size:int,data:io::Stream>", "HttpUpload" );
+	daox_type_filemap = DaoNamespace_DefineType( ns, "map<string,HttpUpload>", NULL );
 
 	DaoNamespace_WrapFunctions( ns, cgiMeths );
 

@@ -186,13 +186,13 @@ static void COROUT_Status( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem coroutineMeths[]=
 {
-	{ COROUT_New,    "coroutine<@RESUME,@SUSPEND>()" },
-	{ COROUT_Start,  "start( self :coroutine<@RESUME,@SUSPEND>, rout :routine, ... ) => @SUSPEND" },
-	{ COROUT_Resume, "resume( self :coroutine<@RESUME,@SUSPEND> ) => @SUSPEND" },
-	{ COROUT_Resume, "resume( self :coroutine<@RESUME,@SUSPEND>, value :@RESUME ) => @SUSPEND" },
-	{ COROUT_Suspend, "suspend( self :coroutine<@RESUME,@SUSPEND> ) => @RESUME" },
-	{ COROUT_Suspend, "suspend( self :coroutine<@RESUME,@SUSPEND>, value :@SUSPEND ) => @RESUME" },
-	{ COROUT_Status, "status( self :coroutine<@RESUME,@SUSPEND> ) => enum<running,suspended,finished,aborted>" },
+	{ COROUT_New,    "Coroutine<@RESUME,@SUSPEND>()" },
+	{ COROUT_Start,  "start( self: Coroutine<@RESUME,@SUSPEND>, rout: routine, ... ) => @SUSPEND" },
+	{ COROUT_Resume, "resume( self: Coroutine<@RESUME,@SUSPEND> ) => @SUSPEND" },
+	{ COROUT_Resume, "resume( self: Coroutine<@RESUME,@SUSPEND>, value: @RESUME ) => @SUSPEND" },
+	{ COROUT_Suspend, "suspend( self: Coroutine<@RESUME,@SUSPEND> ) => @RESUME" },
+	{ COROUT_Suspend, "suspend( self: Coroutine<@RESUME,@SUSPEND>, value: @SUSPEND ) => @RESUME" },
+	{ COROUT_Status, "status( self: Coroutine<@RESUME,@SUSPEND> ) => enum<running,suspended,finished,aborted>" },
 	{ NULL, NULL },
 };
 
@@ -205,7 +205,7 @@ static void DaoxCoroutine_GC( void *p, DList *values, DList *as, DList *maps, in
 
 DaoTypeBase coroutineTyper =
 {
-	"coroutine<@RESUME,@SUSPEND>", NULL, NULL, (DaoFuncItem*) coroutineMeths, {0}, {0},
+	"Coroutine<@RESUME,@SUSPEND>", NULL, NULL, (DaoFuncItem*) coroutineMeths, {0}, {0},
 	(FuncPtrDel)DaoxCoroutine_Delete, DaoxCoroutine_GC
 };
 

@@ -400,7 +400,7 @@ DAO_DLL int DaoClinker_OnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 	DaoNamespace *io = DaoVmSpace_GetNamespace( vms, "io" );
 	int i;
 
-	daox_ffi_stream_type = DaoNamespace_FindTypeChars( io, "stream" );
+	daox_ffi_stream_type = DaoNamespace_FindTypeChars( io, "Stream" );
 	daox_ffi_type = DaoNamespace_WrapType( ns, & DaoFFI_Typer, 0 );
 	for(i=0; i<DAO_FFI_SINT64; i++){
 		DString mbs = DString_WrapChars( alias[i] );

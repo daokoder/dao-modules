@@ -4,10 +4,13 @@ daoaux  = DaoMake::FindPackage( "DaoAux", $REQUIRED )
 
 if( daovm == none or daoaux == none ) return
 
+
 project = DaoMake::Project( "DaoClinker" ) 
 project.UseImportLibrary( daovm, "dao" )
 project.UseSharedLibrary( daoaux, "dao_aux" )
 
+daovm_install_path = daovm.GetPath( "INSTALL-PATH" );
+project.AddVariable( "INSTALL", daovm_install_path, "?=" )
 
 ffi = DaoMake::FindPackage( "FFI2", $OPTIONAL )
 if( ffi ){

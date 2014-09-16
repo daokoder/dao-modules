@@ -114,7 +114,7 @@ typedef struct DaoGaussRandCache DaoGaussRandCache;
 struct DaoGaussRandCache
 {
 	int     iset;
-	double  gset;
+	float  gset;
 };
 static DaoGaussRandCache* DaoGaussRandCache_New()
 {
@@ -128,8 +128,8 @@ static void DaoGaussRandCache_Delete( DaoGaussRandCache *self )
 
 static void MATH_rand_gaussian( DaoProcess *proc, DaoValue *p[], int N )
 {
-	double fac, rsq, v1, v2;
-	double R = p[0]->xFloat.value;
+	float fac, rsq, v1, v2;
+	float R = p[0]->xFloat.value;
 	DaoGaussRandCache *cache = (DaoGaussRandCache*) DaoProcess_GetAuxData( proc, DaoGaussRandCache_Delete );
 
 	if( cache == NULL ){
@@ -250,7 +250,7 @@ static void MATH_pow_rc( DaoProcess *proc, DaoValue *p[], int N )
 {
 	dao_complex com = { 0, 0 };
 	dao_complex *res = DaoProcess_PutComplex( proc, com );
-	double lg = log( p[0]->xFloat.value );
+	float lg = log( p[0]->xFloat.value );
 	com.real = lg * p[1]->xComplex.value.real;
 	com.imag = lg * p[1]->xComplex.value.imag;
 	*res = exp_c( com );
@@ -260,7 +260,7 @@ static void MATH_pow_cr( DaoProcess *proc, DaoValue *p[], int N )
 	dao_complex com2 = { 0, 0 };
 	dao_complex *res = DaoProcess_PutComplex( proc, com2 );
 	dao_complex com = log_c( p[0]->xComplex.value );
-	double v = p[1]->xFloat.value;
+	float v = p[1]->xFloat.value;
 	com2.real = v * com.real;
 	com2.imag = v * com.imag;
 	*res = exp_c( com2 );
@@ -275,7 +275,7 @@ static void MATH_pow_cc( DaoProcess *proc, DaoValue *p[], int N )
 }
 static void MATH_round( DaoProcess *proc, DaoValue *p[], int N )
 {
-	double val = p[0]->xFloat.value;
+	float val = p[0]->xFloat.value;
 	DaoProcess_PutFloat( proc, ( val > 0 )? floor( val + 0.5 ) : ceil( val - 0.5 ) );
 }
 static void MATH_hypot( DaoProcess *proc, DaoValue *p[], int N )
@@ -367,61 +367,61 @@ static void LONG_Sqrt( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem mathMeths[]=
 {
 #if 0
-	{ MATH_abs,       "abs( p :double )=>double" },
-	{ MATH_acos,      "acos( p :double )=>double" },
-	{ MATH_asin,      "asin( p :double )=>double" },
-	{ MATH_atan,      "atan( p :double )=>double" },
-	{ MATH_ceil,      "ceil( p :double )=>double" },
-	{ MATH_cos,       "cos( p :double )=>double" },
-	{ MATH_cosh,      "cosh( p :double )=>double" },
-	{ MATH_exp,       "exp( p :double )=>double" },
-	{ MATH_floor,     "floor( p :double )=>double" },
-	{ MATH_log,       "log( p :double )=>double" },
-	{ MATH_sin,       "sin( p :double )=>double" },
-	{ MATH_sinh,      "sinh( p :double )=>double" },
-	{ MATH_sqrt,      "sqrt( p :double )=>double" },
-	{ MATH_tan,       "tan( p :double )=>double" },
-	{ MATH_tanh,      "tanh( p :double )=>double" },
-	{ MATH_rand,      "rand( p :double=1.0D )=>double" },
+	{ MATH_abs,       "abs( p: float )=>float" },
+	{ MATH_acos,      "acos( p: float )=>float" },
+	{ MATH_asin,      "asin( p: float )=>float" },
+	{ MATH_atan,      "atan( p: float )=>float" },
+	{ MATH_ceil,      "ceil( p: float )=>float" },
+	{ MATH_cos,       "cos( p: float )=>float" },
+	{ MATH_cosh,      "cosh( p: float )=>float" },
+	{ MATH_exp,       "exp( p: float )=>float" },
+	{ MATH_floor,     "floor( p: float )=>float" },
+	{ MATH_log,       "log( p: float )=>float" },
+	{ MATH_sin,       "sin( p: float )=>float" },
+	{ MATH_sinh,      "sinh( p: float )=>float" },
+	{ MATH_sqrt,      "sqrt( p: float )=>float" },
+	{ MATH_tan,       "tan( p: float )=>float" },
+	{ MATH_tanh,      "tanh( p: float )=>float" },
+	{ MATH_rand,      "rand( p: float=1.0 )=>float" },
 #endif
 
-	{ MATH_srand,     "srand( p :int)=>int" },
-	{ MATH_rand_gaussian,  "rand_gaussian( p :double=1.0D )=>double" },
-	{ MATH_round,     "round( p :double )=>double" },
-	{ MATH_hypot,     "hypot( p1 :double, p2 :double )=>double" },
-	{ MATH_isnan,     "isnan( p :double )=>int" },
-	{ MATH_isinf,     "isinf( p :double )=>int" },
-	{ MATH_copysign,  "copysign( p1 :double, p2 :double )=>double" },
-	{ MATH_max,       "max( p1 :double, p2 :double )=>double" },
-	{ MATH_min,       "min( p1 :double, p2 :double )=>double" },
-	{ MATH_pow,       "pow( p1 :double, p2 :double )=>double" },
-	{ MATH_atan2,     "atan2( p1 :double, p2 :double )=>double" },
+	{ MATH_srand,     "srand( p: int)=>int" },
+	{ MATH_rand_gaussian,  "rand_gaussian( p: float = 1.0 )=>float" },
+	{ MATH_round,     "round( p: float )=>float" },
+	{ MATH_hypot,     "hypot( p1: float, p2: float )=>float" },
+	{ MATH_isnan,     "isnan( p: float )=>int" },
+	{ MATH_isinf,     "isinf( p: float )=>int" },
+	{ MATH_copysign,  "copysign( p1: float, p2: float )=>float" },
+	{ MATH_max,       "max( p1: float, p2: float )=>float" },
+	{ MATH_min,       "min( p1: float, p2: float )=>float" },
+	{ MATH_pow,       "pow( p1: float, p2: float )=>float" },
+	{ MATH_atan2,     "atan2( p1: float, p2: float )=>float" },
 
 #if 0
-	{ MATH_abs_c,     "abs( p :complex )=>double" },
-	{ MATH_arg_c,     "arg( p :complex )=>double" },
-	{ MATH_imag_c,    "imag( p :complex )=>double" },
-	{ MATH_norm_c,    "norm( p :complex )=>double" },
-	{ MATH_real_c,    "real( p :complex )=>double" },
+	{ MATH_abs_c,     "abs( p: complex )=>float" },
+	{ MATH_arg_c,     "arg( p: complex )=>float" },
+	{ MATH_imag_c,    "imag( p: complex )=>float" },
+	{ MATH_norm_c,    "norm( p: complex )=>float" },
+	{ MATH_real_c,    "real( p: complex )=>float" },
 
-	{ MATH_cos_c,     "cos( p :complex )=>complex" },
-	{ MATH_cosh_c,    "cosh( p :complex )=>complex" },
-	{ MATH_exp_c,     "exp( p :complex )=>complex" },
-	{ MATH_log_c,     "log( p :complex )=>complex" },
-	{ MATH_sin_c,     "sin( p :complex )=>complex" },
-	{ MATH_sinh_c,    "sinh( p :complex )=>complex" },
-	{ MATH_sqrt_c,    "sqrt( p :complex )=>complex" },
-	{ MATH_tan_c,     "tan( p :complex )=>complex" },
-	{ MATH_tanh_c,    "tanh( p :complex )=>complex" },
-	{ MATH_ceil_c,    "ceil( p :complex )=>complex" },
-	{ MATH_floor_c,   "floor( p :complex )=>complex" },
+	{ MATH_cos_c,     "cos( p: complex )=>complex" },
+	{ MATH_cosh_c,    "cosh( p: complex )=>complex" },
+	{ MATH_exp_c,     "exp( p: complex )=>complex" },
+	{ MATH_log_c,     "log( p: complex )=>complex" },
+	{ MATH_sin_c,     "sin( p: complex )=>complex" },
+	{ MATH_sinh_c,    "sinh( p: complex )=>complex" },
+	{ MATH_sqrt_c,    "sqrt( p: complex )=>complex" },
+	{ MATH_tan_c,     "tan( p: complex )=>complex" },
+	{ MATH_tanh_c,    "tanh( p: complex )=>complex" },
+	{ MATH_ceil_c,    "ceil( p: complex )=>complex" },
+	{ MATH_floor_c,   "floor( p: complex )=>complex" },
 #endif
 
-	{ MATH_pow_rc,    "pow( p1 :double, p2 :complex )=>complex" },
-	{ MATH_pow_cr,    "pow( p1 :complex, p2 :double )=>complex" },
-	{ MATH_pow_cc,    "pow( p1 :complex, p2 :complex )=>complex" },
+	{ MATH_pow_rc,    "pow( p1: float, p2: complex )=>complex" },
+	{ MATH_pow_cr,    "pow( p1: complex, p2: float )=>complex" },
+	{ MATH_pow_cc,    "pow( p1: complex, p2: complex )=>complex" },
 
-	//{ LONG_Sqrt, "sqrt( self : long ) => tuple<long,long>" },
+	//{ LONG_Sqrt, "sqrt( self:  long ) => tuple<long,long>" },
 
 	{ NULL, NULL }
 };

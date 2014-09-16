@@ -360,7 +360,7 @@ static void EDGE_SetValue( DaoProcess *proc, DaoValue *p[], int N )
 static void EDGE_GetNodes( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxEdge *self = (DaoxEdge*) p[0];
-	DaoTuple *res = DaoProcess_PutTuple( proc, 0 );
+	DaoTuple *res = DaoProcess_PutTuple( proc, 2 );
 	DaoTuple_SetItem( res, (DaoValue*)self->first, 0 );
 	DaoTuple_SetItem( res, (DaoValue*)self->second, 1 );
 }

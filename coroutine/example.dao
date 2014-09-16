@@ -1,13 +1,13 @@
 
 load coroutine
 
-routine Test( self :coroutine<int,string>, par : int )
+routine Test( self: Coroutine<int,string>, par:  int )
 {
 	for( i = 1 : 5 ) io.writeln( i, self.suspend( 'index_' + (string) (par*i) ) )
 	return 'done'
 }
 
-co = coroutine<int,string>()
+co = Coroutine<int,string>()
 
 io.writeln( co )
 
