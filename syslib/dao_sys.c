@@ -118,6 +118,17 @@ static void SYS_Popen( DaoProcess *proc, DaoValue *p[], int N )
 		if( strstr( mode, "w" ) || strstr( mode, "a" ) ) stream->mode |= DAO_STREAM_WRITABLE;
 	}
 }
+static void SYS_Pclose( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoStream *stream = &p[0]->xStream;
+	if ( stream->file && ( stream->mode & DAO_STREAM_PIPE ) ){
+		DaoProcess_PutInteger( proc, pclose( stream->file ) );
+		stream->file = NULL;
+		stream->mode = DAO_STREAM_WRITABLE | DAO_STREAM_READABLE;
+	}
+	else
+		DaoProcess_RaiseError( proc, "Param", "open pipe stream required" );
+}
 static void SYS_SetLocale( DaoProcess *proc, DaoValue *p[], int N )
 {
 	int category = 0;
@@ -243,7 +254,7 @@ static void SYS_Uname( DaoProcess *proc, DaoValue *p[], int N )
 	if ( res ){
 		wchar_t buf[512];
 		DWORD len = sizeof(buf);
-		char *version;
+		char *version = "";
 		DString_SetChars( tup->values[0]->xString.value, "Windows" );
 		switch ( info.dwMajorVersion ){
 		case 5:
@@ -287,6 +298,7 @@ static DaoFuncItem sysMeths[]=
 {
 	{ SYS_Shell,     "shell( command: string ) => int" },
 	{ SYS_Popen,     "popen( cmd: string, mode: string ) => io::Stream" },
+	{ SYS_Pclose,    "pclose( pipe: io::Stream ) => int" },
 	{ SYS_Sleep,     "sleep( seconds: float )" },
 	{ SYS_Exit,      "exit( code = 0 )" },
 	{ SYS_Clock,     "clock() => float" },
