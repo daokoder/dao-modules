@@ -36,6 +36,7 @@
 #include<sys/time.h>
 #include<pwd.h>
 #include<sys/types.h>
+#include<sys/utsname.h>
 #endif
 
 #ifdef WIN32
@@ -231,6 +232,57 @@ static void SYS_User( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, "Sys", "Failed to get user information" );
 }
 
+static void SYS_Uname( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTuple *tup = DaoProcess_PutTuple( proc, 4 );
+	int res;
+#ifdef WIN32
+	OSVERSIONINFOEX info;
+	info.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+	res = GetVersionEx( (OSVERSIONINFO*)&info );
+	if ( res ){
+		wchar_t buf[512];
+		DWORD len = sizeof(buf);
+		char *version;
+		DString_SetChars( tup->values[0]->xString.value, "Windows" );
+		switch ( info.dwMajorVersion ){
+		case 5:
+			switch ( info.dwMinorVersion ){
+			case 0:	version = "2000"; break;
+			case 1:	version = "XP"; break;
+			case 2:	version = GetSystemMetrics( SM_SERVERR2 )? "Server 2003 R2" : "Server 2003"; break;
+			}
+			break;
+		case 6:
+			switch ( info.dwMinorVersion ){
+			case 0:	version = info.wProductType == VER_NT_WORKSTATION? "Vista" : "Server 2008"; break;
+			case 1:	version = info.wProductType == VER_NT_WORKSTATION? "7" : "Server 2008 R2"; break;
+			case 2:	version = info.wProductType == VER_NT_WORKSTATION? "8" : "Server 2012"; break;
+			case 3:	version = info.wProductType == VER_NT_WORKSTATION? "8.1" : "Server 2012 R2"; break;
+			}
+			break;
+		}
+		DString_SetChars( tup->values[1]->xString.value, version );
+		DString_AppendChar( tup->values[2]->xString.value, '0' + info.dwMajorVersion );
+		DString_AppendChar( tup->values[2]->xString.value, '.' );
+		DString_AppendChar( tup->values[2]->xString.value, '0' + info.dwMinorVersion );
+		if ( GetComputerNameExW( ComputerNameDnsFullyQualified, buf, &len ) )
+			DString_SetTChars( tup->values[3]->xString.value, buf );
+	}
+#else
+	struct utsname info;
+	res = uname( &info ) != -1;
+	if ( res ){
+		DString_SetChars( tup->values[0]->xString.value, info.sysname );
+		DString_SetChars( tup->values[1]->xString.value, info.version );
+		DString_SetChars( tup->values[2]->xString.value, info.release );
+		DString_SetChars( tup->values[3]->xString.value, info.nodename );
+	}
+#endif
+	if ( !res )
+		DaoProcess_RaiseError( proc, "Sys", "Failed to get system information" );
+}
+
 static DaoFuncItem sysMeths[]=
 {
 	{ SYS_Shell,     "shell( command: string ) => int" },
@@ -243,6 +295,7 @@ static DaoFuncItem sysMeths[]=
 	{ SYS_GetEnv,    "getenv( name: string ) => string" },
 	{ SYS_PutEnv,    "putenv( name: string, value = \"\" )"},
 	{ SYS_User,      "user() => string"},
+	{ SYS_Uname,     "uname() => tuple<system: string, version: string, release: string, host: string>"},
 	{ NULL, NULL }
 };
 
