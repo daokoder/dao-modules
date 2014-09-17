@@ -34,9 +34,13 @@
 #ifdef UNIX
 #include<unistd.h>
 #include<sys/time.h>
+#include<pwd.h>
+#include<sys/types.h>
 #endif
 
-#ifdef _MSC_VER
+#ifdef WIN32
+#include<windows.h>
+#include<lmcons.h>
 #define putenv _putenv
 #endif
 
@@ -61,7 +65,7 @@ static void SYS_Sleep( DaoProcess *proc, DaoValue *p[], int N )
 
 	double s = p[0]->xFloat.value;
 	if( s < 0 ){
-		DaoProcess_RaiseWarning( proc, "Value", "expecting positive value" );
+		DaoProcess_RaiseWarning( proc, "Param", "expecting positive value" );
 		return;
 	}
 #ifdef DAO_WITH_THREAD
@@ -97,13 +101,13 @@ static void SYS_Popen( DaoProcess *proc, DaoValue *p[], int N )
 	stream->mode |= DAO_STREAM_PIPE;
 	DaoProcess_PutValue( proc, (DaoValue*)stream );
 	if( DString_Size( fname ) == 0 ){
-		DaoProcess_RaiseError( proc, NULL, "empty command line" );
+		DaoProcess_RaiseError( proc, "Param", "empty command line" );
 		return;
 	}
 	mode = DString_GetData( p[1]->xString.value );
 	stream->file = popen( DString_GetData( fname ), mode );
 	if( stream->file == NULL ){
-		DaoProcess_RaiseError( proc, NULL, "error opening pipe" );
+		DaoProcess_RaiseError( proc, "Sys", "error opening pipe" );
 		return;
 	}
 	if( strstr( mode, "+" ) ){
@@ -129,7 +133,7 @@ static void SYS_SetLocale( DaoProcess *proc, DaoValue *p[], int N )
 	if ( old )
 		DaoProcess_PutChars( proc, old );
 	else
-		DaoProcess_RaiseError( proc, NULL, "invalid locale" );
+		DaoProcess_RaiseError( proc, "Sys", "invalid locale" );
 }
 static void SYS_Clock( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -146,12 +150,12 @@ static void SYS_PutEnv( DaoProcess *proc, DaoValue *p[], int N )
 	char *value = DString_GetData( p[1]->xString.value );
 	char *buf = malloc( strlen( name ) + strlen( value ) + 2 );
 	if( !buf ){
-		DaoProcess_RaiseError( proc, NULL, "memory allocation failed" );
+		DaoProcess_RaiseError( proc, "Sys", "memory allocation failed" );
 		return;
 	}
 	sprintf( buf, "%s=%s", name, value );
 	if( putenv( buf ) ){
-		DaoProcess_RaiseError( proc, NULL, "error putting environment variable" );
+		DaoProcess_RaiseError( proc, "Sys", "error putting environment variable" );
 		free( buf );
 	}
 }
@@ -191,6 +195,42 @@ static void SYS_EnvVars( DaoProcess *proc, DaoValue *p[], int N )
 	}
 }
 
+void DString_SetTChars( DString *str, wchar_t *tcs )
+{
+	DString_Clear( str );
+	for ( ; *tcs != L'\0'; tcs++ )
+		if ( *tcs >= 0xD800 && *tcs <= 0xDBFF ){
+			size_t lead = ( (size_t)*tcs - 0xD800 ) << 10;
+			tcs++;
+			if ( *tcs == L'\0' )
+					break;
+			DString_AppendWChar( str, lead + ( (size_t)*tcs - 0xDC00 ) );
+		}
+		else
+			DString_AppendWChar( str, *tcs );
+}
+
+static void SYS_User( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DString *user = DaoProcess_PutChars( proc, "" );
+	int res;
+#ifdef WIN32
+	wchar_t buf[UNLEN + 1];
+	DWORD len = sizeof(buf);
+	res = GetUserNameW( buf, &len );
+	if ( res )
+		DString_SetTChars( user, buf );
+#else
+	struct passwd pwd, *ptr;
+	char buf[4096];
+	res = getpwuid_r( getuid(), &pwd, buf, 4096, &ptr ) == 0;
+	if ( res )
+		DString_SetChars( user, pwd.pw_name );
+#endif
+	if ( !res )
+		DaoProcess_RaiseError( proc, "Sys", "Failed to get user information" );
+}
+
 static DaoFuncItem sysMeths[]=
 {
 	{ SYS_Shell,     "shell( command: string ) => int" },
@@ -202,6 +242,7 @@ static DaoFuncItem sysMeths[]=
 	{ SYS_EnvVars,   "getenv() => map<string,string>"},
 	{ SYS_GetEnv,    "getenv( name: string ) => string" },
 	{ SYS_PutEnv,    "putenv( name: string, value = \"\" )"},
+	{ SYS_User,      "user() => string"},
 	{ NULL, NULL }
 };
 
