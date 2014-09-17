@@ -1218,13 +1218,13 @@ static void DaoXMLDocument_SetEncoding( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoXMLDocument_GetStandalone( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoXMLDocument *self = (DaoXMLDocument*)DaoValue_TryGetCdata( p[0] );
-	DaoProcess_PutEnum( proc, self->standalone? "true" : "false" );
+	DaoProcess_PutBoolean( proc, self->standalone );
 }
 
 static void DaoXMLDocument_SetStandalone( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoXMLDocument *self = (DaoXMLDocument*)DaoValue_TryGetCdata( p[0] );
-	self->standalone = p[1]->xEnum.value != 0;
+	self->standalone = p[1]->xBoolean.value != 0;
 }
 
 static void DaoXMLDocument_GetDoctype( DaoProcess *proc, DaoValue *p[], int N )
@@ -1688,9 +1688,9 @@ static void DaoXMLElement_HasAttr( DaoProcess *proc, DaoValue *p[], int N )
 	DaoXMLElement *self = (DaoXMLElement*)DaoValue_TryGetCdata( p[0] );
 	DString *attr = p[1]->xString.value;
 	if ( self->attribs )
-		DaoProcess_PutEnum( proc, DMap_Find( self->attribs, attr )? "true" : "false" );
+		DaoProcess_PutBoolean( proc, DMap_Find( self->attribs, attr ) != NULL );
 	else
-		DaoProcess_PutEnum( proc, "false" );
+		DaoProcess_PutBoolean( proc, 0 );
 }
 
 static void DaoXMLElement_GetText( DaoProcess *proc, DaoValue *p[], int N )
@@ -1743,13 +1743,13 @@ static void DaoXMLElement_Size( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoXMLElement_GetEmpty( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoXMLElement *self = (DaoXMLElement*)DaoValue_TryGetCdata( p[0] );
-	DaoProcess_PutEnum( proc, self->kind == XMLEmptyElement? "true" : "false" );
+	DaoProcess_PutBoolean( proc, self->kind == XMLEmptyElement );
 }
 
 static void DaoXMLElement_SetEmpty( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoXMLElement *self = (DaoXMLElement*)DaoValue_TryGetCdata( p[0] );
-	daoint empty = p[1]->xEnum.value == 1;
+	daoint empty = p[1]->xBoolean.value == 1;
 	if ( empty ){
 		if ( self->kind == XMLTextElement )
 			DString_Delete( self->c.text );

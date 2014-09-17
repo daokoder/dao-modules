@@ -65,11 +65,8 @@ int JSON_SerializeValue( DaoValue *value, DString *text, int indent )
 		snprintf( buf, sizeof(buf), "%f", DaoValue_TryGetFloat( value ) );
 		DString_AppendChars( text, buf );
 		break;
-	case DAO_ENUM:
-		if ( value->xEnum.subtype == DAO_ENUM_BOOL )
-			DString_AppendChars( text, value->xEnum.value? "true" : "false" );
-		else
-			return value->type;
+	case DAO_BOOLEAN:
+		DString_AppendChars( text, value->xBoolean.value? "true" : "false" );
 		break;
 	case DAO_STRING:
 		DString_AppendChar( text, '"' );
@@ -260,12 +257,12 @@ DaoValue* JSON_ParseSpecialLiteral( DaoProcess *process, char* *text )
 	buf[5] = '\0';
 	if( strcmp( buf, "false" ) == 0 ){
 		*text += 5;
-		return (DaoValue*) DaoProcess_NewEnum( process, booltype, 0 );
+		return (DaoValue*) DaoProcess_NewBoolean( process, 0 );
 	}
 	buf[4] = '\0';
 	if( strcmp( buf, "true" ) == 0 ){
 		*text += 4;
-		return (DaoValue*) DaoProcess_NewEnum( process, booltype, 1 );
+		return (DaoValue*) DaoProcess_NewBoolean( process, 1 );
 	}
 	else if( strcmp( buf, "null" ) == 0 ){
 		*text += 4;
@@ -499,7 +496,7 @@ static DaoFuncItem jsonMeths[] =
 	 * - map  => object
 	 * - int, float => number
 	 * - none => null
-	 * - enum<false:true> => bool
+	 * - bool => bool
 	 */
 	{ JSON_Serialize,	"serialize(invar data: map<string,Data>|list<Data>, style: enum<pretty,compact> = $pretty) => string" },
 
@@ -510,7 +507,7 @@ static DaoFuncItem jsonMeths[] =
 	 * - object => map
 	 * - number => int or double (depending on the presence of decimal separator)
 	 * - null   => none
-	 * - bool   => enum<false:true>
+	 * - bool   => bool
 	 */
 	{ JSON_Deserialize,	"parse(str: string) => map<string,Data>|list<Data>" },
 	{ NULL, NULL }
@@ -523,7 +520,7 @@ DAO_DLL int DaoJSON_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	booltype = DaoNamespace_FindType( ns, bname );
 	DString_Delete( bname );
 	jsonns = DaoNamespace_GetNamespace( ns, "json" );
-	DaoNamespace_DefineType( jsonns, "none|int|float|string|enum<false:true>|list<Data>|map<string,Data>", "Data" );
+	DaoNamespace_DefineType( jsonns, "none|bool|int|float|string|list<Data>|map<string,Data>", "Data" );
 	DaoNamespace_WrapFunctions( jsonns, jsonMeths );
 	return 0;
 }

@@ -38,10 +38,6 @@
 
 #ifdef UNIX
 
-// gethostby* is not reentrant on Unix, synchronization is desirable
-static DMutex net_mtx;
-#define NET_TRANS( st ) DMutex_Lock( &net_mtx ); st; DMutex_Unlock( &net_mtx )
-#define NET_INIT() DMutex_Init( &net_mtx )
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -72,6 +68,15 @@ typedef size_t socklen_t;
 #include"daoValue.h"
 #include"daoStream.h"
 #include"daoThread.h"
+
+#ifdef UNIX
+
+// gethostby* is not reentrant on Unix, synchronization is desirable
+static DMutex net_mtx;
+#define NET_TRANS( st ) DMutex_Lock( &net_mtx ); st; DMutex_Unlock( &net_mtx )
+#define NET_INIT() DMutex_Init( &net_mtx )
+
+#endif
 
 #define BACKLOG 1000 /*  how many pending connections queue will hold */
 #define MAX_DATA 512 /*  max number of bytes we can get at once */
@@ -976,7 +981,7 @@ static void DaoSocket_Lib_Check( DaoProcess *proc, DaoValue *par[], int N  )
 	case 2:	res = open; break;
 	case 3:	res = open && !( self->shutflag & Shutdown_Receive ); break;
 	}
-	DaoProcess_PutEnum( proc, res? "true" : "false" );
+	DaoProcess_PutBoolean( proc, res );
 }
 
 static DaoFuncItem socketMeths[] =

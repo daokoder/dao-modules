@@ -963,7 +963,7 @@ static void FSNode_Exists( DaoProcess *proc, DaoValue *p[], int N )
 		return;
 	}
 	child = DInode_New();
-	DaoProcess_PutEnum( proc, DInode_SubInode( self, path, 0, child, 1 ) == 0? "true" : "false" );
+	DaoProcess_PutBoolean( proc, DInode_SubInode( self, path, 0, child, 1 ) == 0 );
 	FreeTChars( path );
 	DInode_Delete( child );
 }
@@ -1310,7 +1310,7 @@ static void FS_Exists( DaoProcess *proc, DaoValue *p[], int N )
 {
 	char_t *path = CharsToTChars( p[0]->xString.value->chars );
 	stat_t info;
-	DaoProcess_PutEnum( proc, stat( path, &info ) == 0? "true" : "false" );
+	DaoProcess_PutBoolean( proc, stat( path, &info ) == 0 );
 	FreeTChars( path );
 }
 
@@ -1517,7 +1517,7 @@ static DaoFuncItem dirMeths[] =
 	/*! Returns sub-entry given its relative \a path, or \c none if \a path does not point to existing file or directory */
 	{ FSNode_Child,		"[](invar self: Dir, path: string) => Entry|none" },
 
-	/*! Returns \c $true if relative \a path points to existing file or directory */
+	/*! Returns \c true if relative \a path points to existing file or directory */
 	{ FSNode_Exists,	"exists(invar self: Dir, path: string) => bool" },
 
 	/*! Creates file with unique name prefixed by \a prefix in this directory. Returns the corresponding entry */

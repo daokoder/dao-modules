@@ -127,7 +127,7 @@ static void DaoMutex_Lib_Unlock( DaoProcess *proc, DaoValue *par[], int N )
 static void DaoMutex_Lib_TryLock( DaoProcess *proc, DaoValue *par[], int N )
 {
 	DaoMutex *self = (DaoMutex*) par[0];
-	DaoProcess_PutEnum( proc, DaoMutex_TryLock( self )? "true" : "false" );
+	DaoProcess_PutBoolean( proc, DaoMutex_TryLock( self ) );
 }
 static void DaoMutex_Lib_Protect( DaoProcess *proc, DaoValue *p[], int n )
 {
@@ -195,8 +195,8 @@ static void DaoCondV_Lib_TimedWait( DaoProcess *proc, DaoValue *par[], int N )
 {
 	DaoCondVar *self = (DaoCondVar*) par[0];
 	DaoMutex *mutex = (DaoMutex*) par[1];
-	DaoProcess_PutEnum( proc,
-			DCondVar_TimedWait( & self->myCondVar, & mutex->myMutex, par[2]->xFloat.value )? "false" : "true" );
+	DaoProcess_PutBoolean( proc,
+			DCondVar_TimedWait( & self->myCondVar, & mutex->myMutex, par[2]->xFloat.value ) == 0 );
 }
 static void DaoCondV_Lib_Signal( DaoProcess *proc, DaoValue *par[], int N )
 {
@@ -407,7 +407,7 @@ static void DaoState_TestSet( DaoProcess *proc, DaoValue *p[], int N )
 			DaoCondVar_BroadCast( (DaoCondVar*)DNode_Value( node ) );
 	}
 	DaoMutex_Unlock( self->lock );
-	DaoProcess_PutEnum( proc, set? "true" : "false" );
+	DaoProcess_PutBoolean( proc, set );
 }
 
 static void DaoState_Set( DaoProcess *proc, DaoValue *p[], int N )
@@ -522,7 +522,7 @@ static void DaoState_WaitFor( DaoProcess *proc, DaoValue *p[], int N )
 			while( DaoValue_Compare( self->state, state ) );
 		DaoMutex_Unlock( self->defmtx );
 	}
-	DaoProcess_PutEnum( proc, res? "true" : "false" );
+	DaoProcess_PutBoolean( proc, res );
 }
 
 static void DaoState_Waitlist( DaoProcess *proc, DaoValue *p[], int N )
@@ -734,7 +734,7 @@ static void DaoQueue_TryPush( DaoProcess *proc, DaoValue *p[], int N )
 		DaoGC_DecRC( item->value );
 		dao_free( item );
 	}
-	DaoProcess_PutEnum( proc, pushable? "true" : "false" );
+	DaoProcess_PutBoolean( proc, pushable );
 }
 
 static void DaoQueue_Pop( DaoProcess *proc, DaoValue *p[], int N )

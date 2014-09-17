@@ -248,7 +248,7 @@ static void DaoScanner_Follows( DaoProcess *proc, DaoValue *p[], int N )
 		if ( DaoRegex_Match( reg, self->context, &start, &end ) )
 			res = 1;
 	}
-	DaoProcess_PutEnum( proc, res? "true" : "false" );
+	DaoProcess_PutBoolean( proc, res );
 }
 
 static void DaoScanner_Precedes( DaoProcess *proc, DaoValue *p[], int N )
@@ -277,7 +277,7 @@ static void DaoScanner_Precedes( DaoProcess *proc, DaoValue *p[], int N )
 		if ( DaoRegex_Match( reg, self->context, &start, &end ) )
 			res = 1;
 	}
-	DaoProcess_PutEnum( proc, res? "true" : "false" );
+	DaoProcess_PutBoolean( proc, res );
 }
 
 static DaoFuncItem scannerMeths[] =

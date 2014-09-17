@@ -177,13 +177,13 @@ static void DaoZipStream_Check( DaoProcess *proc, DaoValue *p[], int N )
 		}
 		break;
 	}
-	DaoProcess_PutEnum( proc, res? "true" : "false" );
+	DaoProcess_PutBoolean( proc, res );
 }
 
 static void ZIP_ReadFile( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoZipStream *stream = DaoZipStream_New();
-	int silent = p[1]->xEnum.value;
+	int silent = p[1]->xBoolean.value;
 	int bzerr;
 	dao_integer count = p[0]->xInteger.value;
 	DString *res = DaoProcess_PutChars( proc, "" );
@@ -243,7 +243,7 @@ static DaoFuncItem zipMeths[]=
 	{ ZIP_Decompress,   "decompress( source: string ) => string" },
 	{ ZIP_Open,			"open(file: string, mode: string) => Stream" },
 	{ ZIP_Open,			"open(fileno: int, mode: string) => Stream" },
-	{ ZIP_ReadFile,		"read(file: string, silent = bool::false) => string" },
+	{ ZIP_ReadFile,		"read(file: string, silent = false) => string" },
 	{ NULL, NULL }
 };
 
