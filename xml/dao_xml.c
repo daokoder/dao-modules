@@ -1942,6 +1942,7 @@ void RaiseAttrConvError( DaoProcess *proc, DString *attr, uchar_t type )
 	case DAO_FLOAT:		strcat( buf, "float" ); break;
 	case DAO_STRING:	strcat( buf, "string" ); break;
 	case DAO_ENUM:		strcat( buf, "enum" ); break;
+	case DAO_BOOLEAN:	strcat( buf, "bool" ); break;
 	default:			strcat( buf, "?" ); break;
 	}
 	DaoProcess_RaiseError( proc, "Conversion", buf );
@@ -2001,6 +2002,16 @@ static void DaoXMLElement_MapAttribs( DaoProcess *proc, DaoValue *p[], int N )
 						goto Error;
 					}
 					DString_Delete( val );
+					break;
+				case DAO_BOOLEAN:
+					if ( strcmp( val->chars, "true" ) == 0 )
+						tup->values[i]->xBoolean.value = 1;
+					else if ( strcmp( val->chars, "false" ) == 0 )
+						tup->values[i]->xBoolean.value = 0;
+					else {
+						RaiseAttrConvError( proc, key, type );
+						goto Error;
+					}
 					break;
 				default:
 					if ( 1 ){
@@ -2181,6 +2192,7 @@ void RaiseElemConvError( DaoProcess *proc, DString *path, DString *tag, uchar_t 
 	case DAO_FLOAT:		strcat( buf, "float" ); break;
 	case DAO_STRING:	strcat( buf, "string" ); break;
 	case DAO_ENUM:		strcat( buf, "enum" ); break;
+	case DAO_BOOLEAN:	strcat( buf, "bool" ); break;
 	case DAO_TUPLE:		strcat( buf, "tuple" ); break;
 	default:			strcat( buf, "?" ); break;
 	}
@@ -2262,6 +2274,16 @@ int MapContent( DaoProcess *proc, DaoXMLElement *el, DaoTuple *tup, DString *pat
 						break;
 					case DAO_ENUM:
 						if ( !DaoEnum_SetSymbols( &tup->values[i]->xEnum, data->chars ) ){
+							RaiseElemConvError( proc, path, tag, tp );
+							goto Error;
+						}
+						break;
+					case DAO_BOOLEAN:
+						if ( strcmp( data->chars, "true" ) == 0 )
+							tup->values[i]->xBoolean.value = 1;
+						else if ( strcmp( data->chars, "false" ) == 0 )
+							tup->values[i]->xBoolean.value = 0;
+						else {
 							RaiseElemConvError( proc, path, tag, tp );
 							goto Error;
 						}
@@ -2397,6 +2419,7 @@ int WriteContent( DaoProcess *proc, DaoXMLElement *dest, DString *tag, DaoValue 
 		el->c.text = DString_New();
 		switch ( src->type ){
 		case DAO_INTEGER:
+		case DAO_BOOLEAN:
 		case DAO_FLOAT:
 		case DAO_STRING:
 			DaoValue_GetString( src, el->c.text );
@@ -2524,14 +2547,14 @@ static DaoFuncItem xmlElemMeths[] =
 	/*! Maps either element attributes or its children depending on \a what and returns the resulting data. \a mapping must be a tuple type with
 	 * named items only, each of which refers to an existing attribute or child element by its name/tag (if there are multiple elements with the
 	 * given tag, the first one is taken). Leaf elements (containing character data only) and attributes can be mapped to \c int, \c float,
-	 * \c string or \c enum. Non-leaf elements can be mapped to a tuple type, in which case the mapping proceeds recursively.
+	 * \c string, \c enum or \c bool. Non-leaf elements can be mapped to a tuple type, in which case the mapping proceeds recursively.
 	 * \a mapping may omit unneeded attributes and elements
 	 * \note Use \c tuple<tag: T,> to map elements containing single sub-element */
 	{ DaoXMLElement_Map,		"map(invar self: Element, what: enum<attribs,children>, mapping: type<@T<tuple<...>>>) => @T" },
 
 	/*! Additional named parameters of this method are converted into elements and appended to the list of children. For each parameter
 	 * in the form *name => value*, an element '<name>value</name>' is created; specifying a tuple as value continues the conversion recursively.
-	 * For leaf elements (containing character data only), supported types are \c int, \c float, \c string and \c enum;
+	 * For leaf elements (containing character data only), supported types are \c int, \c float, \c string, \c enum and \c bool;
 	 * \c enum flags are written separated by ';' */
 	{ DaoXMLElement_AddContent,	"extend(self: Element, ...: tuple<enum, any>)" },
 
