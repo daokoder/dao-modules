@@ -16,10 +16,10 @@ project_lib  = project.AddStaticLibrary( "dao_protobject", project_objs )
 
 findpkg = DaoMake::MakePath( project.BinaryPath(), "FindDaoProtobject.dao" );
 project.GenerateFinder( $TRUE );
-project.Install( daovm.GetPath( "MOD-PATH" ), project_dll );
-project.Install( daovm.GetPath( "MOD-PATH" ), project_lib );
-project.Install( daovm.GetPath( "FINDER-PATH" ), findpkg );
+project.Install( DaoMake::Variables[ "INSTALL_MOD" ], project_dll );
+project.Install( DaoMake::Variables[ "INSTALL_MOD" ], project_lib );
+project.Install( DaoMake::Variables[ "INSTALL_FINDER" ], findpkg );
 
-daovm_doc_path = daovm.GetPath( "DOC-PATH" );
+daovm_doc_path = DaoMake::Variables[ "INSTALL_DOC" ];
 demos = { "example.dao" }
 project.Install( DaoMake::MakePath( daovm_doc_path, "./demo/modules/protobject" ), demos )

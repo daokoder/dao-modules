@@ -18,4 +18,4 @@ project_dll = project.AddSharedLibrary( "dao_jit", project_objs )
 
 
 project.GenerateFinder( $TRUE );
-project.Install( daovm.GetPath( "MOD-PATH" ), project_dll );
+project.Install( DaoMake::Variables[ "INSTALL_MOD" ], project_dll );

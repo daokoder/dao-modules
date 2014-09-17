@@ -32,9 +32,9 @@ sample_dll = project.AddSharedLibrary( "sample", sample_objs )
 
 
 project.GenerateFinder( $TRUE );
-project.Install( daovm.GetPath( "MOD-PATH" ), clinker_dll );
+project.Install( DaoMake::Variables[ "INSTALL_MOD" ], clinker_dll );
 
-daovm_doc_path = daovm.GetPath( "DOC-PATH" );
+daovm_doc_path = DaoMake::Variables[ "INSTALL_DOC" ];
 demos = { "sample.dao", "sample.c" }
 project.Install( DaoMake::MakePath( daovm_doc_path, "./demo/modules/clinker" ), demos )
 project.Install( DaoMake::MakePath( daovm_doc_path, "./demo/modules/clinker" ), sample_dll )

@@ -23,7 +23,7 @@ dao_scanner_dll  = project.AddSharedLibrary( "dao_scanner", dao_scanner_objects 
 dao_scanner_lib  = project.AddStaticLibrary( "dao_scanner", dao_scanner_objects )
 
 
-path = DaoMake::MakePath( daovm.GetPath( "MOD-PATH" ), "string" )
+path = DaoMake::MakePath( DaoMake::Variables[ "INSTALL_MOD" ], "string" )
 
 project.GenerateFinder( $TRUE );
 project.Install( path, dao_template_dll );

@@ -16,7 +16,7 @@ dao_fs_lib  = project.AddStaticLibrary( "dao_fs", dao_fs_objs )
 dao_fs_dll.SetTargetPath( "../../lib/dao/modules/os" )
 dao_fs_lib.SetTargetPath( "../../lib/dao/modules/os" )
 
-path = DaoMake::MakePath( daovm.GetPath( "MOD-PATH" ), "os" )
+path = DaoMake::MakePath( DaoMake::Variables[ "INSTALL_MOD" ], "os" )
 
 project.GenerateFinder( $TRUE );
 project.Install( path, dao_fs_dll );

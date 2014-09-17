@@ -29,7 +29,7 @@ if( DaoMake::IsPlatform( "WIN32" ) ){
 	dao_http_lib.AddLinkingFlag( "-lws2_32" )
 }
 
-path = DaoMake::MakePath( daovm.GetPath( "MOD-PATH" ), "web" )
+path = DaoMake::MakePath( DaoMake::Variables[ "INSTALL_MOD" ], "web" )
 
 project.GenerateFinder( $TRUE );
 project.Install( path, dao_http_dll );

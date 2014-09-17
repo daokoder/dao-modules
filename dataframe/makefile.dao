@@ -15,9 +15,9 @@ project_lib  = project.AddStaticLibrary( "dao_dataframe", project_objs )
 
 
 project.GenerateFinder( $TRUE );
-project.Install( daovm.GetPath( "MOD-PATH" ), project_dll );
-project.Install( daovm.GetPath( "MOD-PATH" ), project_lib );
+project.Install( DaoMake::Variables[ "INSTALL_MOD" ], project_dll );
+project.Install( DaoMake::Variables[ "INSTALL_MOD" ], project_lib );
 
-daovm_doc_path = daovm.GetPath( "DOC-PATH" );
+daovm_doc_path = DaoMake::Variables[ "INSTALL_DOC" ];
 demos = { "example.dao" }
 project.Install( DaoMake::MakePath( daovm_doc_path, "./demo/modules/dataframe" ), demos )
