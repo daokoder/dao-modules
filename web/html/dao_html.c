@@ -104,6 +104,7 @@ void WriteAttrValue( DaoValue *value, DString *dest )
 		break;
 	case DAO_INTEGER:
 	case DAO_FLOAT:
+	case DAO_BOOLEAN:
 		DaoValue_GetString( value, buf );
 		DString_Append( dest, buf );
 		break;
@@ -379,7 +380,7 @@ static void Html_Fragment( DaoProcess *proc, DaoValue *p[], int N )
 const char *html_global_attr =
 	"tuple<enum<accesskey,_class,contextmenu,id,lang,style,title>, string> | tuple<enum<dropzone>, enum<copy;move;link>|string> | "
 	"tuple<enum<data_>, tuple<enum, string>> | tuple<enum<dir>, enum<ltr,rtl,auto>> | enum<contenteditable,hidden,spellcheck> | "
-	"tuple<enum<contenteditable,draggable,spellcheck>, enum<true,false>> | tuple<enum<tabindex>, int> | "
+	"tuple<enum<contenteditable,draggable,spellcheck>, bool> | tuple<enum<tabindex>, int> | "
 	"tuple<enum<translate>, enum<yes,no>> | "
 	"tuple<enum<onabort,onblur,oncancel,oncanplay,oncanplaythrough,onchange,onclick,onclose,oncontextmenu,oncuechange,"
 			   "ondblclick,ondrag,ondragend,ondragenter,ondragleave,ondragover,ondragstart,ondrop,ondurationchange,onemptied,"
