@@ -52,149 +52,6 @@ extern char ** environ;
 #include"daoThread.h"
 #include"dao_sys.h"
 
-
-static void SYS_Ctime( DaoProcess *proc, DaoValue *p[], int N )
-{
-	struct tm *ctime;
-	time_t t = (time_t)p[0]->xInteger.value;
-	DaoTuple *tuple = DaoProcess_PutTuple( proc, 7 );
-	DaoValue **items = tuple->values;
-	if( t == 0 ) t = time(NULL);
-	ctime = gmtime( & t );
-	items[0]->xInteger.value = ctime->tm_year + 1900;
-	items[1]->xInteger.value = ctime->tm_mon + 1;
-	items[2]->xInteger.value = ctime->tm_mday;
-	items[3]->xInteger.value = ctime->tm_wday + 1;
-	items[4]->xInteger.value = ctime->tm_hour;
-	items[5]->xInteger.value = ctime->tm_min;
-	items[6]->xInteger.value = ctime->tm_sec;
-}
-static int addStringFromMap( DaoValue *self, DString *S, DaoMap *sym, const char *key, int id )
-{
-	DNode *node;
-
-	if( S==NULL || sym==NULL ) return 0;
-	DString_SetChars( self->xString.value, key );
-	node = DMap_Find( sym->value, & self );
-	if( node ){
-		DaoList *list = & node->value.pValue->xList;
-		if( list->type == DAO_LIST && list->value->size > id ){
-			DaoValue *p = list->value->items.pValue[ id ];
-			if( p->type == DAO_STRING ){
-				DString_Append( S, p->xString.value );
-				return 1;
-			}
-		}
-	}
-	return 0;
-}
-static void SYS_Ctimef( DaoProcess *proc, DaoValue *p[], int N )
-{
-	int  i;
-	int halfday = 0;
-	const int size = p[1]->xString.value->size;
-	const char *format = DString_GetData( p[1]->xString.value );
-	char buf[100];
-	char *p1 = buf+1;
-	char *p2;
-	DaoMap *sym = NULL;
-	DaoString *ds = DaoString_New(1);
-	DaoValue *key = (DaoValue*) ds;
-	DString *S;
-
-	struct tm *ctime;
-	time_t t = (time_t)p[0]->xInteger.value;
-	if( t == 0 ) t = time(NULL);
-	ctime = gmtime( & t );
-
-	if( N > 1 ){
-		sym = (DaoMap*)p[2];
-		if( sym->value->size == 0 ) sym = NULL;
-	}
-	S = DaoProcess_PutChars( proc, "" );
-
-	for( i=0; i+1<size; i++ ){
-		if( format[i] == '%' && ( format[i+1] == 'a' || format[i+1] == 'A' ) ){
-			halfday = 1;
-			break;
-		}
-	}
-	buf[0] = '0'; /* for padding */
-
-	for( i=0; i+1<size; i++ ){
-		p2 = p1;
-		p1[0] = 0;
-		if( format[i] == '%' ){
-			const char ch = format[i+1];
-			switch( ch ){
-			case 'Y' :
-				sprintf( p1, "%i", ctime->tm_year+1900 );
-				break;
-			case 'y' :
-				sprintf( p1, "%i", ctime->tm_year+1900 );
-				p2 += 2;
-				break;
-			case 'M' :
-			case 'm' :
-				if( ! addStringFromMap( key, S, sym, "month", ctime->tm_mon ) ){
-					sprintf( p1, "%i", ctime->tm_mon+1 );
-					if( ch=='M' && p1[1]==0 ) p2 = buf; /* padding 0; */
-				}else p2 = NULL;
-				break;
-			case 'D' :
-			case 'd' :
-				if( ! addStringFromMap( key, S, sym, "date", ctime->tm_mday ) ){
-					sprintf( p1, "%i", ctime->tm_mday );
-					if( ch=='D' && p1[1]==0 ) p2 = buf; /* padding 0; */
-				}else p2 = NULL;
-				break;
-			case 'W' :
-			case 'w' :
-				if( ! addStringFromMap( key, S, sym, "week", ctime->tm_wday ) )
-					sprintf( p1, "%i", ctime->tm_wday+1 );
-				else p2 = NULL;
-				break;
-			case 'H' :
-			case 'h' :
-				if( halfday )
-					sprintf( p1, "%i", ctime->tm_hour %12 );
-				else
-					sprintf( p1, "%i", ctime->tm_hour );
-				if( ch=='H' && p1[1]==0 ) p2 = buf; /* padding 0; */
-				break;
-			case 'I' :
-			case 'i' :
-				sprintf( p1, "%i", ctime->tm_min );
-				if( ch=='I' && p1[1]==0 ) p2 = buf; /* padding 0; */
-				break;
-			case 'S' :
-			case 's' :
-				sprintf( p1, "%i", ctime->tm_sec );
-				if( ch=='S' && p1[1]==0 ) p2 = buf; /* padding 0; */
-				break;
-			case 'a' :
-				if( ! addStringFromMap( key, S, sym, "halfday", 0 ) ){
-					if( ctime->tm_hour >= 12 ) strcpy( p1, "pm" );
-					else strcpy( p1, "am" );
-				}else p2 = NULL;
-				break;
-			case 'A' :
-				if( ! addStringFromMap( key, S, sym, "halfday", 1 ) ){
-					if( ctime->tm_hour >= 12 ) strcpy( p1, "PM" );
-					else strcpy( p1, "AM" );
-				}else p2 = NULL;
-				break;
-			default : break;
-			}
-			if( p2 ) DString_AppendChars( S, p2 );
-			i ++;
-		}else{
-			DString_AppendChar( S, format[i] );
-		}
-	}
-	if( i+1 == size ) DString_AppendChar( S, format[i] );
-	DaoString_Delete( ds );
-}
 static void SYS_Sleep( DaoProcess *proc, DaoValue *p[], int N )
 {
 #ifdef DAO_WITH_THREAD
@@ -255,26 +112,6 @@ static void SYS_Popen( DaoProcess *proc, DaoValue *p[], int N )
 		if( strstr( mode, "r" ) ) stream->mode |= DAO_STREAM_READABLE;
 		if( strstr( mode, "w" ) || strstr( mode, "a" ) ) stream->mode |= DAO_STREAM_WRITABLE;
 	}
-}
-static void SYS_Time( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoProcess_PutInteger( proc, time( NULL ) );
-}
-static void SYS_Time2( DaoProcess *proc, DaoValue *p[], int N )
-{
-	/* extern long timezone; */
-	/* extern int daylight; // not on WIN32 */
-	struct tm ctime;
-	DaoValue **tup = p[0]->xTuple.values;
-	memset( & ctime, 0, sizeof( struct tm ) );
-	ctime.tm_year = tup[0]->xInteger.value - 1900;
-	ctime.tm_mon = tup[1]->xInteger.value - 1;
-	ctime.tm_mday = tup[2]->xInteger.value;
-	ctime.tm_hour = tup[4]->xInteger.value;/* + daylight; */
-	ctime.tm_min = tup[5]->xInteger.value;
-	ctime.tm_sec = tup[6]->xInteger.value;
-	ctime.tm_isdst = 0;
-	DaoProcess_PutInteger( proc, (int) mktime( & ctime ) );
 }
 static void SYS_SetLocale( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -356,18 +193,14 @@ static void SYS_EnvVars( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem sysMeths[]=
 {
-	{ SYS_Shell,     "shell( command: string )=>int" },
-	{ SYS_Popen,     "popen( cmd: string, mode: string )=>io::Stream" },
+	{ SYS_Shell,     "shell( command: string ) => int" },
+	{ SYS_Popen,     "popen( cmd: string, mode: string ) => io::Stream" },
 	{ SYS_Sleep,     "sleep( seconds: float )" },
-	{ SYS_Exit,      "exit( code=0 )" },
-	{ SYS_Clock,     "clock()=>float" },
-	{ SYS_Ctime,     "ctime( time=0 )=>tuple<year:int,month:int,day:int,wday:int,hour:int,minute:int,second:int>" },
-	{ SYS_Ctimef,    "ctimef( time=0, format=\"%Y-%M-%D, %H:%I:%S\", names: map<string,list<string>> = {=>} )=>string" },
-	{ SYS_Time,      "time( )=>int" },
-	{ SYS_Time2,     "time( tm: tuple<year:int,month:int,day:int,wday:int,hour:int,minute:int,second:int> )=>int" },
-	{ SYS_SetLocale, "setlocale( category: enum<all,collate,ctype,monetary,numeric,time> = $all, locale = \"\" )=>string" },
+	{ SYS_Exit,      "exit( code = 0 )" },
+	{ SYS_Clock,     "clock() => float" },
+	{ SYS_SetLocale, "setlocale( category: enum<all,collate,ctype,monetary,numeric,time> = $all, locale = \"\" ) => string" },
 	{ SYS_EnvVars,   "getenv() => map<string,string>"},
-	{ SYS_GetEnv,    "getenv( name: string )=>string" },
+	{ SYS_GetEnv,    "getenv( name: string ) => string" },
 	{ SYS_PutEnv,    "putenv( name: string, value = \"\" )"},
 	{ NULL, NULL }
 };
