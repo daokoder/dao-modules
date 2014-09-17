@@ -516,9 +516,6 @@ static DaoFuncItem jsonMeths[] =
 DAO_DLL int DaoJSON_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *jsonns;
-	DString *bname = DString_NewChars( "bool" );
-	booltype = DaoNamespace_FindType( ns, bname );
-	DString_Delete( bname );
 	jsonns = DaoNamespace_GetNamespace( ns, "json" );
 	DaoNamespace_DefineType( jsonns, "none|bool|int|float|string|list<Data>|map<string,Data>", "Data" );
 	DaoNamespace_WrapFunctions( jsonns, jsonMeths );

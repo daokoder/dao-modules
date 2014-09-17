@@ -11,7 +11,7 @@ data = {
 	"list<any>" =>        "array",
 	"string" =>           "string",
 	"int/float" => "number",
-	"enum<false:true>" => "bool",
+	"bool" => "bool",
 	"none" =>             "null"
     }
 };
