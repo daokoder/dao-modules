@@ -24,6 +24,7 @@ class [File](#file): Entry
 - routine [.size](#size)(invar _self_: File) => int
 - routine [.size=](#size)(_self_: File, _size_: int)
 - routine [copy](#copy)(_self_: File, _path_: string) => File
+- routine [copy](#copy2)(_self_: File, _to_: Dir) => File
 
 class [Dir](#dir): Entry
  - routine [mkfile](#mkfile)(_self_: Dir, _path_: string) => File
@@ -138,7 +139,11 @@ Size of the file in bytes
 ```ruby
 copy(self: File, path: string) => File
 ```
-Copies the file and returns `File` object of its copy
+Copies the file to *path* and returns `File` object of its copy. *path* may end with '/' to indicate the directory to copy to (preserving the original file name)
+```ruby
+copy(self: File, to: Dir) => File
+```
+Copies the file to the directory specified by *to* and returns *File* object of its copy
 
 ------
 #### <a name="dir">`fs::Dir`</a>

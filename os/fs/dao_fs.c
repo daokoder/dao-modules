@@ -1113,7 +1113,8 @@ static void FSNode_Suffix( DaoProcess *proc, DaoValue *p[], int N )
 static void FSNode_Copy( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
-	char_t *path = CharsToTChars( p[1]->xString.value->chars );
+	int dir = ( p[1]->type != DAO_STRING );
+	char_t *path = CharsToTChars( dir? ( (DInode*)DaoValue_TryGetCdata( p[1] ) )->path : p[1]->xString.value->chars );
 	FILE *src = NULL, *dest = NULL;
 	DInode *copy;
 	size_t len;
@@ -1131,6 +1132,12 @@ static void FSNode_Copy( DaoProcess *proc, DaoValue *p[], int N )
 		goto Exit;
 	}
 	len = tcslen( path );
+	if ( !len ){
+		DaoProcess_RaiseError( proc, fserr, "Empty path" );
+		goto Exit;
+	}
+	if ( dir )
+		path[len++] = T('/');
 	if ( IS_PATH_SEP( path[len - 1] ) ){
 		int i;
 		size_t slen = tcslen( self->path );
@@ -1489,8 +1496,12 @@ static DaoFuncItem fileMeths[] =
 	/*! Resizes the file to the given \a size */
 	{ FSNode_Resize,	".size=(self: File, size: int)" },
 
-	/*! Copies the file and returns \c File object of its copy */
+	/*! Copies the file to \a path and returns \c File object of its copy. \a path may end with '/' to indicate the directory
+	 * to copy to (preserving the original file name) */
 	{ FSNode_Copy,		"copy(self: File, path: string) => File" },
+
+	/*! Copies the file to the directory specified by \a to and returns \c File object of its copy */
+	{ FSNode_Copy,		"copy(self: File, to: Dir) => File" },
 	{ NULL, NULL }
 };
 
