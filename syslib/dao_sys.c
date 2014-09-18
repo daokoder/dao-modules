@@ -294,11 +294,30 @@ static void SYS_Uname( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, "Sys", "Failed to get system information" );
 }
 
+static void SYS_Null( DaoProcess *proc, DaoValue *p[], int N )
+{
+#ifdef WIN32
+	const char *npath = "NUL";
+#else
+	const char *npath = "/dev/null";
+#endif
+	FILE *file = fopen( npath, "w" );
+	if ( !file )
+		DaoProcess_RaiseError( proc, "Sys", "Failed to open system null device" );
+	else {
+		DaoStream *stream = DaoStream_New();
+		stream->file = file;
+		stream->mode |= DAO_STREAM_WRITABLE;
+		DaoProcess_PutValue( proc, (DaoValue*)stream );
+	}
+}
+
 static DaoFuncItem sysMeths[]=
 {
 	{ SYS_Shell,     "shell( command: string ) => int" },
 	{ SYS_Popen,     "popen( cmd: string, mode: string ) => io::Stream" },
 	{ SYS_Pclose,    "pclose( pipe: io::Stream ) => int" },
+	{ SYS_Null,      "null() => io::Stream" },
 	{ SYS_Sleep,     "sleep( seconds: float )" },
 	{ SYS_Exit,      "exit( code = 0 )" },
 	{ SYS_Clock,     "clock() => float" },
