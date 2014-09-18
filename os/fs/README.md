@@ -140,6 +140,7 @@ Size of the file in bytes
 copy(self: File, path: string) => File
 ```
 Copies the file to *path* and returns `File` object of its copy. *path* may end with '/' to indicate the directory to copy to (preserving the original file name)
+<a name="copy2"></a>
 ```ruby
 copy(self: File, to: Dir) => File
 ```
