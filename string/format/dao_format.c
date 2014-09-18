@@ -378,7 +378,7 @@ int IsNamedValue( DaoTuple *tup )
 {
 	if ( tup->size == 2 && tup->values[0]->type == DAO_ENUM ){
 		DaoEnum *en = &tup->values[0]->xEnum;
-		return en->subtype != DAO_ENUM_FLAG && en->subtype != DAO_ENUM_SYM && en->subtype != DAO_ENUM_BOOL;
+		return en->subtype != DAO_ENUM_FLAG && en->subtype != DAO_ENUM_SYM;
 	}
 	return 0;
 }
