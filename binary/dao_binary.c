@@ -606,7 +606,7 @@ static DaoFuncItem binMeths[] =
 {
 	/*! Reads \a count elements from \a source to \a dest. If \a count is zero, or greater than \a dest size,
 	 * \a dest size is assumed. Returns the number of elements actually read */
-	{ DaoBinary_Read,		"read(source: io::Stream, dest: array<@T>, count = 0) => int" },
+	{ DaoBinary_Read,		"read(source: io::Stream, dest: array<@T<int|float|complex>>, count = 0) => int" },
 
 	/*! Reads \a count chunks of size \a size from \a source into \a dest so that each chunk corresponds to a single
 	 * \a dest element (with possible widening). If \a count is zero, or greater than \a dest element size, \a dest
@@ -619,7 +619,7 @@ static DaoFuncItem binMeths[] =
 
 	/*! Writes \a count elements from \a source to \a dest. If \c count is zero, or greater than \a dest size, all \a dest data is
 	 * written. Returns the number of elements actually written */
-	{ DaoBinary_Write,		"write(invar source: array<@T>, dest: io::Stream, count = 0) => int" },
+	{ DaoBinary_Write,		"write(invar source: array<@T<int|float|complex>>, dest: io::Stream, count = 0) => int" },
 
 	/*! Reads value described by \a what from \a source at the given byte \a offset */
 	{ DaoBinary_GetItem,	"get(invar source: array<int>|string, what: enum<byte,ubyte,word,uword,dword,udword,qword,uqword>,"
