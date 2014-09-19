@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2011,2012, Limin Fu
+// Copyright (c) 2011-2014, Limin Fu
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without modification,
@@ -473,18 +473,6 @@ InvalidMethod:
 
 
 
-static void META_NS( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoNamespace *res = proc->activeNamespace;
-	if( N == 0 ){
-		res = proc->activeNamespace;
-	}else if( p[0]->type == DAO_CLASS ){
-		res = p[0]->xClass.classRoutine->nameSpace;
-	}else if( p[0]->type == DAO_ROUTINE ){
-		res = p[0]->xRoutine.nameSpace;
-	}
-	DaoProcess_PutValue( proc, (DaoValue*) res );
-}
 static void META_Name( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DString *str = DaoProcess_PutChars( proc, "" );
@@ -495,11 +483,29 @@ static void META_Name( DaoProcess *proc, DaoValue *p[], int N )
 	case DAO_CLASS :
 		DString_Assign( str, p[0]->xClass.className );
 		break;
+	case DAO_INTERFACE :
+		DString_Assign( str, p[0]->xInterface.abtype->name );
+		break;
+	case DAO_NAMESPACE :
+		DString_Assign( str, p[0]->xNamespace.name );
+		break;
 	case DAO_TYPE :
 		DString_Assign( str, p[0]->xType.name );
 		break;
 	default : break;
 	}
+}
+static void META_NS( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoNamespace *res = proc->activeNamespace;
+	if( p[0]->type == DAO_ENUM ){
+		res = proc->activeNamespace;
+	}else if( p[0]->type == DAO_CLASS ){
+		res = p[0]->xClass.classRoutine->nameSpace;
+	}else if( p[0]->type == DAO_ROUTINE ){
+		res = p[0]->xRoutine.nameSpace;
+	}
+	DaoProcess_PutValue( proc, (DaoValue*) res );
 }
 static void META_Base( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -511,6 +517,11 @@ static void META_Base( DaoProcess *proc, DaoValue *p[], int N )
 	}else if( p[0]->type == DAO_OBJECT ){
 		DaoObject *k = & p[0]->xObject;
 		DaoList_Append( ls, k->parent );
+	}else if( p[0]->type == DAO_TYPE) {
+		DaoType *type = (DaoType*) p[0];
+		for(i=0; type->bases && i < type->bases->size; ++i){
+			DaoList_Append( ls, type->bases->items.pValue[i] );
+		}
 	}
 }
 static void META_Type( DaoProcess *proc, DaoValue *p[], int N )
@@ -519,220 +530,169 @@ static void META_Type( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutValue( proc, (DaoValue*) tp );
 }
 
-static void META_Cst1( DaoProcess *proc, DaoValue *p[], int N )
+static void META_Fields( DaoProcess *proc, DaoValue *p[], int N, int cst )
 {
-	DaoMap *map = DaoProcess_PutMap( proc, 0 );
+	DNode *it;
+	DaoList *list = DaoProcess_PutList( proc );
 	DaoTuple *tuple;
 	DaoClass *klass;
 	DaoObject *object;
-	DaoType *tp = map->ctype->nested->items.pType[1];
 	DaoNamespace *ns, *here = proc->activeNamespace;
 	DMap *index = NULL, *lookup = NULL;
-	DList *data;
-	DNode *node;
+	DList *constants, *variables;
 	DaoValue *value;
-	DaoValue *vabtp = NULL;
-	DaoString name = {DAO_STRING,0,0,0,0,NULL};
-	int restri = p[1]->xInteger.value;
-	name.value = DString_New(1);
-	if( p[0]->type == DAO_CLASS || p[0]->type == DAO_OBJECT ){
+	DaoValue *type = NULL;
+	int restri = p[1]->xEnum.value;
+	int i, st = 0;
+
+	if( p[0]->type == DAO_CLASS ){
 		klass = & p[0]->xClass;
-		if( p[0]->type == DAO_OBJECT ){
-			object = & p[0]->xObject;
-			klass = object->defClass;
-		}
 		lookup = klass->lookupTable;
-		index = klass->lookupTable;
-		data = klass->constants;
+		constants = klass->constants;
+		variables = klass->variables;
+		st = cst ? DAO_CLASS_CONSTANT : DAO_CLASS_VARIABLE;
+	}else if( p[0]->type == DAO_OBJECT ){
+		object = & p[0]->xObject;
+		klass = object->defClass;
+		constants = klass->constants;
+		variables = klass->instvars;
+		st = cst ? DAO_CLASS_CONSTANT : DAO_OBJECT_VARIABLE;
 	}else if( p[0]->type == DAO_NAMESPACE ){
 		ns = & p[0]->xNamespace;
-		//index = ns->cstIndex; XXX
-		data = ns->constants;
+		lookup = ns->lookupTable;
+		constants = ns->constants;
+		variables = ns->variables;
+		st = cst ? DAO_GLOBAL_CONSTANT : DAO_GLOBAL_VARIABLE;
 	}else{
 		DaoProcess_RaiseError( proc, NULL, "invalid parameter" );
-		DString_Delete( name.value );
 		return;
 	}
-	if( index == NULL ) return;
-	node = DMap_First( index );
-	for( ; node != NULL; node = DMap_Next( index, node ) ){
-		size_t id = node->value.pInt;
+
+	index = DHash_New(0,0);
+	for(it = DMap_First(lookup); it != NULL; it = DMap_Next(lookup, it) ){
+		size_t id = it->value.pInt;
 		if( restri && lookup && LOOKUP_PM( id ) != DAO_PERM_PUBLIC ) continue;
-		if( lookup ) id = LOOKUP_ID( id );
-		tuple = DaoTuple_New( 2 );
-		tuple->ctype = tp;
-		GC_IncRC( tp );
-		value = data->items.pConst[ id ]->value;
-		vabtp = (DaoValue*) DaoNamespace_GetType( here, value );
-		DaoValue_Copy( value, tuple->values );
-		DaoValue_Copy( vabtp, tuple->values + 1 );
-		DString_Assign( name.value, node->key.pString );
-		DaoMap_Insert( map, (DaoValue*) & name, (DaoValue*) & tuple );
+		if( lookup ) id = LOOKUP_ID( id ) | (LOOKUP_ST( id ) << 16);
+		DMap_Insert( index, (void*) id, it->key.pString );
 	}
-	DString_Delete( name.value );
+	if( cst ){
+		for(i=0; i<constants->size; ++i){
+			tuple = DaoTuple_Create( list->ctype->nested->items.pType[0], 2, 1 );
+			it = DMap_Find( index, (void*)(size_t) (i|st<<16) );
+			if( restri && it == NULL ) continue;
+
+			if( it ) DString_Assign( tuple->values[0]->xString.value, it->value.pString );
+			DaoTuple_SetItem( tuple, constants->items.pConst[i]->value, 1 );
+			DaoList_PushBack( list, (DaoValue*) tuple );
+		}
+	}else{
+		for(i=0; i<variables->size; ++i){
+			tuple = DaoTuple_Create( list->ctype->nested->items.pType[0], 3, 1 );
+			it = DMap_Find( index, (void*)(size_t) (i|st<<16) );
+			if( restri && it == NULL ) continue;
+
+			if( it ) DString_Assign( tuple->values[0]->xString.value, it->value.pString );
+			if( p[0]->type == DAO_OBJECT ){
+				DaoTuple_SetItem( tuple, p[0]->xObject.objValues[i], 1 );
+			}else{
+				DaoTuple_SetItem( tuple, variables->items.pVar[i]->value, 1 );
+			}
+			DaoTuple_SetItem( tuple, (DaoValue*) variables->items.pVar[i]->dtype, 2 );
+			DaoList_PushBack( list, (DaoValue*) tuple );
+		}
+	}
+	DMap_Delete( index );
+}
+static void META_Cst1( DaoProcess *proc, DaoValue *p[], int N )
+{
+	META_Fields( proc, p, N, 1 );
 }
 static void META_Var1( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoMap *map = DaoProcess_PutMap( proc, 0 );
-	DaoTuple *tuple;
-	DaoClass *klass = NULL;
-	DaoObject *object = NULL;
-	DaoType *tp = map->ctype->nested->items.pType[1];
-	DaoNamespace *ns = NULL;
-	DMap *index = NULL, *lookup = NULL;
-	DNode *node;
-	DaoValue *value;
-	DaoValue *vabtp = NULL;
-	DaoString name = {DAO_STRING,0,0,0,0,NULL};
-	int restri = p[1]->xInteger.value;
-	name.value = DString_New(1);
-	if( p[0]->type == DAO_CLASS || p[0]->type == DAO_OBJECT ){
-		klass = & p[0]->xClass;
-		if( p[0]->type == DAO_OBJECT ){
-			object = & p[0]->xObject;
-			klass = object->defClass;
-		}
-		lookup = klass->lookupTable;
-		index = klass->lookupTable;
-	}else if( p[0]->type == DAO_NAMESPACE ){
-		ns = & p[0]->xNamespace;
-		//index = ns->varIndex; XXX
-	}else{
-		DaoProcess_RaiseError( proc, NULL, "invalid parameter" );
-		DString_Delete( name.value );
-		return;
-	}
-	if( index == NULL ) return;
-	node = DMap_First( index );
-	for( ; node != NULL; node = DMap_Next( index, node ) ){
-		size_t st = 0, id = node->value.pInt;
-		if( restri && lookup && LOOKUP_PM( id ) != DAO_PERM_PUBLIC ) continue;
-		if( lookup ){
-			st = LOOKUP_ST( id );
-			id = LOOKUP_ID( id );
-			if( st == DAO_CLASS_CONSTANT ) continue;
-		}
-		tuple = DaoTuple_New( 2 );
-		tuple->ctype = tp;
-		GC_IncRC( tp );
-		value = NULL;
-		if( lookup ){
-			if( st == DAO_OBJECT_VARIABLE && object ){
-				value = object->objValues[id];
-				vabtp = (DaoValue*) klass->instvars->items.pVar[ id ]->dtype;
-			}else if( st == DAO_CLASS_VARIABLE ){
-				DaoVariable *var = klass->variables->items.pVar[id];
-				value = var->value;
-				vabtp = (DaoValue*) var->dtype;
-			}else if( st == DAO_OBJECT_VARIABLE ){
-				vabtp = (DaoValue*) klass->instvars->items.pVar[ id ]->dtype;
-			}
-		}else{
-			DaoVariable *var = ns->variables->items.pVar[id];
-			value = var->value;
-			vabtp = (DaoValue*) var->dtype;
-		}
-		DaoValue_Copy( value, tuple->values );
-		DaoValue_Copy( vabtp, tuple->values + 1 );
-		DString_Assign( name.value, node->key.pString );
-		DaoMap_Insert( map, (DaoValue*) & name, (DaoValue*) & tuple );
-	}
-	DString_Delete( name.value );
+	META_Fields( proc, p, N, 0 );
 }
 static void META_Cst2( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoTuple *tuple = DaoTuple_New( 2 );
-	DaoNamespace *ns = proc->activeNamespace;
-	DaoClass *klass = NULL;
-	DNode *node;
 	DString *name = p[1]->xString.value;
-	DaoValue *type = NULL;
-	DaoValue **value = NULL;
+	DaoConstant *cst = NULL;
+	DNode *node;
+
 	if( p[0]->type == DAO_CLASS || p[0]->type == DAO_OBJECT ){
-		klass = & p[0]->xClass;
+		DaoClass *klass = & p[0]->xClass;
 		if( p[0]->type == DAO_OBJECT ) klass = p[0]->xObject.defClass;
 		node = DMap_Find( klass->lookupTable, name );
 		if( node && LOOKUP_ST( node->value.pInt ) == DAO_CLASS_CONSTANT ){
-			value = klass->constants->items.pValue + LOOKUP_ID( node->value.pInt );
-			type = (DaoValue*) DaoNamespace_GetType( ns, *value );
+			cst = klass->constants->items.pConst[ LOOKUP_ID( node->value.pInt ) ];
 		}
 	}else if( p[0]->type == DAO_NAMESPACE ){
-		DaoNamespace *ns2 = & p[0]->xNamespace;
-		return; //XXX
-		//node = DMap_Find( ns2->cstIndex, name );
-		if( node ){
-			value = ns2->constants->items.pValue + node->value.pInt;
-			type = (DaoValue*) DaoNamespace_GetType( ns, *value );
+		DaoNamespace *ns = & p[0]->xNamespace;
+		node = DMap_Find( ns->lookupTable, name );
+		if( node && LOOKUP_ST( node->value.pInt ) == DAO_GLOBAL_CONSTANT ){
+			cst = ns->constants->items.pConst[ LOOKUP_ID( node->value.pInt ) ];
 		}
 	}else{
 		DaoProcess_RaiseError( proc, NULL, "invalid parameter" );
 	}
-	DaoValue_Copy( *value, tuple->values );
-	DaoValue_Copy( type, tuple->values + 1 );
-	DaoProcess_PutValue( proc, (DaoValue*) tuple );
-	if( N >2 ){
-		DaoType *tp = DaoNamespace_GetType( ns, p[2] );
-		if( type ){
-			if( DaoType_MatchTo( tp, (DaoType*) type, NULL ) ==0 ){
-				DaoProcess_RaiseError( proc, NULL, "type not matched" );
-				return;
-			}
+	if( cst == NULL ){
+		DaoProcess_RaiseError( proc, NULL, "invalid field name" );
+		return;
+	}
+	DaoProcess_PutValue( proc, cst->value );
+	if( N > 2 ){
+		DaoType *type = DaoNamespace_GetType( proc->activeNamespace, cst->value );
+		if( DaoType_MatchValue( type, p[2], NULL ) < DAO_MT_EQ ){
+			DaoProcess_RaiseError( proc, NULL, "invalid value" );
+			return;
 		}
-		DaoValue_Copy( p[2], value );
+		DaoValue_Copy( p[2], & cst->value );
 	}
 }
 static void META_Var2( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoTuple *tuple = DaoTuple_New( 2 );
-	DaoNamespace *ns = proc->activeNamespace;
-	DaoClass *klass = NULL;
-	DNode *node;
 	DString *name = p[1]->xString.value;
-	DaoValue *type = NULL;
-	DaoValue **value = NULL;
-	if( p[0]->type == DAO_CLASS || p[0]->type == DAO_OBJECT ){
-		DaoObject *object = NULL;
-		klass = & p[0]->xClass;
-		if( p[0]->type == DAO_OBJECT ){
-			klass = p[0]->xObject.defClass;
-		}
-		node = DMap_Find( klass->lookupTable, name );
+	DaoTuple *tuple = DaoProcess_PutTuple( proc, 2 );
+	DaoVariable *var = NULL;
+	DNode *node;
+
+	if( p[0]->type == DAO_OBJECT ){
+		DaoObject *object = (DaoObject*) p[0];
+		node = DMap_Find( object->defClass->lookupTable, name );
 		if( node && LOOKUP_ST( node->value.pInt ) == DAO_CLASS_VARIABLE ){
-			DaoVariable *var = klass->variables->items.pVar[LOOKUP_ID( node->value.pInt )];
-			value = & var->value;
-			type = (DaoValue*) var->dtype;
-		}else if( object && node && LOOKUP_ST( node->value.pInt ) == DAO_OBJECT_VARIABLE ){
-			value = object->objValues + LOOKUP_ID( node->value.pInt );
-			type = (DaoValue*) klass->instvars->items.pVar[ LOOKUP_ID( node->value.pInt ) ]->dtype;
-		}else{
-			DaoProcess_RaiseError( proc, NULL, "invalid field" );
+			var = object->defClass->variables->items.pVar[ LOOKUP_ID( node->value.pInt ) ];
+		}else if( node && LOOKUP_ST( node->value.pInt ) == DAO_OBJECT_VARIABLE ){
+			int id = LOOKUP_ID( node->value.pInt );
+			var = object->defClass->instvars->items.pVar[id];
+			DaoTuple_SetItem( tuple, object->objValues[id], 0 );
+			DaoTuple_SetItem( tuple, (DaoValue*) var->dtype, 1 );
+			if( N > 2 && DaoValue_Move( p[2], & object->objValues[id], var->dtype ) == 0 ){
+				DaoProcess_RaiseError( proc, NULL, "invalid value" );
+			}
 			return;
 		}
+	}else if( p[0]->type == DAO_CLASS ){
+		DaoClass *klass = & p[0]->xClass;
+		if( p[0]->type == DAO_OBJECT ) klass = p[0]->xObject.defClass;
+		node = DMap_Find( klass->lookupTable, name );
+		if( node && LOOKUP_ST( node->value.pInt ) == DAO_CLASS_VARIABLE ){
+			var = klass->variables->items.pVar[ LOOKUP_ID( node->value.pInt ) ];
+		}
 	}else if( p[0]->type == DAO_NAMESPACE ){
-		DaoNamespace *ns2 = & p[0]->xNamespace;
-		return; //XXX
-		//node = DMap_Find( ns2->varIndex, name );
-		if( node ){
-			DaoVariable *var = ns2->variables->items.pVar[node->value.pInt];
-			value = & var->value;
-			type = (DaoValue*) var->dtype;
+		DaoNamespace *ns = & p[0]->xNamespace;
+		node = DMap_Find( ns->lookupTable, name );
+		if( node && LOOKUP_ST( node->value.pInt ) == DAO_GLOBAL_VARIABLE ){
+			var = ns->variables->items.pVar[ LOOKUP_ID( node->value.pInt ) ];
 		}
 	}else{
 		DaoProcess_RaiseError( proc, NULL, "invalid parameter" );
+	}
+	if( var == NULL ){
+		DaoProcess_RaiseError( proc, NULL, "invalid field name" );
 		return;
 	}
-	DaoValue_Copy( *value, tuple->values );
-	DaoValue_Copy( type, tuple->values + 1 );
-	DaoProcess_PutValue( proc, (DaoValue*) tuple );
-	if( N >2 ){
-		DaoType *tp = DaoNamespace_GetType( ns, p[2] );
-		if( type ){
-			if( DaoType_MatchTo( tp, (DaoType*) type, NULL ) ==0 ){
-				DaoProcess_RaiseError( proc, NULL, "type not matched" );
-				return;
-			}
-		}
-		DaoValue_Copy( p[2], value );
+	DaoTuple_SetItem( tuple, var->value, 0 );
+	DaoTuple_SetItem( tuple, (DaoValue*) var->dtype, 1 );
+	if( N > 2 && DaoValue_Move( p[2], & var->value, var->dtype ) == 0 ){
+		DaoProcess_RaiseError( proc, NULL, "invalid value" );
 	}
 }
 static void META_Routine( DaoProcess *proc, DaoValue *p[], int N )
@@ -740,7 +700,7 @@ static void META_Routine( DaoProcess *proc, DaoValue *p[], int N )
 	DaoList *list;
 	DaoValue *item;
 	int i;
-	if( N ==1 ){ // XXX
+	if( N == 1 ){
 		DaoRoutine *rout = & p[0]->xRoutine;
 		list = DaoProcess_PutList( proc );
 		if( p[0]->type != DAO_ROUTINE ){
@@ -768,47 +728,6 @@ static void META_Class( DaoProcess *proc, DaoValue *p[], int N )
 	}
 #endif
 	DaoProcess_PutNone( proc );
-}
-static void META_Isa( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoNamespace *ns = proc->activeNamespace;
-	dao_integer *res = DaoProcess_PutInteger( proc, 0 );
-	if( p[1]->type == DAO_TYPE ){
-		if( DaoType_MatchValue( & p[1]->xType, p[0], NULL ) ) *res = 1;
-	}else if( p[1]->type == DAO_CLASS ){
-		if( p[0]->type != DAO_OBJECT ) return;
-		*res = DaoClass_ChildOf( p[0]->xObject.rootObject->defClass, p[1] );
-	}else if( p[1]->type == DAO_CDATA ){
-		if( p[0]->type == DAO_OBJECT ){
-			*res = DaoClass_ChildOf( p[0]->xObject.rootObject->defClass, p[1] );
-		}else if( p[0]->type == DAO_CDATA ){
-			*res = DaoType_ChildOf( p[0]->xCdata.ctype, p[1]->xCdata.ctype );
-		}
-	}else if( p[1]->type == DAO_STRING ){
-		DString *tname = p[1]->xString.value;
-		if( strcmp( tname->chars, "class" ) ==0 ){
-			if( p[0]->type == DAO_CLASS  ) *res = 1;
-		}else if( strcmp( tname->chars, "object" ) ==0 ){
-			if( p[0]->type == DAO_OBJECT  ) *res = 1;
-		}else if( strcmp( tname->chars, "routine" ) ==0 ){
-			if( p[0]->type == DAO_ROUTINE  ) *res = 1;
-		}else if( strcmp( tname->chars, "namespace" ) ==0 ){
-			if( p[0]->type == DAO_NAMESPACE  ) *res = 1;
-		}else if( strcmp( tname->chars, "tuple" ) ==0 ){
-			if( p[0]->type == DAO_TUPLE  ) *res = 1;
-		}else if( strcmp( tname->chars, "list" ) ==0 ){
-			if( p[0]->type == DAO_LIST  ) *res = 1;
-		}else if( strcmp( tname->chars, "map" ) ==0 ){
-			if( p[0]->type == DAO_MAP  ) *res = 1;
-		}else if( strcmp( tname->chars, "array" ) ==0 ){
-			if( p[0]->type == DAO_ARRAY  ) *res = 1;
-		}else{
-			DaoType *tp = DaoParser_ParseTypeName( tname->chars, ns, 0 );
-			if( tp && DaoType_MatchValue( tp, p[0], NULL ) ) *res = 1;
-		}
-	}else{
-		DaoProcess_RaiseError( proc, NULL, "invalid parameter" );
-	}
 }
 static void META_Self( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -873,92 +792,93 @@ static void META_Argv( DaoProcess *proc, DaoValue *p[], int N )
 }
 static void META_Trace( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoTuple *entry = NULL;
 	DaoList *backtrace = DaoProcess_PutList( proc );
 	DaoStackFrame *frame = proc->topFrame;
-	int instr = 0, depth = 1;
-	int maxDepth = 0;
-	int print = 0;
-	DaoTuple *entry = NULL;
-	DaoValue *vRoutType;
-	DaoString routName = {DAO_STRING,0,0,0,0,NULL};
-	DaoString nsName = {DAO_STRING,0,0,0,0,NULL};
 	DaoInteger line = {DAO_INTEGER,0,0,0,0,0};
 	DaoInteger inst = {DAO_INTEGER,0,0,0,0,0};
-
-	if( N >=1 ) print = p[0]->xEnum.value;
-	if( N ==2 ) maxDepth = p[1]->xInteger.value;
+	int print = p[0]->xEnum.value;
+	int maxDepth = p[1]->xInteger.value;
+	int depth = 1;
 
 	if( print ){
 		DaoProcess_Trace( proc, maxDepth );
 		return;
 	}
 
-#if 0
-	for( ; frame && frame->context ; frame = frame->prev, ++depth ){
-		/* Check if we got deeper than requested */
+	frame = frame->prev; /* skip this frame for trace(); */
+	for( ; frame && frame->routine; frame = frame->prev, ++depth ){
 		if( depth > maxDepth && maxDepth > 0 ) break;
 
-		/* Gather some of the informations we need. */
-		vRoutType = (DaoValue*) frame->context->routine->routType;
-		inst.value = (depth==1) ? (int)( proc->activeCode - proc->codes ) : frame->entry;
-		line.value = frame->context->routine->annotCodes->items.pVmc[inst.value]->line;
-		routName.value = frame->context->routine->routName;
-		nsName.value = frame->context->nameSpace->name;
+		inst.value = line.value = 0;
+		if( frame->routine->body ){
+			DaoRoutineBody *body = frame->routine->body;
+			inst.value = (depth==1) ? (int)(proc->activeCode - body->vmCodes->data.codes) : frame->entry;
+			line.value = body->annotCodes->items.pVmc[inst.value]->line;
+		}
 
-		/* Put all the informations into a tuple which we append to the list. */
-		/* Tuple type: tuple<rout_name:string,rout_type:any,line:int,namespace:string> */
-		/* Also, namespace is most often the current file name, but not always! */
-		entry = DaoTuple_New( 5 );
-		entry->ctype = backtrace->ctype->nested->items.pType[0];
-		GC_IncRC( entry->ctype );
+		entry = DaoTuple_Create( backtrace->ctype->nested->items.pType[0], 3, 1 );
 
-		DaoTuple_SetItem( entry, (DaoValue*) & routName, 0 );
-		DaoTuple_SetItem( entry, (DaoValue*) vRoutType, 1 );
-		DaoTuple_SetItem( entry, (DaoValue*) & inst, 2 );
-		DaoTuple_SetItem( entry, (DaoValue*) & line, 3 );
-		DaoTuple_SetItem( entry, (DaoValue*) & nsName, 4 );
+		DaoTuple_SetItem( entry, (DaoValue*) frame->routine, 0 );
+		DaoTuple_SetItem( entry, (DaoValue*) & inst, 1 );
+		DaoTuple_SetItem( entry, (DaoValue*) & line, 2 );
 
 		DaoList_PushBack( backtrace, (DaoValue*) entry );
 	}
-#endif
 }
-/* name( class/routine/type )
- * type( any )
- * find( "name" )
- * base( class )
- * field( class/object/ns/ )
- * doc( class/routine )
- * class( object/routine )
- * routine( class/object ) if omitted, current routine
- * param( routine ) if omitted, current params
- * self( object )
- * ns() current ns
- * trace( print=0 )
- * */
 static DaoFuncItem metaMeths[]=
 {
-	{ META_NS,    "namespace() => any" },
-	{ META_NS,    "namespace( object ) => any" },
-	{ META_Name,  "name( object ) => string" },
-	{ META_Type,  "type( object ) => any" },
-	{ META_Base,  "base( object ) => list<any>" },
-	{ META_Cst1,  "constant( object, restrict=0 )=>map<string,tuple<value:any,type:any>>" },
-	{ META_Var1,  "variable( object, restrict=0 )=>map<string,tuple<value:any,type:any>>" },
-	{ META_Cst2,  "constant( object, name:string )=>tuple<value:any,type:any>" },
-	{ META_Var2,  "variable( object, name:string )=>tuple<value:any,type:any>" },
-	{ META_Cst2,  "constant( object, name:string, value )=>tuple<value:any,type:any>" },
-	{ META_Var2,  "variable( object, name:string, value )=>tuple<value:any,type:any>" },
-	{ META_Class,   "class( object ) => any" },
-	{ META_Routine, "routine() => any" },
-	{ META_Routine, "routine( rout : any ) => list<any>" },
 	{ META_Param,   "param( rout )=>list<tuple<name:string,type:any,deft:int,value:any>>" },
-	{ META_Isa,     "isa( object, name : string ) => int" },
-	{ META_Isa,     "isa( object, type : any ) => int" },
 	{ META_Self,    "self( object ) => any" },
 	{ META_Argc,    "argc() => int" },
 	{ META_Argv,    "argv() => list<any>" },
 	{ META_Argv,    "argv( i : int ) => any" },
-	{ META_Trace,   "trace( action:enum<generate,print>=$generate, depth=0 ) => list<tuple<rout_name:string,rout_type:any,instr:int,line:int,namespace:string>>" },
+
+	{ META_Name, /* TODO: type for cdata; */
+		"nameOf( object: routine|routine[]|class|interface|namespace|type ) => string"
+	},
+	{ META_NS,
+		"namespaceOf( object: routine|routine[]|class|$here = $here ) => namespace"
+	},
+	{ META_Type,
+		"typeOf( object: any ) => type"
+	},
+	{ META_Class,
+		"classOf( object: any ) => any"
+	},
+	{ META_Base,
+		"parentOf( object: any ) => list<any>"
+	},
+	{ META_Routine,
+		"currentRoutine() => routine|routine[]"
+	},
+	{ META_Routine,
+		"overloadsOf( rout: routine|routine[] ) => list<routine|routine[]>"
+	},
+	{ META_Cst1,
+		"constants( object: any, restrict = false ) "
+			"=> list< tuple<name: string, value: any> >"
+	},
+	{ META_Var1,
+		"variables( object: any, restrict = false ) "
+			"=> list< tuple<name: string, value: any, dectype: any> >"
+	},
+	{ META_Cst2,
+		"constant( object: any, name: string ) => any"
+	},
+	{ META_Var2,
+		"variable( object: any, name: string ) => tuple<value: any, dectype: any>"
+	},
+	{ META_Cst2,
+		"constant( object: any, name: string, value: any ) => any"
+	},
+	{ META_Var2,
+		"variable( object: any, name: string, value: any ) => tuple<value: any, dectype: any>"
+	},
+	{ META_Trace,
+		"trace( action:enum<generate,print> = $generate, depth = 0 ) "
+			"=> list< tuple<call: routine|routine[], instruction: int, line: int> >"
+	},
 	{ NULL, NULL }
 };
 
