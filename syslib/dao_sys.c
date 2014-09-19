@@ -124,7 +124,7 @@ static void SYS_Pclose( DaoProcess *proc, DaoValue *p[], int N )
 	if ( stream->file && ( stream->mode & DAO_STREAM_PIPE ) ){
 		DaoProcess_PutInteger( proc, pclose( stream->file ) );
 		stream->file = NULL;
-		stream->mode = DAO_STREAM_WRITABLE | DAO_STREAM_READABLE;
+		stream->mode &= ~(DAO_STREAM_WRITABLE | DAO_STREAM_READABLE);
 	}
 	else
 		DaoProcess_RaiseError( proc, "Param", "open pipe stream required" );
