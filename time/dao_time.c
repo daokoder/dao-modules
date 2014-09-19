@@ -286,6 +286,7 @@ static void DaoTime_Set( DaoProcess *proc, DaoValue *p[], int N )
 	daoint i;
 	time_t value;
 	struct tm old = self->parts;
+	DaoProcess_PutValue( proc, p[0] );
 	if ( !self->local ){
 		DaoProcess_RaiseError( proc, timeerr, "Only changing the parts of a local datetime is supported" );
 		return;
@@ -599,6 +600,7 @@ static void DaoTime_Add( DaoProcess *proc, DaoValue *p[], int N )
 	time_t oldt = self->value;
 	struct tm oldtm = self->parts;
 	int oldj = self->jday;
+	DaoProcess_PutValue( proc, p[0] );
 	if ( N == 0 )
 		return;
 	if ( p[1]->type == DAO_INTEGER ){
@@ -662,9 +664,10 @@ static void DaoTime_Add( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem timeMeths[] =
 {
 	/*! Sets one or more datetime parts using named values.
+	 * And returns the self time object.
 	 *
 	 * \note Only changing the parts of a local datetime is supported */
-	{ DaoTime_Set,		"set(self: DateTime, ...: tuple<enum<year,month,day,hour,min,sec>,int>)" },
+	{ DaoTime_Set,		"set(self: DateTime, ...: tuple<enum<year,month,day,hour,min,sec>,int>) => DateTime" },
 
 	/*! \c time_t value representing date and time information (number of seconds elapsed since the Epoch,
 	 * 1970-01-01 00:00:00, UTC) */
@@ -702,12 +705,15 @@ static DaoFuncItem timeMeths[] =
 	{ DaoTime_Days,		"days(invar self: DateTime, period: enum<month,year>) => int" },
 
 	/*! Adds the specified number of years, months or days (provided as named values) to the given datetime.
+	 * And returns the self time object.
 	 *
 	 * \note Adding years, months and days is only supported for a local datetime*/
-	{ DaoTime_Add,		"add(self: DateTime, ...: tuple<enum<years,months,days>,int>)" },
+	{ DaoTime_Add,		"add(self: DateTime, ...: tuple<enum<years,months,days>,int>) => DateTime" },
 
-	/*! Adds the specified number of \a seconds to the given datetime (may be used for both local and global datetime) */
-	{ DaoTime_Add,		"add(self: DateTime, seconds: int)" },
+	/*! Adds the specified number of \a seconds to the given datetime (may be used for both local and global datetime)
+	 * And returns the self time object.
+	*/
+	{ DaoTime_Add,		"add(self: DateTime, seconds: int) => DateTime" },
 
 	/*! Datetime comparison */
 	{ DaoTime_Equal,	"==(invar a: DateTime, invar b: DateTime) => int" },

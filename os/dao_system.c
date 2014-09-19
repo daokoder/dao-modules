@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2006-2013, Limin Fu
+// Copyright (c) 2006-2014, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -55,9 +55,8 @@ extern char ** environ;
 #include"daoString.h"
 #include"daoValue.h"
 #include"daoThread.h"
-#include"dao_sys.h"
 
-static void SYS_Sleep( DaoProcess *proc, DaoValue *p[], int N )
+static void OS_Sleep( DaoProcess *proc, DaoValue *p[], int N )
 {
 #ifdef DAO_WITH_THREAD
 	DMutex    mutex;
@@ -84,15 +83,15 @@ static void SYS_Sleep( DaoProcess *proc, DaoValue *p[], int N )
 	Sleep( s * 1000 );
 #endif
 }
-static void SYS_Exit( DaoProcess *proc, DaoValue *p[], int N )
+static void OS_Exit( DaoProcess *proc, DaoValue *p[], int N )
 {
 	exit( (int)p[0]->xInteger.value );
 }
-static void SYS_Shell( DaoProcess *proc, DaoValue *p[], int N )
+static void OS_Shell( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoProcess_PutInteger( proc, system( DString_GetData( p[0]->xString.value ) ) );
 }
-static void SYS_Popen( DaoProcess *proc, DaoValue *p[], int N )
+static void OS_Popen( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoStream *stream = NULL;
 	DString *fname = p[0]->xString.value;
@@ -118,7 +117,7 @@ static void SYS_Popen( DaoProcess *proc, DaoValue *p[], int N )
 		if( strstr( mode, "w" ) || strstr( mode, "a" ) ) stream->mode |= DAO_STREAM_WRITABLE;
 	}
 }
-static void SYS_Pclose( DaoProcess *proc, DaoValue *p[], int N )
+static void OS_Pclose( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoStream *stream = &p[0]->xStream;
 	if ( stream->file && ( stream->mode & DAO_STREAM_PIPE ) ){
@@ -129,7 +128,7 @@ static void SYS_Pclose( DaoProcess *proc, DaoValue *p[], int N )
 	else
 		DaoProcess_RaiseError( proc, "Param", "open pipe stream required" );
 }
-static void SYS_SetLocale( DaoProcess *proc, DaoValue *p[], int N )
+static void OS_SetLocale( DaoProcess *proc, DaoValue *p[], int N )
 {
 	int category = 0;
 	char* old;
@@ -147,16 +146,16 @@ static void SYS_SetLocale( DaoProcess *proc, DaoValue *p[], int N )
 	else
 		DaoProcess_RaiseError( proc, "Sys", "invalid locale" );
 }
-static void SYS_Clock( DaoProcess *proc, DaoValue *p[], int N )
+static void OS_Clock( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoProcess_PutFloat( proc, ((float)clock())/CLOCKS_PER_SEC );
 }
-static void SYS_GetEnv( DaoProcess *proc, DaoValue *p[], int N )
+static void OS_GetEnv( DaoProcess *proc, DaoValue *p[], int N )
 {
 	char *evar = getenv( DString_GetData( p[0]->xString.value ) );
 	DaoProcess_PutChars( proc, evar? evar : "" );
 }
-static void SYS_PutEnv( DaoProcess *proc, DaoValue *p[], int N )
+static void OS_PutEnv( DaoProcess *proc, DaoValue *p[], int N )
 {
 	char *name = DString_GetData( p[0]->xString.value );
 	char *value = DString_GetData( p[1]->xString.value );
@@ -171,7 +170,7 @@ static void SYS_PutEnv( DaoProcess *proc, DaoValue *p[], int N )
 		free( buf );
 	}
 }
-static void SYS_EnvVars( DaoProcess *proc, DaoValue *p[], int N )
+static void OS_EnvVars( DaoProcess *proc, DaoValue *p[], int N )
 {
 #define LOCAL_BUF_SIZE 256
 	DaoMap *map = DaoProcess_PutMap( proc, 0 );
@@ -222,7 +221,7 @@ void DString_SetTChars( DString *str, wchar_t *tcs )
 			DString_AppendWChar( str, *tcs );
 }
 
-static void SYS_User( DaoProcess *proc, DaoValue *p[], int N )
+static void OS_User( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DString *user = DaoProcess_PutChars( proc, "" );
 	int res;
@@ -243,7 +242,7 @@ static void SYS_User( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, "Sys", "Failed to get user information" );
 }
 
-static void SYS_Uname( DaoProcess *proc, DaoValue *p[], int N )
+static void OS_Uname( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTuple *tup = DaoProcess_PutTuple( proc, 4 );
 	int res;
@@ -294,47 +293,28 @@ static void SYS_Uname( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, "Sys", "Failed to get system information" );
 }
 
-static void SYS_Null( DaoProcess *proc, DaoValue *p[], int N )
-{
-#ifdef WIN32
-	const char *npath = "NUL";
-#else
-	const char *npath = "/dev/null";
-#endif
-	FILE *file = fopen( npath, "w" );
-	if ( !file )
-		DaoProcess_RaiseError( proc, "Sys", "Failed to open system null device" );
-	else {
-		DaoStream *stream = DaoStream_New();
-		stream->file = file;
-		stream->mode |= DAO_STREAM_WRITABLE;
-		DaoProcess_PutValue( proc, (DaoValue*)stream );
-	}
-}
-
 static DaoFuncItem sysMeths[]=
 {
-	{ SYS_Shell,     "shell( command: string ) => int" },
-	{ SYS_Popen,     "popen( cmd: string, mode: string ) => io::Stream" },
-	{ SYS_Pclose,    "pclose( pipe: io::Stream ) => int" },
-	{ SYS_Null,      "null() => io::Stream" },
-	{ SYS_Sleep,     "sleep( seconds: float )" },
-	{ SYS_Exit,      "exit( code = 0 )" },
-	{ SYS_Clock,     "clock() => float" },
-	{ SYS_SetLocale, "setlocale( category: enum<all,collate,ctype,monetary,numeric,time> = $all, locale = \"\" ) => string" },
-	{ SYS_EnvVars,   "getenv() => map<string,string>"},
-	{ SYS_GetEnv,    "getenv( name: string ) => string" },
-	{ SYS_PutEnv,    "putenv( name: string, value = \"\" )"},
-	{ SYS_User,      "user() => string"},
-	{ SYS_Uname,     "uname() => tuple<system: string, version: string, release: string, host: string>"},
+	{ OS_Shell,     "shell( command: string ) => int" },
+	{ OS_Popen,     "popen( cmd: string, mode: string ) => io::Stream" },
+	{ OS_Pclose,    "pclose( pipe: io::Stream ) => int" },
+	{ OS_Sleep,     "sleep( seconds: float )" },
+	{ OS_Exit,      "exit( code = 0 )" },
+	{ OS_Clock,     "clock() => float" },
+	{ OS_SetLocale, "setlocale( category: enum<all,collate,ctype,monetary,numeric,time> = $all, locale = \"\" ) => string" },
+	{ OS_EnvVars,   "getenv() => map<string,string>"},
+	{ OS_GetEnv,    "getenv( name: string ) => string" },
+	{ OS_PutEnv,    "putenv( name: string, value = \"\" )"},
+	{ OS_User,      "user() => string"},
+	{ OS_Uname,     "uname() => tuple<system: string, version: string, release: string, host: string>"},
 	{ NULL, NULL }
 };
 
 
 
-DAO_DLL int DaoSys_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_DLL int DaoOS_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	ns = DaoNamespace_GetNamespace( ns, "sys" );
+	ns = DaoNamespace_GetNamespace( ns, "os" );
 	DaoNamespace_WrapFunctions( ns, sysMeths );
 	return 0;
 }
