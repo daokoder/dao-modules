@@ -806,7 +806,7 @@ static DaoFuncItem metaMeths[]=
 		"nameOf( object: routine|routine[]|class|interface|namespace|type ) => string"
 	},
 	{ META_NS,
-		"namespaceOf( object: routine|routine[]|class|$here = $here ) => namespace"
+		"namespaceOf( object: routine|routine[]|class|enum<here> = $here ) => namespace"
 	},
 	{ META_Type,
 		"typeOf( object: any ) => type"
