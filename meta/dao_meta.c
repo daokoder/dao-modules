@@ -141,6 +141,8 @@ Failed:
 	DList_Delete( routines );
 	return 0;
 }
+#endif
+#if 0
 DaoClass* DaoClass_Instantiate( DaoClass *self, DList *types )
 {
 	DaoClass *klass = NULL;
@@ -214,6 +216,8 @@ DaoClass* DaoClass_Instantiate( DaoClass *self, DList *types )
 	DString_Delete( name );
 	return klass;
 }
+#endif
+#if 0
 
 
 /* storage enum<const,global,var> */
@@ -507,7 +511,7 @@ static void META_NS( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	DaoProcess_PutValue( proc, (DaoValue*) res );
 }
-static void META_Base( DaoProcess *proc, DaoValue *p[], int N )
+static void META_Parent( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoList *ls = DaoProcess_PutList( proc );
 	int i;
@@ -720,74 +724,42 @@ static void META_Routine( DaoProcess *proc, DaoValue *p[], int N )
 }
 static void META_Class( DaoProcess *proc, DaoValue *p[], int N )
 {
-#if 0
-	if( p[0]->type == DAO_ROUTINE && p[0]->v.routine->tidHost == DAO_OBJECT ){
-		DaoProcess_PutValue( proc, (DaoValue*) p[0]->v.routine->routHost->aux.v.klass );
+	if( p[0]->type == DAO_ROUTINE && p[0]->xRoutine.routHost ){
+		DaoProcess_PutValue( proc, (DaoValue*) p[0]->xRoutine.routHost->aux );
 	}else if( p[0]->type == DAO_OBJECT ){
-		DaoProcess_PutValue( proc, (DaoValue*) p[0]->v.object->defClass );
-	}
-#endif
-	DaoProcess_PutNone( proc );
-}
-static void META_Self( DaoProcess *proc, DaoValue *p[], int N )
-{
-	if( p[0]->type == DAO_OBJECT )
-		DaoProcess_PutValue( proc, (DaoValue*) p[0]->xObject.rootObject );
-	else
+		DaoProcess_PutValue( proc, (DaoValue*) p[0]->xObject.defClass );
+	}else if( p[0]->type == DAO_CDATA || p[0]->type == DAO_CSTRUCT ){
+		DaoProcess_PutValue( proc, (DaoValue*) p[0]->xCstruct.ctype->aux );
+	}else{
 		DaoProcess_PutNone( proc );
+	}
+}
+static void META_Child( DaoProcess *proc, DaoValue *p[], int N )
+{
+	if( p[0]->type == DAO_OBJECT ){
+		DaoProcess_PutValue( proc, (DaoValue*) p[0]->xObject.rootObject );
+	}else if( p[0]->type == DAO_CDATA || p[0]->type == DAO_CSTRUCT ){
+		DaoProcess_PutValue( proc, (DaoValue*) p[0]->xCstruct.object );
+	}else{
+		DaoProcess_PutNone( proc );
+	}
 }
 static void META_Param( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoRoutine *routine = (DaoRoutine*) p[0];
+	DaoList *routConsts = routine->routConsts;
 	DaoList *list = DaoProcess_PutList( proc );
-	DaoTuple *tuple;
 	DaoType *routype = routine->routType;
 	DaoType *itp = list->ctype->nested->items.pType[0];
-	DaoType **nested = routype->nested->items.pType;
-	DString *mbs = DString_New(1);
-	DNode *node;
-	DaoString str = {DAO_STRING,0,0,0,0,NULL};
-	DaoInteger num = {DAO_INTEGER,0,0,0,0,1};
-	int i, i3 = 3;
-	str.value = mbs;
-	for(i=0; i<routine->parCount; i++){
-		if( i >= routype->nested->size ) break;
-		tuple = DaoTuple_New( 4 );
-		tuple->ctype = itp;
-		GC_IncRC( itp );
-		num.value = 0;
-		if( nested[i]->tid == DAO_PAR_DEFAULT ) num.value = 1;
-		DaoValue_Copy( (DaoValue*) & str, & tuple->values[0] );
-		DaoValue_Copy( (DaoValue*) nested[i], & tuple->values[1] );
-		DaoValue_Copy( (DaoValue*) & num, & tuple->values[2] );
-		DaoValue_Copy( routine->routConsts->value->items.pValue[i], & tuple->values[i3] );
-		DaoList_Append( list, (DaoValue*) tuple );
-	}
-	DString_Delete( mbs );
-	if( routype->mapNames ){
-		node = DMap_First( routype->mapNames );
-		for( ; node !=NULL; node = DMap_Next( routype->mapNames, node ) ){
-			i = node->value.pInt;
-			mbs = list->value->items.pValue[i]->xTuple.values[0]->xString.value;
-			DString_Assign( mbs, node->key.pString );
-		}
-	}
-}
-static void META_Argc( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoProcess_PutInteger( proc, proc->topFrame->parCount );
-}
-static void META_Argv( DaoProcess *proc, DaoValue *p[], int N )
-{
 	int i;
-	if( N ==0 ){
-		DaoList *list = DaoProcess_PutList( proc );
-		for(i=0; i<proc->topFrame->parCount; i++) DaoList_Append( list, proc->activeValues[i] );
-	}else{
-		DaoValue *val = DaoValue_MakeNone();
-		if( p[0]->xInteger.value < proc->topFrame->parCount )
-			val = proc->activeValues[ p[0]->xInteger.value ];
-		DaoProcess_PutValue( proc, val );
+	for(i=0; i<routype->nested->size; i++){
+		DaoType *partype = routype->nested->items.pType[i];
+		DaoTuple *tuple = DaoTuple_Create( itp, 2 + (partype->tid == DAO_PAR_DEFAULT), 1 );
+
+		if( partype->fname ) DString_Assign( tuple->values[0]->xString.value, partype->fname );
+		DaoTuple_SetItem( tuple, partype->fname ? partype->aux : (DaoValue*) partype, 1 );
+		if( tuple->size == 3 ) DaoTuple_SetItem( tuple, routConsts->value->items.pValue[i], 2 );
+		DaoList_Append( list, (DaoValue*) tuple );
 	}
 }
 static void META_Trace( DaoProcess *proc, DaoValue *p[], int N )
@@ -813,7 +785,8 @@ static void META_Trace( DaoProcess *proc, DaoValue *p[], int N )
 		inst.value = line.value = 0;
 		if( frame->routine->body ){
 			DaoRoutineBody *body = frame->routine->body;
-			inst.value = (depth==1) ? (int)(proc->activeCode - body->vmCodes->data.codes) : frame->entry;
+			DaoVmCode *codes = body->vmCodes->data.codes;
+			inst.value = (depth==1) ? (int)(proc->activeCode - codes) : frame->entry;
 			line.value = body->annotCodes->items.pVmc[inst.value]->line;
 		}
 
@@ -828,12 +801,7 @@ static void META_Trace( DaoProcess *proc, DaoValue *p[], int N )
 }
 static DaoFuncItem metaMeths[]=
 {
-	{ META_Param,   "param( rout )=>list<tuple<name:string,type:any,deft:int,value:any>>" },
-	{ META_Self,    "self( object ) => any" },
-	{ META_Argc,    "argc() => int" },
-	{ META_Argv,    "argv() => list<any>" },
-	{ META_Argv,    "argv( i : int ) => any" },
-
+	/* TODO: methods for types. */
 	{ META_Name, /* TODO: type for cdata; */
 		"nameOf( object: routine|routine[]|class|interface|namespace|type ) => string"
 	},
@@ -846,14 +814,21 @@ static DaoFuncItem metaMeths[]=
 	{ META_Class,
 		"classOf( object: any ) => any"
 	},
-	{ META_Base,
+	{ META_Parent,
 		"parentOf( object: any ) => list<any>"
+	},
+	{ META_Child,
+		"childOf( object: any ) => any"
 	},
 	{ META_Routine,
 		"currentRoutine() => routine|routine[]"
 	},
 	{ META_Routine,
 		"overloadsOf( rout: routine|routine[] ) => list<routine|routine[]>"
+	},
+	{ META_Param,
+		"parametersOf( rout: routine|routine[] )"
+			"=> list< tuple<name: string, partype: any, ... : any> >"
 	},
 	{ META_Cst1,
 		"constants( object: any, restrict = false ) "
