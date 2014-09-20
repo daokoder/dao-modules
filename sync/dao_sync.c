@@ -189,14 +189,13 @@ static void DaoCondV_Lib_Wait( DaoProcess *proc, DaoValue *par[], int N )
 {
 	DaoCondVar *self = (DaoCondVar*) par[0];
 	DaoMutex *mutex = (DaoMutex*) par[1];
-	DCondVar_Wait( & self->myCondVar, & mutex->myMutex );
-}
-static void DaoCondV_Lib_TimedWait( DaoProcess *proc, DaoValue *par[], int N )
-{
-	DaoCondVar *self = (DaoCondVar*) par[0];
-	DaoMutex *mutex = (DaoMutex*) par[1];
-	DaoProcess_PutBoolean( proc,
-			DCondVar_TimedWait( & self->myCondVar, & mutex->myMutex, par[2]->xFloat.value ) == 0 );
+	dao_float timeout = par[2]->xFloat.value;
+	int res = 1;
+	if ( timeout < 0 )
+		DCondVar_Wait( & self->myCondVar, & mutex->myMutex );
+	else
+		res = DCondVar_TimedWait( & self->myCondVar, & mutex->myMutex, timeout ) == 0;
+	DaoProcess_PutBoolean( proc, res );
 }
 static void DaoCondV_Lib_Signal( DaoProcess *proc, DaoValue *par[], int N )
 {
@@ -211,8 +210,7 @@ static void DaoCondV_Lib_BroadCast( DaoProcess *proc, DaoValue *par[], int N )
 static DaoFuncItem condvMeths[] =
 {
 	{ DaoCondV_Lib_CondVar,   "Condition() => Condition" },
-	{ DaoCondV_Lib_Wait,      "wait( self: Condition, mtx: Mutex )" },
-	{ DaoCondV_Lib_TimedWait, "timedWait( self: Condition, mtx: Mutex, seconds: float ) => bool" },
+	{ DaoCondV_Lib_Wait,      "wait( self: Condition, mtx: Mutex, timeout = -1.0 ) => bool" },
 	{ DaoCondV_Lib_Signal,    "signal( self: Condition )" },
 	{ DaoCondV_Lib_BroadCast, "broadcast( self: Condition )" },
 	{ NULL, NULL }
@@ -562,7 +560,7 @@ static DaoFuncItem stateMeths[] =
 
 	/*! Blocks the current thread until the specified \a value is set, or until the end of \a timeout given in seconds (if \a timeout is positive)
 	 * Returns \c true if not timed out */
-	{ DaoState_WaitFor,  "wait( self: State<@T>, value: @T, timeout: float = -1 ) => bool" },
+	{ DaoState_WaitFor,  "wait( self: State<@T>, value: @T, timeout = -1.0 ) => bool" },
 
 	/*! Returns the list of all values currently awaited from the state by all threads */
 	{ DaoState_Waitlist, ".waitList( self: State<@T> ) => list<@T>" },
@@ -833,14 +831,14 @@ static DaoFuncItem queueMeths[] =
 
 	/*! Tries to push \a value to the queue within the given \a timeout interval (in case of negative value, waits indefinitely).
 	 * Returns \c true if \a value was successfully pushed */
-	{ DaoQueue_TryPush,  "tryPush( self: Queue<@T>, value: @T, timeout: float = 0 ) => bool" },
+	{ DaoQueue_TryPush,  "tryPush( self: Queue<@T>, value: @T, timeout = 0.0 ) => bool" },
 
 	/*! Pops \a value from the queue, blocks if queue size is zero */
 	{ DaoQueue_Pop,      "pop( self: Queue<@T> ) => @T" },
 
 	/*! Tries to pop \a value from the queue within the given \a timeout interval (in case of negative value, waits indefinitely). On success,
 	 * returns the popped value */
-	{ DaoQueue_TryPop,   "tryPop( self: Queue<@T>, timeout: float = 0 ) => @T|none" },
+	{ DaoQueue_TryPop,   "tryPop( self: Queue<@T>, timeout = 0.0 ) => @T|none" },
 
 	/*! Moves all elements of \a other to this queue, leaving \a other empty */
 	{ DaoQueue_Merge,    "merge( self: Queue<@T>, other: Queue<@T> )" },
