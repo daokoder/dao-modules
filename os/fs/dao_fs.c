@@ -687,8 +687,8 @@ static void GetErrorMessage( char *buffer, int code, int special )
 	case EEXIST:		strcpy( buffer, special? "Directory is not empty (ENOTEMPTY/EEXIST)" :
 												 "File object already exists (EEXIST/ENOTEMPTY)" ); break;
 	case EPERM:
-	case ENOTDIR:
-	case EISDIR:		strcat( buffer, "Inconsistent type of file object (EPERM/ENOTDIR/EISDIR)" ); break;
+	case ENOTDIR:		strcat( buffer, "File referenced as a directory component of path is not a directory (ENOTDIR)" ); break;
+	case EISDIR:		strcat( buffer, "Inconsistent type of file object (EPERM/EISDIR)" ); break;
 	case EINVAL:		strcpy( buffer, special? "Invalid path (EINVAL)" : "Making a directory its own subdirectory (EINVAL)" ); break;
 	case EMLINK:		strcat( buffer, "Too many entries in parent directory (EMLINK)" ); break;
 	case ENOENT:		strcpy( buffer, "Path does not exist (ENOENT)" ); break;
@@ -702,7 +702,7 @@ static void GetErrorMessage( char *buffer, int code, int special )
 	case EFBIG:			strcpy( buffer, "File size is too large (EFBIG)" ); break;
 	case EIO:			strcpy( buffer, "Hardware I/O error (EIO)" ); break;
 	case EINTR:			strcpy( buffer, "Operation interrupted by a signal (EINTR)" ); break;
-	case ELOOP:			strcpy( buffer, "Too many symbolic links" ); break;
+	case ELOOP:			strcpy( buffer, "Too many symbolic links (ELOOP)" ); break;
 	default:			sprintf( buffer, "Unknown system error (%x)", code );
 	}
 }
