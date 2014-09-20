@@ -15,7 +15,7 @@ class Server
 			message = sockfd.receive();
 			io.writeln( sockfd.peername );
 			io.writeln( 'received', message );
-			sockfd.send_dao( 'TEST', 12.345, [1,2,3] );
+			sockfd.sendDao( 'TEST', 12.345, [1,2,3] );
 			sockfd.close();
 			break;
 		}
@@ -29,7 +29,7 @@ class Client
 		sockfd = net.connect( 'localhost', 10000 );
 		io.writeln( 'sending' );
 		sockfd.send( 'TEST' );
-		message = sockfd.receive_dao();
+		message = sockfd.receiveDao();
 		io.writeln( 'received', message );
 		sockfd.close();
 	}

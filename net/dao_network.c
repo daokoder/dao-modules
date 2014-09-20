@@ -1012,10 +1012,10 @@ static DaoFuncItem socketMeths[] =
 	{  DaoSocket_Lib_Receive,       "read( self: Socket, count = -1 ) => string" },
 
 	/*! Sends data via the internal serialization protocol */
-	{  DaoSocket_Lib_SendDao,       "send_dao( self: Socket, ... )" },
+	{  DaoSocket_Lib_SendDao,       "sendDao( self: Socket, ... )" },
 
 	/*! Receives data via the internal serialization protocol */
-	{  DaoSocket_Lib_ReceiveDao,    "receive_dao( self: Socket ) => list<int|float|complex|string|array>" },
+	{  DaoSocket_Lib_ReceiveDao,    "receiveDao( self: Socket ) => list<int|float|complex|string|array>" },
 
 	/*! Checks the property specified by \a what; required to satisfy `io::Device` interface  */
 	{  DaoSocket_Lib_Check,			"check(self: Socket, what: enum<readable,writable,open,eof>) => bool" },

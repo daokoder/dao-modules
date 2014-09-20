@@ -144,7 +144,7 @@ static DaoFuncItem mutexMeths[] =
 	{ DaoMutex_Lib_Mutex,     "Mutex() => Mutex" },
 	{ DaoMutex_Lib_Lock,      "lock( self: Mutex )" },
 	{ DaoMutex_Lib_Unlock,    "unlock( self: Mutex )" },
-	{ DaoMutex_Lib_TryLock,   "trylock( self: Mutex ) => bool" },
+	{ DaoMutex_Lib_TryLock,   "tryLock( self: Mutex ) => bool" },
 	{ DaoMutex_Lib_Protect,   "protect( self: Mutex )[]" },
 	{ NULL, NULL }
 };
@@ -212,7 +212,7 @@ static DaoFuncItem condvMeths[] =
 {
 	{ DaoCondV_Lib_CondVar,   "Condition() => Condition" },
 	{ DaoCondV_Lib_Wait,      "wait( self: Condition, mtx: Mutex )" },
-	{ DaoCondV_Lib_TimedWait, "timedwait( self: Condition, mtx: Mutex, seconds: float ) => bool" },
+	{ DaoCondV_Lib_TimedWait, "timedWait( self: Condition, mtx: Mutex, seconds: float ) => bool" },
 	{ DaoCondV_Lib_Signal,    "signal( self: Condition )" },
 	{ DaoCondV_Lib_BroadCast, "broadcast( self: Condition )" },
 	{ NULL, NULL }
@@ -565,7 +565,7 @@ static DaoFuncItem stateMeths[] =
 	{ DaoState_WaitFor,  "wait( self: State<@T>, value: @T, timeout: float = -1 ) => bool" },
 
 	/*! Returns the list of all values currently awaited from the state by all threads */
-	{ DaoState_Waitlist, ".waitlist( self: State<@T> ) => list<@T>" },
+	{ DaoState_Waitlist, ".waitList( self: State<@T> ) => list<@T>" },
 	{ NULL, NULL }
 };
 
@@ -833,20 +833,20 @@ static DaoFuncItem queueMeths[] =
 
 	/*! Tries to push \a value to the queue within the given \a timeout interval (in case of negative value, waits indefinitely).
 	 * Returns \c true if \a value was successfully pushed */
-	{ DaoQueue_TryPush,  "trypush( self: Queue<@T>, value: @T, timeout: float = 0 ) => bool" },
+	{ DaoQueue_TryPush,  "tryPush( self: Queue<@T>, value: @T, timeout: float = 0 ) => bool" },
 
 	/*! Pops \a value from the queue, blocks if queue size is zero */
 	{ DaoQueue_Pop,      "pop( self: Queue<@T> ) => @T" },
 
 	/*! Tries to pop \a value from the queue within the given \a timeout interval (in case of negative value, waits indefinitely). On success,
 	 * returns the popped value */
-	{ DaoQueue_TryPop,   "trypop( self: Queue<@T>, timeout: float = 0 ) => @T|none" },
+	{ DaoQueue_TryPop,   "tryPop( self: Queue<@T>, timeout: float = 0 ) => @T|none" },
 
 	/*! Moves all elements of \a other to this queue, leaving \a other empty */
 	{ DaoQueue_Merge,    "merge( self: Queue<@T>, other: Queue<@T> )" },
 
 	/*! Blocks until the queue is emptied */
-	{ DaoQueue_Join,     "wait_empty( self: Queue<@T> )" },
+	{ DaoQueue_Join,     "waitEmpty( self: Queue<@T> )" },
 	{ NULL, NULL }
 };
 

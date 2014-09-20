@@ -735,7 +735,7 @@ static DaoFuncItem timeFuncs[] =
 	{ DaoTime_Get,		"now(kind: enum<local,utc> = $local) => DateTime" },
 
 	/*! Returns datetime of the given \a kind corresponding to \c time_t \a value */
-	{ DaoTime_Time,		"from_value(value: int, kind: enum<local,utc> = $local) => DateTime" },
+	{ DaoTime_Time,		"fromValue(value: int, kind: enum<local,utc> = $local) => DateTime" },
 
 	/*! Returns local datetime composed of the specified \a year, \a month, \a day, \a hour, \a min and \a sec */
 	{ DaoTime_MakeTime,	"make(year: int, month: int, day: int, hour = 0, min = 0, sec = 0) => DateTime" },

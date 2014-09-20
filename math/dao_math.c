@@ -386,7 +386,7 @@ static DaoFuncItem mathMeths[]=
 #endif
 
 	{ MATH_srand,     "srand( p: int)=>int" },
-	{ MATH_rand_gaussian,  "rand_gaussian( p: float = 1.0 )=>float" },
+	{ MATH_rand_gaussian,  "randGaussian( p: float = 1.0 )=>float" },
 	{ MATH_round,     "round( p: float )=>float" },
 	{ MATH_hypot,     "hypot( p1: float, p2: float )=>float" },
 	{ MATH_isnan,     "isnan( p: float )=>int" },

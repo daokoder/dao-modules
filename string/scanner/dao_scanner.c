@@ -316,7 +316,7 @@ static DaoFuncItem scannerMeths[] =
 	{ DaoScanner_Matched,	"matched(invar self: Scanner, group = 0) => string" },
 
 	/*! Position of the last matched sub-string or its group \a group (if \a group is greater then zero) */
-	{ DaoScanner_MatchedAt,	"matched_pos(invar self: Scanner, group = 0) => tuple<start: int, end: int>|none" },
+	{ DaoScanner_MatchedAt,	"matchedPos(invar self: Scanner, group = 0) => tuple<start: int, end: int>|none" },
 
 	/*! Line number at the current position */
 	{ DaoScanner_Line,		"line(invar self: Scanner) => int" },
