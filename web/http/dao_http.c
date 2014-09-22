@@ -1237,7 +1237,7 @@ DAO_DLL int DaoHTTP_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	daox_type_server = DaoNamespace_WrapType( ns, & ServerTyper, 0 );
 	daox_type_client = DaoNamespace_WrapType( ns, & ClientTyper, 0 );
 	daox_type_keyvalue = DaoNamespace_ParseType( ns, "map<string,string>" );
-	daox_type_namestream = DaoNamespace_DefineType( ns, "tuple<file:string,size:int,data:io::stream>", "HttpUpload" );
+	daox_type_namestream = DaoNamespace_DefineType( ns, "tuple<file:string,size:int,data:io::Stream>", "HttpUpload" );
 	daox_type_filemap = DaoNamespace_ParseType( ns, "map<string,HttpUpload>" );
 	mg_init();
 	daox_webdao_server = DaoxServer_New();
