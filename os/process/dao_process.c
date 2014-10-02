@@ -543,13 +543,16 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 		if ( id == 0 ){ // child
 			int fdout = fileno( stdout );
 			int fdin = fileno( stdin );
+			int fderr = fileno( stderr );
 			close( self->fdrpipe[0] );
 			close( self->fdwpipe[1] );
 			// redirecting standard IO
 			dup2( self->fdrpipe[1], fdout );
+			dup2( self->fdrpipe[1], fderr );
 			dup2( self->fdwpipe[0], fdin );
 			// setting non-blocking mode
 			fcntl( fdout, F_SETFL, fcntl( fdout, F_GETFL, 0 ) | O_NONBLOCK );
+			fcntl( fderr, F_SETFL, fcntl( fderr, F_GETFL, 0 ) | O_NONBLOCK );
 			fcntl( fdin, F_SETFL, fcntl( fdin, F_GETFL, 0 ) | O_NONBLOCK );
 			// setting environment
 			if ( env ){
