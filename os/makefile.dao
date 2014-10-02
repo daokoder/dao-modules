@@ -1,5 +1,5 @@
 
-project = DaoMake::Project( "DaoOS" ) 
+project = DaoMake::Project( "DaoOS" )
 
 daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
 
@@ -15,6 +15,10 @@ dao_fs_objs = project.AddObjects( { "fs/dao_fs.c" } )
 dao_fs_dll  = project.AddSharedLibrary( "dao_fs", dao_fs_objs )
 dao_fs_lib  = project.AddStaticLibrary( "dao_fs", dao_fs_objs )
 
+dao_process_objs = project.AddObjects( { "fs/dao_process.c" } )
+dao_process_dll  = project.AddSharedLibrary( "dao_process", dao_process_objs )
+dao_process_lib  = project.AddStaticLibrary( "dao_process", dao_process_objs )
+
 dao_os_dll.SetTargetPath( "../../lib/dao/modules" )
 dao_os_lib.SetTargetPath( "../../lib/dao/modules" )
 
@@ -28,3 +32,5 @@ project.Install( DaoMake::Variables[ "INSTALL_MOD" ], dao_os_dll );
 project.Install( DaoMake::Variables[ "INSTALL_MOD" ], dao_os_lib );
 project.Install( path, dao_fs_dll );
 project.Install( path, dao_fs_lib );
+project.Install( path, dao_process_dll );
+project.Install( path, dao_process_lib );
