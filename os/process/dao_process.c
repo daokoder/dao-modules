@@ -535,6 +535,9 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 		// creating pipes
 		if ( pipe( self->fdrpipe ) < 0 || pipe( self->fdwpipe ) < 0 )
 			return NULL;
+		// setting non-blocking mode
+		fcntl( self->fdrpipe[0], F_SETFL, fcntl( self->fdrpipe[0], F_GETFL, 0 ) | O_NONBLOCK );
+		fcntl( self->fdwpipe[1], F_SETFL, fcntl( self->fdwpipe[1], F_GETFL, 0 ) | O_NONBLOCK );
 		// checking working directory
 		if ( dir && stat( dir->chars, &st ) != 0 )
 			return NULL;
@@ -550,10 +553,6 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 			dup2( self->fdrpipe[1], fdout );
 			dup2( self->fdrpipe[1], fderr );
 			dup2( self->fdwpipe[0], fdin );
-			// setting non-blocking mode
-			fcntl( fdout, F_SETFL, fcntl( fdout, F_GETFL, 0 ) | O_NONBLOCK );
-			fcntl( fderr, F_SETFL, fcntl( fderr, F_GETFL, 0 ) | O_NONBLOCK );
-			fcntl( fdin, F_SETFL, fcntl( fdin, F_GETFL, 0 ) | O_NONBLOCK );
 			// setting environment
 			if ( env ){
 				int i;
