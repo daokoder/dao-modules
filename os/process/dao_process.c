@@ -520,7 +520,7 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 			return NULL;
 		CloseHandle( pinfo.hThread );
 		self->id = pinfo.hProcess;
-		self->pid = GetProcessId( self->id ); // this function requires Windows XP SP1 or higher
+		self->pid = dwProcessId;
 	}
 #else
 	if ( 1 ){
