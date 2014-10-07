@@ -285,7 +285,7 @@ int DaoOSProcess_GetExitCode( DaoOSProcess *self, int *dest )
 	return 0;
 }
 
-void DaoOSProcess_Kill( DaoOSProcess *self )
+void DaoOSProcess_Kill( DaoOSProcess *self, int force )
 {
 	if ( self->state != Process_Active )
 		return;
@@ -295,7 +295,7 @@ void DaoOSProcess_Kill( DaoOSProcess *self )
 		TerminateProcess( self->id, -1 );
 #else
 		if ( self->id != fetched_pid ) // decrease the possibility of killing unrelated process in marginal circumstances
-			kill( self->id, SIGKILL );
+			kill( self->id, force? SIGKILL : SIGTERM );
 #endif
 	}
 	DMutex_Unlock( &proc_mtx );
@@ -520,7 +520,7 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 			return NULL;
 		CloseHandle( pinfo.hThread );
 		self->id = pinfo.hProcess;
-		self->pid = dwProcessId;
+		self->pid = pinfo.dwProcessId;
 	}
 #else
 	if ( 1 ){
@@ -824,7 +824,7 @@ static void DaoOSProcess_Wait( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoOSProcess_LibKill( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoOSProcess *self = (DaoOSProcess*)DaoValue_TryGetCdata( p[0] );
-	DaoOSProcess_Kill( self );
+	DaoOSProcess_Kill( self, p[1]->xEnum.value == 1 );
 }
 
 static void DaoOSProcess_LibClose( DaoProcess *proc, DaoValue *p[], int N )
@@ -1092,10 +1092,10 @@ static DaoFuncItem procMeths[] =
 	 * may vary depending on the current clock resolution. */
 	{ DaoOSProcess_Wait,	"wait(invar self: Process, what: enum<exit,output>, timeout = -1.0) => bool" },
 
-	/*! Terminates the process without waiting and usual exit procedure
-	 *
-	 * \note On Windows, process exit code becomes -1 */
-	{ DaoOSProcess_LibKill,	"kill(self: Process)" },
+	/*! Attempts to terminate the process the way specified by \a how. On Unix, sends SIGTERM (\a how is `$gracefully`) or
+	 * SIGKILL (\a how is `$forcibly`). On Windows, terminates the process forcibly (regardless of \a how) and sets its exit code
+	 * to -1 */
+	{ DaoOSProcess_LibKill,	"terminate(self: Process, how: enum<gracefully,forcibly> = $forcibly)" },
 
 	/*! Reads *at most* \a count bytes from the output and error stream of the process, or all available data if \a count is
 	 * less then 0.
