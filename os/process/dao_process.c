@@ -540,6 +540,8 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 		}
 		if ( !res )
 			return NULL;
+		self->fdrpipe = fdr[0];
+		self->fdwpipe = fdw[1];
 		// setting non-blocking mode
 		fcntl( fdr[0], F_SETFL, fcntl( fdr[0], F_GETFL, 0 ) | O_NONBLOCK );
 		fcntl( fdw[1], F_SETFL, fcntl( fdw[1], F_GETFL, 0 ) | O_NONBLOCK );
@@ -584,8 +586,6 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 			return NULL;
 		close( fdr[1] );
 		close( fdw[0] );
-		self->fdrpipe = fdr[0];
-		self->fdwpipe = fdw[1];
 		self->id = id;
 		self->pid = id;
 	}
