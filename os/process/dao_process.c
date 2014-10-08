@@ -108,7 +108,7 @@ struct DaoOSProcess
 #ifdef WIN32
 	HANDLE rpipe, wpipe;
 #else
-	int fdrpipe[2], fdwpipe[2];
+	int fdrpipe, fdwpipe;
 	FILE *rpipe, *wpipe;
 #endif
 };
@@ -203,8 +203,8 @@ DaoOSProcess* DaoOSProcess_New()
 #ifdef WIN32
 	res->rpipe = res->wpipe = INVALID_HANDLE_VALUE;
 #else
-	res->fdrpipe[0] = res->fdrpipe[1] = -1;
-	res->fdwpipe[0] = res->fdwpipe[1] = -1;
+	res->fdrpipe = -1;
+	res->fdwpipe = -1;
 	res->rpipe = NULL;
 	res->wpipe = NULL;
 #endif
@@ -228,22 +228,18 @@ void DaoOSProcess_Close( DaoOSProcess *self, int mask )
 			fclose( self->rpipe );
 			self->rpipe = NULL;
 		}
-		if ( self->fdrpipe[0] >= 0 )
-			close( self->fdrpipe[0] );
-		if ( self->fdrpipe[1] >= 0 )
-			close( self->fdrpipe[1] );
-		self->fdrpipe[0] = self->fdrpipe[1] = -1;
+		if ( self->fdrpipe >= 0 )
+			close( self->fdrpipe );
+		self->fdrpipe = -1;
 	}
 	if ( mask & 2 ){
 		if ( self->wpipe ){
 			fclose( self->wpipe );
 			self->wpipe = NULL;
 		}
-		if ( self->fdwpipe[0] >= 0 )
-			close( self->fdwpipe[0] );
-		if ( self->fdwpipe[1] >= 0 )
-			close( self->fdwpipe[1] );
-		self->fdwpipe[0] = self->fdwpipe[1] = -1;
+		if ( self->fdwpipe >= 0 )
+			close( self->fdwpipe );
+		self->fdwpipe = -1;
 	}
 #endif
 }
@@ -306,7 +302,7 @@ int DaoOSProcess_IsReadable( DaoOSProcess *self )
 #ifdef WIN32
 	return self->rpipe != INVALID_HANDLE_VALUE;
 #else
-	return self->fdrpipe[0] != -1;
+	return self->fdrpipe != -1;
 #endif
 }
 
@@ -315,7 +311,7 @@ int DaoOSProcess_IsWritable( DaoOSProcess *self )
 #ifdef WIN32
 	return self->wpipe != INVALID_HANDLE_VALUE;
 #else
-	return self->fdwpipe[1] != -1;
+	return self->fdwpipe != -1;
 #endif
 }
 
@@ -326,7 +322,7 @@ int DaoOSProcess_PrepareForRead( DaoOSProcess *self )
 #ifdef UNIX
 	// lazily opened stream, required for feof() check
 	if ( !self->rpipe ){
-		self->rpipe = fdopen( self->fdrpipe[0], "r" );
+		self->rpipe = fdopen( self->fdrpipe, "r" );
 		if ( !self->rpipe )
 			return 0;
 	}
@@ -341,7 +337,7 @@ int DaoOSProcess_PrepareForWrite( DaoOSProcess *self )
 #ifdef UNIX
 	// lazily opened stream
 	if ( !self->wpipe ){
-		self->wpipe = fdopen( self->fdwpipe[1], "w" );
+		self->wpipe = fdopen( self->fdwpipe, "w" );
 		if ( !self->wpipe )
 			return 0;
 	}
@@ -527,17 +523,26 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 		pid_t id;
 		struct stat st;
 		char *argv[args->value->size + 2];
+		int fdr[2], fdw[2], res;
 		// setting argv
 		argv[0] = self->file->chars;
 		for ( i = 0; i < args->value->size; i++ )
 			argv[i + 1] = DaoList_GetItem( args, i )->xString.value->chars;
 		argv[args->value->size + 1] = NULL;
 		// creating pipes
-		if ( pipe( self->fdrpipe ) < 0 || pipe( self->fdwpipe ) < 0 )
+		res = pipe( fdr ) >= 0;
+		if ( res ){
+			res = pipe( fdw ) >= 0;
+			if ( !res ){
+				close( fdr[0] );
+				close( fdr[1] );
+			}
+		}
+		if ( !res )
 			return NULL;
 		// setting non-blocking mode
-		fcntl( self->fdrpipe[0], F_SETFL, fcntl( self->fdrpipe[0], F_GETFL, 0 ) | O_NONBLOCK );
-		fcntl( self->fdwpipe[1], F_SETFL, fcntl( self->fdwpipe[1], F_GETFL, 0 ) | O_NONBLOCK );
+		fcntl( fdr[0], F_SETFL, fcntl( fdr[0], F_GETFL, 0 ) | O_NONBLOCK );
+		fcntl( fdw[1], F_SETFL, fcntl( fdw[1], F_GETFL, 0 ) | O_NONBLOCK );
 		// checking working directory
 		if ( dir && stat( dir->chars, &st ) != 0 )
 			return NULL;
@@ -547,12 +552,12 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 			int fdout = fileno( stdout );
 			int fdin = fileno( stdin );
 			int fderr = fileno( stderr );
-			close( self->fdrpipe[0] );
-			close( self->fdwpipe[1] );
+			close( fdr[0] );
+			close( fdw[1] );
 			// redirecting standard IO
-			dup2( self->fdrpipe[1], fdout );
-			dup2( self->fdrpipe[1], fderr );
-			dup2( self->fdwpipe[0], fdin );
+			dup2( fdr[1], fdout );
+			dup2( fdr[1], fderr );
+			dup2( fdw[0], fdin );
 			// setting environment
 			if ( env ){
 				int i;
@@ -577,10 +582,10 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 		}
 		if ( id < 0 )
 			return NULL;
-		close( self->fdrpipe[1] );
-		close( self->fdwpipe[0] );
-		self->fdrpipe[1] = -1;
-		self->fdwpipe[0] = -1;
+		close( fdr[1] );
+		close( fdw[0] );
+		self->fdrpipe = fdr[0];
+		self->fdwpipe = fdw[1];
 		self->id = id;
 		self->pid = id;
 	}
@@ -632,7 +637,7 @@ int DaoOSProcess_WaitRead( DaoOSProcess *self, dao_float timeout )
 			fd_set set;
 			int res;
 			FD_ZERO( &set );
-			FD_SET( self->fdrpipe[0], &set );
+			FD_SET( self->fdrpipe, &set );
 			if ( timeout >= 0 ){
 				tv.tv_sec = timeout;
 				tv.tv_usec = ( timeout - tv.tv_sec ) * 1E6;
@@ -997,7 +1002,7 @@ static void OS_Select( DaoProcess *proc, DaoValue *p[], int N )
 			fd_set set;
 			FD_ZERO( &set );
 			for ( i = 0; i < count; i++ )
-				FD_SET( cprocs[i]->fdrpipe[0], &set );
+				FD_SET( cprocs[i]->fdrpipe, &set );
 			if ( timeout >= 0 ){
 				tv.tv_sec = timeout;
 				tv.tv_usec = ( timeout - tv.tv_sec ) * 1E6;
@@ -1006,7 +1011,7 @@ static void OS_Select( DaoProcess *proc, DaoValue *p[], int N )
 			res =  res < 0? -1 : ( res > 0 );
 			if ( res > 0 )
 				for ( i = 0; i < count; i++ )
-					if ( FD_ISSET( cprocs[i]->fdrpipe[0], &set ) ){
+					if ( FD_ISSET( cprocs[i]->fdrpipe, &set ) ){
 						value = DaoList_GetItem( lst, i );
 						break;
 					}
