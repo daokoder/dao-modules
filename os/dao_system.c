@@ -313,8 +313,9 @@ static DaoFuncItem sysMeths[]=
 
 DaoNumItem sysConsts[] =
 {
+	/*! Maxumum number of bytes which can be atomically written to a device */
 #ifdef WIN32
-	{ "ATOMIC_WRITE_CAP",  DAO_INTEGER, 512 },
+	{ "ATOMIC_WRITE_CAP",  DAO_INTEGER, 512 }, // smallest possible physical sector size
 #else
 	{ "ATOMIC_WRITE_CAP",  DAO_INTEGER, PIPE_BUF },
 #endif
