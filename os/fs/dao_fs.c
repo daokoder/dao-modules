@@ -1444,6 +1444,18 @@ static void FS_HomeDir( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_dir );
 }
 
+static void FS_Rm( DaoProcess *proc, DaoValue *p[], int N )
+{
+	char_t *path = CharsToTChars( p[0]->xString.value->chars );
+	if ( unlink( path ) != 0 && ( errno != ENOENT || rmdir( path ) != 0 ) ){
+		char errbuf[MAX_ERRMSG + MAX_PATH + 3];
+		GetErrorMessage( errbuf, errno, 0 );
+		snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %"T_FMT, path );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
+	}
+	FreeTChars( path );
+}
+
 static DaoFuncItem entryMeths[] =
 {
 	/*! Full path */
@@ -1583,6 +1595,9 @@ static DaoFuncItem fsMeths[] =
 	/*! Returns list of names of all file objects in the directory specified by \a path */
 	{ FS_ListDir,	"ls(invar path: Dir) => list<string>" },
 	{ FS_ListDir2,	"ls(path = '.') => list<string>" },
+
+	/*! Deletes file object specified by \a path */
+	{ FS_Rm,		"rm(path: string)" },
 
 	/*! Returns absolute form of \a path, which must point to an existing file or directory. On Windows, replaces all '\' in path
 	 * with '/' */
