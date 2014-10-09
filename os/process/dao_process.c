@@ -32,6 +32,7 @@
 
 #ifdef WIN32
 #include<io.h>
+#include<stdlib.h>
 #include<fcntl.h>
 #include<windows.h>
 #include<wctype.h>
@@ -82,6 +83,13 @@ char_t* CharsToTChars( char *chs, size_t len )
 #define IS_PATH_SEP( x ) ( ( x ) == '/' )
 
 static pid_t fetched_pid = 0; // extra safety measure against kill()'ing of innocents
+#endif
+
+#ifdef MAC_OSX
+# include <crt_externs.h>
+# define environ (*_NSGetEnviron())
+#else
+extern char **environ;
 #endif
 
 DMutex proc_mtx;
@@ -877,7 +885,17 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 			// setting environment
 			if ( env ){
 				int i;
-				clearenv();
+				// clearing existing environment
+				for ( i = 0; environ[i]; i++ ){
+					char *pos = strchr( environ[i], '=' );
+					if ( pos ){
+						size_t len = pos - environ[i];
+						char name[len + 1];
+						strncpy( name, environ[i], len );
+						name[len] = '\0';
+						unsetenv( name );
+					}
+				}
 				for ( i = 0; i < env->value->size; i++ ){
 					DString *str = env->value->items.pValue[i]->xString.value;
 					size_t len = str->size;
