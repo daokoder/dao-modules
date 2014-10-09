@@ -87,7 +87,20 @@ static pid_t fetched_pid = 0; // extra safety measure against kill()'ing of inno
 DMutex proc_mtx;
 DMap *proc_map; // PID => Process
 
+typedef struct DaoPipe DaoPipe;
 typedef struct DaoOSProcess DaoOSProcess;
+
+struct DaoPipe
+{
+	int autoclose;
+#ifdef WIN32
+	HANDLE rpipe, wpipe;
+#else
+	int fdrpipe, fdwpipe;
+	FILE *rpipe, *wpipe;
+#endif
+};
+
 typedef uchar_t proc_state;
 
 enum {
@@ -105,15 +118,454 @@ struct DaoOSProcess
 	volatile int excode;
 	volatile proc_state state;
 	DCondVar cvar, *pvar;
-#ifdef WIN32
-	HANDLE rpipe, wpipe;
-#else
-	int fdrpipe, fdwpipe;
-	FILE *rpipe, *wpipe;
-#endif
+	DaoValue *inpipe, *outpipe, *errpipe;
 };
 
 static DaoType *daox_type_process = NULL;
+static DaoType *daox_type_pipe = NULL;
+
+
+static void GetError( char *buf, size_t size )
+{
+#ifdef WIN32
+	FormatMessage( FORMAT_MESSAGE_FROM_SYSTEM, 0, GetLastError(), MAKELANGID( LANG_ENGLISH, SUBLANG_ENGLISH_US ), buf, size, NULL );
+#else
+	switch ( errno ){
+	case EMFILE:
+	case ENFILE:		snprintf( buf, size, "Too many files open (EMFILE/ENFILE)" ); break;
+	case ENOMEM:		snprintf( buf, size, "Not enough memory (ENOMEM)" ); break;
+	case EAGAIN:		snprintf( buf, size, "Too many processes running (EAGAIN)" ); break;
+	case ENOENT:		snprintf( buf, size, "Directory path does not exist (ENOENT)" ); break;
+	case EACCES:		snprintf( buf, size, "Directory access not permitted (EACCES)"); break;
+	case ENAMETOOLONG:	snprintf( buf, size, "Directory path is too long (ENAMETOOLONG)" ); break;
+	case ENOTDIR:		snprintf( buf, size, "Specified path is not a directory (ENOTDIR)" ); break;
+	case ELOOP:			snprintf( buf, size, "Too many symbolic links encountered while resolving directory path (ELOOP)" ); break;
+	case EINVAL:		snprintf( buf, size, "Invalid timeout value (EINVAL)" ); break;
+	case EINTR:			snprintf( buf, size, "Interrupted by a signal (EINTR)" ); break;
+	default:			snprintf( buf, size, "Unknown system error (%x)", (int)errno );
+	}
+#endif
+}
+
+DaoPipe* DaoPipe_New()
+{
+	DaoPipe *res = (DaoPipe*)dao_malloc( sizeof(DaoPipe) );
+	res->autoclose = 1;
+#ifdef WIN32
+	res->rpipe = res->wpipe = INVALID_HANDLE_VALUE;
+#else
+	res->fdrpipe = -1;
+	res->fdwpipe = -1;
+	res->rpipe = NULL;
+	res->wpipe = NULL;
+#endif
+	return res;
+}
+
+enum {
+	Pipe_Read,
+	Pipe_Write
+};
+
+typedef int pipe_end;
+
+void DaoPipe_Close( DaoPipe *self, pipe_end end )
+{
+#ifdef WIN32
+	if ( end == Pipe_Read && self->rpipe != INVALID_HANDLE_VALUE ){
+		CloseHandle( self->rpipe );
+		self->rpipe = INVALID_HANDLE_VALUE;
+	}
+	else if ( self->wpipe != INVALID_HANDLE_VALUE ){
+		CloseHandle( self->wpipe );
+		self->wpipe = INVALID_HANDLE_VALUE;
+	}
+#else
+	if ( end == Pipe_Read ){
+		if ( self->rpipe ){
+			fclose( self->rpipe );
+			self->rpipe = NULL;
+		}
+		if ( self->fdrpipe >= 0 )
+			close( self->fdrpipe );
+		self->fdrpipe = -1;
+	}
+	else {
+		if ( self->wpipe ){
+			fclose( self->wpipe );
+			self->wpipe = NULL;
+		}
+		if ( self->fdwpipe >= 0 )
+			close( self->fdwpipe );
+		self->fdwpipe = -1;
+	}
+#endif
+}
+
+void DaoPipe_Delete( DaoPipe *self )
+{
+	DaoPipe_Close( self, Pipe_Read );
+	DaoPipe_Close( self, Pipe_Write );
+	dao_free( self );
+}
+
+int DaoPipe_Init( DaoPipe *self )
+{
+#ifdef WIN32
+	SECURITY_ATTRIBUTES attrs;
+	attrs.nLength = sizeof(attrs);
+	attrs.bInheritHandle = TRUE;
+	attrs.lpSecurityDescriptor = NULL;
+	if ( !CreatePipe( &self->rpipe, &self->wpipe, &attrs, 0 ) )
+		return 0;
+	// setting handle inheritance
+	SetHandleInformation( self->rpipe, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT );
+	SetHandleInformation( self->wpipe, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT );
+	return 1;
+#else
+	int fd[2];
+	if ( pipe( fd ) >= 0 ){
+		self->fdrpipe = fd[0];
+		self->fdwpipe = fd[1];
+		return 1;
+	}
+	return 0;
+#endif
+}
+
+int DaoPipe_GetBlocking( DaoPipe *self, pipe_end end )
+{
+#ifdef WIN32
+	DWORD mode = 0;
+	HANDLE hpipe = ( end == Pipe_Read )? self->rpipe : self->wpipe;
+	GetNamedPipeHandleState( hpipe, &mode, NULL, NULL, NULL, NULL, 0 );
+	return !( mode & PIPE_NOWAIT );
+#else
+	int fdpipe = ( end == Pipe_Read )? self->fdrpipe : self->fdwpipe;
+	return !( fcntl( fdpipe, F_GETFL, 0 ) & O_NONBLOCK );
+#endif
+}
+
+int DaoPipe_SetBlocking( DaoPipe *self, pipe_end end, int blocking )
+{
+#ifdef WIN32
+	DWORD mode = blocking? PIPE_WAIT : PIPE_NOWAIT;
+	HANDLE hpipe = ( end == Pipe_Read )? self->rpipe : self->wpipe;
+	return SetNamedPipeHandleState( hpipe, &mode, NULL, NULL );
+#else
+	int fdpipe = ( end == Pipe_Read )? self->fdrpipe : self->fdwpipe;
+	int flag = blocking? ( fcntl( fdpipe, F_GETFL, 0 ) & ~( O_NONBLOCK ) ) : ( fcntl( fdpipe, F_GETFL, 0 ) | O_NONBLOCK );
+	return fcntl( fdpipe, F_SETFL, flag ) >= 0;
+#endif
+}
+
+int DaoPipe_IsReadable( DaoPipe *self )
+{
+#ifdef WIN32
+	return self->rpipe != INVALID_HANDLE_VALUE;
+#else
+	return self->fdrpipe != -1;
+#endif
+}
+
+int DaoPipe_IsWritable( DaoPipe *self )
+{
+#ifdef WIN32
+	return self->wpipe != INVALID_HANDLE_VALUE;
+#else
+	return self->fdwpipe != -1;
+#endif
+}
+
+int DaoPipe_PrepareForRead( DaoPipe *self )
+{
+	if ( !DaoPipe_IsReadable( self ) )
+		return 0;
+#ifdef UNIX
+	// lazily opened stream, required for feof() check
+	if ( !self->rpipe ){
+		self->rpipe = fdopen( self->fdrpipe, "r" );
+		if ( !self->rpipe )
+			return 0;
+	}
+#endif
+	return 1;
+}
+
+int DaoPipe_PrepareForWrite( DaoPipe *self )
+{
+	if ( !DaoPipe_IsWritable( self ) )
+		return 0;
+#ifdef UNIX
+	// lazily opened stream
+	if ( !self->wpipe ){
+		self->wpipe = fdopen( self->fdwpipe, "w" );
+		if ( !self->wpipe )
+			return 0;
+	}
+#endif
+	return 1;
+}
+
+int DaoPipe_AtEof( DaoPipe *self )
+{
+	if ( !DaoPipe_PrepareForRead( self ) )
+		return 0;
+	else {
+#ifdef WIN32
+		DWORD avail = 0;
+		return !PeekNamedPipe( self->rpipe, NULL, 0, NULL, &avail, NULL ) && GetLastError() == 109; // pipe was closed
+#else
+		return feof( self->rpipe );
+#endif
+	}
+}
+
+int DaoPipe_Read( DaoPipe *self, char *buf, int count )
+{
+#ifdef WIN32
+	DWORD len = 0;
+	ReadFile( self->rpipe, buf, count, &len, NULL ); // required for non-blocking read
+	return len;
+#else
+	return fread( buf, 1, count, self->rpipe );
+#endif
+}
+
+int DaoPipe_Write( DaoPipe *self, char *buf, int count )
+{
+#ifdef WIN32
+	DWORD len = 0;
+	WriteFile( self->wpipe, buf, count, &len, NULL ); // required for non-blocking write
+	FlushFileBuffers( self->wpipe );
+	return len;
+#else
+	int len = fwrite( buf, 1, count, self->wpipe );
+	fflush( self->wpipe );
+	return len;
+#endif
+}
+
+int DaoPipe_WaitRead( DaoPipe *self, dao_float timeout )
+{
+	if ( !DaoPipe_IsReadable( self ) )
+		return 0;
+#ifdef UNIX
+	if ( 1 ){
+		// using select()
+		struct timeval tv;
+		fd_set set;
+		int res;
+		FD_ZERO( &set );
+		FD_SET( self->fdrpipe, &set );
+		if ( timeout >= 0 ){
+			tv.tv_sec = timeout;
+			tv.tv_usec = ( timeout - tv.tv_sec ) * 1E6;
+		}
+		res = select( FD_SETSIZE, &set, NULL, NULL, timeout < 0? NULL : &tv );
+		return res < 0? -1 : ( res > 0 );
+	}
+#else
+	// looping, peeking, waiting
+	if ( 1 ){
+		dao_integer total = timeout*1000, elapsed = 0, tick = 15;
+		DWORD avail = 0;
+		if ( total == 0 )
+			return PeekNamedPipe( self->rpipe, NULL, 0, NULL, &avail, NULL )? ( avail > 0 ) : ( GetLastError() == 109? 1 : -1 );
+		else
+			while ( total < 0? 1 : ( elapsed < total ) ){
+				if ( !PeekNamedPipe( self->rpipe, NULL, 0, NULL, &avail, NULL ) )
+					return ( GetLastError() == 109? 1 : -1 );
+				if ( avail )
+					return 1;
+				Sleep( tick );
+				elapsed += tick;
+			}
+	}
+#endif
+	return 1;
+}
+
+static void DaoPipe_LibClose( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoPipe *self = (DaoPipe*)DaoValue_TryGetCdata( p[0] );
+	int mask = ( N < 2 )? 3 : p[1]->xEnum.value + 1;
+	if ( mask & 1 )
+		DaoPipe_Close( self, Pipe_Read );
+	if ( mask & 2 )
+		DaoPipe_Close( self, Pipe_Write );
+}
+
+static void DaoPipe_LibRead( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoPipe *self = (DaoPipe*)DaoValue_TryGetCdata( p[0] );
+	if ( !DaoPipe_IsReadable( self ) )
+		DaoProcess_RaiseError( proc, "Pipe", "Reading from a non-readable pipe" );
+	else {
+		dao_integer count = p[1]->xInteger.value;
+		DString *res = DaoProcess_PutChars( proc, "" );
+		if ( !DaoPipe_PrepareForRead( self ) ){
+			DaoProcess_RaiseError( proc, "Pipe", "Failed to open pipe for reading" );
+			return;
+		}
+		if ( count > 0 ){
+			DString_Reserve( res, count );
+			DString_Reset( res, DaoPipe_Read( self, res->chars, count ) );
+		}
+		else if ( count < 0 ){
+			char buf[4096];
+			int len = 0;
+			do {
+				len = DaoPipe_Read( self, buf, sizeof(buf) );
+				DString_AppendBytes( res, buf, len );
+			}
+			while ( len );
+		}
+	}
+}
+
+static void DaoPipe_LibWrite( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoPipe *self = (DaoPipe*)DaoValue_TryGetCdata( p[0] );
+	if ( !DaoPipe_IsWritable( self ) )
+		DaoProcess_RaiseError( proc, "Pipe", "Writing to a non-writable pipe" );
+	else {
+		if ( !DaoPipe_PrepareForWrite( self ) )
+			DaoProcess_RaiseError( proc, "Pipe", "Failed to open pipe for writing" );
+		else {
+			DString *data = p[1]->xString.value;
+			int len = DaoPipe_Write( self, data->chars, data->size );
+			if ( len < data->size )
+				DaoProcess_RaiseException( proc, "Pipe::Buffer", "Pipe buffer is full, some data were not written",
+										   (DaoValue*)DaoInteger_New( data->size - len ) );
+		}
+	}
+}
+
+static void DaoPipe_Check( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoPipe *self = (DaoPipe*)DaoValue_TryGetCdata( p[0] );
+	int res = 0;
+	switch ( p[1]->xEnum.value ){
+	case 0:	res = DaoPipe_IsReadable( self ); break;
+	case 1:	res = DaoPipe_IsWritable( self ); break;
+	case 2:	res = DaoPipe_IsReadable( self ) || DaoPipe_IsWritable( self ); break;
+	case 3: res = DaoPipe_AtEof( self ); break;
+	}
+	DaoProcess_PutBoolean( proc, res );
+}
+
+static void DaoPipe_Id( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoPipe *self = (DaoPipe*)DaoValue_TryGetCdata( p[0] );
+	DaoTuple *tup = DaoProcess_PutTuple( proc, 2 );
+#ifdef WIN32
+	tup->values[0]->xInteger.value = (daoint)self->rpipe;
+	tup->values[1]->xInteger.value = (daoint)self->wpipe;
+#else
+	tup->values[0]->xInteger.value = self->fdrpipe;
+	tup->values[1]->xInteger.value = self->fdwpipe;
+#endif
+}
+
+static void DaoPipe_Wait( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoPipe *self = (DaoPipe*)DaoValue_TryGetCdata( p[0] );
+	dao_float timeout = p[1]->xFloat.value;
+	int res = DaoPipe_WaitRead( self, timeout );
+	if ( res < 0 ){
+		char buf[512];
+		GetError( buf, sizeof(buf) );
+		DaoProcess_RaiseError( proc, "Pipe", buf );
+	}
+	else
+		DaoProcess_PutBoolean( proc, res );
+}
+
+static void DaoPipe_GetRMode( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoPipe *self = (DaoPipe*)DaoValue_TryGetCdata( p[0] );
+	DaoProcess_PutBoolean( proc, DaoPipe_GetBlocking( self, Pipe_Read ) );
+}
+
+static void DaoPipe_SetRMode( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoPipe *self = (DaoPipe*)DaoValue_TryGetCdata( p[0] );
+	int res = DaoPipe_SetBlocking( self, Pipe_Read, p[1]->xBoolean.value );
+	if ( !res ){
+		char buf[512];
+		GetError( buf, sizeof(buf) );
+		DaoProcess_RaiseError( proc, "Pipe", buf );
+	}
+}
+
+static void DaoPipe_GetWMode( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoPipe *self = (DaoPipe*)DaoValue_TryGetCdata( p[0] );
+	DaoProcess_PutBoolean( proc, DaoPipe_GetBlocking( self, Pipe_Write ) );
+}
+
+static void DaoPipe_SetWMode( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoPipe *self = (DaoPipe*)DaoValue_TryGetCdata( p[0] );
+	int res = DaoPipe_SetBlocking( self, Pipe_Write, p[1]->xBoolean.value );
+	if ( !res ){
+		char buf[512];
+		GetError( buf, sizeof(buf) );
+		DaoProcess_RaiseError( proc, "Pipe", buf );
+	}
+}
+
+static void DaoPipe_GetClose( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoPipe *self = (DaoPipe*)DaoValue_TryGetCdata( p[0] );
+	DaoProcess_PutBoolean( proc, self->autoclose );
+}
+
+static DaoFuncItem pipeMeths[] =
+{
+	/*! ID of the read and write ends of the pipe (file descriptors on Unix, handles on Windows) */
+	{ DaoPipe_Id,		".id(invar self: Pipe) => tuple<read: int, write: int>" },
+
+	/*! Determines if synchronous (blocking) mode is used for reading (`true` by default) */
+	{ DaoPipe_GetRMode,	".syncRead(invar self: Pipe) => bool" },
+	{ DaoPipe_SetRMode,	".syncRead=(self: Pipe, value: bool)" },
+
+	/*! Determines if synchronous (blocking) mode is used for writing (`true` by default) */
+	{ DaoPipe_GetWMode,	".syncWrite(invar self: Pipe) => bool" },
+	{ DaoPipe_SetWMode,	".syncWrite=(self: Pipe, value: bool)" },
+
+	/*! Indicates that unused pipe end is automatically closed when the pipe is passed to a process (`true` by default) */
+	{ DaoPipe_GetClose,".autoClose(invar self: Pipe) => bool" },
+
+	/*! Checks if the pipe is in the state specified by \a what */
+	{ DaoPipe_Check,	"check(self: Pipe, what: enum<readable,writable,open,eof>) => bool" },
+
+	/*! Reads *at most* \a count bytes from the pipe, or all available data if \a count is less then 0 */
+	{ DaoPipe_LibRead,	"read(self: Pipe, count = -1) => string" },
+
+	/*! Writes \a data to the input stream of the process. If \a data were not fully written, the method will raise `Pipe::Buffer`
+	 * error containing the number of bytes which were not written. */
+	{ DaoPipe_LibWrite,	"write(self: Pipe, data: string)" },
+
+	/*! Waits \a timeout seconds for the pipe to become available for reading. If \a timeout is less then 0, waits indefinitely.
+	 * Returns `true` if not timeouted
+	 *
+	 * \warning On Windows, `wait()` uses system clock for short-term sleeping, thus the accuracy of waiting with timeout may
+	 * vary depending on the current clock resolution */
+	{ DaoPipe_Wait,		"wait(invar self: Pipe, timeout = -1.0) => bool" },
+
+	/*! Closes the specified \a end of the pipe, or both ends if \a end is not given */
+	{ DaoPipe_LibClose,	"close(self: Pipe)" },
+	{ DaoPipe_LibClose,	"close(self: Pipe, end: enum<read,write,both>)" },
+	{ NULL, NULL }
+};
+
+/*! Represents pipe to be used for inter-process communication, implements `io::Device` */
+static DaoTypeBase pipeTyper = {
+	"Pipe", NULL, NULL, pipeMeths, {NULL}, {0},
+	(FuncPtrDel)DaoPipe_Delete, NULL
+};
 
 // background tasklet tracking child processes until all of them are terminated
 void WaitForChildren( void *p )
@@ -200,53 +652,20 @@ DaoOSProcess* DaoOSProcess_New()
 	DCondVar_Init( &res->cvar );
 	res->pvar = NULL;
 	res->state = 0;
-#ifdef WIN32
-	res->rpipe = res->wpipe = INVALID_HANDLE_VALUE;
-#else
-	res->fdrpipe = -1;
-	res->fdwpipe = -1;
-	res->rpipe = NULL;
-	res->wpipe = NULL;
-#endif
+	res->inpipe = NULL;
+	res->outpipe = NULL;
+	res->errpipe = NULL;
 	return res;
-}
-
-void DaoOSProcess_Close( DaoOSProcess *self, int mask )
-{
-#ifdef WIN32
-	if ( ( mask & 1 ) && self->rpipe != INVALID_HANDLE_VALUE ){
-		CloseHandle( self->rpipe );
-		self->rpipe = INVALID_HANDLE_VALUE;
-	}
-	if ( ( mask & 2 ) && self->wpipe != INVALID_HANDLE_VALUE ){
-		CloseHandle( self->wpipe );
-		self->wpipe = INVALID_HANDLE_VALUE;
-	}
-#else
-	if ( mask & 1 ){
-		if ( self->rpipe ){
-			fclose( self->rpipe );
-			self->rpipe = NULL;
-		}
-		if ( self->fdrpipe >= 0 )
-			close( self->fdrpipe );
-		self->fdrpipe = -1;
-	}
-	if ( mask & 2 ){
-		if ( self->wpipe ){
-			fclose( self->wpipe );
-			self->wpipe = NULL;
-		}
-		if ( self->fdwpipe >= 0 )
-			close( self->fdwpipe );
-		self->fdwpipe = -1;
-	}
-#endif
 }
 
 void DaoOSProcess_Delete( DaoOSProcess *self )
 {
-	DaoOSProcess_Close( self, 3 );
+	if ( self->inpipe )
+		DaoGC_DecRC( self->inpipe );
+	if ( self->outpipe )
+		DaoGC_DecRC( self->outpipe );
+	if ( self->errpipe )
+		DaoGC_DecRC( self->errpipe );
 	DaoList_Delete( self->args );
 	if ( self->env )
 		DaoList_Delete( self->env );
@@ -297,98 +716,10 @@ void DaoOSProcess_Kill( DaoOSProcess *self, int force )
 	DMutex_Unlock( &proc_mtx );
 }
 
-int DaoOSProcess_IsReadable( DaoOSProcess *self )
+DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd, DaoList *args, DString *dir, DaoList *env,
+							  DaoValue *inpipe, DaoValue *outpipe, DaoValue *errpipe )
 {
-#ifdef WIN32
-	return self->rpipe != INVALID_HANDLE_VALUE;
-#else
-	return self->fdrpipe != -1;
-#endif
-}
-
-int DaoOSProcess_IsWritable( DaoOSProcess *self )
-{
-#ifdef WIN32
-	return self->wpipe != INVALID_HANDLE_VALUE;
-#else
-	return self->fdwpipe != -1;
-#endif
-}
-
-int DaoOSProcess_PrepareForRead( DaoOSProcess *self )
-{
-	if ( !DaoOSProcess_IsReadable( self ) )
-		return 0;
-#ifdef UNIX
-	// lazily opened stream, required for feof() check
-	if ( !self->rpipe ){
-		self->rpipe = fdopen( self->fdrpipe, "r" );
-		if ( !self->rpipe )
-			return 0;
-	}
-#endif
-	return 1;
-}
-
-int DaoOSProcess_PrepareForWrite( DaoOSProcess *self )
-{
-	if ( !DaoOSProcess_IsWritable( self ) )
-		return 0;
-#ifdef UNIX
-	// lazily opened stream
-	if ( !self->wpipe ){
-		self->wpipe = fdopen( self->fdwpipe, "w" );
-		if ( !self->wpipe )
-			return 0;
-	}
-#endif
-	return 1;
-}
-
-int DaoOSProcess_AtEof( DaoOSProcess *self )
-{
-	if ( !DaoOSProcess_PrepareForRead( self ) )
-		return 0;
-	else {
-#ifdef WIN32
-		if ( self->state != Process_Active ){
-			DWORD avail = 0;
-			return ( PeekNamedPipe( self->rpipe, NULL, 0, NULL, &avail, NULL ) && !avail ) || GetLastError() == 109; // end of pipe
-		}
-		return 0;
-#else
-		return feof( self->rpipe );
-#endif
-	}
-}
-
-int DaoOSProcess_Read( DaoOSProcess *self, char *buf, int count )
-{
-#ifdef WIN32
-	DWORD len = 0;
-	ReadFile( self->rpipe, buf, count, &len, NULL ); // required for non-blocking read
-	return len;
-#else
-	return fread( buf, 1, count, self->rpipe );
-#endif
-}
-
-int DaoOSProcess_Write( DaoOSProcess *self, char *buf, int count )
-{
-#ifdef WIN32
-	DWORD len = 0;
-	WriteFile( self->wpipe, buf, count, &len, NULL ); // required for non-blocking write
-	FlushFileBuffers( self->wpipe );
-	return len;
-#else
-	int len = fwrite( buf, 1, count, self->wpipe );
-	fflush( self->wpipe );
-	return len;
-#endif
-}
-
-DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd, DaoList *args, DString *dir, DaoList *env )
-{
+	DaoPipe *pin, *pout, *perr;
 	DaoValue *value = NULL;
 	daoint i;
 	char *pos = NULL;
@@ -421,44 +752,47 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 		for ( i = 0; i < env->value->size; i++ )
 			DaoList_Append( self->env, (DaoValue*)DaoString_NewChars( DaoList_GetItem( env, i )->xString.value->chars ) );
 	}
-	DString_Assign( self->dir, dir );
-	if ( dir->size == 1 && dir->chars[0] == '.' )
-		dir = NULL;
+	if ( dir ){
+		DString_Assign( self->dir, dir );
+		if ( dir->size == 1 && dir->chars[0] == '.' )
+			dir = NULL;
+	}
+	// setting pipes
+	if ( inpipe )
+		DaoValue_Copy( inpipe, &self->inpipe );
+	else
+		self->inpipe = (DaoValue*)DaoProcess_NewCdata( proc, daox_type_pipe, DaoPipe_New(), 1 );
+	pin = (DaoPipe*)DaoValue_TryGetCdata( self->inpipe );
+	if ( !inpipe && ( !DaoPipe_Init( pin ) || !DaoPipe_SetBlocking( pin, Pipe_Write, 0 ) ) )
+		return NULL;
+	if ( outpipe )
+		DaoValue_Copy( outpipe, &self->outpipe );
+	else
+		self->outpipe = (DaoValue*)DaoProcess_NewCdata( proc, daox_type_pipe, DaoPipe_New(), 1 );
+	pout = (DaoPipe*)DaoValue_TryGetCdata( self->outpipe );
+	if ( !outpipe && ( !DaoPipe_Init( pout ) || !DaoPipe_SetBlocking( pout, Pipe_Read, 0 ) ) )
+		return NULL;
+	if ( errpipe )
+		DaoValue_Copy( errpipe, &self->errpipe );
+	else
+		self->errpipe = (DaoValue*)DaoProcess_NewCdata( proc, daox_type_pipe, DaoPipe_New(), 1 );
+	perr = (DaoPipe*)DaoValue_TryGetCdata( self->errpipe );
+	if ( !errpipe && ( !DaoPipe_Init( perr ) || !DaoPipe_SetBlocking( perr, Pipe_Read, 0 ) ) )
+		return NULL;
 #ifdef WIN32
 	if ( 1 ){
-		SECURITY_ATTRIBUTES attrs;
 		PROCESS_INFORMATION pinfo;
 		STARTUPINFOW sinfo;
-		HANDLE crpipe, cwpipe;
-		DWORD mode = PIPE_NOWAIT;
 		DString *cmdline, *envblock = NULL;
 		int res;
 		char_t *tcmd, tdir[MAX_PATH + 1];
-		attrs.nLength = sizeof(attrs);
-		attrs.bInheritHandle = TRUE;
-		attrs.lpSecurityDescriptor = NULL;
-		// creating pipes
-		res = CreatePipe( &self->rpipe, &cwpipe, &attrs, 0 );
-		if ( res ){
-			res = CreatePipe( &crpipe, &self->wpipe, &attrs, 0 );
-			if ( !res )
-				CloseHandle( crpipe );
-		}
-		if ( !res )
-			return NULL;
-		// setting handle inheritance
-		SetHandleInformation( self->rpipe, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT );
-		SetHandleInformation( self->wpipe, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT );
-		// setting non-blocking mode
-		SetNamedPipeHandleState( self->rpipe, &mode, NULL, NULL );
-		SetNamedPipeHandleState( self->wpipe, &mode, NULL, NULL );
 		memset( &pinfo, 0, sizeof(pinfo) );
 		memset( &sinfo, 0, sizeof(sinfo) );
 		sinfo.cb = sizeof(sinfo);
 		// setting standard IO redirection
-		sinfo.hStdError = cwpipe;
-		sinfo.hStdOutput = cwpipe;
-		sinfo.hStdInput = crpipe;
+		sinfo.hStdError = perr->wpipe;
+		sinfo.hStdOutput = pout->wpipe;
+		sinfo.hStdInput = pin->rpipe;
 		sinfo.dwFlags = STARTF_USESTDHANDLES;
 		// setting command line
 		if ( shell )
@@ -510,8 +844,6 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 		DString_Delete( cmdline );
 		if ( envblock )
 			DString_Delete( envblock );
-		CloseHandle( crpipe );
-		CloseHandle( cwpipe );
 		if ( !res )
 			return NULL;
 		CloseHandle( pinfo.hThread );
@@ -523,43 +855,25 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 		pid_t id;
 		struct stat st;
 		char *argv[args->value->size + 2];
-		int fdr[2], fdw[2], res;
 		// setting argv
 		argv[0] = self->file->chars;
 		for ( i = 0; i < args->value->size; i++ )
 			argv[i + 1] = DaoList_GetItem( args, i )->xString.value->chars;
 		argv[args->value->size + 1] = NULL;
-		// creating pipes
-		res = pipe( fdr ) >= 0;
-		if ( res ){
-			res = pipe( fdw ) >= 0;
-			if ( !res ){
-				close( fdr[0] );
-				close( fdr[1] );
-			}
-		}
-		if ( !res )
-			return NULL;
-		self->fdrpipe = fdr[0];
-		self->fdwpipe = fdw[1];
-		// setting non-blocking mode
-		fcntl( fdr[0], F_SETFL, fcntl( fdr[0], F_GETFL, 0 ) | O_NONBLOCK );
-		fcntl( fdw[1], F_SETFL, fcntl( fdw[1], F_GETFL, 0 ) | O_NONBLOCK );
 		// checking working directory
 		if ( dir && stat( dir->chars, &st ) != 0 )
 			return NULL;
 		// forking
 		id = fork();
 		if ( id == 0 ){ // child
-			int fdout = fileno( stdout );
-			int fdin = fileno( stdin );
-			int fderr = fileno( stderr );
-			close( fdr[0] );
-			close( fdw[1] );
+			// closing unused pipe ends
+			DaoPipe_Close( perr, Pipe_Read );
+			DaoPipe_Close( pout, Pipe_Read );
+			DaoPipe_Close( pin, Pipe_Write );
 			// redirecting standard IO
-			dup2( fdr[1], fdout );
-			dup2( fdr[1], fderr );
-			dup2( fdw[0], fdin );
+			dup2( perr->fdwpipe, fileno( stderr ) );
+			dup2( pout->fdwpipe, fileno( stdout ) );
+			dup2( pin->fdrpipe, fileno( stdin ) );
 			// setting environment
 			if ( env ){
 				int i;
@@ -584,12 +898,17 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 		}
 		if ( id < 0 )
 			return NULL;
-		close( fdr[1] );
-		close( fdw[0] );
 		self->id = id;
 		self->pid = id;
 	}
 #endif
+	// closing unused pipe ends
+	if ( perr->autoclose )
+		DaoPipe_Close( perr, Pipe_Write );
+	if ( pout->autoclose )
+		DaoPipe_Close( pout, Pipe_Write );
+	if ( pin->autoclose )
+		DaoPipe_Close( pin, Pipe_Read );
 	self->state = Process_Active;
 	// introducing process to the child tracker
 	if ( 1 ){
@@ -625,49 +944,6 @@ int DaoOSProcess_WaitExit( DaoOSProcess *self, dao_float timeout )
 	return res;
 }
 
-int DaoOSProcess_WaitRead( DaoOSProcess *self, dao_float timeout )
-{
-	if ( self->state == Process_Active ){
-		if ( !DaoOSProcess_PrepareForRead( self ) )
-			return 0;
-#ifdef UNIX
-		if ( 1 ){
-			// using select()
-			struct timeval tv;
-			fd_set set;
-			int res;
-			FD_ZERO( &set );
-			FD_SET( self->fdrpipe, &set );
-			if ( timeout >= 0 ){
-				tv.tv_sec = timeout;
-				tv.tv_usec = ( timeout - tv.tv_sec ) * 1E6;
-			}
-			res = select( FD_SETSIZE, &set, NULL, NULL, timeout < 0? NULL : &tv );
-			return res < 0? -1 : ( res > 0 );
-		}
-#else	
-		// looping, peeking, waiting
-		if ( 1 ){
-			dao_integer total = timeout*1000, elapsed = 0, tick = 15;
-			DWORD avail = 0;
-			if ( total == 0 )
-				return PeekNamedPipe( self->rpipe, NULL, 0, NULL, &avail, NULL )? ( avail > 0 ) : ( GetLastError() == 109? 1 : -1 );
-			else
-				while ( total < 0? 1 : ( elapsed < total ) ){
-					if ( !PeekNamedPipe( self->rpipe, NULL, 0, NULL, &avail, NULL ) )
-						return ( GetLastError() == 109? 1 : -1 );
-					if ( avail )
-						return 1;
-					Sleep( tick );
-					elapsed += tick;
-				}
-		}
-#endif
-		return 0;
-	}
-	return 1;
-}
-
 int CheckEnv( DaoList *env, DaoProcess *proc )
 {
 	if ( env ){
@@ -686,37 +962,33 @@ int CheckEnv( DaoList *env, DaoProcess *proc )
 	return 1;
 }
 
-void GetError( char *buf, size_t size )
-{
-#ifdef WIN32
-	FormatMessage( FORMAT_MESSAGE_FROM_SYSTEM, 0, GetLastError(), MAKELANGID( LANG_ENGLISH, SUBLANG_ENGLISH_US ), buf, size, NULL );
-#else
-	switch ( errno ){
-	case EMFILE:
-	case ENFILE:		snprintf( buf, size, "Too many files open (EMFILE/ENFILE)" ); break;
-	case ENOMEM:		snprintf( buf, size, "Not enough memory (ENOMEM)" ); break;
-	case EAGAIN:		snprintf( buf, size, "Too many processes running (EAGAIN)" ); break;
-	case ENOENT:		snprintf( buf, size, "Directory path does not exist (ENOENT)" ); break;
-	case EACCES:		snprintf( buf, size, "Directory access not permitted (EACCES)"); break;
-	case ENAMETOOLONG:	snprintf( buf, size, "Directory path is too long (ENAMETOOLONG)" ); break;
-	case ENOTDIR:		snprintf( buf, size, "Specified path is not a directory (ENOTDIR)" ); break;
-	case ELOOP:			snprintf( buf, size, "Too many symbolic links encountered while resolving directory path (ELOOP)" ); break;
-	case EINVAL:		snprintf( buf, size, "Invalid timeout value (EINVAL)" ); break;
-	case EINTR:			snprintf( buf, size, "Interrupted by a signal (EINTR)" ); break;
-	default:			snprintf( buf, size, "Unknown system error (%x)", (int)errno );
-	}
-#endif
-}
-
 static void OS_Exec( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoOSProcess *res = DaoOSProcess_New();
 	DString *path = p[0]->xString.value;
 	DaoList *args = &p[1]->xList;
-	DString *dir = p[2]->xString.value;
-	DaoList *env = ( p[3]->type == DAO_LIST )? &p[3]->xList : NULL;
+	DString *dir = NULL;
+	DaoList *env = NULL;
+	DaoValue *inpipe = NULL, *outpipe = NULL, *errpipe = NULL;
+	daoint i;
+	DString *name = DString_New();
+	for ( i = 2; i < N; i++ ){
+		DaoTuple *param = &p[i]->xTuple;
+		DaoEnum_MakeName( &param->values[0]->xEnum, name );
+		if ( strcmp( name->chars, "$dir" ) == 0 )
+			dir = param->values[1]->xString.value;
+		else if ( strcmp( name->chars, "$environ" ) == 0 )
+			env = &param->values[1]->xList;
+		else if ( strcmp( name->chars, "$stdin" ) == 0 )
+			inpipe = param->values[1];
+		else if ( strcmp( name->chars, "$stdout" ) == 0 )
+			outpipe = param->values[1];
+		else if ( strcmp( name->chars, "$stderr" ) == 0 )
+			errpipe = param->values[1];
+	}
+	DString_Delete( name );
 	if ( CheckEnv( env, proc ) ){
-		DaoValue *value = DaoOSProcess_Start( res, proc, path, args, dir, env );
+		DaoValue *value = DaoOSProcess_Start( res, proc, path, args, dir, env, inpipe, outpipe, errpipe );
 		if ( N == 1 )
 			DaoList_Delete( args );
 		if ( value )
@@ -734,14 +1006,32 @@ static void OS_Shell( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoOSProcess *res = DaoOSProcess_New();
 	DString *cmd = p[0]->xString.value;
-	DString *dir = p[1]->xString.value;
-	DaoList *env = ( p[2]->type == DAO_LIST )? &p[2]->xList : NULL;
+	DString *dir = NULL;
+	DaoList *env = NULL;
+	daoint i;
+	DString *name = DString_New();
+	DaoValue *inpipe = NULL, *outpipe = NULL, *errpipe = NULL;
+	for ( i = 1; i < N; i++ ){
+		DaoTuple *param = &p[i]->xTuple;
+		DaoEnum_MakeName( &param->values[0]->xEnum, name );
+		if ( strcmp( name->chars, "$dir" ) == 0 )
+			dir = param->values[1]->xString.value;
+		else if ( strcmp( name->chars, "$environ" ) == 0 )
+			env = &param->values[1]->xList;
+		else if ( strcmp( name->chars, "$stdin" ) == 0 )
+			inpipe = param->values[1];
+		else if ( strcmp( name->chars, "$stdout" ) == 0 )
+			outpipe = param->values[1];
+		else if ( strcmp( name->chars, "$stderr" ) == 0 )
+			errpipe = param->values[1];
+	}
+	DString_Delete( name );
 	if ( CheckEnv( env, proc ) ){
 		DaoList *args = DaoList_New();
 		DString *str = DString_New();
 		DaoValue *value;
 		DaoList_Append( args, (DaoValue*)DaoString_NewChars( cmd->chars ) );
-		value = DaoOSProcess_Start( res, proc, str, args, dir, env );
+		value = DaoOSProcess_Start( res, proc, str, args, dir, env, inpipe, outpipe, errpipe );
 		if ( value )
 			DaoProcess_PutValue( proc, value );
 		else {
@@ -805,97 +1095,14 @@ static void DaoOSProcess_State( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoOSProcess_Wait( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoOSProcess *self = (DaoOSProcess*)DaoValue_TryGetCdata( p[0] );
-	dao_float timeout = p[2]->xFloat.value;
-	daoint op = p[1]->xEnum.value;
-	int res = 1;
-	if ( op == 0 )
-		res = DaoOSProcess_WaitExit( self, timeout );
-	else {
-		if ( !DaoOSProcess_IsReadable( self ) ){
-			DaoProcess_RaiseError( proc, "Process", "Waiting for output on a non-readable process" );
-			return;
-		}
-		res = DaoOSProcess_WaitRead( self, timeout );
-		if ( res < 0 ){
-			char buf[512];
-			GetError( buf, sizeof(buf) );
-			DaoProcess_RaiseError( proc, "Process", buf );
-			return;
-		}
-	}
-	DaoProcess_PutBoolean( proc, res );
+	dao_float timeout = p[1]->xFloat.value;
+	DaoProcess_PutBoolean( proc, DaoOSProcess_WaitExit( self, timeout ) );
 }
 
 static void DaoOSProcess_LibKill( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoOSProcess *self = (DaoOSProcess*)DaoValue_TryGetCdata( p[0] );
 	DaoOSProcess_Kill( self, p[1]->xEnum.value == 1 );
-}
-
-static void DaoOSProcess_LibClose( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoOSProcess *self = (DaoOSProcess*)DaoValue_TryGetCdata( p[0] );
-	int mask = ( N < 2 )? 2 : p[1]->xEnum.value + 1;
-	DaoOSProcess_Close( self, mask );
-}
-
-static void DaoOSProcess_LibRead( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoOSProcess *self = (DaoOSProcess*)DaoValue_TryGetCdata( p[0] );
-	if ( !DaoOSProcess_IsReadable( self ) )
-		DaoProcess_RaiseError( proc, "Process", "Reading from a non-readable process" );
-	else {
-		dao_integer count = p[1]->xInteger.value;
-		DString *res = DaoProcess_PutChars( proc, "" );
-		if ( !DaoOSProcess_PrepareForRead( self ) ){
-			DaoProcess_RaiseError( proc, "Process", "Failed to open process for reading" );
-			return;
-		}
-		if ( count > 0 ){
-			DString_Reserve( res, count );
-			DString_Reset( res, DaoOSProcess_Read( self, res->chars, count ) );
-		}
-		else if ( count < 0 ){
-			char buf[4096];
-			int len = 0;
-			do {
-				len = DaoOSProcess_Read( self, buf, sizeof(buf) );
-				DString_AppendBytes( res, buf, len );
-			}
-			while ( len );
-		}
-	}
-}
-
-static void DaoOSProcess_LibWrite( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoOSProcess *self = (DaoOSProcess*)DaoValue_TryGetCdata( p[0] );
-	if ( !DaoOSProcess_IsWritable( self ) )
-		DaoProcess_RaiseError( proc, "Process", "Writing to a non-writable process" );
-	else {
-		if ( !DaoOSProcess_PrepareForWrite( self ) )
-			DaoProcess_RaiseError( proc, "Process", "Failed to open process for writing" );
-		else {
-			DString *data = p[1]->xString.value;
-			int len = DaoOSProcess_Write( self, data->chars, data->size );
-			if ( len < data->size )
-				DaoProcess_RaiseException( proc, "Error::Buffer", "Process input buffer is full, some data were not written",
-										   (DaoValue*)DaoInteger_New( data->size - len ) );
-		}
-	}
-}
-
-static void DaoOSProcess_Check( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoOSProcess *self = (DaoOSProcess*)DaoValue_TryGetCdata( p[0] );
-	int res = 0;
-	switch ( p[1]->xEnum.value ){
-	case 0:	res = DaoOSProcess_IsReadable( self ); break;
-	case 1:	res = DaoOSProcess_IsWritable( self ); break;
-	case 2:	res = DaoOSProcess_IsReadable( self ) || DaoOSProcess_IsWritable( self ); break;
-	case 3: res = DaoOSProcess_AtEof( self ); break;
-	}
-	DaoProcess_PutBoolean( proc, res );
 }
 
 static void DaoOSProcess_ExitCode( DaoProcess *proc, DaoValue *p[], int N )
@@ -907,6 +1114,80 @@ static void DaoOSProcess_ExitCode( DaoProcess *proc, DaoValue *p[], int N )
 	else
 		DaoProcess_PutNone( proc );
 }
+
+static void DaoOSProcess_Stdin( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoOSProcess *self = (DaoOSProcess*)DaoValue_TryGetCdata( p[0] );
+	DaoProcess_PutValue( proc, self->inpipe );
+}
+
+static void DaoOSProcess_Stdout( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoOSProcess *self = (DaoOSProcess*)DaoValue_TryGetCdata( p[0] );
+	DaoProcess_PutValue( proc, self->outpipe );
+}
+
+static void DaoOSProcess_Stderr( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoOSProcess *self = (DaoOSProcess*)DaoValue_TryGetCdata( p[0] );
+	DaoProcess_PutValue( proc, self->errpipe );
+}
+
+static DaoFuncItem procMeths[] =
+{
+	/*! PID (0 if the process exited) */
+	{ DaoOSProcess_Id,		".id(invar self: Process) => int" },
+
+	/*! Name of the program being executed */
+	{ DaoOSProcess_File,	".program(invar self: Process) => string" },
+
+	/*! Program arguments */
+	{ DaoOSProcess_Args,	".arguments(invar self: Process) => list<string>" },
+
+	/*! Working directory (may be relative to the current working directory at the time of process creation) */
+	{ DaoOSProcess_Dir,		".workDir(invar self: Process) => string" },
+
+	/*! Process environment in the form of a list of 'name=value' strings (`none` if the process environment is inherited) */
+	{ DaoOSProcess_Env,		".environment(invar self: Process) => list<string>|none" },
+
+	/*! Current process status.
+	 *
+	 * \note On Windows, a process is deemed terminated if its exit code is less then 0. On Unix, it means that the process exited
+	 * because it received a signal */
+	{ DaoOSProcess_State,	".status(invar self: Process) => enum<running,finished,terminated>" },
+
+	/*! Process exit code, or `none` if the process is still running.
+	 *
+	 * \note On Unix, exit code consists of the lowest 8 bits of exit status when the process exited normally. On Windows, it is
+	 * complete 32-bit value returned by the process */
+	{ DaoOSProcess_ExitCode,".exitCode(invar self: Process) => int|none" },
+
+	/*! Waits \a timeout seconds for process to exit.  If \a timeout is less then 0, waits indefinitely. Returns `true` if not
+	 * timeouted */
+	{ DaoOSProcess_Wait,	"wait(invar self: Process, timeout = -1.0) => bool" },
+
+	/*! Attempts to terminate the process the way specified by \a how. On Unix, sends SIGTERM (\a how is `$gracefully`) or
+	 * SIGKILL (\a how is `$forcibly`). On Windows, terminates the process forcibly (regardless of \a how) and sets its exit code
+	 * to -1 */
+	{ DaoOSProcess_LibKill,	"terminate(self: Process, how: enum<gracefully,forcibly> = $forcibly)" },
+
+	/*! Writable input pipe (stdin stream of the process) */
+	{ DaoOSProcess_Stdin,	".input(self: Process) => Pipe" },
+
+	/*! Readable output pipe (stdout stream of the process) */
+	{ DaoOSProcess_Stdout,	".output(self: Process) => Pipe" },
+
+	/*! Readable error pipe (stderr stream of the process) */
+	{ DaoOSProcess_Stderr,	".errors(self: Process) => Pipe" },
+	{ NULL, NULL }
+};
+
+/*! Represents child process. All child processes are automatically tracked by single background tasklet, which automatically
+ * updates `Process` objects associated with the sub-processes */
+static DaoTypeBase procTyper = {
+	"Process", NULL, NULL, procMeths, {NULL}, {0},
+	(FuncPtrDel)DaoOSProcess_Delete, NULL
+};
 
 static void OS_Wait( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -977,32 +1258,30 @@ static void OS_Select( DaoProcess *proc, DaoValue *p[], int N )
 	DaoList *lst = &p[0]->xList;
 	dao_float timeout = p[1]->xFloat.value;
 	DaoValue *value = NULL;
-	daoint i;
-	int res = 0;
+	daoint i = 0;
+	int res = 0, found = 0;
 	if ( !lst->value->size ){
 		DaoProcess_PutNone( proc );
 		return;
 	}
 	if ( 1 ){
 		daoint count = lst->value->size;
-		DaoOSProcess *cprocs[count];
+		DaoPipe *pipes[count];
 		for ( i = 0; i < count; i++ ){
 			DaoValue *item = DaoList_GetItem( lst, i );
-			DaoOSProcess *child = (DaoOSProcess*)DaoValue_TryGetCdata( item );
-			if ( child->state != Process_Active ){
-				value = item;
-				goto End;
-			}
-			cprocs[i] = child;
+			pipes[i] = (DaoPipe*)DaoValue_TryGetCdata( item );
+			if ( DaoPipe_IsReadable( pipes[i] ) )
+				found = 1;
 		}
 #ifdef UNIX
-		if ( 1 ){
+		if ( found ){
 			// using select()
 			struct timeval tv;
 			fd_set set;
 			FD_ZERO( &set );
 			for ( i = 0; i < count; i++ )
-				FD_SET( cprocs[i]->fdrpipe, &set );
+				if ( pipes[i]->fdrpipe != -1 )
+					FD_SET( pipes[i]->fdrpipe, &set );
 			if ( timeout >= 0 ){
 				tv.tv_sec = timeout;
 				tv.tv_usec = ( timeout - tv.tv_sec ) * 1E6;
@@ -1011,20 +1290,22 @@ static void OS_Select( DaoProcess *proc, DaoValue *p[], int N )
 			res =  res < 0? -1 : ( res > 0 );
 			if ( res > 0 )
 				for ( i = 0; i < count; i++ )
-					if ( FD_ISSET( cprocs[i]->fdrpipe, &set ) ){
+					if ( FD_ISSET( pipes[i]->fdrpipe, &set ) ){
 						value = DaoList_GetItem( lst, i );
 						break;
 					}
 		}
 #else
 		// looping, peeking, waiting
-		if ( 1 ){
+		if ( found ){
 			dao_integer total = timeout*1000, elapsed = 0, tick = 15;
 			DWORD avail = 0;
 			if ( total == 0 ){
 				for ( i = 0; i < count; i++ ){
-					res = PeekNamedPipe( cprocs[i]->rpipe, NULL, 0, NULL, &avail, NULL )? ( avail > 0 ) :
-																						  ( GetLastError() == 109? 1 : -1 );
+					if ( pipes[i]->rpipe == INVALID_HANDLE_VALUE )
+						continue;
+					res = PeekNamedPipe( pipes[i]->rpipe, NULL, 0, NULL, &avail, NULL )? ( avail > 0 ) :
+																						 ( GetLastError() == 109? 1 : -1 );
 					if ( res > 0 )
 						value = DaoList_GetItem( lst, i );
 					if ( res )
@@ -1034,8 +1315,10 @@ static void OS_Select( DaoProcess *proc, DaoValue *p[], int N )
 			else
 				while ( total < 0? 1 : ( elapsed < total ) ){
 					for ( i = 0; i < count; i++ ){
-						res = PeekNamedPipe( cprocs[i]->rpipe, NULL, 0, NULL, &avail, NULL )? ( avail > 0 ) :
-																							  ( GetLastError() == 109? 1 : -1 );
+						if ( pipes[i]->rpipe == INVALID_HANDLE_VALUE )
+							continue;
+						res = PeekNamedPipe( pipes[i]->rpipe, NULL, 0, NULL, &avail, NULL )? ( avail > 0 ) :
+																							 ( GetLastError() == 109? 1 : -1 );
 						if ( res > 0 )
 							value = DaoList_GetItem( lst, i );
 						if ( res )
@@ -1053,93 +1336,36 @@ End:
 	else if ( res < 0 ){
 		char buf[512];
 		GetError( buf, sizeof(buf) );
-		DaoProcess_RaiseError( proc, "Process", buf );
+		DaoProcess_RaiseError( proc, "Pipe", buf );
 	}
 	else
 		DaoProcess_PutNone( proc );
 }
 
-static DaoFuncItem procMeths[] =
+static void OS_Pipe( DaoProcess *proc, DaoValue *p[], int N )
 {
-	/*! PID (0 if the process exited) */
-	{ DaoOSProcess_Id,		".id(invar self: Process) => int" },
-
-	/*! Name of the program being executed */
-	{ DaoOSProcess_File,	".program(invar self: Process) => string" },
-
-	/*! Program arguments */
-	{ DaoOSProcess_Args,	".arguments(invar self: Process) => list<string>" },
-
-	/*! Working directory (may be relative to the current working directory at the time of process creation) */
-	{ DaoOSProcess_Dir,		".workdir(invar self: Process) => string" },
-
-	/*! Process environment in the form of a list of 'name=value' strings (`none` if the process environment is inherited) */
-	{ DaoOSProcess_Env,		".environment(invar self: Process) => list<string>|none" },
-
-	/*! Current process status.
-	 *
-	 * \note On Windows, a process is deemed terminated if its exit code is less then 0. On Unix, it means that the process exited
-	 * because it received a signal */
-	{ DaoOSProcess_State,	".status(invar self: Process) => enum<running,finished,terminated>" },
-
-	/*! Process exit code, or `none` if the process is still running.
-	 *
-	 * \note On Unix, exit code consists of the lowest 8 bits of exit status when the process exited normally. On Windows, it is
-	 * complete 32-bit value returned by the process */
-	{ DaoOSProcess_ExitCode,".exitcode(invar self: Process) => int|none" },
-
-	/*! Waits \a timeout seconds for process to exit or become available for reading (output buffer is not empty) depending on
-	 * \a what. If \a timeout is less then 0, waits indefinitely. Returns `true` if not timeouted.
-	 *
-	 * \note `wait($output)` will return immediately if the process exited.
-	 *
-	 * \warning On Windows, `wait($output)` uses system clock for short-term sleeping, thus the accuracy of waiting with timeout
-	 * may vary depending on the current clock resolution. */
-	{ DaoOSProcess_Wait,	"wait(invar self: Process, what: enum<exit,output>, timeout = -1.0) => bool" },
-
-	/*! Attempts to terminate the process the way specified by \a how. On Unix, sends SIGTERM (\a how is `$gracefully`) or
-	 * SIGKILL (\a how is `$forcibly`). On Windows, terminates the process forcibly (regardless of \a how) and sets its exit code
-	 * to -1 */
-	{ DaoOSProcess_LibKill,	"terminate(self: Process, how: enum<gracefully,forcibly> = $forcibly)" },
-
-	/*! Reads *at most* \a count bytes from the output and error stream of the process, or all available data if \a count is
-	 * less then 0.
-	 *
-	 * \note Non-blocking mode is used for reading and writing */
-	{ DaoOSProcess_LibRead,	"read(self: Process, count = -1) => string" },
-
-	/*! Writes \a data to the input stream of the process. If the pipe buffer is full, the method will raise `Buffer` error
-	 * containing the number of bytes which were not written.
-	 *
-	 * \note Non-blocking mode is used for reading and writing */
-	{ DaoOSProcess_LibWrite,"write(self: Process, data: string)" },
-
-	/*! Checks if the process (with regard to its I/O streams) is in the state specified by \a what.
-	 *
-	 * \note `check($eof)` checks the output (readable) stream of the process. On Windows, it will always return `false` if
-	 * the process is still running */
-	{ DaoOSProcess_Check,	"check(self: Process, what: enum<readable,writable,open,eof>) => bool" },
-
-	/*! Closes output (`$read`), input (`$write`) or both process streams depending on \a what. If \a what is not specified,
-	 * input stream is assumed. Closing input or output stream forbids further writing or reading accordingly */
-	{ DaoOSProcess_LibClose,"close(self: Process, what: enum<read,write,both>)" },
-	{ DaoOSProcess_LibClose,"close(self: Process)" },
-	{ NULL, NULL }
-};
-
-/*! Represents child process, satisfies `io::Device` interface with non-blocking read and write operations. All child processes
- * are automatically tracked by single background tasklet, which automatically updates `Process` objects associated with the
- * sub-processes */
-static DaoTypeBase procTyper = {
-	"Process", NULL, NULL, procMeths, {NULL}, {0},
-	(FuncPtrDel)DaoOSProcess_Delete, NULL
-};
+	DaoPipe *res = DaoPipe_New();
+	res->autoclose = p[0]->xBoolean.value;
+	if ( !DaoPipe_Init( res ) ){
+		DaoPipe_Delete( res );
+		DaoProcess_RaiseError( proc, "Pipe", "Failed to create pipe" );
+	}
+	else
+		DaoProcess_PutCdata( proc, res, daox_type_pipe );
+}
 
 static DaoFuncItem osMeths[] =
 {
-	/*! Creates new child process executing the file specified by \a path with the \a arguments (if given) and \a environment
-	 * (if `none`, inherited from the current process). \a path may omit the full path to the file, in that case
-	 * its resolution is system-dependent. Returns the corresponding `Process` object.
+	/*! Creates new child process executing the file specified by \a path with the \a arguments (if given). \a path may omit the
+	 * full path to the file, in that case its resolution is system-dependent. Returns the corresponding `Process` object.
+	 *
+	 * Additional variadic parameters may specify the following process parameters:
+	 * - `dir` -- working directory
+	 * - `environ` -- environment (list of 'name=value' items specifying environment variables)
+	 * - `stdin`, `stdout`, `stderr` -- pipes for standard input, output and error streams
+	 *
+	 * If pipe for any of the standard streams is not specified, it is automatically created with non-blocking mode set. Unless the
+	 * user-specified pipe is created with `autoClose` set to `false`, its unused end is automatically closed.
 	 *
 	 * \note On Windows, the given \a path and \a arguments are concatenated into command line, where all component are wrapped
 	 * in quotes (existing quotes are escaped) and separated by space characters. If such behavior is undesirable for some case,
@@ -1148,12 +1374,14 @@ static DaoFuncItem osMeths[] =
 	 * \note The routine will fail with error on Windows if the execution cannot be started (for instance, \a path is not valid);
 	 * on Unix, you may need to examine the process status or exit code (which will be set to 1) to detect execution failure.
 	 *
-	 * \warning On Windows, \a environment is assumed to be in local or ASCII encoding */
-	{ OS_Exec,	"exec(path: string, arguments: list<string> = {}, directory = '.', environment: list<string>|none = none) => Process" },
+	 * \warning On Windows, environment variable strings are assumed to be in local or ASCII encoding */
+	{ OS_Exec,	"exec(path: string, arguments: list<string>, ...: "
+					 "tuple<enum<dir>,string> | tuple<enum<environ>,list<string>> | tuple<enum<stdin,stdout,stderr>,Pipe>) => Process" },
 
 	/*! Similar to `exec()`, but calls system shell ('/bin/sh -c' on Unix, 'cmd /C' on Windows) with the given \a command.
 	 * \a command is passed to the shell 'as-is', so you need to ensure that it is properly escaped */
-	{ OS_Shell,	"shell(command: string, directory = '.', environment: list<string>|none = none) => Process" },
+	{ OS_Shell,	"shell(command: string, ...: "
+					  "tuple<enum<dir>,string> | tuple<enum<environ>,list<string>> | tuple<enum<stdin,stdout,stderr>,Pipe>) => Process" },
 
 	/*! Waits for one of child processes in \a children to exit for \a timeout seconds (waits indefinitely if \a timeout is less
 	 * then 0). Returns the first found exited process, or `none` if timeouted or if \a children is empty
@@ -1162,13 +1390,17 @@ static DaoFuncItem osMeths[] =
 	 * tracked by its other invocations. */
 	{ OS_Wait,	"wait(children: list<Process>, timeout = -1.0) => Process|none" },
 
-	/*! Waits \a timeout seconds for one of child processes in \a children to exit or become available for reading (output buffer
-	 * is not empty). If \a timeout is less then 0, waits indefinitely. Returns the first found process matching the criterion,
-	 * or `none` if timeouted or if \a children is empty.
+	/*! Creates new pipe and returns the corresponding `Pipe` object. If \a autoClose is `true`, unused pipe end is automatically
+	 * closed when the pipe is passed to `exec()` or `shell()`; setting this parameter to `false` allows to pass single pipe to
+	 * multiple processes, in which case you should manually close the unused pipe end (if any) in order to enable EOF check */
+	{ OS_Pipe,	"pipe(autoClose = true) => Pipe" },
+
+	/*! Waits \a timeout seconds for one of \a pipes to become available for reading. If \a timeout is less then 0, waits
+	 * indefinitely. Returns the first found readable pipe, or `none` if timeouted or if \a pipes is empty.
 	 *
 	 * \warning On Windows, `select()` uses system clock for short-term sleeping, thus the accuracy of waiting with timeout may
 	 * vary depending on the current clock resolution. */
-	{ OS_Select,"select(children: list<Process>, timeout = -1.0) => Process|none" },
+	{ OS_Select,"select(pipes: list<Pipe>, timeout = -1.0) => Pipe|none" },
 	{ NULL, NULL }
 };
 
@@ -1176,6 +1408,7 @@ DAO_DLL int DaoProcess_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *osns = DaoVmSpace_GetNamespace( vmSpace, "os" );
 	DaoNamespace_AddConstValue( ns, "os", (DaoValue*)osns );
+	daox_type_pipe = DaoNamespace_WrapType( osns, &pipeTyper, 1 );
 	daox_type_process = DaoNamespace_WrapType( osns, &procTyper, 1 );
 	DaoNamespace_WrapFunctions( osns, osMeths );
 	DMutex_Init( &proc_mtx );
