@@ -37,6 +37,7 @@
 #include<pwd.h>
 #include<sys/types.h>
 #include<sys/utsname.h>
+#include<limits.h>
 #endif
 
 #ifdef WIN32
@@ -310,11 +311,20 @@ static DaoFuncItem sysMeths[]=
 	{ NULL, NULL }
 };
 
-
+DaoNumItem sysConsts[] =
+{
+#ifdef WIN32
+	{ "ATOMIC_WRITE_CAP",  DAO_INTEGER, 512 },
+#else
+	{ "ATOMIC_WRITE_CAP",  DAO_INTEGER, PIPE_BUF },
+#endif
+	{ NULL, 0.0, 0.0 }
+};
 
 DAO_DLL int DaoOS_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	ns = DaoNamespace_GetNamespace( ns, "os" );
 	DaoNamespace_WrapFunctions( ns, sysMeths );
+	DaoNamespace_AddConstNumbers( ns, sysConsts );
 	return 0;
 }
