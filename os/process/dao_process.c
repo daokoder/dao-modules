@@ -653,7 +653,7 @@ DaoOSProcess* DaoOSProcess_New()
 	res->id = 0;
 	res->pid = 0;
 	res->file = DString_New();
-	res->dir = DString_New();
+	res->dir = DString_NewChars( "." );
 	res->excode = 1;
 	res->args = DaoList_New();
 	res->env = NULL;
