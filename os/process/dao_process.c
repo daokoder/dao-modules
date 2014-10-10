@@ -1457,7 +1457,7 @@ static void OS_Mkfifo( DaoProcess *proc, DaoValue *p[], int N )
 		else
 			pipe->fdwpipe = open( name->chars, O_WRONLY );
 		pipe->fifo = DString_Copy( name );
-		res = pipe->fdrpipe >= 0 && pipe->fdwpipe >= 0;
+		res = pipe->fdrpipe >= 0 || pipe->fdwpipe >= 0;
 	}
 #endif
 	pipe->autoclose = p[3]->xBoolean.value;
@@ -1530,7 +1530,7 @@ static void OS_Open( DaoProcess *proc, DaoValue *p[], int N )
 		pipe->fdrpipe = open( name->chars, O_RDONLY );
 	else
 		pipe->fdwpipe = open( name->chars, O_WRONLY );
-	res = pipe->fdrpipe >= 0 && pipe->fdwpipe >= 0;
+	res = pipe->fdrpipe >= 0 || pipe->fdwpipe >= 0;
 #endif
 	if ( !res ){
 		char buf[512];
