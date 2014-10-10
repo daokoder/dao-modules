@@ -296,17 +296,42 @@ static void OS_Uname( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem sysMeths[]=
 {
+	/*! Executes the given \a command via system shell and returns the resulting exit code */
 	{ OS_Shell,     "shell( command: string ) => int" },
-	{ OS_Popen,     "popen( cmd: string, mode: string ) => io::Stream" },
+
+	/*! Spawns sub-process which executes the given shell \a command with redirected standard input or output depending on \a mode.
+	 * If \a mode is 'r', returns readable stream of the process output; if \a mode is 'w', returns writable stream of the process
+	 * input */
+	{ OS_Popen,     "popen( command: string, mode: string ) => io::Stream" },
+
+	/*! Closes \a pipe created by `popen()`, waits for the sub-process to finish and returns its exit code */
 	{ OS_Pclose,    "pclose( pipe: io::Stream ) => int" },
+
+	/*! Suspends execution of the current thread for the specified amount of \a seconds */
 	{ OS_Sleep,     "sleep( seconds: float )" },
+
+	/*! Exits immediately, setting the specified exit \a code */
 	{ OS_Exit,      "exit( code = 0 )" },
+
+	/*! CPU time of the current process in seconds */
 	{ OS_Clock,     "clock() => float" },
+
+	/*! Sets \a locale for the given \a category and returns previous locale */
 	{ OS_SetLocale, "setlocale( category: enum<all,collate,ctype,monetary,numeric,time> = $all, locale = \"\" ) => string" },
-	{ OS_EnvVars,   "getenv() => map<string,string>"},
+
+	/*! Process environment */
+	{ OS_EnvVars,   "environ() => map<string,string>"},
+
+	/*! Value of environment variable \a name */
 	{ OS_GetEnv,    "getenv( name: string ) => string" },
+
+	/*! Sets environment variable \a name to the given \a value */
 	{ OS_PutEnv,    "putenv( name: string, value = \"\" )"},
+
+	/*! Name of the user associated with the current process */
 	{ OS_User,      "user() => string"},
+
+	/*! Generic system information: operating system name, version and release, computer host name */
 	{ OS_Uname,     "uname() => tuple<system: string, version: string, release: string, host: string>"},
 	{ NULL, NULL }
 };
