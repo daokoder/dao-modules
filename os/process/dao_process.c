@@ -106,6 +106,7 @@ struct DaoPipe
 #else
 	int fdrpipe, fdwpipe;
 	FILE *rpipe, *wpipe;
+	DString *fifo;
 #endif
 };
 
@@ -150,6 +151,9 @@ static void GetError( char *buf, size_t size )
 	case ELOOP:			snprintf( buf, size, "Too many symbolic links encountered while resolving directory path (ELOOP)" ); break;
 	case EINVAL:		snprintf( buf, size, "Invalid timeout value (EINVAL)" ); break;
 	case EINTR:			snprintf( buf, size, "Interrupted by a signal (EINTR)" ); break;
+	case EEXIST:		snprintf( buf, size, "File already exists (EEXIST)" ); break;
+	case ENOSPC:		snprintf( buf, size, "Not enough free space in the file system (ENOSPC)" ); break;
+	case EROFS:			snprintf( buf, size, "Writing to a read-only file system (EROFS)" ); break;
 	default:			snprintf( buf, size, "Unknown system error (%x)", (int)errno );
 	}
 #endif
@@ -166,6 +170,7 @@ DaoPipe* DaoPipe_New()
 	res->fdwpipe = -1;
 	res->rpipe = NULL;
 	res->wpipe = NULL;
+	res->fifo = NULL;
 #endif
 	return res;
 }
@@ -206,6 +211,12 @@ void DaoPipe_Close( DaoPipe *self, pipe_end end )
 		if ( self->fdwpipe >= 0 )
 			close( self->fdwpipe );
 		self->fdwpipe = -1;
+	}
+	// delete FIFO file if owner
+	if ( self->fifo && self->fdrpipe == -1 && self->fdwpipe == -1 ){
+		unlink( self->fifo->chars );
+		DString_Delete( self->fifo );
+		self->fifo = NULL;
 	}
 #endif
 }
@@ -1384,6 +1395,153 @@ static void OS_Pipe( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_PutCdata( proc, res, daox_type_pipe );
 }
 
+static void OS_Mkfifo( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoPipe *pipe = DaoPipe_New();
+	DString *name = p[0]->xString.value;
+	DString *mode = p[1]->xString.value;
+	int rd = 0, wr = 0;
+	int res;
+	if ( strcmp( mode->chars, "rw" ) == 0 )
+		rd = wr = 1;
+	else if ( strcmp( mode->chars, "r" ) == 0 )
+		rd = 1;
+	else if ( strcmp( mode->chars, "w" ) == 0 )
+		wr = 1;
+	else {
+		DaoProcess_RaiseError( proc, "Param", "Invalid mode" );
+		DaoPipe_Delete( pipe );
+		return;
+	}
+#ifdef WIN32
+	SECURITY_ATTRIBUTES attrs;
+	HANDLE handle;
+	DWORD opmode = 0;
+	DString *pname = DString_NewChars( "\\\\.\\pipe\\" );
+	char_t *tname = NULL;
+	attrs.nLength = sizeof(attrs);
+	attrs.bInheritHandle = TRUE;
+	attrs.lpSecurityDescriptor = NULL;
+	DString_Append( pname, name );
+	tname = CharsToTChars( pname->chars, pname->size );
+	DString_Delete( pname );
+	if ( rd )
+		opmode |= PIPE_ACCESS_INBOUND;
+	if ( wr )
+		opmode |= PIPE_ACCESS_OUTBOUND;
+	// create named pipe with specific open mode
+	handle = CreateNamedPipeW( tname, opmode, 0, PIPE_UNLIMITED_INSTANCES, 0, 0, NMPWAIT_USE_DEFAULT_WAIT, &attrs );
+	dao_free( tname );
+	res = handle != INVALID_HANDLE_VALUE;
+	if ( res ){
+		if ( rd )
+			pipe->rpipe = handle;
+		// duplicate pipe handle to allow closing of separate pipe ends
+		if ( rd && wr )
+			res = DuplicateHandle( GetCurrentProcess(), handle, GetCurrentProcess(), &pipe->wpipe, 0, TRUE, DUPLICATE_SAME_ACCESS );
+		else
+			pipe->wpipe = handle;
+	}
+#else
+	if ( rd && wr ){
+		DaoProcess_RaiseError( proc, "Param", "Invalid mode" );
+		DaoPipe_Delete( pipe );
+		return;
+	}
+	// create FIFO file
+	res = mkfifo( name->chars, S_IRWXU|S_IRGRP|S_IXGRP|S_IXOTH ) == 0;
+	if ( res ){
+		// open for reading or writing
+		if ( rd )
+			pipe->fdrpipe = open( name->chars, O_RDONLY );
+		else
+			pipe->fdwpipe = open( name->chars, O_WRONLY );
+		pipe->fifo = DString_Copy( name );
+		res = pipe->fdrpipe >= 0 && pipe->fdwpipe >= 0;
+	}
+#endif
+	pipe->autoclose = p[3]->xBoolean.value;
+	if ( !res ){
+		char buf[512];
+		GetError( buf, sizeof(buf) );
+		DaoProcess_RaiseError( proc, "Pipe", buf );
+		DaoPipe_Delete( pipe );
+	}
+	else
+		DaoProcess_PutCdata( proc, pipe, daox_type_pipe );
+}
+
+static void OS_Open( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoPipe *pipe = DaoPipe_New();
+	DString *name = p[0]->xString.value;
+	DString *mode = p[1]->xString.value;
+	int rd, wr = 0;
+	int res;
+	if ( strcmp( mode->chars, "rw" ) == 0 )
+		rd = wr = 1;
+	else if ( strcmp( mode->chars, "r" ) == 0 )
+		rd = 1;
+	else if ( strcmp( mode->chars, "w" ) == 0 )
+		wr = 1;
+	else {
+		DaoProcess_RaiseError( proc, "Param", "Invalid mode" );
+		DaoPipe_Delete( pipe );
+		return;
+	}
+	pipe->autoclose = p[3]->xBoolean.value;
+#ifdef WIN32
+	if ( 1 ){
+		SECURITY_ATTRIBUTES attrs;
+		DWORD sharing = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;
+		DString *pname = DString_NewChars( "\\\\.\\pipe\\" );
+		char_t *tname = NULL;
+		attrs.nLength = sizeof(attrs);
+		attrs.bInheritHandle = TRUE;
+		attrs.lpSecurityDescriptor = NULL;
+		DString_Append( pname, name );
+		tname = CharsToTChars( pname->chars, pname->size );
+		DString_Delete( pname );
+		// open named pipe for reading and/or writing
+		if ( rd )
+			pipe->rpipe = CreateFileW( tname, GENERIC_READ, sharing, &attrs, OPEN_EXISTING, 0, NULL );
+		if ( wr )
+			pipe->wpipe = CreateFileW( tname, GENERIC_WRITE, sharing, &attrs, OPEN_EXISTING, 0, NULL );
+		dao_free( tname );
+		res = pipe->rpipe != INVALID_HANDLE_VALUE || pipe->wpipe != INVALID_HANDLE_VALUE;
+	}
+#else
+	if ( rd && wr ){
+		DaoProcess_RaiseError( proc, "Param", "Invalid mode" );
+		DaoPipe_Delete( pipe );
+		return;
+	}
+	if ( 1 ){
+		// check if FIFO file
+		struct stat st;
+		if ( stat( name->chars, &st ) == 0 && !S_ISFIFO( st.st_mode ) ){
+			DaoProcess_RaiseError( proc, "Value", "The path does not point to FIFO file" );
+			DaoPipe_Delete( pipe );
+			return;
+		}
+	}
+	// open file for reading or writing
+	if ( rd )
+		pipe->fdrpipe = open( name->chars, O_RDONLY );
+	else
+		pipe->fdwpipe = open( name->chars, O_WRONLY );
+	res = pipe->fdrpipe >= 0 && pipe->fdwpipe >= 0;
+#endif
+	if ( !res ){
+		char buf[512];
+		GetError( buf, sizeof(buf) );
+		DaoProcess_RaiseError( proc, "Pipe", buf );
+		DaoPipe_Delete( pipe );
+	}
+	else
+		DaoProcess_PutCdata( proc, pipe, daox_type_pipe );
+}
+
 static DaoFuncItem osMeths[] =
 {
 	/*! Creates new child process executing the file specified by \a path with the \a arguments (if given). \a path may omit the
@@ -1424,6 +1582,30 @@ static DaoFuncItem osMeths[] =
 	 * closed when the pipe is passed to `exec()` or `shell()`; setting this parameter to `false` allows to pass single pipe to
 	 * multiple processes, in which case you should manually close the unused pipe end (if any) in order to enable EOF check */
 	{ OS_Pipe,	"pipe(autoClose = true) => Pipe" },
+
+	/*! Creates named pipe with the specified \a name and access \a mode ('r', 'w' or 'rw'), returns the corresponding `Pipe`
+	 * object. For the description of \a autoClose parameter, see `pipe(autoClose = true) => Pipe`.
+	 *
+	 * On Windows, named pipe is created with name '\\.\pipe\' + \a name, open mode corresponding to \a mode (inbound, outbound or
+	 * duplex for 'r', 'w' and 'rw' accordingly) and full sharing. This pipe is removed from the system when no process has
+	 * references to it (including the process which created the pipe).
+	 *
+	 * On Unix, FIFO file is created with the path specified by \a name, and is opened with read or write access (both cannot be
+	 * specified). Depending on the system, the routine may block until another process opens this file with the opposite access
+	 * type. The file is automatically unlinked from the file system when the `Pipe` object returned by this routine is fully
+	 * closed, but it will remain accessible via the existing references to it */
+	{ OS_Mkfifo,"pipe(name: string, mode: string, action: enum<create>, autoClose = true) => Pipe" },
+
+	/*! Opens existing named pipe with the specified \a name using the given access \a mode ('r', 'w' or 'rw'), returns the
+	 * corresponding `Pipe` object. For the description of \a autoClose parameter, see `pipe(autoClose = true) => Pipe`.
+	 *
+	 * On Windows, named pipe with name '\\.\pipe\' + \a name is opened. For named pipe created with duplex mode ('rw'),
+	 * any of the possible \a mode values are acceptable, pipe created with inbound ('r') or outbound('w') mode can only be opened
+	 * with the opposite access type.
+	 *
+	 * On Unix, FIFO file with path specified by \a name is opened with read or write access (both cannot be specified), the
+	 * routine may block (depending on the system) until another process opens this file with the opposite access type */
+	{ OS_Open,	"pipe(name: string, mode: string, action: enum<open>, autoClose = true) => Pipe" },
 
 	/*! Waits \a timeout seconds for one of \a pipes to become available for reading. If \a timeout is less then 0, waits
 	 * indefinitely. Returns the first found readable pipe, or `none` if timeouted or if \a pipes is empty.
