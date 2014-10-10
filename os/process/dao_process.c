@@ -885,16 +885,28 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 			// setting environment
 			if ( env ){
 				int i;
+				char **envs;
 				// clearing existing environment
-				for ( i = 0; environ[i]; i++ ){
-					char *pos = strchr( environ[i], '=' );
-					if ( pos ){
-						size_t len = pos - environ[i];
-						char name[len + 1];
-						strncpy( name, environ[i], len );
-						name[len] = '\0';
-						unsetenv( name );
+				for ( i = 0; environ[i]; i++ );
+				if ( i ){
+					envs = dao_malloc( sizeof(char*)*i );
+					for ( i = 0; environ[i]; i++ ){
+						char *pos = strchr( environ[i], '=' );
+						if ( pos ){
+							size_t len = pos - environ[i];
+							envs[i] = dao_malloc( sizeof(char)*( len + 1 ) );
+							strncpy( envs[i], environ[i], len );
+							envs[len] = '\0';
+						}
+						else
+							envs[i] = NULL;
 					}
+					for ( i = 0; environ[i]; i++ )
+						if ( envs[i] ){
+							unsetenv( envs[i] );
+							dao_free( envs[i] );
+						}
+					dao_free( envs );
 				}
 				for ( i = 0; i < env->value->size; i++ ){
 					DString *str = env->value->items.pValue[i]->xString.value;
