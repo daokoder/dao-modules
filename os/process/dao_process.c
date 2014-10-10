@@ -1439,7 +1439,7 @@ static void OS_Mkfifo( DaoProcess *proc, DaoValue *p[], int N )
 		// duplicate pipe handle to allow closing of separate pipe ends
 		if ( rd && wr )
 			res = DuplicateHandle( GetCurrentProcess(), handle, GetCurrentProcess(), &pipe->wpipe, 0, TRUE, DUPLICATE_SAME_ACCESS );
-		else
+		else if ( wr )
 			pipe->wpipe = handle;
 	}
 #else
