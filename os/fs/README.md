@@ -41,9 +41,10 @@ routine [file](#file_ctor)(_path_: string) => File
 routine [dir](#dir_ctor)(_path_: string) => Dir
 routine [cwd](#cwd)() => Dir
 routine [cd](#cd)(invar _path_: Dir)
-routine [cd](#cd)(path: _string_)
+routine [cd](#cd)(_path_: string)
 routine [ls](#ls)(invar _path_: Dir) => list&lt;string&gt;
 routine [ls](#ls)(_path_ = '.') => list&lt;string&gt;
+routine [rm](#rm)(_path_: string)
 routine [realpath](#realpath)(_path_: string) => string
 routine [exists](#exists)(_path_: string) => bool
 routine [roots](#roots)() => list&lt;string&gt;
@@ -224,6 +225,11 @@ ls(invar path: Dir) => list<string>
 ls(path = '.') => list<string>
 ```
 Returns list of names of all file objects in the directory specified by *path*
+<a name="rm"></a>
+```ruby
+rm(path: string)
+```
+Deletes file object specified by *path*
 <a name="realpath"></a>
 ```ruby
 realpath(path: string) => string
@@ -233,7 +239,7 @@ Returns absolute form of *path*, which must point to an existing file or directo
 ```ruby
 exists(path: string) => bool
 ```
-Returns `$true` if *path* exists
+Returns `true` if *path* exists
 <a name="roots"></a>
 ```ruby
 roots() => list<string>
