@@ -142,14 +142,18 @@ int JSON_SerializeValue( DaoProcess *proc, DaoVmCode *sect, int entry, DaoValue 
 		DString_AppendChars( text, "null" );
 		break;
 	default:
-		if ( sect->b > 0 )
-			DaoProcess_SetValue( proc, sect->a, value );
-		proc->topFrame->entry = entry;
-		if ( !DaoProcess_Execute( proc ) )
-			return -2;
-		res = JSON_SerializeValue( proc, sect, entry, proc->stackValues[0], test, indent );
-		if ( res != 0 )
-			return res;
+		if ( sect ){
+			if ( sect->b > 0 )
+				DaoProcess_SetValue( proc, sect->a, value );
+			proc->topFrame->entry = entry;
+			if ( !DaoProcess_Execute( proc ) )
+				return -2;
+			res = JSON_SerializeValue( proc, sect, entry, proc->stackValues[0], test, indent );
+			if ( res != 0 )
+				return res;
+		}
+		else
+			return value->type;
 	}
 	return 0;
 }
