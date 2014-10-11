@@ -1476,7 +1476,7 @@ static void OS_Open( DaoProcess *proc, DaoValue *p[], int N )
 	DaoPipe *pipe = DaoPipe_New();
 	DString *name = p[0]->xString.value;
 	DString *mode = p[1]->xString.value;
-	int rd, wr = 0;
+	int rd = 0, wr = 0;
 	int res;
 	if ( strcmp( mode->chars, "rw" ) == 0 )
 		rd = wr = 1;
