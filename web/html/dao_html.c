@@ -614,14 +614,14 @@ static DaoFuncItem htmlMeths[] =
 	{ Html_Tag,			"sup(...: GlobalAttr)[ => string|none ]" },
 	{ Html_Tag,			"table(...: tuple<enum<border>, string> | GlobalAttr)[ => string|none ]" },
 	{ Html_Tag,			"tbody(...: GlobalAttr)[ => string|none ]" },
-	{ Html_Tag,			"td(...: tuple<enum<colspan,rowspan>, int> | tuple<enum<headers>, list<string>> | GlobalAttr)"
+	{ Html_Tag,			"td(...: tuple<enum<colspan,rowspan>, int> | tuple<enum<headers>, invar<list<string>>> | GlobalAttr)"
 						  "[ => string|none ]" },
 	{ Html_Tag,			"textarea(...: tuple<enum<name,form,placeholder,dirname>, string> | "
 									  "enum<disabled,readonly,autofocus,required> | tuple<enum<maxlength,rows,cols>, int> | "
 									  "tuple<enum<wrap>, enum<hard,soft>> | GlobalAttr)[ => string|none ]" },
 	{ Html_Tag,			"tfoot(...: GlobalAttr)[ => string|none ]" },
 	{ Html_Tag,			"th(...: tuple<enum<scope>, enum<row,col,rowgroup,colgroup>> | tuple<enum<colspan,rowspan>, int> | "
-								"tuple<enum<headers>, list<string>> | GlobalAttr)[ => string|none ]" },
+								"tuple<enum<headers>, invar<list<string>>> | GlobalAttr)[ => string|none ]" },
 	{ Html_Tag,			"thead(...: GlobalAttr)[ => string|none ]" },
 	{ Html_Tag,			"time(...: tuple<enum<datetime>, string> | GlobalAttr)[ => string|none ]" },
 	{ Html_Tag,			"title(...: GlobalAttr)[ => string|none ]" },
