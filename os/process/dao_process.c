@@ -1563,20 +1563,20 @@ static DaoFuncItem osMeths[] =
 	 * on Unix, you may need to examine the process status or exit code (which will be set to 1) to detect execution failure.
 	 *
 	 * \warning On Windows, environment variable strings are assumed to be in local or ASCII encoding */
-	{ OS_Exec,	"exec(path: string, arguments: list<string>, ...: "
-					 "tuple<enum<dir>,string> | tuple<enum<environ>,list<string>> | tuple<enum<stdin,stdout,stderr>,Pipe>) => Process" },
+	{ OS_Exec,	"exec(path: string, invar arguments: list<string>, ...: "
+					 "tuple<enum<dir>,string> | tuple<enum<environ>,invar<list<string>>> | tuple<enum<stdin,stdout,stderr>,Pipe>) => Process" },
 
 	/*! Similar to `exec()`, but calls system shell ('/bin/sh -c' on Unix, 'cmd /C' on Windows) with the given \a command.
 	 * \a command is passed to the shell 'as-is', so you need to ensure that it is properly escaped */
 	{ OS_Shell,	"shell(command: string, ...: "
-					  "tuple<enum<dir>,string> | tuple<enum<environ>,list<string>> | tuple<enum<stdin,stdout,stderr>,Pipe>) => Process" },
+					  "tuple<enum<dir>,string> | tuple<enum<environ>,invar<list<string>>> | tuple<enum<stdin,stdout,stderr>,Pipe>) => Process" },
 
 	/*! Waits for one of child processes in \a children to exit for \a timeout seconds (waits indefinitely if \a timeout is less
 	 * then 0). Returns the first found exited process, or `none` if timeouted or if \a children is empty
 	 *
 	 * \warning If the function is called concurrently from multiple threads, it will ignore the processes which are currently
 	 * tracked by its other invocations. */
-	{ OS_Wait,	"wait(children: list<Process>, timeout = -1.0) => Process|none" },
+	{ OS_Wait,	"wait(invar children: list<Process>, timeout = -1.0) => Process|none" },
 
 	/*! Creates new pipe and returns the corresponding `Pipe` object. If \a autoClose is `true`, unused pipe end is automatically
 	 * closed when the pipe is passed to `exec()` or `shell()`; setting this parameter to `false` allows to pass single pipe to
@@ -1612,7 +1612,7 @@ static DaoFuncItem osMeths[] =
 	 *
 	 * \warning On Windows, `select()` uses system clock for short-term sleeping, thus the accuracy of waiting with timeout may
 	 * vary depending on the current clock resolution. */
-	{ OS_Select,"select(pipes: list<Pipe>, timeout = -1.0) => Pipe|none" },
+	{ OS_Select,"select(invar pipes: list<Pipe>, timeout = -1.0) => Pipe|none" },
 	{ NULL, NULL }
 };
 
