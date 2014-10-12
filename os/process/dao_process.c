@@ -128,6 +128,7 @@ struct DaoOSProcess
 	volatile proc_state state;
 	DCondVar cvar, *pvar;
 	DaoValue *inpipe, *outpipe, *errpipe;
+	int detached;
 };
 
 static DaoType *daox_type_process = NULL;
@@ -392,7 +393,7 @@ int DaoPipe_WaitRead( DaoPipe *self, dao_float timeout )
 		if ( total == 0 )
 			return PeekNamedPipe( self->rpipe, NULL, 0, NULL, &avail, NULL )? ( avail > 0 ) : ( GetLastError() == 109? 1 : -1 );
 		else
-			while ( total < 0? 1 : ( elapsed < total ) ){
+			while ( timeout < 0? 1 : ( elapsed < total ) ){
 				if ( !PeekNamedPipe( self->rpipe, NULL, 0, NULL, &avail, NULL ) )
 					return ( GetLastError() == 109? 1 : -1 );
 				if ( avail )
@@ -674,6 +675,7 @@ DaoOSProcess* DaoOSProcess_New()
 	res->inpipe = NULL;
 	res->outpipe = NULL;
 	res->errpipe = NULL;
+	res->detached = 0;
 	return res;
 }
 
@@ -736,7 +738,7 @@ void DaoOSProcess_Kill( DaoOSProcess *self, int force )
 }
 
 DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd, DaoList *args, DString *dir, DaoList *env,
-							  DaoValue *inpipe, DaoValue *outpipe, DaoValue *errpipe )
+							  DaoValue *inpipe, DaoValue *outpipe, DaoValue *errpipe, int detached )
 {
 	DaoPipe *pin, *pout, *perr;
 	DaoValue *value = NULL;
@@ -857,7 +859,8 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 				goto Exit;
 		}
 		// spawning process
-		res = CreateProcessW( NULL, tcmd, NULL, NULL, TRUE, 0, envblock? envblock->chars : NULL, dir? tdir : NULL, &sinfo, &pinfo );
+		res = CreateProcessW( NULL, tcmd, NULL, NULL, TRUE, detached? DETACHED_PROCESS : 0, envblock? envblock->chars : NULL,
+							  dir? tdir : NULL, &sinfo, &pinfo );
 	Exit:
 		dao_free( tcmd );
 		DString_Delete( cmdline );
@@ -932,6 +935,9 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 			// setting working directory
 			if ( dir && chdir( dir->chars ) != 0 )
 				_exit( 1 );
+			// detaching
+			if ( detached )
+				setsid();
 			// executing file
 			execvp( self->file->chars, argv );
 			_exit( 1 );
@@ -951,12 +957,13 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 	if ( pin->autoclose )
 		DaoPipe_Close( pin, Pipe_Read );
 	self->state = Process_Active;
+	self->detached = detached;
+	value = (DaoValue*)DaoProcess_NewCdata( proc, daox_type_process, self, 1 );
 	// introducing process to the child tracker
-	if ( 1 ){
+	if ( !detached ){
 		char key[sizeof(void*)*2];
 		memset( &key, 0, sizeof(key) );
 		*(pid_t*)( &key ) = self->id;
-		value = (DaoValue*)DaoProcess_NewCdata( proc, daox_type_process, self, 1 );
 		DMutex_Lock( &proc_mtx );
 		DMap_Insert( proc_map, key, value );
 		if ( proc_map->size == 1 )
@@ -972,6 +979,8 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 int DaoOSProcess_WaitExit( DaoOSProcess *self, dao_float timeout )
 {
 	int res = 1;
+	if ( self->detached )
+		return -1;
 	if ( self->state == Process_Active ){
 		DMutex_Lock( &proc_mtx );
 		while ( res && self->state == Process_Active ){ // catching spurious wakeups
@@ -1011,7 +1020,7 @@ static void OS_Exec( DaoProcess *proc, DaoValue *p[], int N )
 	DString *dir = NULL;
 	DaoList *env = NULL;
 	DaoValue *inpipe = NULL, *outpipe = NULL, *errpipe = NULL;
-	daoint i;
+	daoint i, detached = 0;
 	DString *name = DString_New();
 	for ( i = 2; i < N; i++ ){
 		DaoTuple *param = &p[i]->xTuple;
@@ -1026,10 +1035,12 @@ static void OS_Exec( DaoProcess *proc, DaoValue *p[], int N )
 			outpipe = param->values[1];
 		else if ( strcmp( name->chars, "$stderr" ) == 0 )
 			errpipe = param->values[1];
+		else if ( strcmp( name->chars, "$detached" ) == 0 )
+			detached = param->values[1]->xBoolean.value;
 	}
 	DString_Delete( name );
 	if ( CheckEnv( env, proc ) ){
-		DaoValue *value = DaoOSProcess_Start( res, proc, path, args, dir, env, inpipe, outpipe, errpipe );
+		DaoValue *value = DaoOSProcess_Start( res, proc, path, args, dir, env, inpipe, outpipe, errpipe, detached );
 		if ( N == 1 )
 			DaoList_Delete( args );
 		if ( value )
@@ -1049,7 +1060,7 @@ static void OS_Shell( DaoProcess *proc, DaoValue *p[], int N )
 	DString *cmd = p[0]->xString.value;
 	DString *dir = NULL;
 	DaoList *env = NULL;
-	daoint i;
+	daoint i, detached = 0;
 	DString *name = DString_New();
 	DaoValue *inpipe = NULL, *outpipe = NULL, *errpipe = NULL;
 	for ( i = 1; i < N; i++ ){
@@ -1065,6 +1076,8 @@ static void OS_Shell( DaoProcess *proc, DaoValue *p[], int N )
 			outpipe = param->values[1];
 		else if ( strcmp( name->chars, "$stderr" ) == 0 )
 			errpipe = param->values[1];
+		else if ( strcmp( name->chars, "$detached" ) == 0 )
+			detached = param->values[1]->xBoolean.value;
 	}
 	DString_Delete( name );
 	if ( CheckEnv( env, proc ) ){
@@ -1072,7 +1085,7 @@ static void OS_Shell( DaoProcess *proc, DaoValue *p[], int N )
 		DString *str = DString_New();
 		DaoValue *value;
 		DaoList_Append( args, (DaoValue*)DaoString_NewChars( cmd->chars ) );
-		value = DaoOSProcess_Start( res, proc, str, args, dir, env, inpipe, outpipe, errpipe );
+		value = DaoOSProcess_Start( res, proc, str, args, dir, env, inpipe, outpipe, errpipe, detached );
 		if ( value )
 			DaoProcess_PutValue( proc, value );
 		else {
@@ -1130,14 +1143,20 @@ static void DaoOSProcess_State( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoOSProcess *self = (DaoOSProcess*)DaoValue_TryGetCdata( p[0] );
 	proc_state state = DaoOSProcess_GetState( self );
-	DaoProcess_PutEnum( proc, state == Process_Active? "running" : ( state == Process_Finished? "finished" : "terminated" ) );
+	if ( state == Process_Active )
+		DaoProcess_PutEnum( proc, self->detached? "detached" : "running" );
+	else
+		DaoProcess_PutEnum( proc, state == Process_Finished? "finished" : "terminated" );
 }
 
 static void DaoOSProcess_Wait( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoOSProcess *self = (DaoOSProcess*)DaoValue_TryGetCdata( p[0] );
 	dao_float timeout = p[1]->xFloat.value;
-	DaoProcess_PutBoolean( proc, DaoOSProcess_WaitExit( self, timeout ) );
+	if ( self->detached )
+		DaoProcess_RaiseError( proc, "Process", "Waiting for detached process" );
+	else
+		DaoProcess_PutBoolean( proc, DaoOSProcess_WaitExit( self, timeout ) > 0 );
 }
 
 static void DaoOSProcess_LibKill( DaoProcess *proc, DaoValue *p[], int N )
@@ -1191,20 +1210,22 @@ static DaoFuncItem procMeths[] =
 	/*! Process environment in the form of a list of 'name=value' strings (`none` if the process environment is inherited) */
 	{ DaoOSProcess_Env,		".environment(invar self: Process) => list<string>|none" },
 
-	/*! Current process status.
+	/*! Current process status (detached processes always have `$detached` status).
 	 *
 	 * \note On Windows, a process is deemed terminated if its exit code is less then 0. On Unix, it means that the process exited
 	 * because it received a signal */
-	{ DaoOSProcess_State,	".status(invar self: Process) => enum<running,finished,terminated>" },
+	{ DaoOSProcess_State,	".status(invar self: Process) => enum<running,finished,terminated,detached>" },
 
-	/*! Process exit code, or `none` if the process is still running.
+	/*! Process exit code, or `none` if the process is still running or is detached.
 	 *
 	 * \note On Unix, exit code consists of the lowest 8 bits of exit status when the process exited normally. On Windows, it is
 	 * complete 32-bit value returned by the process */
 	{ DaoOSProcess_ExitCode,".exitCode(invar self: Process) => int|none" },
 
 	/*! Waits \a timeout seconds for process to exit.  If \a timeout is less then 0, waits indefinitely. Returns `true` if not
-	 * timeouted */
+	 * timeouted
+	 *
+	 * \note Cannot be used on detached processes */
 	{ DaoOSProcess_Wait,	"wait(invar self: Process, timeout = -1.0) => bool" },
 
 	/*! Attempts to terminate the process the way specified by \a how. On Unix, sends SIGTERM (\a how is `$gracefully`) or
@@ -1260,7 +1281,7 @@ static void OS_Wait( DaoProcess *proc, DaoValue *p[], int N )
 			DCondVar_Init( &svar );
 			// set hook for the process tracker
 			for ( i = 0; i < count; i++ )
-				if ( !cprocs[i]->pvar ){
+				if ( !cprocs[i]->detached && !cprocs[i]->pvar ){
 					cprocs[i]->pvar = &svar;
 					set = 1;
 				}
@@ -1551,6 +1572,8 @@ static DaoFuncItem osMeths[] =
 	 * - `dir` -- working directory
 	 * - `environ` -- environment (list of 'name=value' items specifying environment variables)
 	 * - `stdin`, `stdout`, `stderr` -- pipes for standard input, output and error streams
+	 * - `detached` -- if `true`, the process is detached from the calling process (on Unix, it also starts new session and becomes
+	 * leader of new process group)
 	 *
 	 * If pipe for any of the standard streams is not specified, it is automatically created with non-blocking mode set. Unless the
 	 * user-specified pipe is created with `autoClose` set to `false`, its unused end is automatically closed.
@@ -1564,18 +1587,20 @@ static DaoFuncItem osMeths[] =
 	 *
 	 * \warning On Windows, environment variable strings are assumed to be in local or ASCII encoding */
 	{ OS_Exec,	"exec(path: string, invar arguments: list<string>, ...: "
-					 "tuple<enum<dir>,string> | tuple<enum<environ>,invar<list<string>>> | tuple<enum<stdin,stdout,stderr>,Pipe>) => Process" },
+					 "tuple<enum<dir>, string> | tuple<enum<environ>, invar<list<string>>> | "
+					 "tuple<enum<stdin,stdout,stderr>, Pipe> | tuple<enum<detached>, bool>) => Process" },
 
 	/*! Similar to `exec()`, but calls system shell ('/bin/sh -c' on Unix, 'cmd /C' on Windows) with the given \a command.
 	 * \a command is passed to the shell 'as-is', so you need to ensure that it is properly escaped */
 	{ OS_Shell,	"shell(command: string, ...: "
-					  "tuple<enum<dir>,string> | tuple<enum<environ>,invar<list<string>>> | tuple<enum<stdin,stdout,stderr>,Pipe>) => Process" },
+					  "tuple<enum<dir>, string> | tuple<enum<environ>, invar<list<string>>> | "
+					  "tuple<enum<stdin,stdout,stderr>, Pipe> | tuple<enum<detached>, bool>) => Process" },
 
 	/*! Waits for one of child processes in \a children to exit for \a timeout seconds (waits indefinitely if \a timeout is less
 	 * then 0). Returns the first found exited process, or `none` if timeouted or if \a children is empty
 	 *
 	 * \warning If the function is called concurrently from multiple threads, it will ignore the processes which are currently
-	 * tracked by its other invocations. */
+	 * tracked by its other invocations. Detached processes are ingored as well. */
 	{ OS_Wait,	"wait(invar children: list<Process>, timeout = -1.0) => Process|none" },
 
 	/*! Creates new pipe and returns the corresponding `Pipe` object. If \a autoClose is `true`, unused pipe end is automatically
