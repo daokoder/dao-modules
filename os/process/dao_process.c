@@ -25,8 +25,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include"dao.h"
-#include"daoValue.h"
+#include"..\..\kernel\dao.h"
+#include"..\..\kernel\daoValue.h"
 #include"daoThread.h"
 #include"daoTasklet.h"
 
@@ -39,6 +39,7 @@
 #include<sys/stat.h>
 
 #define pid_t HANDLE
+#define fd_t HANDLE
 #define IS_PATH_SEP( x ) ( ( x ) == '/' || ( x ) == '\\' || ( x ) == ':' )
 
 HANDLE exec_event; // interrupts WaitFroMultipleObjects() to add new child
@@ -81,6 +82,7 @@ char_t* CharsToTChars( char *chs, size_t len )
 #include<time.h>
 
 #define IS_PATH_SEP( x ) ( ( x ) == '/' )
+#define fd_t int
 
 static pid_t fetched_pid = 0; // extra safety measure against kill()'ing of innocents
 #endif
@@ -737,10 +739,60 @@ void DaoOSProcess_Kill( DaoOSProcess *self, int force )
 	DMutex_Unlock( &proc_mtx );
 }
 
+int GetFile( DaoStream *stream, fd_t *fd )
+{
+#ifdef WIN32
+	*fd = INVALID_HANDLE_VALUE;
+	if ( stream->file )
+		DuplicateHandle( GetCurrentProcess(), (HANDLE)_get_osfhandle( _fileno( stream->file ) ), GetCurrentProcess(), fd, 0,
+						 TRUE, DUPLICATE_SAME_ACCESS );
+	return *fd != INVALID_HANDLE_VALUE;
+#else
+	*fd = stream->file? dup( fileno( stream->file ) ) : -1;
+	return *fd != -1;
+#endif
+}
+
+int GetStdStream( DaoProcess *proc, DaoValue *value, DaoValue **dest, DaoPipe **pipe, fd_t *fd, pipe_end end )
+{
+	if ( value ){
+		if ( value->xCdata.ctype == daox_type_pipe )
+			DaoValue_Copy( value, dest );
+		else
+			return GetFile( &value->xStream, fd );
+	}
+	else
+		*dest = (DaoValue*)DaoProcess_NewCdata( proc, daox_type_pipe, DaoPipe_New(), 1 );
+	*pipe = (DaoPipe*)DaoValue_TryGetCdata( *dest );
+	if ( !value && ( !DaoPipe_Init( *pipe ) || !DaoPipe_SetBlocking( *pipe, end, 0 ) ) )
+		return 0;
+#ifdef WIN32
+	*fd = ( end == Pipe_Read )? ( *pipe )->wpipe : ( *pipe )->rpipe;
+#else
+	*fd = ( end == Pipe_Read )? ( *pipe )->fdwpipe : ( *pipe )->fdrpipe;
+#endif
+	return 1;
+}
+
+void CloseUnused( DaoPipe *pipe, pipe_end end, fd_t fd )
+{
+	if ( pipe ){
+		if ( pipe->autoclose )
+			DaoPipe_Close( pipe, end );
+	}
+	else
+#ifdef WIN32
+		CloseHandle( fd );
+#else
+		close( fd );
+#endif
+}
+
 DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd, DaoList *args, DString *dir, DaoList *env,
 							  DaoValue *inpipe, DaoValue *outpipe, DaoValue *errpipe, int detached )
 {
-	DaoPipe *pin, *pout, *perr;
+	DaoPipe *pin = NULL, *pout = NULL, *perr = NULL;
+	fd_t fin, fout, ferr;
 	DaoValue *value = NULL;
 	daoint i;
 	char *pos = NULL;
@@ -778,27 +830,12 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 		if ( dir->size == 1 && dir->chars[0] == '.' )
 			dir = NULL;
 	}
-	// setting pipes
-	if ( inpipe )
-		DaoValue_Copy( inpipe, &self->inpipe );
-	else
-		self->inpipe = (DaoValue*)DaoProcess_NewCdata( proc, daox_type_pipe, DaoPipe_New(), 1 );
-	pin = (DaoPipe*)DaoValue_TryGetCdata( self->inpipe );
-	if ( !inpipe && ( !DaoPipe_Init( pin ) || !DaoPipe_SetBlocking( pin, Pipe_Write, 0 ) ) )
+	// setting file descriptors
+	if ( !GetStdStream( proc, inpipe, &self->inpipe, &pin, &fin, Pipe_Write ) )
 		return NULL;
-	if ( outpipe )
-		DaoValue_Copy( outpipe, &self->outpipe );
-	else
-		self->outpipe = (DaoValue*)DaoProcess_NewCdata( proc, daox_type_pipe, DaoPipe_New(), 1 );
-	pout = (DaoPipe*)DaoValue_TryGetCdata( self->outpipe );
-	if ( !outpipe && ( !DaoPipe_Init( pout ) || !DaoPipe_SetBlocking( pout, Pipe_Read, 0 ) ) )
+	if ( !GetStdStream( proc, outpipe, &self->outpipe, &pout, &fout, Pipe_Read ) )
 		return NULL;
-	if ( errpipe )
-		DaoValue_Copy( errpipe, &self->errpipe );
-	else
-		self->errpipe = (DaoValue*)DaoProcess_NewCdata( proc, daox_type_pipe, DaoPipe_New(), 1 );
-	perr = (DaoPipe*)DaoValue_TryGetCdata( self->errpipe );
-	if ( !errpipe && ( !DaoPipe_Init( perr ) || !DaoPipe_SetBlocking( perr, Pipe_Read, 0 ) ) )
+	if ( !GetStdStream( proc, errpipe, &self->errpipe, &perr, &ferr, Pipe_Read ) )
 		return NULL;
 #ifdef WIN32
 	if ( 1 ){
@@ -811,9 +848,9 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 		memset( &sinfo, 0, sizeof(sinfo) );
 		sinfo.cb = sizeof(sinfo);
 		// setting standard IO redirection
-		sinfo.hStdError = perr->wpipe;
-		sinfo.hStdOutput = pout->wpipe;
-		sinfo.hStdInput = pin->rpipe;
+		sinfo.hStdError = ferr;
+		sinfo.hStdOutput = fout;
+		sinfo.hStdInput = fin;
 		sinfo.dwFlags = STARTF_USESTDHANDLES;
 		// setting command line
 		if ( shell )
@@ -889,13 +926,16 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 		id = fork();
 		if ( id == 0 ){ // child
 			// closing unused pipe ends
-			DaoPipe_Close( perr, Pipe_Read );
-			DaoPipe_Close( pout, Pipe_Read );
-			DaoPipe_Close( pin, Pipe_Write );
+			if ( perr )
+				DaoPipe_Close( perr, Pipe_Read );
+			if ( pout )
+				DaoPipe_Close( pout, Pipe_Read );
+			if ( pin )
+				DaoPipe_Close( pin, Pipe_Write );
 			// redirecting standard IO
-			dup2( perr->fdwpipe, fileno( stderr ) );
-			dup2( pout->fdwpipe, fileno( stdout ) );
-			dup2( pin->fdrpipe, fileno( stdin ) );
+			dup2( ferr, fileno( stderr ) );
+			dup2( fout, fileno( stdout ) );
+			dup2( fin, fileno( stdin ) );
 			// setting environment
 			if ( env ){
 				int i;
@@ -949,13 +989,10 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 		self->pid = id;
 	}
 #endif
-	// closing unused pipe ends
-	if ( perr->autoclose )
-		DaoPipe_Close( perr, Pipe_Write );
-	if ( pout->autoclose )
-		DaoPipe_Close( pout, Pipe_Write );
-	if ( pin->autoclose )
-		DaoPipe_Close( pin, Pipe_Read );
+	// closing unused file descriptors
+	CloseUnused( perr, Pipe_Write, ferr );
+	CloseUnused( pout, Pipe_Write, fout );
+	CloseUnused( pin, Pipe_Read, fin );
 	self->state = Process_Active;
 	self->detached = detached;
 	value = (DaoValue*)DaoProcess_NewCdata( proc, daox_type_process, self, 1 );
@@ -1012,6 +1049,26 @@ int CheckEnv( DaoList *env, DaoProcess *proc )
 	return 1;
 }
 
+int CheckStream( DaoProcess *proc, DaoValue *value, int read )
+{
+	if ( value->xCdata.ctype != daox_type_pipe ){
+		DaoStream *stream = &value->xStream;
+		if ( !stream->file ){
+			DaoProcess_RaiseError( proc, "Value", "Not a file stream" );
+			return 0;
+		}
+		if ( read && !( stream->mode & DAO_STREAM_READABLE ) ){
+			DaoProcess_RaiseError( proc, "Value", "Stream not readable" );
+			return 0;
+		}
+		if ( !read && !( stream->mode & DAO_STREAM_WRITABLE ) ){
+			DaoProcess_RaiseError( proc, "Value", "Stream not writable" );
+			return 0;
+		}
+	}
+	return 1;
+}
+
 static void OS_Exec( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoOSProcess *res = DaoOSProcess_New();
@@ -1039,6 +1096,9 @@ static void OS_Exec( DaoProcess *proc, DaoValue *p[], int N )
 			detached = param->values[1]->xBoolean.value;
 	}
 	DString_Delete( name );
+	if ( ( inpipe && !CheckStream( proc, inpipe, 1 ) ) || ( outpipe && !CheckStream( proc, outpipe, 0 ) ) ||
+		 ( errpipe && !CheckStream( proc, errpipe, 0 ) ) )
+		return;
 	if ( CheckEnv( env, proc ) ){
 		DaoValue *value = DaoOSProcess_Start( res, proc, path, args, dir, env, inpipe, outpipe, errpipe, detached );
 		if ( N == 1 )
@@ -1080,6 +1140,9 @@ static void OS_Shell( DaoProcess *proc, DaoValue *p[], int N )
 			detached = param->values[1]->xBoolean.value;
 	}
 	DString_Delete( name );
+	if ( ( inpipe && !CheckStream( proc, inpipe, 1 ) ) || ( outpipe && !CheckStream( proc, outpipe, 0 ) ) ||
+		 ( errpipe && !CheckStream( proc, errpipe, 0 ) ) )
+		return;
 	if ( CheckEnv( env, proc ) ){
 		DaoList *args = DaoList_New();
 		DString *str = DString_New();
@@ -1178,19 +1241,28 @@ static void DaoOSProcess_ExitCode( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoOSProcess_Stdin( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoOSProcess *self = (DaoOSProcess*)DaoValue_TryGetCdata( p[0] );
-	DaoProcess_PutValue( proc, self->inpipe );
+	if ( !self->inpipe )
+		DaoProcess_PutNone( proc );
+	else
+		DaoProcess_PutValue( proc, self->inpipe );
 }
 
 static void DaoOSProcess_Stdout( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoOSProcess *self = (DaoOSProcess*)DaoValue_TryGetCdata( p[0] );
-	DaoProcess_PutValue( proc, self->outpipe );
+	if ( !self->outpipe )
+		DaoProcess_PutNone( proc );
+	else
+		DaoProcess_PutValue( proc, self->outpipe );
 }
 
 static void DaoOSProcess_Stderr( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoOSProcess *self = (DaoOSProcess*)DaoValue_TryGetCdata( p[0] );
-	DaoProcess_PutValue( proc, self->errpipe );
+	if ( !self->errpipe )
+		DaoProcess_PutNone( proc );
+	else
+		DaoProcess_PutValue( proc, self->errpipe );
 }
 
 static DaoFuncItem procMeths[] =
@@ -1233,14 +1305,14 @@ static DaoFuncItem procMeths[] =
 	 * to -1 */
 	{ DaoOSProcess_LibKill,	"terminate(self: Process, how: enum<gracefully,forcibly> = $forcibly)" },
 
-	/*! Writable input pipe (stdin stream of the process) */
-	{ DaoOSProcess_Stdin,	".input(self: Process) => Pipe" },
+	/*! Writable input pipe (stdin stream of the process), or `none` if input stream was redirected to a file */
+	{ DaoOSProcess_Stdin,	".input(self: Process) => Pipe|none" },
 
-	/*! Readable output pipe (stdout stream of the process) */
-	{ DaoOSProcess_Stdout,	".output(self: Process) => Pipe" },
+	/*! Readable output pipe (stdout stream of the process), or `none` if output stream was redirected to a file */
+	{ DaoOSProcess_Stdout,	".output(self: Process) => Pipe|none" },
 
-	/*! Readable error pipe (stderr stream of the process) */
-	{ DaoOSProcess_Stderr,	".errors(self: Process) => Pipe" },
+	/*! Readable error pipe (stderr stream of the process), or `none` if error stream was redirected to a file */
+	{ DaoOSProcess_Stderr,	".errors(self: Process) => Pipe|none" },
 	{ NULL, NULL }
 };
 
@@ -1571,7 +1643,7 @@ static DaoFuncItem osMeths[] =
 	 * Additional variadic parameters may specify the following process parameters:
 	 * - `dir` -- working directory
 	 * - `environ` -- environment (list of 'name=value' items specifying environment variables)
-	 * - `stdin`, `stdout`, `stderr` -- pipes for standard input, output and error streams
+	 * - `stdin`, `stdout`, `stderr` -- pipes or files for redirection of standard input, output and error streams
 	 * - `detached` -- if `true`, the process is detached from the calling process (on Unix, it also starts new session and becomes
 	 * leader of new process group)
 	 *
@@ -1588,13 +1660,13 @@ static DaoFuncItem osMeths[] =
 	 * \warning On Windows, environment variable strings are assumed to be in local or ASCII encoding */
 	{ OS_Exec,	"exec(path: string, invar arguments: list<string>, ...: "
 					 "tuple<enum<dir>, string> | tuple<enum<environ>, invar<list<string>>> | "
-					 "tuple<enum<stdin,stdout,stderr>, Pipe> | tuple<enum<detached>, bool>) => Process" },
+					 "tuple<enum<stdin,stdout,stderr>, Pipe|io::Stream> | tuple<enum<detached>, bool>) => Process" },
 
 	/*! Similar to `exec()`, but calls system shell ('/bin/sh -c' on Unix, 'cmd /C' on Windows) with the given \a command.
 	 * \a command is passed to the shell 'as-is', so you need to ensure that it is properly escaped */
 	{ OS_Shell,	"shell(command: string, ...: "
 					  "tuple<enum<dir>, string> | tuple<enum<environ>, invar<list<string>>> | "
-					  "tuple<enum<stdin,stdout,stderr>, Pipe> | tuple<enum<detached>, bool>) => Process" },
+					  "tuple<enum<stdin,stdout,stderr>, Pipe|io::Stream> | tuple<enum<detached>, bool>) => Process" },
 
 	/*! Waits for one of child processes in \a children to exit for \a timeout seconds (waits indefinitely if \a timeout is less
 	 * then 0). Returns the first found exited process, or `none` if timeouted or if \a children is empty
