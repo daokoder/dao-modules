@@ -25,8 +25,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include"..\..\kernel\dao.h"
-#include"..\..\kernel\daoValue.h"
+#include"dao.h"
+#include"daoValue.h"
 #include"daoThread.h"
 #include"daoTasklet.h"
 
@@ -762,7 +762,7 @@ int GetStdStream( DaoProcess *proc, DaoValue *value, DaoValue **dest, DaoPipe **
 			return GetFile( &value->xStream, fd );
 	}
 	else
-		*dest = (DaoValue*)DaoProcess_NewCdata( proc, daox_type_pipe, DaoPipe_New(), 1 );
+		DaoGC_Assign( dest, (DaoValue*) DaoProcess_NewCdata( proc, daox_type_pipe, DaoPipe_New(), 1 ) );
 	*pipe = (DaoPipe*)DaoValue_TryGetCdata( *dest );
 	if ( !value && ( !DaoPipe_Init( *pipe ) || !DaoPipe_SetBlocking( *pipe, end, 0 ) ) )
 		return 0;

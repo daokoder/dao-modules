@@ -148,7 +148,7 @@ int JSON_SerializeValue( DaoProcess *proc, DaoVmCode *sect, int entry, DaoValue 
 			proc->topFrame->entry = entry;
 			if ( !DaoProcess_Execute( proc ) )
 				return -2;
-			res = JSON_SerializeValue( proc, sect, entry, proc->stackValues[0], test, indent );
+			res = JSON_SerializeValue( proc, sect, entry, proc->stackValues[0], text, indent );
 			if ( res != 0 )
 				return res;
 		}
