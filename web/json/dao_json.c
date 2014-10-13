@@ -529,8 +529,9 @@ static DaoFuncItem jsonMeths[] =
 
 	/*! Similar to the above, but accepts arbitrary data as input. Each item of type other then \c int, \c float, \c bool,
 	 * \c none, \c string, \c map or \c list found in \a data is passed to the specified code section, which should implement
-	 * its conversion to \c Data */
-	{ JSON_Serialize2,	"serialize(invar data: any, style: enum<pretty,compact> = $pretty)[invar item: any => Data] => string" },
+	 * its conversion to \c Data, \c list or \c map. The serialization then proceeds recursively */
+	{ JSON_Serialize2,	"serialize(invar data: any, style: enum<pretty,compact> = $pretty)"
+								 "[invar item: any => Data|list<any>|map<string,any>] => string" },
 
 	/*! Parses JSON in \a str and returns the corresponding map or list.
 	 *
