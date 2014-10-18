@@ -6,49 +6,50 @@ The module provides interface to common operations on files and directories in p
 namespace [fs](#fs)
 
 class [Entry](#entry)
-- routine [.path](#path)(invar _self_: Entry) => string
-- routine [.name](#name)(invar _self_: Entry) => string
-- routine [.basename](#basename)(invar _self_: Entry) => string
-- routine [.suffix](#suffix)(invar _self_: Entry) => string
-- routine [.kind](#kind)(invar _self_: Entry ) => enum&lt;file,dir&gt;
-- routine [.dirup](#dirup)(invar _self_: Entry) => Dir|none
-- routine [.time](#time)(invar _self_: Entry) => tuple&lt;_created_: int, _modified_: int, _accessed_: int&gt;
-- routine [.owner](#owner)(invar _self_: Entry) => string
-- routine [.access](#access)(invar _self_: Entry) => tuple&lt;_user_: string, _group_: string, _other_: string&gt;
-- routine [.access=](#access)(self: _entry_, _value_: tuple&lt;_user_: string, _group_: string, _other_: string&gt;)
-- routine [move](#move)(_self_: Entry, _path_: string)
-- routine [delete](#delete)(_self_: Entry)
-- routine [refresh](#refresh)(_self_: Entry)
+- [.path](#path)(invar _self_: Entry) => string
+- [.name](#name)(invar _self_: Entry) => string
+- [.basename](#basename)(invar _self_: Entry) => string
+- [.suffix](#suffix)(invar _self_: Entry) => string
+- [.kind](#kind)(invar _self_: Entry ) => enum&lt;file,dir&gt;
+- [.dirup](#dirup)(invar _self_: Entry) => Dir|none
+- [.time](#time)(invar _self_: Entry) => tuple&lt;_created_: int, _modified_: int, _accessed_: int&gt;
+- [.owner](#owner)(invar _self_: Entry) => string
+- [.access](#access)(invar _self_: Entry) => tuple&lt;_user_: string, _group_: string, _other_: string&gt;
+- [.access=](#access)(self: _entry_, _value_: tuple&lt;_user_: string, _group_: string, _other_: string&gt;)
+- [move](#move)(_self_: Entry, _path_: string)
+- [delete](#delete)(_self_: Entry)
+- [refresh](#refresh)(_self_: Entry)
 
 class [File](#file): Entry
-- routine [.size](#size)(invar _self_: File) => int
-- routine [.size=](#size)(_self_: File, _size_: int)
-- routine [copy](#copy)(_self_: File, _path_: string) => File
-- routine [copy](#copy2)(_self_: File, _to_: Dir) => File
+- [.size](#size)(invar _self_: File) => int
+- [.size=](#size)(_self_: File, _size_: int)
+- [copy](#copy)(_self_: File, _path_: string) => File
+- [copy](#copy2)(_self_: File, _to_: Dir) => File
 
 class [Dir](#dir): Entry
- - routine [mkfile](#mkfile)(_self_: Dir, _path_: string) => File
- - routine [mkdir](#mkdir)(_self_: Dir, _path_: string) => Dir
- - routine [entries](#entries)(invar _self_: Dir, _filter_ = '*', _filtering_: enum&lt;wildcard,pattern&gt; = $wildcard) => list&lt;Entry&gt;
- - routine [files](#files)(invar _self_: Dir, _filter_ = '*', _filtering_: enum&lt;wildcard,pattern&gt; = $wildcard) => list&lt;File&gt;
- - routine [dirs](#dirs)(invar _self_: Dir, _filter_ = '*', _filtering_: enum&lt;wildcard,pattern&lt;= $wildcard) => list&lt;Dir&gt;
- - routine [<span>[]</span>](#op_index)(invar _self_: Dir, _path_: string) => Entry|none
- - routine [exists](#exists)(invar _self_: Dir, _path_: string) => bool
- - routine [mktemp](#mktemp)(_self_: Dir, _prefix_ = '') => File
+- [mkfile](#mkfile)(_self_: Dir, _path_: string) => File
+- [mkdir](#mkdir)(_self_: Dir, _path_: string) => Dir
+- [entries](#entries)(invar _self_: Dir, _filter_ = '*', _filtering_: enum&lt;wildcard,pattern&gt; = $wildcard) => list&lt;Entry&gt;
+- [files](#files)(invar _self_: Dir, _filter_ = '*', _filtering_: enum&lt;wildcard,pattern&gt; = $wildcard) => list&lt;File&gt;
+- [dirs](#dirs)(invar _self_: Dir, _filter_ = '*', _filtering_: enum&lt;wildcard,pattern&lt;= $wildcard) => list&lt;Dir&gt;
+- [<span>[]</span>](#op_index)(invar _self_: Dir, _path_: string) => Entry|none
+- [exists](#exists)(invar _self_: Dir, _path_: string) => bool
+- [mktemp](#mktemp)(_self_: Dir, _prefix_ = '') => File
 
-routine [entry](#entry_ctor)(_path_: string) => Entry
-routine [file](#file_ctor)(_path_: string) => File
-routine [dir](#dir_ctor)(_path_: string) => Dir
-routine [cwd](#cwd)() => Dir
-routine [cd](#cd)(invar _path_: Dir)
-routine [cd](#cd)(_path_: string)
-routine [ls](#ls)(invar _path_: Dir) => list&lt;string&gt;
-routine [ls](#ls)(_path_ = '.') => list&lt;string&gt;
-routine [rm](#rm)(_path_: string)
-routine [realpath](#realpath)(_path_: string) => string
-routine [exists](#exists)(_path_: string) => bool
-routine [roots](#roots)() => list&lt;string&gt;
-routine [home](#home)() => Dir
+Functions:
+- [entry](#entry_ctor)(_path_: string) => Entry
+- [file](#file_ctor)(_path_: string) => File
+- [dir](#dir_ctor)(_path_: string) => Dir
+- [cwd](#cwd)() => Dir
+- [cd](#cd)(invar _path_: Dir)
+- [cd](#cd)(_path_: string)
+- [ls](#ls)(invar _path_: Dir) => list&lt;string&gt;
+- [ls](#ls)(_path_ = '.') => list&lt;string&gt;
+- [rm](#rm)(_path_: string)
+- [realpath](#realpath)(_path_: string) => string
+- [exists](#exists)(_path_: string) => bool
+- [roots](#roots)() => list&lt;string&gt;
+- [home](#home)() => Dir
 
 <a name="fs"></a>
 ### Classes
@@ -193,7 +194,7 @@ mktemp(self: Dir, prefix = '') => File
 Creates file with unique name prefixed by *prefix* in this directory. Returns the corresponding `Entry`
 
 ------
-### Routines
+### Functions
 ```ruby
 entry(path: string) => Entry
 ```

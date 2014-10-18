@@ -297,7 +297,7 @@ static void OS_Uname( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem sysMeths[]=
 {
 	/*! Executes the given \a command via system shell and returns the resulting exit code */
-	{ OS_Shell,     "shell( command: string ) => int" },
+	{ OS_Shell,     "system( command: string ) => int" },
 
 	/*! Spawns sub-process which executes the given shell \a command with redirected standard input or output depending on \a mode.
 	 * If \a mode is 'r', returns readable stream of the process output; if \a mode is 'w', returns writable stream of the process
