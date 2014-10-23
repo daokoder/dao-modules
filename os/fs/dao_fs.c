@@ -33,6 +33,7 @@
 #include<string.h>
 #include<errno.h>
 #include<limits.h>
+#include<stdlib.h>
 
 #include"dao.h"
 #include"daoValue.h"
@@ -1432,7 +1433,7 @@ static void FS_HomeDir( DaoProcess *proc, DaoValue *p[], int N )
 		return;
 	}
 #else
-	strcpy( buf, "~" );
+	strcpy( buf, getenv( "HOME" ) );
 #endif
 	if( ( res = DInode_Open( fsnode, buf ) ) != 0 ){
 		char errbuf[MAX_ERRMSG];
