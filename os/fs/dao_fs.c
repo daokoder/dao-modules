@@ -160,7 +160,7 @@ typedef struct stat stat_t;
 #define tcsstr strstr
 
 #define DString_SetTChars( str, tcs ) DString_SetChars( str, tcs )
-#define DaoString_NewTChars( tcs ) DString_NewChars( tcs )
+#define DaoString_NewTChars( tcs ) DaoString_NewChars( tcs )
 #define DaoProcess_PutTChars( proc, tcs ) DaoProcess_PutChars( proc, tcs )
 #define CharsToTChars( chs ) ( chs )
 #define FreeTChars( tcs )
