@@ -436,9 +436,9 @@ DaoNumItem mathConsts[] =
 	{ "PI",       DAO_FLOAT, M_PI },
 	{ "PI_2",     DAO_FLOAT, M_PI_2 },
 	{ "PI_4",     DAO_FLOAT, M_PI_4 },
-	{ "1_PI",     DAO_FLOAT, M_1_PI },
-	{ "2_PI",     DAO_FLOAT, M_2_PI },
-	{ "2_SQRTPI", DAO_FLOAT, M_2_SQRTPI },
+	{ "_1_PI",    DAO_FLOAT, M_1_PI },
+	{ "_2_PI",    DAO_FLOAT, M_2_PI },
+	{ "_2_SQRTPI",DAO_FLOAT, M_2_SQRTPI },
 	{ "SQRT2",    DAO_FLOAT, M_SQRT2 },
 	{ "SQRT1_2",  DAO_FLOAT, M_SQRT1_2 },
 	{ NULL, 0.0, 0.0 }
