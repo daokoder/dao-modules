@@ -470,7 +470,7 @@ int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *des
 					fsnode = DInode_New();
 					if( ( res = DInode_Open( fsnode, buffer ) ) != 0 ){
 						DInode_Delete( fsnode );
-						return res;
+						continue;
 					}
 					if( ( fsnode->type == type || type == 2 ) && DaoRegex_Match( pattern, str, NULL, NULL ) ){
 						value = (DaoValue*) DaoProcess_NewCdata( proc, fsnode->type == 0? daox_type_dir : daox_type_file, fsnode, 1 );
@@ -506,7 +506,7 @@ int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *des
 					fsnode = DInode_New();
 					if( ( res = DInode_Open( fsnode, buffer ) ) != 0 ){
 						DInode_Delete( fsnode );
-						return res;
+						continue;
 					}
 					if( ( fsnode->type == type || type == 2 ) && DaoRegex_Match( pattern, str, NULL, NULL ) ){
 						value = (DaoValue*) DaoProcess_NewCdata( proc, fsnode->type == 0? daox_type_dir : daox_type_file, fsnode, 1 );
