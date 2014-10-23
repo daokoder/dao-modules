@@ -564,14 +564,14 @@ static void DaoTime_Days( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoTime_Equal( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *a = (DaoTime*)DaoValue_TryGetCdata( p[0] );
-	DaoTime *b = (DaoTime*)DaoValue_TryGetCdata( p[0] );
+	DaoTime *b = (DaoTime*)DaoValue_TryGetCdata( p[1] );
 	DaoProcess_PutInteger( proc, a->value == b->value );
 }
 
 static void DaoTime_NotEqual( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *a = (DaoTime*)DaoValue_TryGetCdata( p[0] );
-	DaoTime *b = (DaoTime*)DaoValue_TryGetCdata( p[0] );
+	DaoTime *b = (DaoTime*)DaoValue_TryGetCdata( p[1] );
 	DaoProcess_PutInteger( proc, a->value != b->value );
 }
 
