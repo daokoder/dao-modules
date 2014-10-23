@@ -1115,7 +1115,7 @@ static void FSNode_Copy( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
 	int dir = ( p[1]->type != DAO_STRING );
-	char_t *path = CharsToTChars( dir? ( (DInode*)DaoValue_TryGetCdata( p[1] ) )->path : p[1]->xString.value->chars );
+	char_t *path = NULL;
 	FILE *src = NULL, *dest = NULL;
 	DInode *copy;
 	size_t len;
@@ -1125,6 +1125,12 @@ static void FSNode_Copy( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, fserr, "Copying of directories is not supported" );
 		goto Exit;
 	}
+	if ( dir ){
+		path = (char_t*)dao_malloc( sizeof(char_t)*( MAX_PATH + 1) );
+		tcscpy( path, ( (DInode*)DaoValue_TryGetCdata( p[1] ) )->path );
+	}
+	else
+		path = CharsToTChars( p[1]->xString.value->chars );
 	src = fopen( self->path, T("r") );
 	if ( !src ){
 		char errbuf[MAX_ERRMSG] = "Unable to read file; ";
