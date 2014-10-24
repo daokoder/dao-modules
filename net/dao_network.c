@@ -1031,7 +1031,7 @@ static DaoFuncItem socketMeths[] =
 	{  DaoSocket_Lib_State,         ".state( invar self: Socket ) => enum<closed,bound,listening,connected>" },
 
 	/*! Shuts down the connection, stopping further operations specified by \a what */
-	{  DaoSocket_Lib_Shutdown,      "shutdown( self: Socket, what: enum<send,receive,both> )" },
+	{  DaoSocket_Lib_Shutdown,      "shutdown( self: Socket, what: enum<send,receive,all> )" },
 
 	/*! Closes the socket */
 	{  DaoSocket_Lib_Close,         "close( self: Socket )" },
