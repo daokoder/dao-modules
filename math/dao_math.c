@@ -29,6 +29,7 @@
 #include<math.h>
 #include"daoValue.h"
 #include"daoNumtype.h"
+#include"daoProcess.h"
 
 #ifdef _MSC_VER
 #define hypot _hypot
@@ -106,14 +107,16 @@ static void MATH_rand( DaoProcess *proc, DaoValue *p[], int N )
 }
 static void MATH_srand( DaoProcess *proc, DaoValue *p[], int N )
 {
-	srand( (unsigned int)p[0]->xInteger.value );
+	uint_t seed = (uint_t)p[0]->xInteger.value;
+	DaoProcess_SeedRandom( proc, seed );
+	srand( seed );
 	rand();
 }
 
 typedef struct DaoGaussRandCache DaoGaussRandCache;
 struct DaoGaussRandCache
 {
-	int     iset;
+	int    iset;
 	float  gset;
 };
 static DaoGaussRandCache* DaoGaussRandCache_New()
@@ -385,7 +388,7 @@ static DaoFuncItem mathMeths[]=
 	{ MATH_rand,      "rand( p: float=1.0 )=>float" },
 #endif
 
-	{ MATH_srand,     "srand( p: int)=>int" },
+	{ MATH_srand,     "srand( p: int)" },
 	{ MATH_rand_gaussian,  "randGaussian( p: float = 1.0 )=>float" },
 	{ MATH_round,     "round( p: float )=>float" },
 	{ MATH_hypot,     "hypot( p1: float, p2: float )=>float" },
