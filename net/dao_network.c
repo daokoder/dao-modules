@@ -195,6 +195,7 @@ enum {
 	Socket_SharedAddress = 1,
 	Socket_ExclusiveAddress = 2,
 	Socket_ReusableAddress = 4,
+	Socket_DefaultAddress = 8,
 };
 
 typedef int socket_opts;
@@ -781,7 +782,7 @@ static void DaoSocket_Lib_Bind( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
-	if( DaoSocket_Bind( self, par[1]->xInteger.value, N == 3? par[2]->xEnum.value : 0 ) == -1 ){
+	if( DaoSocket_Bind( self, par[1]->xInteger.value, N == 3? par[2]->xEnum.value : Socket_ExclusiveAddress ) == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 	}
@@ -988,7 +989,7 @@ static DaoFuncItem socketMeths[] =
 {
 	/*! Binds the socket to \a port using \a address options if specified. For the description of \a address, see \c net.bind() */
 	{  DaoSocket_Lib_Bind,          "bind( self: Socket, port: int )" },
-	{  DaoSocket_Lib_Bind,          "bind( self: Socket, port: int, address: enum<shared;exclusive;reused> )" },
+	{  DaoSocket_Lib_Bind,          "bind( self: Socket, port: int, address: enum<shared;exclusive;reused;default> )" },
 
 	/*! Listens the socket using \a backLog as the maximum size of the queue of pending connections */
 	{  DaoSocket_Lib_Listen,        "listen( self: Socket, backLog = 10 )" },
@@ -1049,7 +1050,7 @@ static void DaoNetLib_Bind( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *sock = DaoSocket_New(  );
-	if( DaoSocket_Bind( sock, par[0]->xInteger.value, N == 2? par[1]->xEnum.value : 0 ) == -1 ){
+	if( DaoSocket_Bind( sock, par[0]->xInteger.value, N == 2? par[1]->xEnum.value : Socket_ExclusiveAddress ) == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 		return;
@@ -1242,9 +1243,11 @@ static DaoFuncItem netMeths[] =
 	 * (SO_EXCLUSIVEADDRUSE on Windows, ignored on Unix)
 	 * -\c reused -- rebinds the socket even if the address and port are already bound by another socket (non-exclusively)
 	 * (SO_REUSEADDR on Windows, ignored on Unix)
-	*/
+	 * -\c default -- default mode for the current platform (\c exclusive + \c reused on Unix, \c shared on Windows)
+	 *
+	 * If \a address is not specified, exclusive address mode is used */
 	{  DaoNetLib_Bind,          "bind( port: int ) => Socket" },
-	{  DaoNetLib_Bind,          "bind( port: int, address: enum<shared;exclusive;reused> ) => Socket" },
+	{  DaoNetLib_Bind,          "bind( port: int, address: enum<shared;exclusive;reused;default> ) => Socket" },
 
 	/*! Returns socket connected to \a host : \a port */
 	{  DaoNetLib_Connect,       "connect( host: string, port: int ) => Socket" },
