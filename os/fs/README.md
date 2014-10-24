@@ -47,6 +47,8 @@ Functions:
 - [ls](#ls)(_path_ = '.') => list&lt;string&gt;
 - [rm](#rm)(_path_: string)
 - [realpath](#realpath)(_path_: string) => string
+- [symlink](#symlink)(_path_: string, _link_: string)
+- [readlink](#readlink)(_link_: string) => string
 - [exists](#exists)(_path_: string) => bool
 - [roots](#roots)() => list&lt;string&gt;
 - [home](#home)() => Dir
@@ -236,6 +238,16 @@ Deletes file object specified by *path*
 realpath(path: string) => string
 ```
 Returns absolute form of *path*, which must point to an existing file or directory. On Windows, replaces all '\' in path with '/'
+<a name="symlink"></a>
+```ruby
+symlink(path: string, link: string)
+```
+Creates symbolic *link* to *path* (Unix-specific)
+<a name="readlink"></a>
+```ruby
+readlink(link: string) => string
+```
+Returns file name to which symbolic *link* is pointed (Unix-specific). If *link* does not specify a symbolic link, returns empty string
 <a name="exists"></a>
 ```ruby
 exists(path: string) => bool

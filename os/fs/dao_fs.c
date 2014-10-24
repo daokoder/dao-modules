@@ -1320,6 +1320,31 @@ static void FS_NormPath( DaoProcess *proc, DaoValue *p[], int N )
 	FreeTChars( path );
 }
 
+static void FS_Symlink( DaoProcess *proc, DaoValue *p[], int N )
+{
+#ifdef WIN32
+	DaoProcess_RaiseError( proc, fserr, "Symbolic links not supported for the current platform" );
+#else
+	if ( symlink( p[0]->xString.value->chars, p[1]->xString.value->chars ) != 0 ){
+		char errbuf[MAX_ERRMSG];
+		GetErrorMessage( errbuf, errno, 0 );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
+	}
+#endif
+}
+
+static void FS_Readlink( DaoProcess *proc, DaoValue *p[], int N )
+{
+#ifdef WIN32
+	DaoProcess_RaiseError( proc, fserr, "Symbolic links not supported for the current platform" );
+#else
+	char buf[MAX_PATH + 1];
+	int size = readlink( p[0]->xString.value->chars, buf, sizeof(buf) - 1 );
+	buf[size < 0? 0 : size] = '\0';
+	DaoProcess_PutChars( proc, buf );
+#endif
+}
+
 static void FS_Exists( DaoProcess *proc, DaoValue *p[], int N )
 {
 	char_t *path = CharsToTChars( p[0]->xString.value->chars );
@@ -1609,6 +1634,13 @@ static DaoFuncItem fsMeths[] =
 	/*! Returns absolute form of \a path, which must point to an existing file or directory. On Windows, replaces all '\' in path
 	 * with '/' */
 	{ FS_NormPath,	"realpath(path: string) => string" },
+
+	/*! Creates symbolic \a link to \a path (Unix-specific) */
+	{ FS_Symlink,	"symlink(old: string, new: string)" },
+
+	/*! Returns file name to which symbolic \a link is pointed (Unix-specific). If \a link does not specify a symbolic link,
+	 * returns empty string */
+	{ FS_Readlink,	"readlink(link: string) => string" },
 
 	/*! Returns \c true if \a path exists */
 	{ FS_Exists,	"exists(path: string) => bool" },
