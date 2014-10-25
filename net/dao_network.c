@@ -940,6 +940,26 @@ static void DaoSocket_Lib_GetPeerName( DaoProcess *proc, DaoValue *par[], int N 
 	DString_SetChars( res, inet_ntoa( addr.sin_addr ) );
 }
 
+static void DaoSocket_Lib_GetSockName( DaoProcess *proc, DaoValue *par[], int N  )
+{
+	DString *res;
+	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	char errbuf[MAX_ERRMSG];
+	struct sockaddr_in addr;
+#ifdef WIN32
+	int size = sizeof( struct sockaddr_in );
+#else
+	socklen_t size = sizeof( struct sockaddr_in );
+#endif
+	if( getsockname( self->id, (struct sockaddr *) & addr, & size ) == -1 ){
+		GetErrorMessage( errbuf, GetError() );
+		DaoProcess_RaiseError( proc, neterr, errbuf );
+		return;
+	}
+	res = DaoProcess_PutChars( proc, "" );
+	DString_SetChars( res, inet_ntoa( addr.sin_addr ) );
+}
+
 static void DaoSocket_Lib_GetStream( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
@@ -1021,8 +1041,11 @@ static DaoFuncItem socketMeths[] =
 	/*! Checks the property specified by \a what; required to satisfy `io::Device` interface  */
 	{  DaoSocket_Lib_Check,			"check(self: Socket, what: enum<readable,writable,open,eof>) => bool" },
 
-	/*! Peer name */
-	{  DaoSocket_Lib_GetPeerName,   ".peername( invar self: Socket ) => string" },
+	/*! Address to which the socket is bound */
+	{  DaoSocket_Lib_GetSockName,   ".name( invar self: Socket ) => string" },
+
+	/*! Peer address of a connected socket */
+	{  DaoSocket_Lib_GetPeerName,   ".peer( invar self: Socket ) => string" },
 
 	/*! Socket file descriptor */
 	{  DaoSocket_Lib_Id,            ".id( invar self: Socket ) => int" },
@@ -1039,6 +1062,9 @@ static DaoFuncItem socketMeths[] =
 	/*! Returns stream opened with \a mode bound to the socket
 	 * \warning Not supported on Windows */
 	{  DaoSocket_Lib_GetStream,     "open( invar self: Socket, mode: string ) => io::Stream" },
+
+	/*! String representation of the socket (its name) */
+	{  DaoSocket_Lib_GetSockName,   "(string)( invar self: Socket ) => string" },
 	{ NULL, NULL }
 };
 
