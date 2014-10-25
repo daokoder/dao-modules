@@ -1064,7 +1064,7 @@ static DaoFuncItem socketMeths[] =
 	{  DaoSocket_Lib_GetStream,     "open( invar self: Socket, mode: string ) => io::Stream" },
 
 	/*! String representation of the socket (its name) */
-	{  DaoSocket_Lib_GetSockName,   "(string)( invar self: Socket ) => string" },
+	{  DaoSocket_Lib_GetSockName,   "(string)( invar self: Socket )" },
 	{ NULL, NULL }
 };
 

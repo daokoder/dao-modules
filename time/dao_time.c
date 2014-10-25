@@ -697,7 +697,7 @@ static DaoFuncItem timeMeths[] =
 	{ DaoTime_Format,	"format(invar self: DateTime, format = '') => string" },
 
 	/*! Converts datetime to string; identical to calling `format()` with empty format */
-	{ DaoTime_Format,	"(string)(invar self: DateTime) => string" },
+	{ DaoTime_Format,	"(string)(invar self: DateTime)" },
 
 	/*! Returns datetime formatted to string using template \a format. \a names can specify custome names for months
 	 * ('month' => {<12 names>}), days of week ('week' => {<7 names>}), days of year ('day' => {<365/366 names>}) or
