@@ -19,6 +19,7 @@ class [Entry](#entry)
 - [move](#move)(_self_: Entry, _path_: string)
 - [delete](#delete)(_self_: Entry)
 - [refresh](#refresh)(_self_: Entry)
+- [(string)](#cast_string)(invar _self_: Entry) => string
 
 class [File](#file): Entry
 - [.size](#size)(invar _self_: File) => int
@@ -128,6 +129,11 @@ Deletes file or empty directory
 refresh(self: Entry)
 ```
 Re-reads all entry attributes
+<a name="cast_string"></a>
+```ruby
+(string)(invar self: Entry) => string
+```
+String representation of the entry (its full path)
 
 ------
 #### <a name="file">`fs::File`</a>

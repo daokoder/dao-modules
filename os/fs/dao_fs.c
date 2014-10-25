@@ -1529,6 +1529,9 @@ static DaoFuncItem entryMeths[] =
 
 	/*! Re-reads all entry attributes */
 	{ FSNode_Update,	"refresh(self: Entry)" },
+
+	/*! String representation of the entry (its full path) */
+	{ FSNode_Path,		"(string)(invar self: Entry) => string" },
 	{ NULL, NULL }
 };
 
