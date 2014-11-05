@@ -8,7 +8,7 @@ if( daovm == none ) return
 if( modules.SourcePath() != modules.BinaryPath() ){
 	src = DaoMake::MakePath( modules.SourcePath(), "pkgtools" );
 	dest = DaoMake::MakePath( modules.BinaryPath(), "../lib/dao/modules/" );
-	modules.AddCommand( "addpath:", "$(DAOMAKE) copy " + src + " " + dest );
+	modules.AddCommand( "copypkgtools:", "$(DAOMAKE) copy " + src + " " + dest );
 }
 
 modules.AddDirectory( "syslib", "syslib" )

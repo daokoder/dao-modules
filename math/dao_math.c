@@ -103,7 +103,7 @@ static void MATH_tanh( DaoProcess *proc, DaoValue *p[], int N )
 }
 static void MATH_rand( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoProcess_PutFloat( proc, p[0]->xFloat.value * DaoProcess_Random( proc ) );
+	DaoProcess_PutFloat( proc, p[0]->xFloat.value * DaoProcess_UniformRand( proc ) );
 }
 static void MATH_srand( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -131,29 +131,8 @@ static void DaoGaussRandCache_Delete( DaoGaussRandCache *self )
 
 static void MATH_rand_gaussian( DaoProcess *proc, DaoValue *p[], int N )
 {
-	float fac, rsq, v1, v2;
 	float R = p[0]->xFloat.value;
-	DaoGaussRandCache *cache = (DaoGaussRandCache*) DaoProcess_GetAuxData( proc, DaoGaussRandCache_Delete );
-
-	if( cache == NULL ){
-		cache = DaoGaussRandCache_New();
-		DaoProcess_SetAuxData( proc, DaoGaussRandCache_Delete, cache );
-	}
-
-	if( cache->iset ==0 ){
-		do{
-			v1 = 2.0 * ( DaoProcess_Random( proc ) ) -1.0;
-			v2 = 2.0 * ( DaoProcess_Random( proc ) ) -1.0;
-			rsq = v1*v1 + v2*v2 ;
-		} while( rsq >= 1.0 || rsq == 0.0 );
-		fac = sqrt( -2.0 * log( rsq ) / rsq );
-		cache->gset = v1*fac;
-		cache->iset = 1;
-		DaoProcess_PutFloat( proc, R*v2*fac );
-	} else {
-		cache->iset = 0;
-		DaoProcess_PutFloat( proc, R*cache->gset );
-	}
+	DaoProcess_PutFloat( proc, R * DaoProcess_NormalRand( proc ) );
 }
 static void MATH_pow( DaoProcess *proc, DaoValue *p[], int N )
 {
