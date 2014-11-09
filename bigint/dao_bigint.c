@@ -1430,11 +1430,6 @@ static void BIGINT_GETI( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxBigInt *self = (DaoxBigInt*) DaoValue_CastCstruct( p[0], daox_type_bigint );
 	DaoLong_GetItem1( p[0], proc, p[1] );
 }
-static void BIGINT_SETI( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxBigInt *self = (DaoxBigInt*) DaoValue_CastCstruct( p[0], daox_type_bigint );
-	DaoLong_SetItem1( p[0], proc, p[1], p[2] );
-}
 static void DaoProcess_LongDiv ( DaoProcess *self, DaoxBigInt *z, DaoxBigInt *x, DaoxBigInt *y, DaoxBigInt *r )
 {
 	if( x->size ==0 || (x->size ==1 && x->data[0] ==0) ){
@@ -1953,90 +1948,99 @@ static void BIGINT_PRINT( DaoProcess *proc, DaoValue *p[], int n )
 }
 static DaoFuncItem bigintMeths[]=
 {
-	{ BIGINT_New1, "BigInt( value :int, base = 10 ) => BigInt" },
-	{ BIGINT_New2, "BigInt( value :string, base = 10 ) => BigInt" },
-	{ BIGINT_New3, "BigInt( value :BigInt, base = 10 ) => BigInt" },
+	{ BIGINT_New1, "BigInt( value: int, base = 10 ) => BigInt" },
+	{ BIGINT_New2, "BigInt( value: string, base = 10 ) => BigInt" },
+	{ BIGINT_New3, "BigInt( value: BigInt, base = 10 ) => BigInt" },
 
-	{ BIGINT_GETI, "[]( self :BigInt, idx :none ) => BigInt" },
-	{ BIGINT_GETI, "[]( self :BigInt, idx :int ) => int" },
-	{ BIGINT_SETI, "[]=( self :BigInt, digit :int, idx :none )" },
-	{ BIGINT_SETI, "[]=( self :BigInt, digit :int, idx :int )" },
+	{ BIGINT_GETI, "[]( self: BigInt, idx: none ) => BigInt" },
+	{ BIGINT_GETI, "[]( self: BigInt, idx: int ) => int" },
 
-	{ BIGINT_ADD1, "+( A :BigInt, B :int ) => BigInt" },
-	{ BIGINT_SUB1, "-( A :BigInt, B :int ) => BigInt" },
-	{ BIGINT_MUL1, "*( A :BigInt, B :int ) => BigInt" },
-	{ BIGINT_DIV1, "/( A :BigInt, B :int ) => BigInt" },
-	{ BIGINT_MOD1, "%( A :BigInt, B :int ) => BigInt" },
-	{ BIGINT_POW1, "**( A :BigInt, B :int ) => BigInt" },
+	{ BIGINT_ADD1, "+( A: BigInt, B: int ) => BigInt" },
+	{ BIGINT_SUB1, "-( A: BigInt, B: int ) => BigInt" },
+	{ BIGINT_MUL1, "*( A: BigInt, B: int ) => BigInt" },
+	{ BIGINT_DIV1, "/( A: BigInt, B: int ) => BigInt" },
+	{ BIGINT_MOD1, "%( A: BigInt, B: int ) => BigInt" },
+	{ BIGINT_POW1, "**( A: BigInt, B: int ) => BigInt" },
 
-	{ BIGINT_AND1, "&&( A :BigInt, B :int ) => BigInt|int" },
-	{ BIGINT_OR1,  "||( A :BigInt, B :int ) => BigInt|int" },
-	{ BIGINT_LT1,  "< ( A :BigInt, B :int ) => int" },
-	{ BIGINT_LE1,  "<=( A :BigInt, B :int ) => int" },
-	{ BIGINT_EQ1,  "==( A :BigInt, B :int ) => int" },
-	{ BIGINT_NE1,  "!=( A :BigInt, B :int ) => int" },
+	{ BIGINT_AND1, "&&( A: BigInt, B: int ) => BigInt|int" },
+	{ BIGINT_OR1,  "||( A: BigInt, B: int ) => BigInt|int" },
+	{ BIGINT_LT1,  "< ( A: BigInt, B: int ) => int" },
+	{ BIGINT_LE1,  "<=( A: BigInt, B: int ) => int" },
+	{ BIGINT_EQ1,  "==( A: BigInt, B: int ) => int" },
+	{ BIGINT_NE1,  "!=( A: BigInt, B: int ) => int" },
 
-	{ BIGINT_ADD2, "+( A :BigInt, B :BigInt ) => BigInt" },
-	{ BIGINT_SUB2, "-( A :BigInt, B :BigInt ) => BigInt" },
-	{ BIGINT_MUL2, "*( A :BigInt, B :BigInt ) => BigInt" },
-	{ BIGINT_DIV2, "/( A :BigInt, B :BigInt ) => BigInt" },
-	{ BIGINT_MOD2, "%( A :BigInt, B :BigInt ) => BigInt" },
-	{ BIGINT_POW2, "**( A :BigInt, B :BigInt ) => BigInt" },
+	{ BIGINT_ADD2, "+( A: BigInt, B: BigInt ) => BigInt" },
+	{ BIGINT_SUB2, "-( A: BigInt, B: BigInt ) => BigInt" },
+	{ BIGINT_MUL2, "*( A: BigInt, B: BigInt ) => BigInt" },
+	{ BIGINT_DIV2, "/( A: BigInt, B: BigInt ) => BigInt" },
+	{ BIGINT_MOD2, "%( A: BigInt, B: BigInt ) => BigInt" },
+	{ BIGINT_POW2, "**( A: BigInt, B: BigInt ) => BigInt" },
 
-	{ BIGINT_AND2, "&&( A :BigInt, B :BigInt ) => BigInt" },
-	{ BIGINT_OR2,  "||( A :BigInt, B :BigInt ) => BigInt" },
-	{ BIGINT_LT2,  "< ( A :BigInt, B :BigInt ) => int" },
-	{ BIGINT_LE2,  "<=( A :BigInt, B :BigInt ) => int" },
-	{ BIGINT_EQ2,  "==( A :BigInt, B :BigInt ) => int" },
-	{ BIGINT_NE2,  "!=( A :BigInt, B :BigInt ) => int" },
+	{ BIGINT_AND2, "&&( A: BigInt, B: BigInt ) => BigInt" },
+	{ BIGINT_OR2,  "||( A: BigInt, B: BigInt ) => BigInt" },
+	{ BIGINT_LT2,  "< ( A: BigInt, B: BigInt ) => int" },
+	{ BIGINT_LE2,  "<=( A: BigInt, B: BigInt ) => int" },
+	{ BIGINT_EQ2,  "==( A: BigInt, B: BigInt ) => int" },
+	{ BIGINT_NE2,  "!=( A: BigInt, B: BigInt ) => int" },
 
-	{ BIGINT_ADD3, "+( C :BigInt, A :BigInt, B :int ) => BigInt" },
-	{ BIGINT_SUB3, "-( C :BigInt, A :BigInt, B :int ) => BigInt" },
-	{ BIGINT_MUL3, "*( C :BigInt, A :BigInt, B :int ) => BigInt" },
-	{ BIGINT_DIV3, "/( C :BigInt, A :BigInt, B :int ) => BigInt" },
-	{ BIGINT_MOD3, "%( C :BigInt, A :BigInt, B :int ) => BigInt" },
-	{ BIGINT_POW3, "**( C :BigInt, A :BigInt, B :int ) => BigInt" },
+	/*
+	// The following methods do not really violate the immutability of BigInt,
+	// because these methods will only be called if there happens to a BigInt
+	// object the result operand register with reference count one.
+	// So the object can be resused without creating a new one.
+	//
+	// This should happen very rare for the current implementation.
+	// If nothing can be done to make such reusing a frequent thing,
+	// such methods should be removed.
+	*/
+	{ BIGINT_ADD3, "+( C: BigInt, A: BigInt, B: int ) => BigInt" },
+	{ BIGINT_SUB3, "-( C: BigInt, A: BigInt, B: int ) => BigInt" },
+	{ BIGINT_MUL3, "*( C: BigInt, A: BigInt, B: int ) => BigInt" },
+	{ BIGINT_DIV3, "/( C: BigInt, A: BigInt, B: int ) => BigInt" },
+	{ BIGINT_MOD3, "%( C: BigInt, A: BigInt, B: int ) => BigInt" },
+	{ BIGINT_POW3, "**( C: BigInt, A: BigInt, B: int ) => BigInt" },
 
-	{ BIGINT_ADD4, "+( C :BigInt, A :BigInt, B :BigInt ) => BigInt" },
-	{ BIGINT_SUB4, "-( C :BigInt, A :BigInt, B :BigInt ) => BigInt" },
-	{ BIGINT_MUL4, "*( C :BigInt, A :BigInt, B :BigInt ) => BigInt" },
-	{ BIGINT_DIV4, "/( C :BigInt, A :BigInt, B :BigInt ) => BigInt" },
-	{ BIGINT_MOD4, "%( C :BigInt, A :BigInt, B :BigInt ) => BigInt" },
-	{ BIGINT_POW4, "**( C :BigInt, A :BigInt, B :BigInt ) => BigInt" },
+	{ BIGINT_ADD4, "+( C: BigInt, A: BigInt, B: BigInt ) => BigInt" },
+	{ BIGINT_SUB4, "-( C: BigInt, A: BigInt, B: BigInt ) => BigInt" },
+	{ BIGINT_MUL4, "*( C: BigInt, A: BigInt, B: BigInt ) => BigInt" },
+	{ BIGINT_DIV4, "/( C: BigInt, A: BigInt, B: BigInt ) => BigInt" },
+	{ BIGINT_MOD4, "%( C: BigInt, A: BigInt, B: BigInt ) => BigInt" },
+	{ BIGINT_POW4, "**( C: BigInt, A: BigInt, B: BigInt ) => BigInt" },
 
-	{ BIGINT_MINUS, "-( A :BigInt ) => BigInt" },
-	{ BIGINT_NOT,   "!( A :BigInt ) => BigInt" },
-	{ BIGINT_TILDE, "~( A :BigInt ) => BigInt" },
+	{ BIGINT_MINUS, "-( A: BigInt ) => BigInt" },
+	{ BIGINT_NOT,   "!( A: BigInt ) => BigInt" },
+	{ BIGINT_TILDE, "~( A: BigInt ) => BigInt" },
 
-	{ BIGINT_BITAND1, "&( A :BigInt, B :int ) => BigInt" },
-	{ BIGINT_BITOR1,  "|( A :BigInt, B :int ) => BigInt" },
-	{ BIGINT_BITXOR1, "^( A :BigInt, B :int ) => BigInt" },
-	{ BIGINT_BITLFT1, "<<( A :BigInt, B :int ) => BigInt" },
-	{ BIGINT_BITRIT1, ">>( A :BigInt, B :int ) => BigInt" },
+	{ BIGINT_BITAND1, "&( A: BigInt, B: int ) => BigInt" },
+	{ BIGINT_BITOR1,  "|( A: BigInt, B: int ) => BigInt" },
+	{ BIGINT_BITXOR1, "^( A: BigInt, B: int ) => BigInt" },
+	{ BIGINT_BITLFT1, "<<( A: BigInt, B: int ) => BigInt" },
+	{ BIGINT_BITRIT1, ">>( A: BigInt, B: int ) => BigInt" },
 
-	{ BIGINT_BITAND2, "&( A :BigInt, B :BigInt ) => BigInt" },
-	{ BIGINT_BITOR2,  "|( A :BigInt, B :BigInt ) => BigInt" },
-	{ BIGINT_BITXOR2, "^( A :BigInt, B :BigInt ) => BigInt" },
-	{ BIGINT_BITLFT2, "<<( A :BigInt, B :BigInt ) => BigInt" },
-	{ BIGINT_BITRIT2, ">>( A :BigInt, B :BigInt ) => BigInt" },
+	{ BIGINT_BITAND2, "&( A: BigInt, B: BigInt ) => BigInt" },
+	{ BIGINT_BITOR2,  "|( A: BigInt, B: BigInt ) => BigInt" },
+	{ BIGINT_BITXOR2, "^( A: BigInt, B: BigInt ) => BigInt" },
+	{ BIGINT_BITLFT2, "<<( A: BigInt, B: BigInt ) => BigInt" },
+	{ BIGINT_BITRIT2, ">>( A: BigInt, B: BigInt ) => BigInt" },
 
-	{ BIGINT_BITAND3, "&( C :BigInt, A :BigInt, B :int ) => BigInt" },
-	{ BIGINT_BITOR3,  "|( C :BigInt, A :BigInt, B :int ) => BigInt" },
-	{ BIGINT_BITXOR3, "^( C :BigInt, A :BigInt, B :int ) => BigInt" },
-	{ BIGINT_BITLFT3, "<<( C :BigInt, A :BigInt, B :int ) => BigInt" },
-	{ BIGINT_BITRIT3, ">>( C :BigInt, A :BigInt, B :int ) => BigInt" },
+	/* See above comments: */
+	{ BIGINT_BITAND3, "&( C: BigInt, A: BigInt, B: int ) => BigInt" },
+	{ BIGINT_BITOR3,  "|( C: BigInt, A: BigInt, B: int ) => BigInt" },
+	{ BIGINT_BITXOR3, "^( C: BigInt, A: BigInt, B: int ) => BigInt" },
+	{ BIGINT_BITLFT3, "<<( C: BigInt, A: BigInt, B: int ) => BigInt" },
+	{ BIGINT_BITRIT3, ">>( C: BigInt, A: BigInt, B: int ) => BigInt" },
 
-	{ BIGINT_BITAND4, "&( C :BigInt, A :BigInt, B :BigInt ) => BigInt" },
-	{ BIGINT_BITOR4,  "|( C :BigInt, A :BigInt, B :BigInt ) => BigInt" },
-	{ BIGINT_BITXOR4, "^( C :BigInt, A :BigInt, B :BigInt ) => BigInt" },
-	{ BIGINT_BITLFT4, "<<( C :BigInt, A :BigInt, B :BigInt ) => BigInt" },
-	{ BIGINT_BITRIT4, ">>( C :BigInt, A :BigInt, B :BigInt ) => BigInt" },
+	{ BIGINT_BITAND4, "&( C: BigInt, A: BigInt, B: BigInt ) => BigInt" },
+	{ BIGINT_BITOR4,  "|( C: BigInt, A: BigInt, B: BigInt ) => BigInt" },
+	{ BIGINT_BITXOR4, "^( C: BigInt, A: BigInt, B: BigInt ) => BigInt" },
+	{ BIGINT_BITLFT4, "<<( C: BigInt, A: BigInt, B: BigInt ) => BigInt" },
+	{ BIGINT_BITRIT4, ">>( C: BigInt, A: BigInt, B: BigInt ) => BigInt" },
 
-	{ BIGINT_CastToInt,     "(int)( self :BigInt )" },
-	{ BIGINT_CastToString,  "(string)( self :BigInt )" },
+	{ BIGINT_CastToInt,     "(int)( self: BigInt )" },
+	{ BIGINT_CastToString,  "(string)( self: BigInt )" },
 
-	{ BIGINT_PRINT,  "Print( self :BigInt )" },
-	{ BIGINT_PRINT,  "__PRINT__( self :BigInt )" },
+	{ BIGINT_PRINT,  "Print( self: BigInt )" },
+	{ BIGINT_PRINT,  "__PRINT__( self: BigInt )" },
 
 	{ NULL, NULL },
 };
@@ -2051,6 +2055,6 @@ DAO_DLL int DaoBigint_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 #ifdef DAO_WITH_THREAD
 	DMutex_Init( & mutex_long_sharing ); /* TODO: destroy; */
 #endif
-	daox_type_bigint = DaoNamespace_WrapType( ns, & bigintTyper, 0 );
+	daox_type_bigint = DaoNamespace_WrapType( ns, & bigintTyper, DAO_CTYPE_INVAR );
 	return 0;
 }
