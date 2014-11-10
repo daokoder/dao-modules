@@ -1058,7 +1058,7 @@ void DaoxBigInt_Convert( DaoxBigInt *self, int base, DaoxBigInt *result, int tob
 	daoint n = 1 + self->size * (log(base) / log(tobase) + 1);
 	DaoxBigInt *source;
 
-	if( tobase == 256 ){
+	if( base == tobase && tobase == 256 ){
 		DaoxBigInt_Copy( result, self );
 		return;
 	}
@@ -1081,10 +1081,12 @@ void DaoxBigInt_Convert( DaoxBigInt *self, int base, DaoxBigInt *result, int tob
 		powerbase *= tobase;
 		powers += 1;
 	}
+	DaoxBigInt_Reserve( result, n + powers );
+	result->size = 0;
 	while( source->size ){
 		daoint remainder = 0;
 		for(i=source->size-1; i>=0; --i){
-			daoint div, num = source->data[i] | (remainder << LONG_BITS);
+			daoint div, num = source->data[i] + (remainder * base);
 			source->data[i] = div = num / powerbase;
 			remainder = num - div * powerbase;
 		}
@@ -1095,6 +1097,7 @@ void DaoxBigInt_Convert( DaoxBigInt *self, int base, DaoxBigInt *result, int tob
 			remainder = remainder / tobase;
 		}
 	}
+	while( result->size && result->data[result->size-1] == 0 ) result->size -= 1;
 	DaoxBigInt_Delete( source );
 }
 static void DaoxBigInt_PrintBits( DaoxBigInt *self, DString *s )
