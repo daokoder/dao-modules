@@ -715,11 +715,11 @@ static DaoFuncItem timeMeths[] =
 	{ DaoTime_Add,		"add(self: DateTime, seconds: int) => DateTime" },
 
 	/*! Datetime comparison */
-	{ DaoTime_Equal,	"==(a: DateTime, b: DateTime) => int" },
-	{ DaoTime_NotEqual,	"!=(a: DateTime, b: DateTime) => int" },
-	{ DaoTime_Lesser,	"<(a: DateTime, b: DateTime) => int" },
-	{ DaoTime_LessOrEq,	"<=(a: DateTime, b: DateTime) => int" },
-	{ DaoTime_Compare,	"<=>(a: DateTime, b: DateTime) => int" },
+	{ DaoTime_Equal,	"==(a: DateTime, b: DateTime) => bool" },
+	{ DaoTime_NotEqual,	"!=(a: DateTime, b: DateTime) => bool" },
+	{ DaoTime_Lesser,	"<(a: DateTime, b: DateTime) => bool" },
+	{ DaoTime_LessOrEq,	"<=(a: DateTime, b: DateTime) => bool" },
+	{ DaoTime_Compare,	"<=>(a: DateTime, b: DateTime) => bool" },
 	{ NULL, NULL }
 };
 
