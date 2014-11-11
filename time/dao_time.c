@@ -591,7 +591,7 @@ static void DaoTime_Compare( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *a = (DaoTime*)DaoValue_TryGetCdata( p[0] );
 	DaoTime *b = (DaoTime*)DaoValue_TryGetCdata( p[1] );
-	DaoProcess_PutInteger( proc, a->value - b->value );
+	DaoProcess_PutInteger( proc, a->value > b->value? 1 : (a->value < b->value? -1 : 0) );
 }
 
 static void DaoTime_Add( DaoProcess *proc, DaoValue *p[], int N )
