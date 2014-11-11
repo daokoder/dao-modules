@@ -719,7 +719,7 @@ static DaoFuncItem timeMeths[] =
 	{ DaoTime_NotEqual,	"!=(a: DateTime, b: DateTime) => bool" },
 	{ DaoTime_Lesser,	"<(a: DateTime, b: DateTime) => bool" },
 	{ DaoTime_LessOrEq,	"<=(a: DateTime, b: DateTime) => bool" },
-	{ DaoTime_Compare,	"<=>(a: DateTime, b: DateTime) => bool" },
+	{ DaoTime_Compare,	"<=>(a: DateTime, b: DateTime) => int" },
 	{ NULL, NULL }
 };
 
