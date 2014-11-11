@@ -1927,11 +1927,21 @@ static void BIGINT_BITRIT4( DaoProcess *proc, DaoValue *p[], int N )
 {
 	BIGINT_BitOper4( proc, p, N, DVM_BITRIT );
 }
+static void BIGINT_Comparison( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxBigInt *A = (DaoxBigInt*) p[0];
+	DaoxBigInt *B = (DaoxBigInt*) p[1];
+	DaoProcess_PutInteger( proc, DaoxBigInt_Compare( A, B ) );
+}
 static void BIGINT_CastToInt( DaoProcess *proc, DaoValue *p[], int n )
 {
 	DaoxBigInt *self = (DaoxBigInt*) p[0];
 	dao_integer *res = DaoProcess_PutInteger( proc, 0 );
-	*res = DaoxBigInt_ToInteger( self );
+	if( p[2]->xBoolean.value ){
+		*res = Dao_Hash( self->data, self->size, 0 );
+	}else{
+		*res = DaoxBigInt_ToInteger( self );
+	}
 }
 static void BIGINT_CastToString( DaoProcess *proc, DaoValue *p[], int n )
 {
@@ -2039,7 +2049,9 @@ static DaoFuncItem bigintMeths[]=
 	{ BIGINT_BITLFT4, "<<( C: BigInt, A: BigInt, B: BigInt ) => BigInt" },
 	{ BIGINT_BITRIT4, ">>( C: BigInt, A: BigInt, B: BigInt ) => BigInt" },
 
-	{ BIGINT_CastToInt,     "(int)( self: BigInt )" },
+	{ BIGINT_Comparison,  "<=>( self: BigInt, B: BigInt ) => int" },
+
+	{ BIGINT_CastToInt,     "(int)( self: BigInt, hashing = false )" },
 	{ BIGINT_CastToString,  "(string)( self: BigInt )" },
 
 	{ BIGINT_PRINT,  "Print( self: BigInt )" },

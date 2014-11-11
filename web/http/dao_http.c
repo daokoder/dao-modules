@@ -140,10 +140,10 @@ static void DaoxRequest_Delete( DaoxRequest *self )
 
 static void DaoxRequest_Reset( DaoxRequest *self )
 {
-	DaoMap_Reset( self->http_get );
-	DaoMap_Reset( self->http_post );
-	DaoMap_Reset( self->http_cookie );
-	DaoMap_Reset( self->http_file );
+	DaoMap_Reset( self->http_get, 1 );
+	DaoMap_Reset( self->http_post, 1 );
+	DaoMap_Reset( self->http_cookie, 1 );
+	DaoMap_Reset( self->http_file, 1 );
 }
 
 DString* DaoxRequest_FindVariable( DaoxRequest *self, const char *name, DaoMap *vars )

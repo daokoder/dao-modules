@@ -110,7 +110,6 @@ static void MATH_srand( DaoProcess *proc, DaoValue *p[], int N )
 	uint_t seed = (uint_t)p[0]->xInteger.value;
 	DaoProcess_SeedRandom( proc, seed );
 	srand( seed );
-	rand();
 }
 
 typedef struct DaoGaussRandCache DaoGaussRandCache;
