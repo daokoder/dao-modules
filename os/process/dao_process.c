@@ -25,6 +25,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include <string.h>
+
 #include"dao.h"
 #include"daoValue.h"
 #include"daoThread.h"
