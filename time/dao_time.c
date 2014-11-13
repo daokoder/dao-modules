@@ -587,13 +587,6 @@ static void DaoTime_LessOrEq( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutBoolean( proc, a->value <= b->value );
 }
 
-static void DaoTime_Compare( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoTime *a = (DaoTime*)DaoValue_TryGetCdata( p[0] );
-	DaoTime *b = (DaoTime*)DaoValue_TryGetCdata( p[1] );
-	DaoProcess_PutInteger( proc, a->value > b->value? 1 : (a->value < b->value? -1 : 0) );
-}
-
 static void DaoTime_Add( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*)DaoValue_TryGetCdata( p[0] );
@@ -719,7 +712,6 @@ static DaoFuncItem timeMeths[] =
 	{ DaoTime_NotEqual,	"!=(a: DateTime, b: DateTime) => bool" },
 	{ DaoTime_Lesser,	"<(a: DateTime, b: DateTime) => bool" },
 	{ DaoTime_LessOrEq,	"<=(a: DateTime, b: DateTime) => bool" },
-	{ DaoTime_Compare,	"<=>(a: DateTime, b: DateTime) => int" },
 	{ NULL, NULL }
 };
 
