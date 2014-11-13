@@ -27,6 +27,8 @@
 */
 
 #include <math.h>
+#include <string.h>
+#include "dao.h"
 #include "daoNumtype.h"
 #include "daoValue.h"
 
