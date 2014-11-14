@@ -1949,16 +1949,6 @@ static void BIGINT_CastToString( DaoProcess *proc, DaoValue *p[], int n )
 	DString *res = DaoProcess_PutChars( proc, "" );
 	DaoxBigInt_Print( self, res );
 }
-static void BIGINT_PRINT( DaoProcess *proc, DaoValue *p[], int n )
-{
-	DaoxBigInt *self = (DaoxBigInt*) p[0];
-	DaoStream *stream = proc->stdioStream;
-	DString *name = DString_New(1);
-	if( stream == NULL ) stream = proc->vmSpace->stdioStream;
-	DaoxBigInt_Print( self, name );
-	DaoStream_WriteString( stream, name );
-	DString_Delete( name );
-}
 static DaoFuncItem bigintMeths[]=
 {
 	{ BIGINT_New1, "BigInt( value: int, base = 10 ) => BigInt" },
@@ -2053,9 +2043,6 @@ static DaoFuncItem bigintMeths[]=
 
 	{ BIGINT_CastToInt,     "(int)( self: BigInt, hashing = false )" },
 	{ BIGINT_CastToString,  "(string)( self: BigInt )" },
-
-	{ BIGINT_PRINT,  "Print( self: BigInt )" },
-	{ BIGINT_PRINT,  "__PRINT__( self: BigInt )" },
 
 	{ NULL, NULL },
 };

@@ -38,7 +38,7 @@
 
 int DaoClass_CopyField( DaoClass *self, DaoClass *other, DMap *deftypes )
 {
-	DaoNamespace *ns = other->classRoutine->nameSpace;
+	DaoNamespace *ns = other->initRoutine->nameSpace;
 	DaoType *tp;
 	DList *offsets = DList_New(0);
 	DList *routines = DList_New(0);
@@ -58,7 +58,7 @@ int DaoClass_CopyField( DaoClass *self, DaoClass *other, DMap *deftypes )
 		}
 	}
 
-	DaoRoutine_CopyFields( self->classRoutine, other->classRoutine, 1, 1 );
+	DaoRoutine_CopyFields( self->initRoutine, other->initRoutine, 1, 1 );
 	for(it=DMap_First(other->lookupTable);it;it=DMap_Next(other->lookupTable,it)){
 		st = LOOKUP_ST( it->value.pInt );
 		up = LOOKUP_UP( it->value.pInt );
@@ -104,7 +104,7 @@ int DaoClass_CopyField( DaoClass *self, DaoClass *other, DMap *deftypes )
 			printf( "%i %p:  %s  %s\n", i, rout, rout->routName->chars, rout->routType->name->chars );
 #endif
 			if( rout->attribs & DAO_ROUT_INITOR ){
-				DRoutines_Add( self->classRoutines->overloads, rout );
+				DRoutines_Add( self->initRoutines->overloads, rout );
 			}else if( (it = DMap_Find( other->lookupTable, name )) ){
 				st = LOOKUP_ST( it->value.pInt );
 				up = LOOKUP_UP( it->value.pInt );
@@ -134,8 +134,8 @@ int DaoClass_CopyField( DaoClass *self, DaoClass *other, DMap *deftypes )
 	}
 	DList_Delete( offsets );
 	DList_Delete( routines );
-	DaoRoutine_Finalize( self->classRoutine, self->objType, deftypes );
-	return DaoRoutine_DoTypeInference( self->classRoutine, 0 );
+	DaoRoutine_Finalize( self->initRoutine, self->objType, deftypes );
+	return DaoRoutine_DoTypeInference( self->initRoutine, 0 );
 Failed:
 	DList_Delete( offsets );
 	DList_Delete( routines );
@@ -179,7 +179,7 @@ DaoClass* DaoClass_Instantiate( DaoClass *self, DList *types )
 		if( holders ) klass->templateClass = self;
 		DMap_Insert( self->instanceClasses, name, klass );
 		DaoClass_AddReference( self, klass ); /* No need for cleanup of klass; */
-		DaoClass_SetName( klass, name, self->classRoutine->nameSpace );
+		DaoClass_SetName( klass, name, self->initRoutine->nameSpace );
 		for(i=0; i<types->size; i++){
 			type = types->items.pType[i];
 			if( DaoType_MatchTo( type, self->typeHolders->items.pType[i], deftypes ) ==0 ){
@@ -267,7 +267,7 @@ void DaoProcess_MakeClass( DaoProcess *self, DaoVmCode *vmc )
 	//printf( "%s\n", tuple->ctype->name->chars );
 	if( iclass && routine->routConsts->value->items.pValue[iclass-1]->type == DAO_CLASS ){
 		proto = & routine->routConsts->value->items.pValue[iclass-1]->xClass;
-		ns2 = proto->classRoutine->nameSpace;
+		ns2 = proto->initRoutine->nameSpace;
 	}
 
 	/* extract parameters */
@@ -333,7 +333,7 @@ void DaoProcess_MakeClass( DaoProcess *self, DaoVmCode *vmc )
 						id = LOOKUP_ID( node->value.pInt );
 						dest2 = klass->constants->items.pConst[id];
 					}
-					DRoutines_Add( klass->classRoutines->overloads, newRout );
+					DRoutines_Add( klass->initRoutines->overloads, newRout );
 				}
 			}
 			dest = dest2->value;
@@ -440,7 +440,7 @@ InvalidField:
 			DList_Append( routines, newRout );
 			DString_Assign( newRout->routName, name );
 			if( DString_EQ( newRout->routName, klass->className ) ){
-				DRoutines_Add( klass->classRoutines->overloads, newRout );
+				DRoutines_Add( klass->initRoutines->overloads, newRout );
 			}
 
 			node = DMap_Find( proto->lookupTable, name );
@@ -505,7 +505,7 @@ static void META_NS( DaoProcess *proc, DaoValue *p[], int N )
 	if( p[0]->type == DAO_ENUM ){
 		res = proc->activeNamespace;
 	}else if( p[0]->type == DAO_CLASS ){
-		res = p[0]->xClass.classRoutine->nameSpace;
+		res = p[0]->xClass.initRoutine->nameSpace;
 	}else if( p[0]->type == DAO_ROUTINE ){
 		res = p[0]->xRoutine.nameSpace;
 	}
