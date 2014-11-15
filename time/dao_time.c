@@ -737,12 +737,12 @@ static DaoFuncItem timeFuncs[] =
 	{ DaoTime_Parse,	"parse(value: string) => DateTime" },
 
 	/*! Returns \a other copy */
-	{ DaoTime_Copy,		"copy(invar other: DateTime) => DateTime" },
+	{ DaoTime_Copy,		"copy(other: DateTime) => DateTime" },
 
 	/*! Returns the difference between \a start and \a end datetime in days and seconds.
 	 *
 	 * \note \a start and \a end should be of the same kind */
-	{ DaoTime_Diff,		"diff(invar start: DateTime, invar end: DateTime) => tuple<days: int, seconds: int>" },
+	{ DaoTime_Diff,		"diff(start: DateTime, end: DateTime) => tuple<days: int, seconds: int>" },
 
 	/*! Returns local time zone information (environment variable *TZ*):
 	 * -\c dst -- is Daylight Saving Time (DST) used
