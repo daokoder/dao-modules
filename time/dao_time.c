@@ -758,7 +758,7 @@ static DaoFuncItem timeFuncs[] =
 DAO_DLL int DaoTime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *timens = DaoNamespace_GetNamespace( ns, "time" );
-	daox_type_time = DaoNamespace_WrapType( timens, &timeTyper, DAO_CTYPE_INVAR );
+	daox_type_time = DaoNamespace_WrapType( timens, &timeTyper, DAO_CTYPE_INVAR|DAO_CTYPE_OPAQUE );
 	DaoNamespace_WrapFunctions( timens, timeFuncs );
 	return 0;
 }

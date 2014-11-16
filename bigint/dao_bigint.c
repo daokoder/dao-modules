@@ -1301,7 +1301,7 @@ void DaoxBigInt_FromValue( DaoxBigInt *self, DaoValue *value )
 
 const int base_bits[] = {0,0,1,0,2,0,0,0,3,0,0,0,0,0,0,0,4};
 const int base_masks[] = {0,0,1,0,3,0,0,0,7,0,0,0,0,0,0,0,15};
-static void DaoLong_GetItem1( DaoValue *self0, DaoProcess *proc, DaoValue *pid )
+static void DaoxBigInt_GetItem1( DaoValue *self0, DaoProcess *proc, DaoValue *pid )
 {
 	DaoxBigInt *self = (DaoxBigInt*) DaoValue_CastCstruct( self0, daox_type_bigint );
 	daoint id = DaoValue_GetInteger( pid );
@@ -1332,7 +1332,7 @@ static void DaoLong_GetItem1( DaoValue *self0, DaoProcess *proc, DaoValue *pid )
 	}
 	DaoProcess_PutInteger( proc, digit );
 }
-static void DaoLong_SetItem1( DaoValue *self0, DaoProcess *proc, DaoValue *pid, DaoValue *value )
+static void DaoxBigInt_SetItem1( DaoValue *self0, DaoProcess *proc, DaoValue *pid, DaoValue *value )
 {
 	DaoxBigInt *self = (DaoxBigInt*) DaoValue_CastCstruct( self0, daox_type_bigint );
 	daoint id = DaoValue_GetInteger( pid );
@@ -1381,19 +1381,19 @@ static void DaoLong_SetItem1( DaoValue *self0, DaoProcess *proc, DaoValue *pid, 
 		}
 	}
 }
-static void DaoLong_GetItem( DaoValue *self, DaoProcess *proc, DaoValue *ids[], int N )
+static void DaoxBigInt_GetItem( DaoValue *self, DaoProcess *proc, DaoValue *ids[], int N )
 {
 	switch( N ){
-	case 0 : DaoLong_GetItem1( self, proc, dao_none_value ); break;
-	case 1 : DaoLong_GetItem1( self, proc, ids[0] ); break;
+	case 0 : DaoxBigInt_GetItem1( self, proc, dao_none_value ); break;
+	case 1 : DaoxBigInt_GetItem1( self, proc, ids[0] ); break;
 	default : DaoProcess_RaiseError( proc, "Index", "not supported" );
 	}
 }
-static void DaoLong_SetItem( DaoValue *self, DaoProcess *proc, DaoValue *ids[], int N, DaoValue *value )
+static void DaoxBigInt_SetItem( DaoValue *self, DaoProcess *proc, DaoValue *ids[], int N, DaoValue *value )
 {
 	switch( N ){
-	case 0 : DaoLong_SetItem1( self, proc, dao_none_value, value ); break;
-	case 1 : DaoLong_SetItem1( self, proc, ids[0], value ); break;
+	case 0 : DaoxBigInt_SetItem1( self, proc, dao_none_value, value ); break;
+	case 1 : DaoxBigInt_SetItem1( self, proc, ids[0], value ); break;
 	default : DaoProcess_RaiseError( proc, "Index", "not supported" );
 	}
 }
@@ -1402,8 +1402,8 @@ static DaoTypeCore bigintCore=
 	NULL,
 	DaoValue_GetField,
 	DaoValue_SetField,
-	DaoLong_GetItem,
-	DaoLong_SetItem,
+	DaoxBigInt_GetItem,
+	DaoxBigInt_SetItem,
 	DaoValue_Print
 };
 static void BIGINT_New1( DaoProcess *proc, DaoValue *p[], int N )
@@ -1431,7 +1431,7 @@ static void BIGINT_New3( DaoProcess *proc, DaoValue *p[], int N )
 static void BIGINT_GETI( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxBigInt *self = (DaoxBigInt*) DaoValue_CastCstruct( p[0], daox_type_bigint );
-	DaoLong_GetItem1( p[0], proc, p[1] );
+	DaoxBigInt_GetItem1( p[0], proc, p[1] );
 }
 static void DaoProcess_LongDiv ( DaoProcess *self, DaoxBigInt *z, DaoxBigInt *x, DaoxBigInt *y, DaoxBigInt *r )
 {
