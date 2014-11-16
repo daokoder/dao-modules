@@ -1464,20 +1464,18 @@ static void BIGINT_BinaryOper1( DaoProcess *proc, DaoValue *p[], int N, int oper
 }
 static void BIGINT_CompOper1( DaoProcess *proc, DaoValue *p[], int N, int oper )
 {
-	DaoValue *C = NULL;
 	DaoxBigInt *A = (DaoxBigInt*) p[0];
 	daoint D = 0, B = DaoValue_GetInteger( p[1] );
 	switch( oper ){
-	case DVM_AND: C = DaoxBigInt_CompareToZero( A ) ? p[1] : p[0]; break;
-	case DVM_OR:  C = DaoxBigInt_CompareToZero( A ) ? p[0] : p[1]; break;
+	case DVM_AND: D = DaoxBigInt_CompareToZero( A ) && B; break;
+	case DVM_OR:  D = DaoxBigInt_CompareToZero( A ) || B; break;
 	case DVM_LT:  D = DaoxBigInt_CompareToInteger( A, B )< 0; break;
 	case DVM_LE:  D = DaoxBigInt_CompareToInteger( A, B )<=0; break;
 	case DVM_EQ:  D = DaoxBigInt_CompareToInteger( A, B )==0; break;
 	case DVM_NE:  D = DaoxBigInt_CompareToInteger( A, B )!=0; break;
 	default: break;
 	}
-	if( C ) DaoProcess_PutValue( proc, C );
-	else DaoProcess_PutInteger( proc, D );
+	DaoProcess_PutBoolean( proc, D );
 }
 static void BIGINT_ADD1( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1548,21 +1546,19 @@ static void BIGINT_BinaryOper2( DaoProcess *proc, DaoValue *p[], int N, int oper
 }
 static void BIGINT_CompOper2( DaoProcess *proc, DaoValue *p[], int N, int oper )
 {
-	DaoValue *C = NULL;
 	DaoxBigInt *A = (DaoxBigInt*) p[0];
 	DaoxBigInt *B = (DaoxBigInt*) p[1];
 	daoint D = 0;
 	switch( oper ){
-	case DVM_AND: C = DaoxBigInt_CompareToZero( A ) ? p[1] : p[0]; break;
-	case DVM_OR:  C = DaoxBigInt_CompareToZero( A ) ? p[0] : p[1]; break;
+	case DVM_AND: D = DaoxBigInt_CompareToZero( A ) && DaoxBigInt_CompareToZero( B ); break;
+	case DVM_OR:  D = DaoxBigInt_CompareToZero( A ) || DaoxBigInt_CompareToZero( B ); break;
 	case DVM_LT:  D = DaoxBigInt_Compare( A, B ) <  0; break;
 	case DVM_LE:  D = DaoxBigInt_Compare( A, B ) <= 0; break;
 	case DVM_EQ:  D = DaoxBigInt_Compare( A, B ) == 0; break;
 	case DVM_NE:  D = DaoxBigInt_Compare( A, B ) != 0; break;
 	default: break;
 	}
-	if( C ) DaoProcess_PutValue( proc, C );
-	else DaoProcess_PutInteger( proc, D );
+	DaoProcess_PutBoolean( proc, D );
 }
 static void BIGINT_ADD2( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1965,12 +1961,12 @@ static DaoFuncItem bigintMeths[]=
 	{ BIGINT_MOD1, "%( A: BigInt, B: int ) => BigInt" },
 	{ BIGINT_POW1, "**( A: BigInt, B: int ) => BigInt" },
 
-	{ BIGINT_AND1, "&&( A: BigInt, B: int ) => BigInt|int" },
-	{ BIGINT_OR1,  "||( A: BigInt, B: int ) => BigInt|int" },
-	{ BIGINT_LT1,  "< ( A: BigInt, B: int ) => int" },
-	{ BIGINT_LE1,  "<=( A: BigInt, B: int ) => int" },
-	{ BIGINT_EQ1,  "==( A: BigInt, B: int ) => int" },
-	{ BIGINT_NE1,  "!=( A: BigInt, B: int ) => int" },
+	{ BIGINT_AND1, "&&( A: BigInt, B: int ) => bool" },
+	{ BIGINT_OR1,  "||( A: BigInt, B: int ) => bool" },
+	{ BIGINT_LT1,  "< ( A: BigInt, B: int ) => bool" },
+	{ BIGINT_LE1,  "<=( A: BigInt, B: int ) => bool" },
+	{ BIGINT_EQ1,  "==( A: BigInt, B: int ) => bool" },
+	{ BIGINT_NE1,  "!=( A: BigInt, B: int ) => bool" },
 
 	{ BIGINT_ADD2, "+( A: BigInt, B: BigInt ) => BigInt" },
 	{ BIGINT_SUB2, "-( A: BigInt, B: BigInt ) => BigInt" },
@@ -1979,12 +1975,12 @@ static DaoFuncItem bigintMeths[]=
 	{ BIGINT_MOD2, "%( A: BigInt, B: BigInt ) => BigInt" },
 	{ BIGINT_POW2, "**( A: BigInt, B: BigInt ) => BigInt" },
 
-	{ BIGINT_AND2, "&&( A: BigInt, B: BigInt ) => BigInt" },
-	{ BIGINT_OR2,  "||( A: BigInt, B: BigInt ) => BigInt" },
-	{ BIGINT_LT2,  "< ( A: BigInt, B: BigInt ) => int" },
-	{ BIGINT_LE2,  "<=( A: BigInt, B: BigInt ) => int" },
-	{ BIGINT_EQ2,  "==( A: BigInt, B: BigInt ) => int" },
-	{ BIGINT_NE2,  "!=( A: BigInt, B: BigInt ) => int" },
+	{ BIGINT_AND2, "&&( A: BigInt, B: BigInt ) => bool" },
+	{ BIGINT_OR2,  "||( A: BigInt, B: BigInt ) => bool" },
+	{ BIGINT_LT2,  "< ( A: BigInt, B: BigInt ) => bool" },
+	{ BIGINT_LE2,  "<=( A: BigInt, B: BigInt ) => bool" },
+	{ BIGINT_EQ2,  "==( A: BigInt, B: BigInt ) => bool" },
+	{ BIGINT_NE2,  "!=( A: BigInt, B: BigInt ) => bool" },
 
 	/*
 	// The following methods do not really violate the immutability of BigInt,
