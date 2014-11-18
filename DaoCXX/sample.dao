@@ -30,7 +30,7 @@ printf( "%s\n", message );
 test( 'Hello C/C++!' );
 
 @[cpp(function)]
-@define( test( f : double ) => double )
+@define( test( f : float ) => float )
 
 return log( f );
 @[cpp(function)]
@@ -79,7 +79,7 @@ greet( 'Hello!!!' );
 
 ###################################################################################
 # Currently, the following Dao types are supported:
-#   "int" for "int", "float" for "float", "double" for "double",
+#   "int" for "int", "float" for "float" and "double",
 #   and "string" for "const char*";
 #
 # The following C/C++ types are supported (aliased to "int" in Dao):

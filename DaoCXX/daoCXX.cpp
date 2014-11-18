@@ -671,7 +671,7 @@ DAO_DLL int DaoCxx_OnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 	headers.AddPath( DAO_DIR "/include", clang::frontend::System, false, false, true );
 #endif
 	DString_SetChars( mbs, DaoVmSpace_CurrentLoadingPath( vms ) );
-	DString_AppendChars( mbs, "/../../kernel" ); // at build
+	DString_AppendChars( mbs, "/../../../kernel" ); // at build
 	headers.AddPath( mbs->chars, clang::frontend::System, false, false, true );
 
 	DString_Delete( mbs );

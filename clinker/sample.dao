@@ -18,7 +18,14 @@ const types =
 	'MyType'
 }
 
-load link( 'sample', funcs, types )
+load link( 'sample', funcs, types ) import {
+	test,
+	test_dao_list,
+	test_array_float,
+	test_array_short,
+	test2,
+	test_stream
+}
 
 x = [ 1, 2, 3, 4 ]
 

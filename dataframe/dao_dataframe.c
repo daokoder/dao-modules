@@ -1141,10 +1141,12 @@ static void CheckPrintWidth( double value, int *max, int *min, int *dec )
 }
 static void FRAME_PRINT( DaoProcess *proc, DaoValue *p[], int n )
 {
+	int casting = p[1]->type == DAO_TYPE;
 	DaoxDataFrame *self = (DaoxDataFrame*) p[0];
 	DaoxDataFrame *original = self->original;
-	DaoStream *stream = proc->stdioStream;
+	DaoStream *stream = (DaoStream*) DaoValue_CastStream( casting ? p[2] : p[1] );
 	DaoStream *sstream = DaoStream_New();
+	DaoStream *sstream2 = DaoStream_New();
 	DaoValue valueBuffer, *nulls[3] = {NULL,NULL,NULL};
 	DArray *rlabwidth = DArray_New( sizeof(int) );
 	DArray *clabwidth = DArray_New( sizeof(int) );
@@ -1159,8 +1161,9 @@ static void FRAME_PRINT( DaoProcess *proc, DaoValue *p[], int n )
 	char buf[512];
 
 	sstream->mode |= DAO_STREAM_STRING;
+	sstream2->mode |= DAO_STREAM_STRING;
 	memset( &valueBuffer, 0, sizeof(DaoValue) );
-	if( stream == NULL ) stream = proc->vmSpace->stdioStream;
+	if( stream == NULL ) stream = casting ? sstream2 : proc->vmSpace->stdioStream;
 	if( self->original == NULL ){
 		DaoxDataFrame_PrepareSlices( self );
 		DaoDataFrame_MakeSlice( self, proc, nulls, 3, self->slices );
@@ -1449,7 +1452,9 @@ static void FRAME_PRINT( DaoProcess *proc, DaoValue *p[], int n )
 			DaoStream_WriteChars( stream, "\n" );
 		}
 	}
+	if( casting ) DaoProcess_PutString( proc, sstream2->streamString );
 	DaoStream_Delete( sstream );
+	DaoStream_Delete( sstream2 );
 	DArray_Delete( aligns );
 	DArray_Delete( scifmts );
 	DArray_Delete( decimals );
@@ -1764,53 +1769,53 @@ static void FRAME_SLICED( DaoProcess *proc, DaoValue *p[], int npar )
 static DaoFuncItem dataframeMeths[]=
 {
 	{ FRAME_New,         "DataFrame()=>DataFrame" },
-	{ FRAME_NewMatrix,   "DataFrame( mat : array<@T> )=>DataFrame" },
+	{ FRAME_NewMatrix,   "DataFrame( mat: array<@T> )=>DataFrame" },
 
-	{ FRAME_FromMatrix,  "FromMatrix( self :DataFrame, mat : array<@T> )" },
+	{ FRAME_FromMatrix,  "FromMatrix( self: DataFrame, mat: array<@T> )" },
 
-	{ FRAME_Size,      "Size( self :DataFrame )=>int" },
-	{ FRAME_UseLabels, "UseLabels( self :DataFrame, dim :DataFrame_DimType, group :int )" },
-	{ FRAME_AddLabels, "AddLabels( self :DataFrame, dim :DataFrame_DimType, labels :map<string,int> )" },
-	{ FRAME_AddLabel,  "AddLabel( self :DataFrame, dim :DataFrame_DimType, label :string, index :int )" },
-	{ FRAME_GetIndex,  "GetIndex( self :DataFrame, dim :DataFrame_DimType, label :string ) => int" },
+	{ FRAME_Size,      "Size( self: DataFrame )=>int" },
+	{ FRAME_UseLabels, "UseLabels( self: DataFrame, dim: DataFrame_DimType, group: int )" },
+	{ FRAME_AddLabels, "AddLabels( self: DataFrame, dim: DataFrame_DimType, labels: map<string,int> )" },
+	{ FRAME_AddLabel,  "AddLabel( self: DataFrame, dim: DataFrame_DimType, label: string, index: int )" },
+	{ FRAME_GetIndex,  "GetIndex( self: DataFrame, dim: DataFrame_DimType, label: string ) => int" },
 
-	{ FRAME_AddArrayCol, "AddColumn( self :DataFrame, data :array<@T>, label :string =\"\" )" },
-	{ FRAME_AddListCol,  "AddColumn( self :DataFrame, data :list<@T>, label :string =\"\" )" },
+	{ FRAME_AddArrayCol, "AddColumn( self: DataFrame, data: array<@T>, label: string ='' )" },
+	{ FRAME_AddListCol,  "AddColumn( self: DataFrame, data: list<@T>, label: string ='' )" },
 
 	{ FRAME_GETMI,
-		"[]( self :DataFrame, i :DataFrame_IndexType, j :DataFrame_IndexType =none, k :DataFrame_IndexType =none ) => any" },
+		"[]( self: DataFrame, i: DataFrame_IndexType, j: DataFrame_IndexType =none, k: DataFrame_IndexType =none ) => any" },
 	{ FRAME_SETMI,
-		"[]=( self :DataFrame, value :any, i :DataFrame_IndexType, j :DataFrame_IndexType =none, k :DataFrame_IndexType =none )" },
+		"[]=( self: DataFrame, value: any, i: DataFrame_IndexType, j: DataFrame_IndexType =none, k: DataFrame_IndexType =none )" },
 
-	{ FRAME_PRINT,  "Print( self :DataFrame )" },
-	{ FRAME_PRINT,  "__PRINT__( self :DataFrame )" },
+	{ FRAME_PRINT,  "Print( self: DataFrame, stream: io::Stream = io::stdio )" },
+	{ FRAME_PRINT,  "(string)( self: DataFrame, stream: io::Stream|none = none )" },
 
-	{ FRAME_ScanCells,  "ScanCells( self :DataFrame )[cell:@T,row:int,column:int,depth:int]" },
-	{ FRAME_UpdateCells, "UpdateCells( self :DataFrame )[cell:@T,row:int,column:int,depth:int=>@T]" },
+	{ FRAME_ScanCells,  "ScanCells( self: DataFrame )[cell:@T,row:int,column:int,depth:int]" },
+	{ FRAME_UpdateCells, "UpdateCells( self: DataFrame )[cell:@T,row:int,column:int,depth:int=>@T]" },
 
-	{ FRAME_ScanRows,  "ScanRows( self :DataFrame )[value:tuple,row:int,depth:int]" },
-	{ FRAME_UpdateRows, "UpdateRows( self :DataFrame )[value:tuple,row:int,depth:int=>tuple]" },
+	{ FRAME_ScanRows,  "ScanRows( self: DataFrame )[value:tuple,row:int,depth:int]" },
+	{ FRAME_UpdateRows, "UpdateRows( self: DataFrame )[value:tuple,row:int,depth:int=>tuple]" },
 
-	{ FRAME_ScanCols,  "ScanColumns( self :DataFrame )[value:tuple,column:int,depth:int]" },
-	{ FRAME_UpdateCols, "UpdateColumns( self :DataFrame )[value:tuple,column:int,depth:int=>tuple]" },
+	{ FRAME_ScanCols,  "ScanColumns( self: DataFrame )[value:tuple,column:int,depth:int]" },
+	{ FRAME_UpdateCols, "UpdateColumns( self: DataFrame )[value:tuple,column:int,depth:int=>tuple]" },
 
-	{ FRAME_AddFrame,     "+=( self :DataFrame, other :DataFrame )" },
-	{ FRAME_SubFrame,     "-=( self :DataFrame, other :DataFrame )" },
-	{ FRAME_MulFrame,     "*=( self :DataFrame, other :DataFrame )" },
-	{ FRAME_DivFrame,     "/=( self :DataFrame, other :DataFrame )" },
-	{ FRAME_ModFrame,     "%=( self :DataFrame, other :DataFrame )" },
-	{ FRAME_BitAndFrame,  "&=( self :DataFrame, other :DataFrame )" },
-	{ FRAME_BitOrFrame,   "|=( self :DataFrame, other :DataFrame )" },
-	{ FRAME_BitXorFrame,  "^=( self :DataFrame, other :DataFrame )" },
+	{ FRAME_AddFrame,     "+=( self: DataFrame, other: DataFrame )" },
+	{ FRAME_SubFrame,     "-=( self: DataFrame, other: DataFrame )" },
+	{ FRAME_MulFrame,     "*=( self: DataFrame, other: DataFrame )" },
+	{ FRAME_DivFrame,     "/=( self: DataFrame, other: DataFrame )" },
+	{ FRAME_ModFrame,     "%=( self: DataFrame, other: DataFrame )" },
+	{ FRAME_BitAndFrame,  "&=( self: DataFrame, other: DataFrame )" },
+	{ FRAME_BitOrFrame,   "|=( self: DataFrame, other: DataFrame )" },
+	{ FRAME_BitXorFrame,  "^=( self: DataFrame, other: DataFrame )" },
 
-	{ FRAME_AddArray,     "+=( self :DataFrame, other :array<@T> )" },
-	{ FRAME_SubArray,     "-=( self :DataFrame, other :array<@T> )" },
-	{ FRAME_MulArray,     "*=( self :DataFrame, other :array<@T> )" },
-	{ FRAME_DivArray,     "/=( self :DataFrame, other :array<@T> )" },
-	{ FRAME_ModArray,     "%=( self :DataFrame, other :array<@T> )" },
-	{ FRAME_BitAndArray,  "&=( self :DataFrame, other :array<@T> )" },
-	{ FRAME_BitOrArray,   "|=( self :DataFrame, other :array<@T> )" },
-	{ FRAME_BitXorArray,  "^=( self :DataFrame, other :array<@T> )" },
+	{ FRAME_AddArray,     "+=( self: DataFrame, other: array<@T> )" },
+	{ FRAME_SubArray,     "-=( self: DataFrame, other: array<@T> )" },
+	{ FRAME_MulArray,     "*=( self: DataFrame, other: array<@T> )" },
+	{ FRAME_DivArray,     "/=( self: DataFrame, other: array<@T> )" },
+	{ FRAME_ModArray,     "%=( self: DataFrame, other: array<@T> )" },
+	{ FRAME_BitAndArray,  "&=( self: DataFrame, other: array<@T> )" },
+	{ FRAME_BitOrArray,   "|=( self: DataFrame, other: array<@T> )" },
+	{ FRAME_BitXorArray,  "^=( self: DataFrame, other: array<@T> )" },
 
 	{ FRAME_SLICED,  "__SLICED__" },
 
