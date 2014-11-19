@@ -186,8 +186,9 @@ static void DaoArray_Serialize( DaoArray *self, DString *serial, DString *buf )
 	for(i=0; i<self->size; i++){
 		if( i ) DString_AppendChar( serial, ',' );
 		switch( self->etype ){
+		case DAO_BOOLEAN : DaoSerializeInteger( self->data.b[i], serial ); break;
 		case DAO_INTEGER : DaoSerializeInteger( self->data.i[i], serial ); break;
-		case DAO_FLOAT : DaoSerializeDouble( self->data.f[i], serial ); break;
+		case DAO_FLOAT   : DaoSerializeDouble( self->data.f[i], serial ); break;
 		case DAO_COMPLEX : DaoSerializeComplex( self->data.c[i], serial ); break;
 		}
 	}
@@ -535,6 +536,7 @@ static int DaoParser_Deserialize( DaoParser *self, int start, int end, DaoValue 
 	switch( type->tid ){
 	case DAO_NONE :
 		break;
+	case DAO_BOOLEAN :
 	case DAO_INTEGER :
 		value->xInteger.value = DaoDecodeInteger( str );
 		if( minus ) value->xInteger.value = - value->xInteger.value;
@@ -599,8 +601,10 @@ static int DaoParser_Deserialize( DaoParser *self, int start, int end, DaoValue 
 			while( j <= end && tokens[j]->name != DTOK_COMMA ) j += 1;
 			DaoParser_Deserialize( self, i, j-1, & tmp, types, ns, proc, omap );
 			switch( it1->tid ){
+			case DAO_BOOLEAN : array->data.b[n] = tmp->xBoolean.value; break;
 			case DAO_INTEGER : array->data.i[n] = tmp->xInteger.value; break;
 			case DAO_FLOAT   : array->data.f[n] = tmp->xFloat.value; break;
+			case DAO_COMPLEX : array->data.c[n] = tmp->xComplex.value; break;
 			}
 			i = j;
 			n += 1;
