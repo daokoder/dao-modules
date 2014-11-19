@@ -295,6 +295,8 @@ static void dao__cblas_sdsdot( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* x = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[2] );
 
   float _cblas_sdsdot = cblas_sdsdot( n, alpha, x, incx, y, incy );
+  DaoArray_FromFloat32( (DaoArray*)_p[2] );
+  DaoArray_FromFloat32( (DaoArray*)_p[4] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_sdsdot );
 }
 /* ./cblas.h */
@@ -307,6 +309,8 @@ static void dao__cblas_dsdot( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* x = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[1] );
 
   double _cblas_dsdot = cblas_dsdot( n, x, incx, y, incy );
+  DaoArray_FromFloat32( (DaoArray*)_p[1] );
+  DaoArray_FromFloat32( (DaoArray*)_p[3] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_dsdot );
 }
 /* ./cblas.h */
@@ -319,6 +323,8 @@ static void dao__cblas_sdot( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* x = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[1] );
 
   float _cblas_sdot = cblas_sdot( n, x, incx, y, incy );
+  DaoArray_FromFloat32( (DaoArray*)_p[1] );
+  DaoArray_FromFloat32( (DaoArray*)_p[3] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_sdot );
 }
 /* ./cblas.h */
@@ -331,6 +337,8 @@ static void dao__cblas_ddot( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* x = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[1] );
 
   double _cblas_ddot = cblas_ddot( n, x, incx, y, incy );
+  DaoArray_FromFloat64( (DaoArray*)_p[1] );
+  DaoArray_FromFloat64( (DaoArray*)_p[3] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_ddot );
 }
 /* ./cblas.h */
@@ -341,6 +349,7 @@ static void dao__cblas_sasum( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* x = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[1] );
 
   float _cblas_sasum = cblas_sasum( n, x, incx );
+  DaoArray_FromFloat32( (DaoArray*)_p[1] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_sasum );
 }
 /* ./cblas.h */
@@ -351,6 +360,7 @@ static void dao__cblas_dasum( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* x = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[1] );
 
   double _cblas_dasum = cblas_dasum( n, x, incx );
+  DaoArray_FromFloat64( (DaoArray*)_p[1] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_dasum );
 }
 /* ./cblas.h */
@@ -361,6 +371,7 @@ static void dao__cblas_scasum( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* x = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[1] );
 
   float _cblas_scasum = cblas_scasum( n, x, incx );
+  DaoArray_FromFloat32( (DaoArray*)_p[1] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_scasum );
 }
 /* ./cblas.h */
@@ -371,6 +382,7 @@ static void dao__cblas_dzasum( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* x = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[1] );
 
   double _cblas_dzasum = cblas_dzasum( n, x, incx );
+  DaoArray_FromFloat64( (DaoArray*)_p[1] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_dzasum );
 }
 /* ./cblas.h */
@@ -381,6 +393,7 @@ static void dao__cblas_snrm2( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* X = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[1] );
 
   float _cblas_snrm2 = cblas_snrm2( N, X, incX );
+  DaoArray_FromFloat32( (DaoArray*)_p[1] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_snrm2 );
 }
 /* ./cblas.h */
@@ -391,6 +404,7 @@ static void dao__cblas_dnrm2( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* X = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[1] );
 
   double _cblas_dnrm2 = cblas_dnrm2( N, X, incX );
+  DaoArray_FromFloat64( (DaoArray*)_p[1] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_dnrm2 );
 }
 /* ./cblas.h */
@@ -401,6 +415,7 @@ static void dao__cblas_scnrm2( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* X = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[1] );
 
   float _cblas_scnrm2 = cblas_scnrm2( N, X, incX );
+  DaoArray_FromFloat32( (DaoArray*)_p[1] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_scnrm2 );
 }
 /* ./cblas.h */
@@ -411,6 +426,7 @@ static void dao__cblas_dznrm2( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* X = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[1] );
 
   double _cblas_dznrm2 = cblas_dznrm2( N, X, incX );
+  DaoArray_FromFloat64( (DaoArray*)_p[1] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_dznrm2 );
 }
 /* ./cblas.h */
@@ -421,6 +437,7 @@ static void dao__cblas_isamax( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* x = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[1] );
 
   size_t _cblas_isamax = cblas_isamax( n, x, incx );
+  DaoArray_FromFloat32( (DaoArray*)_p[1] );
   DaoProcess_PutInteger( _proc, (dao_integer) _cblas_isamax );
 }
 /* ./cblas.h */
@@ -431,6 +448,7 @@ static void dao__cblas_idamax( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* x = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[1] );
 
   size_t _cblas_idamax = cblas_idamax( n, x, incx );
+  DaoArray_FromFloat64( (DaoArray*)_p[1] );
   DaoProcess_PutInteger( _proc, (dao_integer) _cblas_idamax );
 }
 /* ./cblas.h */
@@ -441,6 +459,7 @@ static void dao__cblas_icamax( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* x = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[1] );
 
   size_t _cblas_icamax = cblas_icamax( n, x, incx );
+  DaoArray_FromFloat32( (DaoArray*)_p[1] );
   DaoProcess_PutInteger( _proc, (dao_integer) _cblas_icamax );
 }
 /* ./cblas.h */
@@ -451,6 +470,7 @@ static void dao__cblas_izamax( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* x = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[1] );
 
   size_t _cblas_izamax = cblas_izamax( n, x, incx );
+  DaoArray_FromFloat64( (DaoArray*)_p[1] );
   DaoProcess_PutInteger( _proc, (dao_integer) _cblas_izamax );
 }
 /* ./cblas.h */
@@ -464,6 +484,7 @@ static void dao__cblas_saxpy( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* x = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[2] );
 
   cblas_saxpy( n, alpha, x, incx, y, incy );
+  DaoArray_FromFloat32( (DaoArray*)_p[2] );
   DaoArray_FromFloat32( (DaoArray*)_p[4] );
 }
 /* ./cblas.h */
@@ -477,6 +498,7 @@ static void dao__cblas_daxpy( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* x = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[2] );
 
   cblas_daxpy( n, alpha, x, incx, y, incy );
+  DaoArray_FromFloat64( (DaoArray*)_p[2] );
   DaoArray_FromFloat64( (DaoArray*)_p[4] );
 }
 /* ./cblas.h */
@@ -490,6 +512,8 @@ static void dao__cblas_caxpy( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* alpha = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[1] );
 
   cblas_caxpy( n, alpha, x, incx, y, incy );
+  DaoArray_FromFloat32( (DaoArray*)_p[1] );
+  DaoArray_FromFloat32( (DaoArray*)_p[2] );
   DaoArray_FromFloat32( (DaoArray*)_p[4] );
 }
 /* ./cblas.h */
@@ -503,6 +527,8 @@ static void dao__cblas_zaxpy( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* alpha = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[1] );
 
   cblas_zaxpy( n, alpha, x, incx, y, incy );
+  DaoArray_FromFloat64( (DaoArray*)_p[1] );
+  DaoArray_FromFloat64( (DaoArray*)_p[2] );
   DaoArray_FromFloat64( (DaoArray*)_p[4] );
 }
 /* ./cblas.h */
@@ -515,6 +541,7 @@ static void dao__cblas_scopy( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* x = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[1] );
 
   cblas_scopy( n, x, incx, y, incy );
+  DaoArray_FromFloat32( (DaoArray*)_p[1] );
   DaoArray_FromFloat32( (DaoArray*)_p[3] );
 }
 /* ./cblas.h */
@@ -527,6 +554,7 @@ static void dao__cblas_dcopy( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* x = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[1] );
 
   cblas_dcopy( n, x, incx, y, incy );
+  DaoArray_FromFloat64( (DaoArray*)_p[1] );
   DaoArray_FromFloat64( (DaoArray*)_p[3] );
 }
 /* ./cblas.h */
@@ -539,6 +567,7 @@ static void dao__cblas_ccopy( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* x = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[1] );
 
   cblas_ccopy( n, x, incx, y, incy );
+  DaoArray_FromFloat32( (DaoArray*)_p[1] );
   DaoArray_FromFloat32( (DaoArray*)_p[3] );
 }
 /* ./cblas.h */
@@ -551,6 +580,7 @@ static void dao__cblas_zcopy( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* x = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[1] );
 
   cblas_zcopy( n, x, incx, y, incy );
+  DaoArray_FromFloat64( (DaoArray*)_p[1] );
   DaoArray_FromFloat64( (DaoArray*)_p[3] );
 }
 /* ./cblas.h */
@@ -676,6 +706,7 @@ static void dao__cblas_srotm( DaoProcess *_proc, DaoValue *_p[], int _n )
   cblas_srotm( N, X, incX, Y, incY, P );
   DaoArray_FromFloat32( (DaoArray*)_p[1] );
   DaoArray_FromFloat32( (DaoArray*)_p[3] );
+  DaoArray_FromFloat32( (DaoArray*)_p[5] );
 }
 /* ./cblas.h */
 static void dao__cblas_drotm( DaoProcess *_proc, DaoValue *_p[], int _n )
@@ -690,6 +721,7 @@ static void dao__cblas_drotm( DaoProcess *_proc, DaoValue *_p[], int _n )
   cblas_drotm( N, X, incX, Y, incY, P );
   DaoArray_FromFloat64( (DaoArray*)_p[1] );
   DaoArray_FromFloat64( (DaoArray*)_p[3] );
+  DaoArray_FromFloat64( (DaoArray*)_p[5] );
 }
 /* ./cblas.h */
 static void dao__cblas_srotmg( DaoProcess *_proc, DaoValue *_p[], int _n )
@@ -752,6 +784,7 @@ static void dao__cblas_cscal( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* alpha = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[1] );
 
   cblas_cscal( N, alpha, X, incX );
+  DaoArray_FromFloat32( (DaoArray*)_p[1] );
   DaoArray_FromFloat32( (DaoArray*)_p[2] );
 }
 /* ./cblas.h */
@@ -763,6 +796,7 @@ static void dao__cblas_zscal( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* alpha = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[1] );
 
   cblas_zscal( N, alpha, X, incX );
+  DaoArray_FromFloat64( (DaoArray*)_p[1] );
   DaoArray_FromFloat64( (DaoArray*)_p[2] );
 }
 /* ./cblas.h */
@@ -804,6 +838,8 @@ static void dao__cblas_sgemv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* a = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[5] );
 
   cblas_sgemv( order, trans, m, n, alpha, a, lda, x, incx, beta, y, incy );
+  DaoArray_FromFloat32( (DaoArray*)_p[5] );
+  DaoArray_FromFloat32( (DaoArray*)_p[7] );
   DaoArray_FromFloat32( (DaoArray*)_p[10] );
 }
 /* ./cblas.h */
@@ -823,6 +859,8 @@ static void dao__cblas_dgemv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* a = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[5] );
 
   cblas_dgemv( order, trans, m, n, alpha, a, lda, x, incx, beta, y, incy );
+  DaoArray_FromFloat64( (DaoArray*)_p[5] );
+  DaoArray_FromFloat64( (DaoArray*)_p[7] );
   DaoArray_FromFloat64( (DaoArray*)_p[10] );
 }
 /* ./cblas.h */
@@ -842,6 +880,10 @@ static void dao__cblas_cgemv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* alpha = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[4] );
 
   cblas_cgemv( order, trans, m, n, alpha, a, lda, x, incx, beta, y, incy );
+  DaoArray_FromFloat32( (DaoArray*)_p[4] );
+  DaoArray_FromFloat32( (DaoArray*)_p[5] );
+  DaoArray_FromFloat32( (DaoArray*)_p[7] );
+  DaoArray_FromFloat32( (DaoArray*)_p[9] );
   DaoArray_FromFloat32( (DaoArray*)_p[10] );
 }
 /* ./cblas.h */
@@ -861,6 +903,10 @@ static void dao__cblas_zgemv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* alpha = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[4] );
 
   cblas_zgemv( order, trans, m, n, alpha, a, lda, x, incx, beta, y, incy );
+  DaoArray_FromFloat64( (DaoArray*)_p[4] );
+  DaoArray_FromFloat64( (DaoArray*)_p[5] );
+  DaoArray_FromFloat64( (DaoArray*)_p[7] );
+  DaoArray_FromFloat64( (DaoArray*)_p[9] );
   DaoArray_FromFloat64( (DaoArray*)_p[10] );
 }
 /* ./cblas.h */
@@ -878,6 +924,8 @@ static void dao__cblas_sger( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* X = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[4] );
 
   cblas_sger( order, M, N, alpha, X, incX, Y, incY, A, lda );
+  DaoArray_FromFloat32( (DaoArray*)_p[4] );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -895,6 +943,8 @@ static void dao__cblas_dger( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* X = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[4] );
 
   cblas_dger( order, M, N, alpha, X, incX, Y, incY, A, lda );
+  DaoArray_FromFloat64( (DaoArray*)_p[4] );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -912,6 +962,9 @@ static void dao__cblas_cgeru( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* alpha = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[3] );
 
   cblas_cgeru( order, M, N, alpha, X, incX, Y, incY, A, lda );
+  DaoArray_FromFloat32( (DaoArray*)_p[3] );
+  DaoArray_FromFloat32( (DaoArray*)_p[4] );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -929,6 +982,9 @@ static void dao__cblas_cgerc( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* alpha = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[3] );
 
   cblas_cgerc( order, M, N, alpha, X, incX, Y, incY, A, lda );
+  DaoArray_FromFloat32( (DaoArray*)_p[3] );
+  DaoArray_FromFloat32( (DaoArray*)_p[4] );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -946,6 +1002,9 @@ static void dao__cblas_zgeru( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* alpha = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[3] );
 
   cblas_zgeru( order, M, N, alpha, X, incX, Y, incY, A, lda );
+  DaoArray_FromFloat64( (DaoArray*)_p[3] );
+  DaoArray_FromFloat64( (DaoArray*)_p[4] );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -963,6 +1022,9 @@ static void dao__cblas_zgerc( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* alpha = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[3] );
 
   cblas_zgerc( order, M, N, alpha, X, incX, Y, incY, A, lda );
+  DaoArray_FromFloat64( (DaoArray*)_p[3] );
+  DaoArray_FromFloat64( (DaoArray*)_p[4] );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -979,6 +1041,7 @@ static void dao__cblas_strsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* A = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[5] );
 
   cblas_strsv( order, Uplo, TransA, Diag, N, A, lda, X, incX );
+  DaoArray_FromFloat32( (DaoArray*)_p[5] );
   DaoArray_FromFloat32( (DaoArray*)_p[7] );
 }
 /* ./cblas.h */
@@ -995,6 +1058,7 @@ static void dao__cblas_dtrsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* A = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[5] );
 
   cblas_dtrsv( order, Uplo, TransA, Diag, N, A, lda, X, incX );
+  DaoArray_FromFloat64( (DaoArray*)_p[5] );
   DaoArray_FromFloat64( (DaoArray*)_p[7] );
 }
 /* ./cblas.h */
@@ -1011,6 +1075,7 @@ static void dao__cblas_ctrsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* A = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[5] );
 
   cblas_ctrsv( order, Uplo, TransA, Diag, N, A, lda, X, incX );
+  DaoArray_FromFloat32( (DaoArray*)_p[5] );
   DaoArray_FromFloat32( (DaoArray*)_p[7] );
 }
 /* ./cblas.h */
@@ -1027,6 +1092,7 @@ static void dao__cblas_ztrsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* A = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[5] );
 
   cblas_ztrsv( order, Uplo, TransA, Diag, N, A, lda, X, incX );
+  DaoArray_FromFloat64( (DaoArray*)_p[5] );
   DaoArray_FromFloat64( (DaoArray*)_p[7] );
 }
 /* ./cblas.h */
@@ -1043,6 +1109,7 @@ static void dao__cblas_strmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* A = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[5] );
 
   cblas_strmv( order, Uplo, TransA, Diag, N, A, lda, X, incX );
+  DaoArray_FromFloat32( (DaoArray*)_p[5] );
   DaoArray_FromFloat32( (DaoArray*)_p[7] );
 }
 /* ./cblas.h */
@@ -1059,6 +1126,7 @@ static void dao__cblas_dtrmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* A = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[5] );
 
   cblas_dtrmv( order, Uplo, TransA, Diag, N, A, lda, X, incX );
+  DaoArray_FromFloat64( (DaoArray*)_p[5] );
   DaoArray_FromFloat64( (DaoArray*)_p[7] );
 }
 /* ./cblas.h */
@@ -1075,6 +1143,7 @@ static void dao__cblas_ctrmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* A = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[5] );
 
   cblas_ctrmv( order, Uplo, TransA, Diag, N, A, lda, X, incX );
+  DaoArray_FromFloat32( (DaoArray*)_p[5] );
   DaoArray_FromFloat32( (DaoArray*)_p[7] );
 }
 /* ./cblas.h */
@@ -1091,6 +1160,7 @@ static void dao__cblas_ztrmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* A = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[5] );
 
   cblas_ztrmv( order, Uplo, TransA, Diag, N, A, lda, X, incX );
+  DaoArray_FromFloat64( (DaoArray*)_p[5] );
   DaoArray_FromFloat64( (DaoArray*)_p[7] );
 }
 /* ./cblas.h */
@@ -1106,6 +1176,7 @@ static void dao__cblas_ssyr( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* X = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[4] );
 
   cblas_ssyr( order, Uplo, N, alpha, X, incX, A, lda );
+  DaoArray_FromFloat32( (DaoArray*)_p[4] );
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
 }
 /* ./cblas.h */
@@ -1121,6 +1192,7 @@ static void dao__cblas_dsyr( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* X = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[4] );
 
   cblas_dsyr( order, Uplo, N, alpha, X, incX, A, lda );
+  DaoArray_FromFloat64( (DaoArray*)_p[4] );
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
 }
 /* ./cblas.h */
@@ -1136,6 +1208,7 @@ static void dao__cblas_cher( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* X = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[4] );
 
   cblas_cher( order, Uplo, N, alpha, X, incX, A, lda );
+  DaoArray_FromFloat32( (DaoArray*)_p[4] );
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
 }
 /* ./cblas.h */
@@ -1151,6 +1224,7 @@ static void dao__cblas_zher( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* X = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[4] );
 
   cblas_zher( order, Uplo, N, alpha, X, incX, A, lda );
+  DaoArray_FromFloat64( (DaoArray*)_p[4] );
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
 }
 /* ./cblas.h */
@@ -1168,6 +1242,8 @@ static void dao__cblas_ssyr2( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* X = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[4] );
 
   cblas_ssyr2( order, Uplo, N, alpha, X, incX, Y, incY, A, lda );
+  DaoArray_FromFloat32( (DaoArray*)_p[4] );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -1185,6 +1261,8 @@ static void dao__cblas_dsyr2( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* X = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[4] );
 
   cblas_dsyr2( order, Uplo, N, alpha, X, incX, Y, incY, A, lda );
+  DaoArray_FromFloat64( (DaoArray*)_p[4] );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -1202,6 +1280,9 @@ static void dao__cblas_cher2( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* alpha = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[3] );
 
   cblas_cher2( order, Uplo, N, alpha, X, incX, Y, incY, A, lda );
+  DaoArray_FromFloat32( (DaoArray*)_p[3] );
+  DaoArray_FromFloat32( (DaoArray*)_p[4] );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -1219,6 +1300,9 @@ static void dao__cblas_zher2( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* alpha = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[3] );
 
   cblas_zher2( order, Uplo, N, alpha, X, incX, Y, incY, A, lda );
+  DaoArray_FromFloat64( (DaoArray*)_p[3] );
+  DaoArray_FromFloat64( (DaoArray*)_p[4] );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -1240,6 +1324,8 @@ static void dao__cblas_sgbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* A = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[7] );
 
   cblas_sgbmv( order, TransA, M, N, KL, KU, alpha, A, lda, X, incX, beta, Y, incY );
+  DaoArray_FromFloat32( (DaoArray*)_p[7] );
+  DaoArray_FromFloat32( (DaoArray*)_p[9] );
   DaoArray_FromFloat32( (DaoArray*)_p[12] );
 }
 /* ./cblas.h */
@@ -1261,6 +1347,8 @@ static void dao__cblas_dgbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* A = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[7] );
 
   cblas_dgbmv( order, TransA, M, N, KL, KU, alpha, A, lda, X, incX, beta, Y, incY );
+  DaoArray_FromFloat64( (DaoArray*)_p[7] );
+  DaoArray_FromFloat64( (DaoArray*)_p[9] );
   DaoArray_FromFloat64( (DaoArray*)_p[12] );
 }
 /* ./cblas.h */
@@ -1282,6 +1370,10 @@ static void dao__cblas_cgbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* alpha = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[6] );
 
   cblas_cgbmv( order, TransA, M, N, KL, KU, alpha, A, lda, X, incX, beta, Y, incY );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
+  DaoArray_FromFloat32( (DaoArray*)_p[7] );
+  DaoArray_FromFloat32( (DaoArray*)_p[9] );
+  DaoArray_FromFloat32( (DaoArray*)_p[11] );
   DaoArray_FromFloat32( (DaoArray*)_p[12] );
 }
 /* ./cblas.h */
@@ -1303,6 +1395,10 @@ static void dao__cblas_zgbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* alpha = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[6] );
 
   cblas_zgbmv( order, TransA, M, N, KL, KU, alpha, A, lda, X, incX, beta, Y, incY );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
+  DaoArray_FromFloat64( (DaoArray*)_p[7] );
+  DaoArray_FromFloat64( (DaoArray*)_p[9] );
+  DaoArray_FromFloat64( (DaoArray*)_p[11] );
   DaoArray_FromFloat64( (DaoArray*)_p[12] );
 }
 /* ./cblas.h */
@@ -1322,6 +1418,8 @@ static void dao__cblas_ssbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* A = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[5] );
 
   cblas_ssbmv( order, Uplo, N, K, alpha, A, lda, X, incX, beta, Y, incY );
+  DaoArray_FromFloat32( (DaoArray*)_p[5] );
+  DaoArray_FromFloat32( (DaoArray*)_p[7] );
   DaoArray_FromFloat32( (DaoArray*)_p[10] );
 }
 /* ./cblas.h */
@@ -1341,6 +1439,8 @@ static void dao__cblas_dsbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* A = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[5] );
 
   cblas_dsbmv( order, Uplo, N, K, alpha, A, lda, X, incX, beta, Y, incY );
+  DaoArray_FromFloat64( (DaoArray*)_p[5] );
+  DaoArray_FromFloat64( (DaoArray*)_p[7] );
   DaoArray_FromFloat64( (DaoArray*)_p[10] );
 }
 /* ./cblas.h */
@@ -1358,6 +1458,7 @@ static void dao__cblas_stbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* A = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[6] );
 
   cblas_stbmv( order, Uplo, TransA, Diag, N, K, A, lda, X, incX );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -1375,6 +1476,7 @@ static void dao__cblas_dtbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* A = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[6] );
 
   cblas_dtbmv( order, Uplo, TransA, Diag, N, K, A, lda, X, incX );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -1392,6 +1494,7 @@ static void dao__cblas_ctbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* A = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[6] );
 
   cblas_ctbmv( order, Uplo, TransA, Diag, N, K, A, lda, X, incX );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -1409,6 +1512,7 @@ static void dao__cblas_ztbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* A = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[6] );
 
   cblas_ztbmv( order, Uplo, TransA, Diag, N, K, A, lda, X, incX );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -1426,6 +1530,7 @@ static void dao__cblas_stbsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* A = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[6] );
 
   cblas_stbsv( order, Uplo, TransA, Diag, N, K, A, lda, X, incX );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -1443,6 +1548,7 @@ static void dao__cblas_dtbsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* A = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[6] );
 
   cblas_dtbsv( order, Uplo, TransA, Diag, N, K, A, lda, X, incX );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -1460,6 +1566,7 @@ static void dao__cblas_ctbsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* A = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[6] );
 
   cblas_ctbsv( order, Uplo, TransA, Diag, N, K, A, lda, X, incX );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -1477,6 +1584,7 @@ static void dao__cblas_ztbsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* A = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[6] );
 
   cblas_ztbsv( order, Uplo, TransA, Diag, N, K, A, lda, X, incX );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -1492,6 +1600,7 @@ static void dao__cblas_stpmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* Ap = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[5] );
 
   cblas_stpmv( order, Uplo, TransA, Diag, N, Ap, X, incX );
+  DaoArray_FromFloat32( (DaoArray*)_p[5] );
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
 }
 /* ./cblas.h */
@@ -1507,6 +1616,7 @@ static void dao__cblas_dtpmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* Ap = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[5] );
 
   cblas_dtpmv( order, Uplo, TransA, Diag, N, Ap, X, incX );
+  DaoArray_FromFloat64( (DaoArray*)_p[5] );
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
 }
 /* ./cblas.h */
@@ -1522,6 +1632,7 @@ static void dao__cblas_ctpmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* Ap = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[5] );
 
   cblas_ctpmv( order, Uplo, TransA, Diag, N, Ap, X, incX );
+  DaoArray_FromFloat32( (DaoArray*)_p[5] );
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
 }
 /* ./cblas.h */
@@ -1537,6 +1648,7 @@ static void dao__cblas_ztpmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* Ap = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[5] );
 
   cblas_ztpmv( order, Uplo, TransA, Diag, N, Ap, X, incX );
+  DaoArray_FromFloat64( (DaoArray*)_p[5] );
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
 }
 /* ./cblas.h */
@@ -1552,6 +1664,7 @@ static void dao__cblas_stpsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* Ap = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[5] );
 
   cblas_stpsv( order, Uplo, TransA, Diag, N, Ap, X, incX );
+  DaoArray_FromFloat32( (DaoArray*)_p[5] );
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
 }
 /* ./cblas.h */
@@ -1567,6 +1680,7 @@ static void dao__cblas_dtpsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* Ap = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[5] );
 
   cblas_dtpsv( order, Uplo, TransA, Diag, N, Ap, X, incX );
+  DaoArray_FromFloat64( (DaoArray*)_p[5] );
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
 }
 /* ./cblas.h */
@@ -1582,6 +1696,7 @@ static void dao__cblas_ctpsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* Ap = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[5] );
 
   cblas_ctpsv( order, Uplo, TransA, Diag, N, Ap, X, incX );
+  DaoArray_FromFloat32( (DaoArray*)_p[5] );
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
 }
 /* ./cblas.h */
@@ -1597,6 +1712,7 @@ static void dao__cblas_ztpsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* Ap = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[5] );
 
   cblas_ztpsv( order, Uplo, TransA, Diag, N, Ap, X, incX );
+  DaoArray_FromFloat64( (DaoArray*)_p[5] );
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
 }
 /* ./cblas.h */
@@ -1615,6 +1731,8 @@ static void dao__cblas_ssymv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* A = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[4] );
 
   cblas_ssymv( order, Uplo, N, alpha, A, lda, X, incX, beta, Y, incY );
+  DaoArray_FromFloat32( (DaoArray*)_p[4] );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[9] );
 }
 /* ./cblas.h */
@@ -1633,6 +1751,8 @@ static void dao__cblas_dsymv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* A = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[4] );
 
   cblas_dsymv( order, Uplo, N, alpha, A, lda, X, incX, beta, Y, incY );
+  DaoArray_FromFloat64( (DaoArray*)_p[4] );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[9] );
 }
 /* ./cblas.h */
@@ -1651,6 +1771,10 @@ static void dao__cblas_chemv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* alpha = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[3] );
 
   cblas_chemv( order, Uplo, N, alpha, A, lda, X, incX, beta, Y, incY );
+  DaoArray_FromFloat32( (DaoArray*)_p[3] );
+  DaoArray_FromFloat32( (DaoArray*)_p[4] );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
+  DaoArray_FromFloat32( (DaoArray*)_p[8] );
   DaoArray_FromFloat32( (DaoArray*)_p[9] );
 }
 /* ./cblas.h */
@@ -1669,6 +1793,10 @@ static void dao__cblas_zhemv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* alpha = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[3] );
 
   cblas_zhemv( order, Uplo, N, alpha, A, lda, X, incX, beta, Y, incY );
+  DaoArray_FromFloat64( (DaoArray*)_p[3] );
+  DaoArray_FromFloat64( (DaoArray*)_p[4] );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
+  DaoArray_FromFloat64( (DaoArray*)_p[8] );
   DaoArray_FromFloat64( (DaoArray*)_p[9] );
 }
 /* ./cblas.h */
@@ -1686,6 +1814,8 @@ static void dao__cblas_sspmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* Ap = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[4] );
 
   cblas_sspmv( order, Uplo, N, alpha, Ap, X, incX, beta, Y, incY );
+  DaoArray_FromFloat32( (DaoArray*)_p[4] );
+  DaoArray_FromFloat32( (DaoArray*)_p[5] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -1703,6 +1833,8 @@ static void dao__cblas_dspmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* Ap = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[4] );
 
   cblas_dspmv( order, Uplo, N, alpha, Ap, X, incX, beta, Y, incY );
+  DaoArray_FromFloat64( (DaoArray*)_p[4] );
+  DaoArray_FromFloat64( (DaoArray*)_p[5] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -1717,6 +1849,7 @@ static void dao__cblas_sspr( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* X = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[4] );
 
   cblas_sspr( order, Uplo, N, alpha, X, incX, Ap );
+  DaoArray_FromFloat32( (DaoArray*)_p[4] );
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
 }
 /* ./cblas.h */
@@ -1731,6 +1864,7 @@ static void dao__cblas_dspr( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* X = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[4] );
 
   cblas_dspr( order, Uplo, N, alpha, X, incX, Ap );
+  DaoArray_FromFloat64( (DaoArray*)_p[4] );
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
 }
 /* ./cblas.h */
@@ -1745,6 +1879,7 @@ static void dao__cblas_chpr( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* X = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[4] );
 
   cblas_chpr( order, Uplo, N, alpha, X, incX, A );
+  DaoArray_FromFloat32( (DaoArray*)_p[4] );
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
 }
 /* ./cblas.h */
@@ -1759,6 +1894,7 @@ static void dao__cblas_zhpr( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* X = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[4] );
 
   cblas_zhpr( order, Uplo, N, alpha, X, incX, A );
+  DaoArray_FromFloat64( (DaoArray*)_p[4] );
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
 }
 /* ./cblas.h */
@@ -1775,6 +1911,8 @@ static void dao__cblas_sspr2( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* X = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[4] );
 
   cblas_sspr2( order, Uplo, N, alpha, X, incX, Y, incY, A );
+  DaoArray_FromFloat32( (DaoArray*)_p[4] );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -1791,6 +1929,8 @@ static void dao__cblas_dspr2( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* X = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[4] );
 
   cblas_dspr2( order, Uplo, N, alpha, X, incX, Y, incY, A );
+  DaoArray_FromFloat64( (DaoArray*)_p[4] );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -1807,6 +1947,9 @@ static void dao__cblas_chpr2( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* alpha = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[3] );
 
   cblas_chpr2( order, Uplo, N, alpha, X, incX, Y, incY, Ap );
+  DaoArray_FromFloat32( (DaoArray*)_p[3] );
+  DaoArray_FromFloat32( (DaoArray*)_p[4] );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -1823,6 +1966,9 @@ static void dao__cblas_zhpr2( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* alpha = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[3] );
 
   cblas_zhpr2( order, Uplo, N, alpha, X, incX, Y, incY, Ap );
+  DaoArray_FromFloat64( (DaoArray*)_p[3] );
+  DaoArray_FromFloat64( (DaoArray*)_p[4] );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -1842,6 +1988,10 @@ static void dao__cblas_chbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* alpha = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[4] );
 
   cblas_chbmv( order, Uplo, N, K, alpha, A, lda, X, incX, beta, Y, incY );
+  DaoArray_FromFloat32( (DaoArray*)_p[4] );
+  DaoArray_FromFloat32( (DaoArray*)_p[5] );
+  DaoArray_FromFloat32( (DaoArray*)_p[7] );
+  DaoArray_FromFloat32( (DaoArray*)_p[9] );
   DaoArray_FromFloat32( (DaoArray*)_p[10] );
 }
 /* ./cblas.h */
@@ -1861,6 +2011,10 @@ static void dao__cblas_zhbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* alpha = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[4] );
 
   cblas_zhbmv( order, Uplo, N, K, alpha, A, lda, X, incX, beta, Y, incY );
+  DaoArray_FromFloat64( (DaoArray*)_p[4] );
+  DaoArray_FromFloat64( (DaoArray*)_p[5] );
+  DaoArray_FromFloat64( (DaoArray*)_p[7] );
+  DaoArray_FromFloat64( (DaoArray*)_p[9] );
   DaoArray_FromFloat64( (DaoArray*)_p[10] );
 }
 /* ./cblas.h */
@@ -1878,6 +2032,10 @@ static void dao__cblas_chpmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* alpha = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[3] );
 
   cblas_chpmv( order, Uplo, N, alpha, Ap, X, incX, beta, Y, incY );
+  DaoArray_FromFloat32( (DaoArray*)_p[3] );
+  DaoArray_FromFloat32( (DaoArray*)_p[4] );
+  DaoArray_FromFloat32( (DaoArray*)_p[5] );
+  DaoArray_FromFloat32( (DaoArray*)_p[7] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -1895,6 +2053,10 @@ static void dao__cblas_zhpmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* alpha = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[3] );
 
   cblas_zhpmv( order, Uplo, N, alpha, Ap, X, incX, beta, Y, incY );
+  DaoArray_FromFloat64( (DaoArray*)_p[3] );
+  DaoArray_FromFloat64( (DaoArray*)_p[4] );
+  DaoArray_FromFloat64( (DaoArray*)_p[5] );
+  DaoArray_FromFloat64( (DaoArray*)_p[7] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
 /* ./cblas.h */
@@ -1916,6 +2078,8 @@ static void dao__cblas_sgemm( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* A = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[7] );
 
   cblas_sgemm( Order, TransA, TransB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc );
+  DaoArray_FromFloat32( (DaoArray*)_p[7] );
+  DaoArray_FromFloat32( (DaoArray*)_p[9] );
   DaoArray_FromFloat32( (DaoArray*)_p[12] );
 }
 /* ./cblas.h */
@@ -1937,6 +2101,8 @@ static void dao__cblas_dgemm( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* A = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[7] );
 
   cblas_dgemm( Order, TransA, TransB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc );
+  DaoArray_FromFloat64( (DaoArray*)_p[7] );
+  DaoArray_FromFloat64( (DaoArray*)_p[9] );
   DaoArray_FromFloat64( (DaoArray*)_p[12] );
 }
 /* ./cblas.h */
@@ -1958,6 +2124,10 @@ static void dao__cblas_cgemm( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* alpha = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[6] );
 
   cblas_cgemm( Order, TransA, TransB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
+  DaoArray_FromFloat32( (DaoArray*)_p[7] );
+  DaoArray_FromFloat32( (DaoArray*)_p[9] );
+  DaoArray_FromFloat32( (DaoArray*)_p[11] );
   DaoArray_FromFloat32( (DaoArray*)_p[12] );
 }
 /* ./cblas.h */
@@ -1979,6 +2149,10 @@ static void dao__cblas_zgemm( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* alpha = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[6] );
 
   cblas_zgemm( Order, TransA, TransB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
+  DaoArray_FromFloat64( (DaoArray*)_p[7] );
+  DaoArray_FromFloat64( (DaoArray*)_p[9] );
+  DaoArray_FromFloat64( (DaoArray*)_p[11] );
   DaoArray_FromFloat64( (DaoArray*)_p[12] );
 }
 /* ./cblas.h */
@@ -1999,6 +2173,8 @@ static void dao__cblas_ssymm( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* A = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[6] );
 
   cblas_ssymm( Order, Side, Uplo, M, N, alpha, A, lda, B, ldb, beta, C, ldc );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
+  DaoArray_FromFloat32( (DaoArray*)_p[8] );
   DaoArray_FromFloat32( (DaoArray*)_p[11] );
 }
 /* ./cblas.h */
@@ -2019,6 +2195,8 @@ static void dao__cblas_dsymm( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* A = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[6] );
 
   cblas_dsymm( Order, Side, Uplo, M, N, alpha, A, lda, B, ldb, beta, C, ldc );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
+  DaoArray_FromFloat64( (DaoArray*)_p[8] );
   DaoArray_FromFloat64( (DaoArray*)_p[11] );
 }
 /* ./cblas.h */
@@ -2039,6 +2217,10 @@ static void dao__cblas_csymm( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* alpha = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[5] );
 
   cblas_csymm( Order, Side, Uplo, M, N, alpha, A, lda, B, ldb, beta, C, ldc );
+  DaoArray_FromFloat32( (DaoArray*)_p[5] );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
+  DaoArray_FromFloat32( (DaoArray*)_p[8] );
+  DaoArray_FromFloat32( (DaoArray*)_p[10] );
   DaoArray_FromFloat32( (DaoArray*)_p[11] );
 }
 /* ./cblas.h */
@@ -2059,6 +2241,10 @@ static void dao__cblas_zsymm( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* alpha = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[5] );
 
   cblas_zsymm( Order, Side, Uplo, M, N, alpha, A, lda, B, ldb, beta, C, ldc );
+  DaoArray_FromFloat64( (DaoArray*)_p[5] );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
+  DaoArray_FromFloat64( (DaoArray*)_p[8] );
+  DaoArray_FromFloat64( (DaoArray*)_p[10] );
   DaoArray_FromFloat64( (DaoArray*)_p[11] );
 }
 /* ./cblas.h */
@@ -2077,6 +2263,7 @@ static void dao__cblas_ssyrk( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* A = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[6] );
 
   cblas_ssyrk( Order, Uplo, Trans, N, K, alpha, A, lda, beta, C, ldc );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[9] );
 }
 /* ./cblas.h */
@@ -2095,6 +2282,7 @@ static void dao__cblas_dsyrk( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* A = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[6] );
 
   cblas_dsyrk( Order, Uplo, Trans, N, K, alpha, A, lda, beta, C, ldc );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[9] );
 }
 /* ./cblas.h */
@@ -2113,6 +2301,9 @@ static void dao__cblas_csyrk( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* alpha = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[5] );
 
   cblas_csyrk( Order, Uplo, Trans, N, K, alpha, A, lda, beta, C, ldc );
+  DaoArray_FromFloat32( (DaoArray*)_p[5] );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
+  DaoArray_FromFloat32( (DaoArray*)_p[8] );
   DaoArray_FromFloat32( (DaoArray*)_p[9] );
 }
 /* ./cblas.h */
@@ -2131,6 +2322,9 @@ static void dao__cblas_zsyrk( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* alpha = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[5] );
 
   cblas_zsyrk( Order, Uplo, Trans, N, K, alpha, A, lda, beta, C, ldc );
+  DaoArray_FromFloat64( (DaoArray*)_p[5] );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
+  DaoArray_FromFloat64( (DaoArray*)_p[8] );
   DaoArray_FromFloat64( (DaoArray*)_p[9] );
 }
 /* ./cblas.h */
@@ -2151,6 +2345,8 @@ static void dao__cblas_ssyr2k( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* A = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[6] );
 
   cblas_ssyr2k( Order, Uplo, Trans, N, K, alpha, A, lda, B, ldb, beta, C, ldc );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
+  DaoArray_FromFloat32( (DaoArray*)_p[8] );
   DaoArray_FromFloat32( (DaoArray*)_p[11] );
 }
 /* ./cblas.h */
@@ -2171,6 +2367,8 @@ static void dao__cblas_dsyr2k( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* A = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[6] );
 
   cblas_dsyr2k( Order, Uplo, Trans, N, K, alpha, A, lda, B, ldb, beta, C, ldc );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
+  DaoArray_FromFloat64( (DaoArray*)_p[8] );
   DaoArray_FromFloat64( (DaoArray*)_p[11] );
 }
 /* ./cblas.h */
@@ -2191,6 +2389,10 @@ static void dao__cblas_csyr2k( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* alpha = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[5] );
 
   cblas_csyr2k( Order, Uplo, Trans, N, K, alpha, A, lda, B, ldb, beta, C, ldc );
+  DaoArray_FromFloat32( (DaoArray*)_p[5] );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
+  DaoArray_FromFloat32( (DaoArray*)_p[8] );
+  DaoArray_FromFloat32( (DaoArray*)_p[10] );
   DaoArray_FromFloat32( (DaoArray*)_p[11] );
 }
 /* ./cblas.h */
@@ -2211,6 +2413,10 @@ static void dao__cblas_zsyr2k( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* alpha = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[5] );
 
   cblas_zsyr2k( Order, Uplo, Trans, N, K, alpha, A, lda, B, ldb, beta, C, ldc );
+  DaoArray_FromFloat64( (DaoArray*)_p[5] );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
+  DaoArray_FromFloat64( (DaoArray*)_p[8] );
+  DaoArray_FromFloat64( (DaoArray*)_p[10] );
   DaoArray_FromFloat64( (DaoArray*)_p[11] );
 }
 /* ./cblas.h */
@@ -2230,6 +2436,7 @@ static void dao__cblas_strmm( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* A = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[8] );
 
   cblas_strmm( Order, Side, Uplo, TransA, Diag, M, N, alpha, A, lda, B, ldb );
+  DaoArray_FromFloat32( (DaoArray*)_p[8] );
   DaoArray_FromFloat32( (DaoArray*)_p[10] );
 }
 /* ./cblas.h */
@@ -2249,6 +2456,7 @@ static void dao__cblas_dtrmm( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* A = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[8] );
 
   cblas_dtrmm( Order, Side, Uplo, TransA, Diag, M, N, alpha, A, lda, B, ldb );
+  DaoArray_FromFloat64( (DaoArray*)_p[8] );
   DaoArray_FromFloat64( (DaoArray*)_p[10] );
 }
 /* ./cblas.h */
@@ -2268,6 +2476,8 @@ static void dao__cblas_ctrmm( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* alpha = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[7] );
 
   cblas_ctrmm( Order, Side, Uplo, TransA, Diag, M, N, alpha, A, lda, B, ldb );
+  DaoArray_FromFloat32( (DaoArray*)_p[7] );
+  DaoArray_FromFloat32( (DaoArray*)_p[8] );
   DaoArray_FromFloat32( (DaoArray*)_p[10] );
 }
 /* ./cblas.h */
@@ -2287,6 +2497,8 @@ static void dao__cblas_ztrmm( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* alpha = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[7] );
 
   cblas_ztrmm( Order, Side, Uplo, TransA, Diag, M, N, alpha, A, lda, B, ldb );
+  DaoArray_FromFloat64( (DaoArray*)_p[7] );
+  DaoArray_FromFloat64( (DaoArray*)_p[8] );
   DaoArray_FromFloat64( (DaoArray*)_p[10] );
 }
 /* ./cblas.h */
@@ -2306,6 +2518,7 @@ static void dao__cblas_strsm( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* A = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[8] );
 
   cblas_strsm( Order, Side, Uplo, TransA, Diag, M, N, alpha, A, lda, B, ldb );
+  DaoArray_FromFloat32( (DaoArray*)_p[8] );
   DaoArray_FromFloat32( (DaoArray*)_p[10] );
 }
 /* ./cblas.h */
@@ -2325,6 +2538,7 @@ static void dao__cblas_dtrsm( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* A = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[8] );
 
   cblas_dtrsm( Order, Side, Uplo, TransA, Diag, M, N, alpha, A, lda, B, ldb );
+  DaoArray_FromFloat64( (DaoArray*)_p[8] );
   DaoArray_FromFloat64( (DaoArray*)_p[10] );
 }
 /* ./cblas.h */
@@ -2344,6 +2558,8 @@ static void dao__cblas_ctrsm( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* alpha = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[7] );
 
   cblas_ctrsm( Order, Side, Uplo, TransA, Diag, M, N, alpha, A, lda, B, ldb );
+  DaoArray_FromFloat32( (DaoArray*)_p[7] );
+  DaoArray_FromFloat32( (DaoArray*)_p[8] );
   DaoArray_FromFloat32( (DaoArray*)_p[10] );
 }
 /* ./cblas.h */
@@ -2363,6 +2579,8 @@ static void dao__cblas_ztrsm( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* alpha = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[7] );
 
   cblas_ztrsm( Order, Side, Uplo, TransA, Diag, M, N, alpha, A, lda, B, ldb );
+  DaoArray_FromFloat64( (DaoArray*)_p[7] );
+  DaoArray_FromFloat64( (DaoArray*)_p[8] );
   DaoArray_FromFloat64( (DaoArray*)_p[10] );
 }
 /* ./cblas.h */
@@ -2383,6 +2601,10 @@ static void dao__cblas_chemm( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* alpha = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[5] );
 
   cblas_chemm( Order, Side, Uplo, M, N, alpha, A, lda, B, ldb, beta, C, ldc );
+  DaoArray_FromFloat32( (DaoArray*)_p[5] );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
+  DaoArray_FromFloat32( (DaoArray*)_p[8] );
+  DaoArray_FromFloat32( (DaoArray*)_p[10] );
   DaoArray_FromFloat32( (DaoArray*)_p[11] );
 }
 /* ./cblas.h */
@@ -2403,6 +2625,10 @@ static void dao__cblas_zhemm( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* alpha = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[5] );
 
   cblas_zhemm( Order, Side, Uplo, M, N, alpha, A, lda, B, ldb, beta, C, ldc );
+  DaoArray_FromFloat64( (DaoArray*)_p[5] );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
+  DaoArray_FromFloat64( (DaoArray*)_p[8] );
+  DaoArray_FromFloat64( (DaoArray*)_p[10] );
   DaoArray_FromFloat64( (DaoArray*)_p[11] );
 }
 /* ./cblas.h */
@@ -2421,6 +2647,7 @@ static void dao__cblas_cherk( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* A = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[6] );
 
   cblas_cherk( Order, Uplo, Trans, N, K, alpha, A, lda, beta, C, ldc );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[9] );
 }
 /* ./cblas.h */
@@ -2439,6 +2666,7 @@ static void dao__cblas_zherk( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* A = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[6] );
 
   cblas_zherk( Order, Uplo, Trans, N, K, alpha, A, lda, beta, C, ldc );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[9] );
 }
 /* ./cblas.h */
@@ -2459,6 +2687,9 @@ static void dao__cblas_cher2k( DaoProcess *_proc, DaoValue *_p[], int _n )
   const float* alpha = (const float*) DaoArray_ToFloat32( (DaoArray*)_p[5] );
 
   cblas_cher2k( Order, Uplo, Trans, N, K, alpha, A, lda, B, ldb, beta, C, ldc );
+  DaoArray_FromFloat32( (DaoArray*)_p[5] );
+  DaoArray_FromFloat32( (DaoArray*)_p[6] );
+  DaoArray_FromFloat32( (DaoArray*)_p[8] );
   DaoArray_FromFloat32( (DaoArray*)_p[11] );
 }
 /* ./cblas.h */
@@ -2479,6 +2710,9 @@ static void dao__cblas_zher2k( DaoProcess *_proc, DaoValue *_p[], int _n )
   const double* alpha = (const double*) DaoArray_ToFloat64( (DaoArray*)_p[5] );
 
   cblas_zher2k( Order, Uplo, Trans, N, K, alpha, A, lda, B, ldb, beta, C, ldc );
+  DaoArray_FromFloat64( (DaoArray*)_p[5] );
+  DaoArray_FromFloat64( (DaoArray*)_p[6] );
+  DaoArray_FromFloat64( (DaoArray*)_p[8] );
   DaoArray_FromFloat64( (DaoArray*)_p[11] );
 }
 #ifdef __cplusplus
@@ -2519,7 +2753,7 @@ int DaoOnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 	DaoNamespace *aux = DaoVmSpace_LinkModule( vms, ns, "aux" );
 	if( aux == NULL ) return 1;
 	DaoNamespace_AddConstNumbers( ns, dao__Nums );
-	DaoNamespace_TypeDefines( ns, dao__Aliases );
+	DaoNamespace_AliasTypes( ns, dao__Aliases );
 	DaoNamespace_WrapFunctions( ns, dao__Funcs );
 	return 0;
 }
