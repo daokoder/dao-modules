@@ -25,12 +25,12 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <llvm/Module.h>
+#include <llvm/IR/Module.h>
 #include <llvm/Support/Host.h>
 #include <llvm/Support/Path.h>
 #include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Support/TargetSelect.h>
-#include <llvm/LLVMContext.h>
+#include <llvm/IR/LLVMContext.h>
 #include <llvm/ExecutionEngine/JIT.h>
 #include <llvm/ExecutionEngine/Interpreter.h>
 #include <llvm/ExecutionEngine/GenericValue.h>
@@ -657,46 +657,44 @@ DAO_DLL int DaoCxx_OnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 	DString_SetChars( mbs, header_suffix_pattern );
 	header_suffix_regex = DaoRegex_New( mbs );
 
-	compiler.createDiagnostics(argc, argv);
+	compiler.createDiagnostics();
 
 	DiagnosticsEngine & DG = compiler.getDiagnostics();
 	CompilerInvocation::CreateFromArgs( compiler.getInvocation(), argv + 1, argv + argc, DG );
-	compiler.setTarget( TargetInfo::CreateTargetInfo( DG, compiler.getTargetOpts() ) );
+	std::shared_ptr<clang::TargetOptions> taropts( new clang::TargetOptions( compiler.getTargetOpts() ) ); 
+	compiler.setTarget( TargetInfo::CreateTargetInfo( DG, taropts ) );
 
 	clang::HeaderSearchOptions & headers = compiler.getHeaderSearchOpts();
 	DString_SetChars( mbs, DaoVmSpace_CurrentLoadingPath( vms ) );
 	DString_AppendChars( mbs, "/../" ); // /usr/local/dao relative to /usr/local/dao/lib
-	headers.AddPath( mbs->chars, clang::frontend::System, false, false, true );
+	headers.AddPath( mbs->chars, clang::frontend::System, false, true );
 #ifdef DAO_DIR
-	headers.AddPath( DAO_DIR "/include", clang::frontend::System, false, false, true );
+	headers.AddPath( DAO_DIR "/include", clang::frontend::System, false, true );
 #endif
 	DString_SetChars( mbs, DaoVmSpace_CurrentLoadingPath( vms ) );
 	DString_AppendChars( mbs, "/../../../kernel" ); // at build
-	headers.AddPath( mbs->chars, clang::frontend::System, false, false, true );
+	headers.AddPath( mbs->chars, clang::frontend::System, false, true );
 
 	DString_Delete( mbs );
 
 	string predefines;
-#ifdef MAC_OSX
+#ifdef MACOSX
 	predefines = "#define MACOSX 1\n#define UNIX 1\n";
-	// needed to circumvent a bug which is supposingly fixed in clang 2.9-16
-	headers.AddPath( "/Developer/SDKs/MacOSX10.5.sdk/usr/lib/gcc/i686-apple-darwin9/4.2.1/include", clang::frontend::System, false, false, true );
-	// workaround for finding: stdarg.h
-	headers.AddPath( "/usr/lib/clang/3.2/include", clang::frontend::System, false, false, true );
-	headers.AddPath( "/usr/lib/clang/4.2/include", clang::frontend::System, false, false, true );
-	headers.AddPath( "/usr/local/lib/clang/3.2/include", clang::frontend::System, false, false, true );
+#ifdef MACOSX_SDK_PATH
+	headers.AddPath( MACOSX_SDK_PATH "/usr/include", clang::frontend::System, false, true );
+#endif
 #elif defined(UNIX)
 	predefines = "#define UNIX 1\n";
 #elif defined(WIN32)
 	predefines = "#define WIN32 1\n";
-	headers.AddPath( "C:/MinGW/lib/gcc/mingw32/4.6.1/include", clang::frontend::System, false, false, true );
+	headers.AddPath( "C:/MinGW/lib/gcc/mingw32/4.6.1/include", clang::frontend::System, false, true );
 #endif
 
 	//compiler.getHeaderSearchOpts().AddPath( "", clang::frontend::Angled, false, false, true );
 
 	compiler.createFileManager();
 	compiler.createSourceManager( compiler.getFileManager() );
-	compiler.createPreprocessor();
+	compiler.createPreprocessor( TU_Complete );
 	Preprocessor & pp = compiler.getPreprocessor();
 	pp.setPredefines( pp.getPredefines() + "\n" + predefines );
 

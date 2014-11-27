@@ -30,12 +30,12 @@
 #include<math.h>
 #include<stack>
 
-#include "llvm/LLVMContext.h"
-#include "llvm/Module.h"
-#include "llvm/DerivedTypes.h"
-#include "llvm/Constants.h"
-#include "llvm/Instructions.h"
-#include "llvm/Analysis/Verifier.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/Verifier.h"
 #include "llvm/Analysis/Passes.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/ExecutionEngine/JIT.h"
@@ -43,9 +43,9 @@
 #include "llvm/ExecutionEngine/GenericValue.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/TargetSelect.h" // "llvm/Support/TargetSelect.h" cause error!
-#include "llvm/DataLayout.h"
+#include "llvm/IR/DataLayout.h"
 #include "llvm/PassManager.h"
-#include "llvm/Assembly/PrintModulePass.h"
+#include "llvm/IR/IRPrintingPasses.h"
 
 #include "daoJIT.h"
 
@@ -1158,7 +1158,7 @@ void DaoJIT_Init( DaoVmSpace *vms, DaoJIT *jit )
 #endif
 
 	llvm_func_optimizer = new FunctionPassManager( llvm_module );
-	llvm_func_optimizer->add(new DataLayout(*llvm_exe_engine->getDataLayout()));
+	//llvm_func_optimizer->add(new DataLayout(*llvm_exe_engine->getDataLayout()));
 	llvm_func_optimizer->add(createBasicAliasAnalysisPass());
 	llvm_func_optimizer->add(createInstructionCombiningPass());
 	llvm_func_optimizer->add(createReassociatePass());
@@ -3109,9 +3109,9 @@ void DaoJIT_Compile( DaoRoutine *routine, DaoOptimizer *optimizer )
 
 #ifdef DEBUG
 	PassManager PM;
-	PM.add(createPrintModulePass(&outs()));
+	PM.add(createPrintModulePass(outs()));
 	PM.run(*llvm_module);
-	verifyModule(*llvm_module, PrintMessageAction);
+	verifyModule(*llvm_module, &outs());
 #endif
 }
 

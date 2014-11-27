@@ -12,6 +12,12 @@ project.UseSharedLibrary( llvm )
 project.SetTargetPath( "../../lib/dao/modules" )
 
 project_objects = project.AddObjects( { "daoCXX.cpp" } )
+
+if( DaoMake::IsPlatform( "MACOSX" ) ){
+	sdk = DaoMake::Variables["MACOSX_SDK_PATH"]
+	project_objects.AddDefinition( "MACOSX_SDK_PATH", "\\\"$(MACOSX_SDK_PATH)\\\"" );
+}
+
 project_objects.AddCompilingFlag( "-fno-rtti" );
 project_objects.AddCompilingFlag( "-fvisibility-inlines-hidden" ); # llvm-3.2
 

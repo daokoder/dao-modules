@@ -6,8 +6,8 @@ daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
 if( daovm == none ) return
 
 if( modules.SourcePath() != modules.BinaryPath() ){
-	src = DaoMake::MakePath( modules.SourcePath(), "pkgtools" );
-	dest = DaoMake::MakePath( modules.BinaryPath(), "../lib/dao/modules/" );
+	src = modules.SourcePath() /"pkgtools";
+	dest = modules.BinaryPath() /"../lib/dao/modules/";
 	modules.AddCommand( "copypkgtools:", "$(DAOMAKE) copy " + src + " " + dest );
 }
 
@@ -30,7 +30,8 @@ if( DaoMake::IsDir( "time" ) ) modules.AddDirectory( "time", "time" );
 
 if( DaoMake::IsDir( "net" ) ) modules.AddDirectory( "net", "net" );
 
-if( DaoMake::IsDir( "os" ) ) modules.AddDirectory( "os", "os" );
+# Temporarily diabled, for not compiling without thread:
+# if( DaoMake::IsDir( "os" ) ) modules.AddDirectory( "os", "os" );
 
 if( DaoMake::IsDir( "binary" ) ) modules.AddDirectory( "binary", "binary" );
 
@@ -47,14 +48,11 @@ if( DaoMake::IsDir( "web" ) ) modules.AddDirectory( "web", "web" );
 
 if( DaoMake::IsDir( "statistics" ) ) modules.AddDirectory( "statistics", "statistics" );
 
-if( DaoMake::IsDir( "DaoSQL" ) ) modules.AddDirectory( "DaoSQL", "DaoSQL" );
 
-
-if( DaoMake::IsDir( "DaoGSL" ) ) modules.AddDirectory( "GSL", "DaoGSL" );
 
 if( DaoMake::IsDir( "DaoSDL" ) ) modules.AddDirectory( "SDL", "DaoSDL" );
 
-if( DaoMake::IsDir( "DaoGraphicsMagick" ) ) modules.AddDirectory( "GraphicsMagick", "DaoGraphicsMagick" );
+#if( DaoMake::IsDir( "DaoGraphicsMagick" ) ) modules.AddDirectory( "GraphicsMagick", "DaoGraphicsMagick" );
 
 if( DaoMake::IsDir( "DaoGraphics" ) ) modules.AddDirectory( "Graphics", "DaoGraphics" );
 
@@ -64,4 +62,7 @@ if( not DaoMake::IsPlatform( "IOS" ) ){
 	if( DaoMake::IsDir( "DaoCXX" ) ) modules.AddDirectory( "DaoCXX", "DaoCXX" );
 	if( DaoMake::IsDir( "cblas" ) ) modules.AddDirectory( "cblas", "cblas" );
 	if( DaoMake::IsDir( "DaoFLTK" ) ) modules.AddDirectory( "FLTK", "DaoFLTK" );
+	if( DaoMake::IsDir( "DaoSQL" ) ) modules.AddDirectory( "DaoSQL", "DaoSQL" );
+	if( DaoMake::IsDir( "DaoGSL" ) ) modules.AddDirectory( "GSL", "DaoGSL" );
+
 }
