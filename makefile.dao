@@ -31,7 +31,7 @@ if( DaoMake::IsDir( "time" ) ) modules.AddDirectory( "time", "time" );
 if( DaoMake::IsDir( "net" ) ) modules.AddDirectory( "net", "net" );
 
 # Temporarily diabled, for not compiling without thread:
-# if( DaoMake::IsDir( "os" ) ) modules.AddDirectory( "os", "os" );
+if( DaoMake::IsDir( "os" ) ) modules.AddDirectory( "os", "os" );
 
 if( DaoMake::IsDir( "binary" ) ) modules.AddDirectory( "binary", "binary" );
 

@@ -27,7 +27,6 @@ project.AddIncludePath( "include" )
 is64bit = DaoMake::Is64Bit()
 
 if( DaoMake::IsPlatform( "UNIX" ) ){
-	project.AddAssemblingFlag( "-fPIC" )
 	project.AddCompilingFlag( "-fPIC" )
 	project.AddIncludePath( "src/x86" )
 	src.append( is64bit ? "src/x86/ffi64.c" : "src/x86/ffi.c" )

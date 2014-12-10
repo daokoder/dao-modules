@@ -130,7 +130,9 @@ struct DaoOSProcess
 	DaoList *args, *env;
 	volatile int excode;
 	volatile proc_state state;
+#ifdef DAO_WITH_THREAD
 	DCondVar cvar, *pvar;
+#endif
 	DaoValue *inpipe, *outpipe, *errpipe;
 	int detached;
 };
@@ -591,6 +593,8 @@ static DaoTypeBase pipeTyper = {
 	(FuncPtrDel)DaoPipe_Delete, NULL
 };
 
+#ifdef DAO_WITH_THREAD
+
 // background tasklet tracking child processes until all of them are terminated
 void WaitForChildren( void *p )
 {
@@ -952,7 +956,7 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 							size_t len = pos - environ[i];
 							envs[i] = dao_malloc( sizeof(char)*( len + 1 ) );
 							strncpy( envs[i], environ[i], len );
-							envs[len] = '\0';
+							envs[i][len] = '\0';
 						}
 						else
 							envs[i] = NULL;
@@ -1388,6 +1392,7 @@ static void OS_Wait( DaoProcess *proc, DaoValue *p[], int N )
 	else
 		DaoProcess_PutNone( proc );
 }
+#endif
 
 static void OS_Select( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1639,6 +1644,7 @@ static void OS_Open( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem osMeths[] =
 {
+#ifdef DAO_WITH_THREAD
 	/*! Creates new child process executing the file specified by \a path with the \a arguments (if given). \a path may omit the
 	 * full path to the file, in that case its resolution is system-dependent. Returns the corresponding `Process` object.
 	 *
@@ -1676,6 +1682,7 @@ static DaoFuncItem osMeths[] =
 	 * \warning If the function is called concurrently from multiple threads, it will ignore the processes which are currently
 	 * tracked by its other invocations. Detached processes are ingored as well. */
 	{ OS_Wait,	"wait(invar children: list<Process>, timeout = -1.0) => Process|none" },
+#endif
 
 	/*! Creates new pipe and returns the corresponding `Pipe` object. If \a autoClose is `true`, unused pipe end is automatically
 	 * closed when the pipe is passed to `exec()` or `shell()`; setting this parameter to `false` allows to pass single pipe to
@@ -1720,9 +1727,16 @@ DAO_DLL int DaoProcess_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace *osns = DaoVmSpace_GetNamespace( vmSpace, "os" );
 	DaoNamespace_AddConstValue( ns, "os", (DaoValue*)osns );
 	daox_type_pipe = DaoNamespace_WrapType( osns, &pipeTyper, 1 );
-	daox_type_process = DaoNamespace_WrapType( osns, &procTyper, 1 );
-	DaoNamespace_WrapFunctions( osns, osMeths );
+
+#ifdef DAO_WITH_THREAD
 	DMutex_Init( &proc_mtx );
+	daox_type_process = DaoNamespace_WrapType( osns, &procTyper, 1 );
+#else
+	DaoStream_WriteChars( vmSpace->errorStream, "WARNING: Module \"os\" is incomplete without threading!\n" );
+#endif
+
+	DaoNamespace_WrapFunctions( osns, osMeths );
+
 #ifdef WIN32
 	exec_event = CreateEvent( NULL, TRUE, FALSE, NULL );
 #endif
