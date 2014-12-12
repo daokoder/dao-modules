@@ -721,7 +721,7 @@ int DaoValue_Deserialize( DaoValue **self, DString *serial, DaoNamespace *ns, Da
 	DMap_Delete( omap );
 	return rc;
 Failed:
-	DaoParser_Delete( parser );
+	DaoVmSpace_ReleaseParser( ns->vmSpace, parser );
 	DList_Delete( types );
 	DMap_Delete( omap );
 	return 0;

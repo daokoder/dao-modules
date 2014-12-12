@@ -403,8 +403,8 @@ static void DaoTime_Zone( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoTime_Format( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*)DaoValue_TryGetCdata( p[0] );
-	DString *fmt = p[1]->xString.value;
-	if ( fmt->size ){
+	if ( p[1]->type == DAO_STRING ){
+		DString *fmt = p[1]->xString.value;
 		char buf[100];
 		if ( strftime( buf, sizeof(buf), fmt->chars, &self->parts ))
 			DaoProcess_PutChars( proc, buf );
