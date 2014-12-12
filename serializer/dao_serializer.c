@@ -399,7 +399,7 @@ int DaoValue_Serialize2( DaoValue *self, DString *serial, DaoNamespace *ns, DaoP
 int DaoValue_Serialize( DaoValue *self, DString *serial, DaoNamespace *ns, DaoProcess *proc )
 {
 	DaoType *type = DaoNamespace_GetType( ns, self );
-	DString *buf = DString_New(1);
+	DString *buf = DString_New();
 	DMap *omap = DMap_New(0,0);
 	int rc;
 	DString_Clear( serial );
@@ -475,7 +475,7 @@ static int DaoParser_Deserialize( DaoParser *self, int start, int end, DaoValue 
 		return rb + 1;
 	}
 	if( tokens[start]->name == DTOK_ID_SYMBOL ){
-		DString *mbs = DString_New(1);
+		DString *mbs = DString_New();
 		while( tokens[start]->name == DTOK_ID_SYMBOL ){
 			DString_Append( mbs, & tokens[start]->string );
 			start += 1;
@@ -731,8 +731,8 @@ Failed:
 static void NS_Backup( DaoNamespace *self, DaoProcess *proc, FILE *fout, int limit, int store )
 {
 	DNode *node = DMap_First( self->lookupTable );
-	DString *prefix = DString_New(1);
-	DString *serial = DString_New(1);
+	DString *prefix = DString_New();
+	DString *serial = DString_New();
 	DaoValue *value = NULL;
 	size_t max = limit * 1000; /* limit per object in KB */
 	int id, pm, up, st;
@@ -783,7 +783,7 @@ void DaoNamespace_Backup( DaoNamespace *self, DaoProcess *proc, FILE *fout, int 
 void DaoNamespace_Restore( DaoNamespace *self, DaoProcess *proc, FILE *fin )
 {
 	DaoParser *parser = DaoVmSpace_AcquireParser( self->vmSpace );
-	DString *line = DString_New(1);
+	DString *line = DString_New();
 	DList *types = DList_New(0);
 	DList *tokens = parser->tokens;
 	DMap *omap = DMap_New(0,0);

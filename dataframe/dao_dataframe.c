@@ -366,7 +366,7 @@ void DaoxDataFrame_AddLabels( DaoxDataFrame *self, int dim, DMap *labels )
 	DNode *it;
 	if( labels->keytype != DAO_DATA_STRING && labels->keytype != DAO_DATA_VALUE ) return;
 	if( labels->valtype != 0 && labels->valtype != DAO_DATA_VALUE ) return;
-	lab = DString_New(1);
+	lab = DString_New();
 	DaoxDataFrame_AddLabelGroup( self, dim );
 	for(it=DMap_First(labels); it; it=DMap_Next(labels,it)){
 		DString *lab2 = it->key.pString;
@@ -1153,7 +1153,7 @@ static void FRAME_PRINT( DaoProcess *proc, DaoValue *p[], int n )
 	DArray *decimals = DArray_New( sizeof(int) );
 	DArray *scifmts = DArray_New( sizeof(int) );
 	DArray *aligns = DArray_New( sizeof(int) );
-	DString *label = DString_New(1);
+	DString *label = DString_New();
 	daoint d, g, i, j, k, s, N, M, K, J = 1;
 	int idwidth, maxwidth = 16, maxdec = 3;
 	char idfmt[16];

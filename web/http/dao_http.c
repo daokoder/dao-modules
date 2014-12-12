@@ -103,7 +103,7 @@ DaoxRequest* DaoxRequest_New()
 {
 	DaoxRequest *self = (DaoxRequest*) dao_calloc( 1, sizeof(DaoxRequest) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_request );
-	self->uri = DString_New(1);
+	self->uri = DString_New();
 	self->key = DaoString_New(1);
 	self->value = DaoString_New(1);
 	self->http_get    = DaoMap_New( 1 + rand() );  /* Random hash seed; */
@@ -222,7 +222,7 @@ void DaoxRequest_ParseQueryString( DaoxRequest *self, DaoMap *vars, const char *
 void DaoxRequest_ParsePostData( DaoxRequest *self, mg_connection *conn )
 {
 	DString *fname;
-	DString *buffer = DString_New(1);
+	DString *buffer = DString_New();
 	DString *key = DaoString_Get( self->key );
 	DString *value = DaoString_Get( self->value );
 	const char *content_type = mg_get_header( conn, "Content-Type" );
@@ -245,7 +245,7 @@ void DaoxRequest_ParsePostData( DaoxRequest *self, mg_connection *conn )
 	boundary = strstr( content_type, "boundary=" ) + strlen( "boundary=" );
 	boundarylen = strlen( boundary );
 
-	fname = DString_New(1);
+	fname = DString_New();
 	buffer->size = 0;
 	for(;;){
 		postlen = mg_read( conn, postbuf, sizeof(postbuf) );
@@ -431,7 +431,7 @@ DaoxSession* DaoxSession_New()
 	DaoxSession *self = (DaoxSession*) dao_calloc( 1, sizeof(DaoxSession) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_session );
 	self->variables = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
-	self->cookie = DString_New(1);
+	self->cookie = DString_New();
 	self->timestamp = com;
 	self->expire = 5;
 	DString_Random( self->cookie, 32, 1, 0 );
@@ -498,7 +498,7 @@ DaoxServer* DaoxServer_New()
 {
 	DaoxServer *self = (DaoxServer*) dao_calloc( 1, sizeof(DaoxServer) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_server );
-	self->docroot = DString_New(1);
+	self->docroot = DString_New();
 	self->indexFiles = DList_New( DAO_DATA_STRING );
 	self->staticMimes = DHash_New( DAO_DATA_STRING, DAO_DATA_STRING );
 	self->uriToPaths = DHash_New( DAO_DATA_STRING, DAO_DATA_STRING );
@@ -859,7 +859,7 @@ static void RES_WriteHeader( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxResponse *response = (DaoxResponse*) p[0];
 	DaoMap *headers = (DaoMap*) p[2];
 	int status = p[1]->xInteger.value;
-	DString *session_cookie = DString_New(1);
+	DString *session_cookie = DString_New();
 	DNode *it;
 
 	mg_printf( response->connection, "HTTP/1.1 %i %s\r\n", status, "OK" /* TODO */ );
@@ -958,8 +958,8 @@ static int DaoxHttp_TrySendFile( mg_connection *conn )
 	DaoxSession *session = NULL;
 	DaoxServer *server = daox_webdao_server;
 	DString uri = DString_WrapChars( ri->uri );
-	DString *path = DString_New(1);
-	DString *mime = DString_New(1);
+	DString *path = DString_New();
+	DString *mime = DString_New();
 	DNode *it;
 
 	DString_SetChars( path, ri->uri + 1 );
@@ -980,7 +980,7 @@ static int DaoxHttp_TrySendFile( mg_connection *conn )
 		DString_Delete( mime );
 		return 1;
 	}else if( Dao_IsDir( path->chars ) ){
-		DString *path2 = DString_New(1);
+		DString *path2 = DString_New();
 		daoint i;
 		for(i=0; i<server->indexFiles->size; i+=2){
 			DString_Assign( path2, server->indexFiles->items.pString[i] );

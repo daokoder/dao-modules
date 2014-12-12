@@ -158,7 +158,7 @@ DaoClass* DaoClass_Instantiate( DaoClass *self, DList *types )
 		if( type == NULL ) type = self->typeHolders->items.pType[ types->size ];
 		DList_Append( types, type );
 	}
-	name = DString_New(1);
+	name = DString_New();
 	DString_Append( name, self->className );
 	if( lt != MAXSIZE ) DString_Erase( name, lt, MAXSIZE );
 	DString_AppendChar( name, '<' );

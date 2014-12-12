@@ -28,6 +28,7 @@
 #include<math.h>
 #include<stdlib.h>
 #include<string.h>
+#include<ctype.h>
 #include<assert.h>
 #include"daoStdtype.h"
 #include"daoValue.h"
@@ -1105,7 +1106,7 @@ static void DaoxBigInt_PrintBits( DaoxBigInt *self, DString *s )
 	DString *s2 = s;
 	daoint i = self->size;
 	int j;
-	if( s == NULL ) s = DString_New(1);
+	if( s == NULL ) s = DString_New();
 	DString_SetChars( s, "0" );
 	if( i ==0 ) goto Finish;
 	DString_Clear( s );
@@ -1134,7 +1135,7 @@ void DaoxBigInt_Print( DaoxBigInt *self, DString *s )
 		return;
 	}
 	while(i >0 && self->data[i-1] ==0 ) i--;
-	if( s == NULL ) s = DString_New(1);
+	if( s == NULL ) s = DString_New();
 	DString_SetChars( s, "0L" );
 	if( i ==0 ) goto Finish;
 	DString_Clear( s );

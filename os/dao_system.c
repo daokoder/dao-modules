@@ -329,6 +329,23 @@ static void OS_Uname( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, "Sys", "Failed to get system information" );
 }
 
+static void OS_Null( DaoProcess *proc, DaoValue *p[], int N )
+{
+#ifdef WIN32
+	const char *npath = "NUL";
+#else
+	const char *npath = "/dev/null";
+#endif
+	FILE *file = fopen( npath, "w" );
+	if ( !file )
+		DaoProcess_RaiseError( proc, "Sys", "Failed to open system null device" );
+	else {
+		DaoStream *stream = DaoStream_New();
+		stream->file = file;
+		stream->mode |= DAO_STREAM_WRITABLE;
+		DaoProcess_PutValue( proc, (DaoValue*)stream );
+	}
+}
 
 static DaoFuncItem sysMeths[]=
 {
@@ -338,10 +355,10 @@ static DaoFuncItem sysMeths[]=
 	/*! Spawns sub-process which executes the given shell \a command with redirected standard input or output depending on \a mode.
 	 * If \a mode is 'r', returns readable stream of the process output; if \a mode is 'w', returns writable stream of the process
 	 * input */
-	{ PIPE_New,     "popen( command: string, mode: string ) => os::Pipe" },
+	{ PIPE_New,     "popen( command: string, mode: string ) => os::PipeStream" },
 
 	/*! Closes \a pipe created by `popen()`, waits for the sub-process to finish and returns its exit code */
-	{ PIPE_Close,    "pclose( pipe: os::Pipe ) => int" },
+	{ PIPE_Close,    "pclose( pipe: os::PipeStream ) => int" },
 
 	/*! Suspends execution of the current thread for the specified amount of \a seconds */
 	{ OS_Sleep,     "sleep( seconds: float )" },
@@ -369,6 +386,7 @@ static DaoFuncItem sysMeths[]=
 
 	/*! Generic system information: operating system name, version and release, computer host name */
 	{ OS_Uname,     "uname() => tuple<system: string, version: string, release: string, host: string>"},
+	{ OS_Null,      "null() => io::Stream" },
 	{ NULL, NULL }
 };
 
