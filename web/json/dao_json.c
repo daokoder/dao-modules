@@ -28,6 +28,7 @@
 // 2011-10: Danilov Aleksey, initial implementation.
 
 #include "stdio.h"
+#include "ctype.h"
 #include "string.h"
 #include "errno.h"
 
@@ -547,7 +548,7 @@ static DaoFuncItem jsonMeths[] =
 	{ NULL, NULL }
 };
 
-DAO_DLL int DaoJSON_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_DLL int DaoJson_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *jsonns;
 	jsonns = DaoNamespace_GetNamespace( ns, "json" );

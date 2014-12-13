@@ -27,6 +27,7 @@
 
 // 2014-01: Danilov Aleksey, initial implementation.
 
+#include"ctype.h"
 #include"dao.h"
 #include"daoValue.h"
 

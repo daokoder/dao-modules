@@ -608,7 +608,7 @@ static DaoFuncItem statMeths[] =
 	{ DaoStat_Correlation,	"correlation(invar data1: array<@T<int|float>>, "
 										"invar data2: array<@T>, coefficient: enum<pearson,spearman>) => float" },
 	{ DaoStat_Correlation,	"correlation(invar data1: array<@T<int|float>>, "
-										"invar data2: array<@T>, coefficient: enum<pearson,spearman>, mean1: float, mean2: float) => double" },
+										"invar data2: array<@T>, coefficient: enum<pearson,spearman>, mean1: float, mean2: float) => float" },
 
 	/*! Returns skewness (measure of asymmetry) of \a data. Uses \a mean if it is given.
 	 * γ1[X] = E[((x - E[X]) / σ)^3] */

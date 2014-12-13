@@ -26,6 +26,7 @@
 */
 
 #include <string.h>
+#include <ctype.h>
 
 #include "dao.h"
 #include "daoString.h"

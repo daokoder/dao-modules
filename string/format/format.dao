@@ -26,9 +26,9 @@ io.writeln(str.format("The values are $(x), $(y) and '$2'.", x = $enum, y = 0xFF
 
 
 io.writeln('\n#Alignment');
-io.writeln(str.format'($(0<10))', 'left'));
-io.writeln(str.format'($(0>10))', 'right'));
-io.writeln(str.format'($(0=10))', 'center'));
+io.writeln(str.format('($(0<10))', 'left'));
+io.writeln(str.format('($(0>10))', 'right'));
+io.writeln(str.format('($(0=10))', 'center'));
 
 
 #<numeric format> ::= : ['+' | ' '] ('i' | 'x' | 'X' | 'f' | 'g' | 'G') [.<precision>]

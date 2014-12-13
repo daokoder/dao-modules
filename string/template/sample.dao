@@ -43,20 +43,20 @@ var context = {
 
 var context2 =
 (
-	author => (firstName => "Alan", lastName => "Johnson"),
-	body => "I Love Handlebars",
-	comments => {
+	author = (firstName = "Alan", lastName = "Johnson"),
+	body = "I Love Handlebars",
+	comments = {
 		(
-			author => (firstName => "Yehuda", lastName => "Katz"),
-			body => "Me too!"
+			author = (firstName = "Yehuda", lastName = "Katz"),
+			body = "Me too!"
 		),
 		(
-			author => (firstName => "Yehuda2", lastName => "Katz2"),
-			body => "Me too!"
+			author = (firstName = "Yehuda2", lastName = "Katz2"),
+			body = "Me too!"
 		),
 		(
-			author => (firstName => "Yehuda2", lastName => "Katz2"),
-			body => "Me too!"
+			author = (firstName = "Yehuda2", lastName = "Katz2"),
+			body = "Me too!"
 		)
 	}
 );
