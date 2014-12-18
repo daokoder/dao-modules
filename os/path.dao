@@ -1,0 +1,290 @@
+namespace os {Path, path}
+
+load os
+
+invar osPathKind: enum<win,unix> = os.uname().system == 'Windows'? (enum<win,unix>)$win : $unix
+
+const ParamError = Error::define('Error::Param')
+const PathError = Error::define('Error::Path')
+
+# Abstract file system path
+invar class Path {
+protected
+    invar p, nm, rt, seps: string
+    invar tp: enum<win,unix>
+    invar offset: int
+
+public
+    # Use os.path() instead of calling the constructor directly
+    routine Path(kind: enum<win,unix>, value: string, validate = true){ # 'validate = false' is for internal use only
+        const uncVolume = '^ [/\\]{2} [^/\\:<>"|?*]+ [/\\] [^/\\:<>"|?*]+ [/\\]'
+
+        if (value == '')
+            std.error(PathError, 'Empty path')
+
+        p = value
+        tp = kind
+        seps = tp == $win? '\\/' : '/'
+
+        invar valid = not validate? true : std.exec {
+            if (tp == $win){
+                if (%p > 1 and p[1] in ':'){
+                    if (%p == 2 or p[: 0].match('[A-Za-z]') == none)
+                        return false
+
+                    rt = p[: 1] + '\\'
+                    offset = (%p > 2 and p[2] not in seps)? %rt - 1 : %rt
+                }
+                else if (p[0] in '/\\'){
+                    rt = p.fetch(uncVolume)
+                    offset = %rt
+
+                    if (not %rt)
+                        return false
+                }
+                else {
+                    rt = ''
+                    offset = 0
+                }
+
+                invar count = %p[offset :].scan(seps){ [start, end, state]
+                    if (state != $matched and p[start : end].match('[. ] $') != none and p[start : end] not in {'.', '..'})
+                        return 0
+                }
+
+                if (count)
+                    return false
+
+                for (char in p[offset :])
+                    if (char in ':<>"|?*' or char < 32)
+                        return false
+
+                return not %p.convert($upper).scan('CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9]'){ [start, end, state]
+                    if (state == $matched and (start == 0 or p[start - 1] in ':/\\') and
+                        (end == %p - 1 or p[end + 1] in './\\'))
+                        return 0
+                }
+            }
+
+            rt = p[0] in '/' ? '/' : ''
+            offset = %rt
+            return 0 not in p
+        }
+
+        if (not validate){
+            if (tp == $win){
+                if (%p > 1 and p[1] in ':')
+                    rt = p[: 1] + '\\'
+                else
+                    rt = p.fetch(uncVolume)
+            }
+            else
+                rt = p[0] in '/'? '/' : ''
+        }
+
+        if (not valid)
+            std.error(PathError, 'Invalid path: ' + p)
+
+        nm = std.exec {
+            if (tp == $win and offset == %p or p[offset :].match('^ [/\\]+ $') != none)
+                return rt
+
+            if (invar last = p.fetch(tp == $win? '([^:/\\]+) [/\\]* $' : '([^/]+) /* $', 1); last != '')
+                return last
+
+            return p
+        }
+    }
+
+    # Path string
+    routine .path() => string { p }
+
+    # Path kind (Windows or Unix)
+    routine .kind() => enum<win,unix> { tp }
+
+    # Root, if present
+    routine .root() => string { rt }
+
+    # Final path component
+    routine .name() => string { nm }
+
+    # Checks if path is absolute or canonical, depending on *what*
+    routine check(what: enum<absolute,canonical>) => bool {
+        if (what == $absolute)
+            return offset
+
+        return offset and p[offset :].match('[' + seps + ']{2}') == none and not %p.scan('%. %.?'){ [start, end, state]
+            if (state == $matched and (start == 0 or p[start - 1] in seps) and
+                (end == %p - 1 or p[end + 1] in seps))
+                return 0
+        }
+    }
+
+    # Path name suffix
+    routine .suffix() => string {
+        p.fetch('%. [^.' + seps + '] $')[1 :]
+    }
+
+    # Path name without suffix
+    routine .basename() => string {
+        nm[: -%self.suffix - 1]
+    }
+
+    # Returns the path obtained by appending *other* path to this path
+    routine join(other: Path) => Path {
+        if (tp != other.tp)
+            std.error(ParamError, 'Joining paths of inconsistent kinds')
+        else if (%other.rt)
+            std.error(PathError, 'Appending absolute path to another path')
+
+        invar joined = p + (p[-1] in seps? '' : seps[: 0]) + other.p
+
+        return Path(tp, joined, false)
+    }
+
+    # Convenience method for join() with a string
+    routine join(other: string) => Path {
+        join(Path(tp, other))
+    }
+
+    # Same as join()
+    static routine /(a: Path, b: Path) => Path {
+        a.join(b)
+    }
+
+    # Same as join()
+    static routine /(a: Path, b: string) => Path {
+        a.join(b)
+    }
+
+    # Splits path into individual components
+    routine split() => list<string> {
+        var parts = p[offset :].split(seps[: 0]).select { X != '' }
+
+        if (tp == $win)
+            parts = parts.reduce((list<string>){}){ Y.join(X.split(seps[1 :])) }
+
+        return offset? {rt}.join(parts) : parts
+    }
+
+    # Normalizes path by removing '.', '..' and multiple consecutive path separators
+    routine normalize() => Path {
+        var parts: list<string> = {}
+
+        for (comp in split())
+            if (comp == '..'){
+                if (not %parts)
+                    std.error(PathError, "Backtracking with '..' exceeds path boundaries")
+
+                parts.pop($back)
+            }
+            else if (comp != '.')
+                parts.append(comp)
+
+        return Path(tp, parts.reduce { [part, acc] (acc[-1] in seps? acc : acc + seps[: 0]) + part }, false)
+    }
+
+    # Checks if *a* and *b* paths are equal component-wise
+    static routine ==(a: Path, b: Path) => bool {
+        if (a.tp != b.tp or (a.tp == $win? a.rt.convert($lower) != b.rt.convert($lower) : (a.rt != b.rt)))
+            return false
+
+        var (aparts, bparts) = ((list<string>){}, (list<string>){})
+
+        for (x in {a, b}; parts in {aparts, bparts})
+            for (comp in x.split())
+                if (comp == '..'){
+                    if (not %parts)
+                        return false
+
+                    parts.pop($back)
+                }
+                else if (comp != '.')
+                    parts.append(comp)
+
+        if (a.tp == $win)
+            return %aparts == %bparts and aparts.find { [item, index] bparts[index].convert($lower) != item.convert($lower) } == none
+        else
+            return aparts == bparts
+    }
+
+    # Checks if *a* and *b* paths are not equal component-wise
+    static routine !=(a: Path, b: Path) => bool {
+        not (a == b)
+    }
+
+    # Conversion to string
+    routine (string)(hashing = false){ p }
+
+    # Returns relative path from *base* path to this path
+    routine relativeTo(base: Path) => Path {
+        if (tp != base.tp)
+            std.error(ParamError, 'Combining paths of inconsistent kinds')
+        else if ((bool)offset != (bool)base.offset)
+            std.error(PathError, 'Combining absolute and relative paths')
+        else if (tp == $win and rt != base.rt)
+            std.error(PathError, 'Combining paths from different file systems')
+
+        var (aparts, bparts) = ((list<string>){}, (list<string>){})
+
+        for (x in {self, base}; parts in {aparts, bparts})
+            for (comp in x.split())
+                if (comp == '..'){
+                    if (not %parts)
+                        std.error(PathError, "Path boundaries exceeded while backtracking with '..'")
+
+                    parts.pop($back)
+                }
+                else if (comp != '.')
+                    parts.append(comp)
+
+        var index = 0
+
+        for (x in aparts; y in bparts)
+            if (tp == $win? x.convert($lower) == y.convert($lower) : (x == y))
+                ++index
+            else
+                break
+
+        if (index == %bparts){
+            if (%aparts == %bparts)
+                return Path(tp, '.', false)
+            else
+                return Path(tp, aparts[index :].reduce { Y + seps[: 0] + X }, false)
+        }
+
+        invar pbase = string(%bparts - index){ '..' + seps[: 0] }
+
+        if (index == %aparts)
+            return Path(tp, pbase, false)
+
+        invar rpath = (pbase[-1] in seps? pbase : pbase + seps[: 0]) + aparts[index :].reduce { Y + seps[: 0] + X }
+
+        return Path(tp, rpath, false)
+    }
+
+    # Convenience method for relativeTo() with a string
+    routine relativeTo(base: string) => Path {
+        relativeTo(Path(tp, base))
+    }
+
+    # Identical to `target.relativeTo(self)`
+    routine [](target: Path) => Path {
+        target.relativeTo(self)
+    }
+
+    # Identical to `os.path(target).relativeTo(self)`
+    routine [](target: string) => Path {
+        Path(tp, target).relativeTo(self)
+    }
+}
+
+# Constructs and validates path object with the given *value* and *kind*
+routine path(kind: enum<win,unix>, value: string) => Path {
+    Path(kind, value)
+}
+
+# Constructs and validates path object with the given *value* and default (system-dependent) kind
+routine path(value: string) => Path {
+    Path(osPathKind, value)
+}
