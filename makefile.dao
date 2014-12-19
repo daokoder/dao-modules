@@ -51,7 +51,7 @@ if( DaoMake::IsDir( "statistics" ) ) modules.AddDirectory( "statistics", "statis
 
 if( DaoMake::IsDir( "DaoSDL" ) ) modules.AddDirectory( "SDL", "DaoSDL" );
 
-#if( DaoMake::IsDir( "DaoGraphicsMagick" ) ) modules.AddDirectory( "GraphicsMagick", "DaoGraphicsMagick" );
+if( DaoMake::IsDir( "DaoGraphicsMagick" ) ) modules.AddDirectory( "GraphicsMagick", "DaoGraphicsMagick" );
 
 if( DaoMake::IsDir( "DaoGraphics" ) ) modules.AddDirectory( "Graphics", "DaoGraphics" );
 
