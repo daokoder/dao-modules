@@ -19,6 +19,10 @@ dao_process_objs = project.AddObjects( { "process/dao_process.c" } )
 dao_process_dll  = project.AddSharedLibrary( "dao_process", dao_process_objs )
 dao_process_lib  = project.AddStaticLibrary( "dao_process", dao_process_objs )
 
+dest = DaoMake::MakePath( project.BinaryPath(), "../../lib/dao/modules/os/" );
+src = DaoMake::MakePath( project.SourcePath(), "path.dao" );
+cmd = project.AddCommand( "copypath:", "$(DAOMAKE) copy " + src + " " + dest );
+
 dao_os_dll.SetTargetPath( "../../lib/dao/modules" )
 dao_os_lib.SetTargetPath( "../../lib/dao/modules" )
 
