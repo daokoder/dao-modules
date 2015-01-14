@@ -386,6 +386,8 @@ static DaoFuncItem sysMeths[]=
 
 	/*! Generic system information: operating system name, version and release, computer host name */
 	{ OS_Uname,     "uname() => tuple<system: string, version: string, release: string, host: string>"},
+	
+	/*! Returns write-only stream corresponding to system null device */
 	{ OS_Null,      "null() => io::Stream" },
 	{ NULL, NULL }
 };

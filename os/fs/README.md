@@ -203,6 +203,7 @@ Creates file with unique name prefixed by *prefix* in this directory. Returns th
 
 ------
 ### Functions
+<a name="entry_ctor"></a>
 ```ruby
 entry(path: string) => Entry
 ```
@@ -216,7 +217,7 @@ Returns `File` object bound to *path* if it points to a file, otherwise raises e
 ```ruby
 dir(path: string) => Dir
 ```
-Returns `Dir` object bount to *path* if it points to a directory, otherwise raises exception
+Returns `Dir` object bound to *path* if it points to a directory, otherwise raises exception
 <a name="cwd"></a>
 ```ruby
 cwd() => Dir
