@@ -4,16 +4,16 @@
 //
 // Copyright (c) 2011,2012, Limin Fu
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification,
 // are permitted provided that the following conditions are met:
-// 
+//
 // * Redistributions of source code must retain the above copyright notice,
 //   this list of conditions and the following disclaimer.
 // * Redistributions in binary form must reproduce the above copyright notice,
 //   this list of conditions and the following disclaimer in the documentation
 //   and/or other materials provided with the distribution.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
 // OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
@@ -439,7 +439,7 @@ static DaoCdata* DaoCdata_MakeObject( DaoCdata *self, DaoValue *param, DaoProces
 
 /*
 // Note: reference count is handled for "value2"!
-// 
+//
 // Item of list/tuple etc. can be directly passed as parameter "value2",
 // to avoid creating unnecessary intermediate objects.
 */
@@ -892,10 +892,19 @@ static void AUX_Restore( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem serializerMeths[]=
 {
-	{ AUX_Serialize,   "serialize( value : any )=>string" },
+	/*! Serializes \a value to text. For a class instance to be serializeable, its class should define `serialize()` method returning instance-related data to be serialized */
+	{ AUX_Serialize,   "serialize( invar value : any )=>string" },
+
+	/*! Deserializes value from \a text. For a class instance to be deserializable, its class should provide constructor compatible with the data returned
+		by the `serialize()` method; if the latter returns a tuple, the constructor should accept parameters corresponding to the individual fields of that tuple */
 	{ AUX_Deserialize, "deserialize( text : string )=>any" },
-	{ AUX_Backup,      "backup( tofile = \"backup.sdo\", limit=0 )" },
-	{ AUX_Restore,     "restore( fromfile = \"backup.sdo\" )" },
+
+	/*! Saves the current state of the program to the file specified by \a dest. if \a limit is greater then 0, objects whose serialized size exceeds \a limit * 1000 bytes
+		are not	included in the backup */
+	{ AUX_Backup,      "backup( dest = \"backup.sdo\", limit=0 )" },
+
+	/*! Restores previously saved program state from the file specified by \a source */
+	{ AUX_Restore,     "restore( source = \"backup.sdo\" )" },
 	{ NULL, NULL }
 };
 

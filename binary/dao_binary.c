@@ -4,16 +4,16 @@
 //
 // Copyright (c) 2011-2014, Limin Fu
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification,
 // are permitted provided that the following conditions are met:
-// 
+//
 // * Redistributions of source code must retain the above copyright notice,
 //   this list of conditions and the following disclaimer.
 // * Redistributions in binary form must reproduce the above copyright notice,
 //   this list of conditions and the following disclaimer in the documentation
 //   and/or other materials provided with the distribution.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
 // OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
@@ -617,7 +617,7 @@ static DaoFuncItem binMeths[] =
 	 * (with possible narrowing). Returns the number of chunks actually written */
 	{ DaoBinary_Pack,		"pack(invar source: array<int>, dest: io::Stream, size: enum<byte,word,dword>, count = 0) => int" },
 
-	/*! Writes \a count elements from \a source to \a dest. If \c count is zero, or greater than \a dest size, all \a dest data is
+	/*! Writes \a count elements from \a source to \a dest. If \a count is zero, or greater than \a dest size, all \a dest data is
 	 * written. Returns the number of elements actually written */
 	{ DaoBinary_Write,		"write(invar source: array<@T<int|float|complex>>, dest: io::Stream, count = 0) => int" },
 
