@@ -403,7 +403,7 @@ static void DaoTime_Zone( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoTime_Format( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*)DaoValue_TryGetCdata( p[0] );
-	if ( p[1]->type == DAO_STRING ){
+	if ( N > 1 ){
 		DString *fmt = p[1]->xString.value;
 		char buf[100];
 		if ( strftime( buf, sizeof(buf), fmt->chars, &self->parts ))
@@ -686,7 +686,7 @@ static DaoFuncItem timeMeths[] =
 	/*! Returns datetime formatted to string using \a format, which follows the rules for C \c strftime() */
 	{ DaoTime_Format,	"format(self: DateTime, format = '%F %T') => string" },
 
-	/*! Converts datetime to string; identical to calling `format()` with empty format */
+	/*! Converts datetime to string; identical to calling `format()` with default format */
 	{ DaoTime_Format,	"(string)(self: DateTime)" },
 
 	/*! Returns datetime formatted to string using template \a format. \a names can specify custome names for months
