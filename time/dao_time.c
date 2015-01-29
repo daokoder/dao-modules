@@ -684,7 +684,7 @@ static DaoFuncItem timeMeths[] =
 	{ DaoTime_YearDay,	".yday(self: DateTime) => int" },
 
 	/*! Returns datetime formatted to string using \a format, which follows the rules for C \c strftime() */
-	{ DaoTime_Format,	"format(self: DateTime, format = '') => string" },
+	{ DaoTime_Format,	"format(self: DateTime, format = '%F %T') => string" },
 
 	/*! Converts datetime to string; identical to calling `format()` with empty format */
 	{ DaoTime_Format,	"(string)(self: DateTime)" },
