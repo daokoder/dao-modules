@@ -403,16 +403,11 @@ static void DaoTime_Zone( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoTime_Format( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*)DaoValue_TryGetCdata( p[0] );
-	if ( N > 1 ){
-		DString *fmt = p[1]->xString.value;
-		char buf[100];
-		if ( strftime( buf, sizeof(buf), fmt->chars, &self->parts ))
-			DaoProcess_PutChars( proc, buf );
-		else
-			DaoProcess_RaiseError( proc, "Param", "Invalid format" );
-	}
+	char buf[100];
+	if ( strftime( buf, sizeof(buf), N > 1? p[1]->xString.value->chars : "%F %T", &self->parts ))
+		DaoProcess_PutChars( proc, buf );
 	else
-		DaoProcess_PutChars( proc, asctime( &self->parts ) );
+		DaoProcess_RaiseError( proc, "Param", "Invalid format" );
 }
 
 static int addStringFromMap( DaoValue *self, DString *S, DaoMap *sym, const char *key, int id )
