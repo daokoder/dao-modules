@@ -32,7 +32,7 @@
 #include "string.h"
 #include "errno.h"
 
-#include"dao.h"
+#include"../../../kernel/dao.h"
 #include"daoValue.h"
 #include"daoNamespace.h"
 #include"daoProcess.h"
@@ -118,6 +118,10 @@ int JSON_SerializeValue( DaoProcess *proc, DaoVmCode *sect, int entry, DaoValue 
 		else
 			DString_AppendChars( text, "{" );
 		map = DaoValue_CastMap( value );
+		if ( sect )
+			for ( node = DaoMap_First( map ); node; node = DaoMap_Next( map, node ) )
+				if ( DaoValue_Type( DNode_Key( node ) ) != DAO_STRING )
+					goto CallSection;
 		node = DaoMap_First( map );
 		while( node != NULL ){
 			JSON_Indent( text, indent );
@@ -143,6 +147,7 @@ int JSON_SerializeValue( DaoProcess *proc, DaoVmCode *sect, int entry, DaoValue 
 		DString_AppendChars( text, "null" );
 		break;
 	default:
+	CallSection:
 		if ( sect ){
 			if ( sect->b > 0 )
 				DaoProcess_SetValue( proc, sect->a, value );
@@ -529,8 +534,8 @@ static DaoFuncItem jsonMeths[] =
 	{ JSON_Serialize,	"serialize(invar data: map<string,Data>|list<Data>, style: enum<pretty,compact> = $pretty) => string" },
 
 	/*! Similar to the above, but accepts arbitrary data as input. Each item of type other then \c int, \c float, \c bool,
-	 * \c none, \c string, \c map or \c list found in \a data is passed to the specified code section, which should implement
-	 * its conversion to \c Data, \c list or \c map. The serialization then proceeds recursively */
+	 * \c none, \c string, \c map<string,@T> or \c list found in \a data is passed to the specified code section, which should implement
+	 * its conversion to \c Data, \c list or \c map<string,any>. The serialization then proceeds recursively */
 	{ JSON_Serialize2,	"serialize(invar data: any, style: enum<pretty,compact> = $pretty)"
 								 "[invar item: any => Data|list<any>|map<string,any>] => string" },
 
