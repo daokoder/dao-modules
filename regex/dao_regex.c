@@ -248,14 +248,14 @@ static DaoFuncItem matchMeths[]=
 	{ NULL, NULL }
 };
 
-/*! Single regular expression match providing information on matched sub-string, unmatched sub-string and individual captured groups.
+/*! Single regular expression match providing information on matched sub-string and individual captured groups.
  *
- * \c group parameter in \c match methods may either be a group number or its name.
+ * \c group parameter in \c Match methods may either be a group number or its name.
  *
  * Group number is interpreted the following way:
  * -\c group == 0 -- entire matched sub-string
- * -\c group > 0 and \c group <= group_count() -- corresponding sub-match
- * -\c group < 0 or \c group > group_count() -- not permitted
+ * -\c group > 0 and \c group <= groupCount() -- corresponding sub-match
+ * -\c group < 0 or \c group > groupCount() -- not permitted
  *
  * If \c group is a name, the last group in the pattern with this name is assumed (at least one such group must exist).
  */
@@ -614,7 +614,7 @@ static DaoFuncItem regexMeths[] =
 
 	/*! Finds the first match in \a target in the range [\a start; \a end] and returns sub-match specified by \a group.
 	 *
-	 * \note For the interpretation of group numbers, see \c match */
+	 * \note For the interpretation of group numbers, see \c Match */
 	{ DaoOnigRegex_Fetch,	"fetch(self: Regex, target: string, group: int|string = 0, start = 0, end = -1) => string" },
 
 	/*! Returns the first match in \a target in the range [\a start; \a end], or \c none if no match was found */
@@ -647,7 +647,7 @@ static DaoFuncItem regexMeths[] =
 	{ NULL, NULL },
 };
 
-/*! Regular expression using [Oniguruma](http://www.geocities.jp/kosako3/oniguruma/) library with Ruby grammar as backend */
+/*! Regular expression using [Onigmo fork](https://github.com/k-takata/Onigmo) of [Oniguruma](http://www.geocities.jp/kosako3/oniguruma/) library with Ruby grammar as backend */
 DaoTypeBase regexTyper =
 {
 	"Regex", NULL, NULL, (DaoFuncItem*) regexMeths, {0}, {0},
