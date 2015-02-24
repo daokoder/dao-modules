@@ -11,7 +11,7 @@ is interpreted as `\\s+`
 Grammar description can be found in `Onigmo/doc/RE`.
 
 ### Installation
-Currently, Onigmo should be built manually from the source provided with the module. In order to link it statically to `regex` module, Onigmo should be
+Currently, Onigmo should be built manually from the source provided with the module. In order to link it statically to `regex` module,  Onigmo should be
 configured as `./configure CFLAGS=-fPIC LFLAGS=-fPIC` to enable position-independent code (on Windows, the relevant makefiles need to be edited). Consult
 `Onigmo/README` for details as to how to build the library on various platforms.
 
@@ -42,10 +42,14 @@ class [Iter](#iter2)
 - [for](#for)(_self_: Iter, _iterator_: ForIterator)
 - [<span>[]</span>](#index)(_self_: Iter, _index_: ForIterator) => Match
 
+Functions:
+- [compile](#compile)(_pattern_: string) => Regex
+- [compile](#compile)(_pattern_: string, _options_: enum<strictSpacing;impliedSpacing;ignoreCase;allowComments;useBackslash>) => Regex
+
 <a name="re"></a>
 ### Classes
 #### <a name="Regex">`re::Regex`</a>
-Regular expression using [Onigmo fork](https://github.com/k-takata/Onigmo) of [Oniguruma](http://www.geocities.jp/kosako3/oniguruma/) library with Ruby grammar as backend
+Regular expression using [Onigmo fork](https://github.com/k-takata/Onigmo) of [Oniguruma](http://www.geocities.jp/kosako3/oniguruma/) library with Ruby grammar as backend. See [compile()(#compile) for usage details.
 #### Methods
 <a name="pattern"></a>
 ```ruby
@@ -158,3 +162,25 @@ for(self: Iter, iterator: ForIterator)
 ```ruby
 [](self: Iter, index: ForIterator) => Match
 ```
+### Functions
+<a name="compile"></a>
+```ruby
+compile(pattern: string) => Regex
+compile(pattern: string, options: enum<strictSpacing;impliedSpacing;ignoreCase;allowComments;useBackslash>) => Regex
+```
+Constructs regular expression from *pattern* using specified *options* (if provided).
+
+Default options mimic Dao string patterns syntax:
+- free spacing -- whitespace is ignored outside of '[...]'
+- '%' is used as control character
+- the pattern is treated as case-sensitive
+
+This behavior can be overridden with the following values of *options*:
+- `$strictSpacing` -- whitespace characters in the pattern are treated 'as is' (canonical behavior)
+- `$impliedSpacing` -- outside of '[ ... ]', a standalone whitespace character or '\r\n' are interpreted as '\\s*',
+and a pair of equal whitespace characters is interpreted as '\\s+'
+- `$ignoreCase` -- the pattern is treated as case-insensitive
+- `$allowComments` -- all characters starting from '#' up to '\n' (or end of string) are ignored as comments ('#' can be escaped)
+- `$useBackslash` -- use canonical '\' as control character
+
+__Note:__ Regular expression engine presumes UTF-8-encoded patterns

@@ -663,7 +663,7 @@ static DaoFuncItem reMeths[] =
 	 * -'%' is used as control character
 	 * -the pattern is treated as case-sensitive
 	 *
-	 * This behavior can be overriden with the following values of \a options:
+	 * This behavior can be overridden with the following values of \a options:
 	 * -\c $strictSpacing -- whitespace characters in the pattern are treated 'as is' (canonical behavior)
 	 * -\c $impliedSpacing -- outside of '[ ... ]', a standalone whitespace character or '\r\n' are interpreted as '\\s*',
 	 * and a pair of equal whitespace characters is interpreted as '\\s+'
