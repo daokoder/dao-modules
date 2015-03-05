@@ -1465,16 +1465,16 @@ static DaoFuncItem xmlDocMeths[] =
 	/*! Constructs new XML document with \a root as its root element */
 	{ DaoXMLDocument_Create,			"Document(invar root: Element) => Document" },
 
-	/*! XML version */
+	/*! XML version (in the header) */
 	{ DaoXMLDocument_GetVersion,		".version(invar self: Document) => string" },
 	{ DaoXMLDocument_SetVersion,		".version=(self: Document, value: string)" },
 
-	/*! Encoding
+	/*! Encoding (in the header)
 	 * \note Specifying encoding has no effect on actual encoding of resulting XML document */
 	{ DaoXMLDocument_GetEncoding,		".encoding(invar self: Document) => string" },
 	{ DaoXMLDocument_SetEncoding,		".encoding=(self: Document, value: string)" },
 
-	/*! Standalone document parameter */
+	/*! Standalone document parameter (in the header) */
 	{ DaoXMLDocument_GetStandalone,		".standalone(self: Document) => bool" },
 	{ DaoXMLDocument_SetStandalone,		".standalone=(self: Document, value: bool)" },
 
@@ -2517,7 +2517,7 @@ static void DaoXMLElement_Map( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem xmlElemMeths[] =
 {
-	/*! Constructs XML element with \a tag; if \a tag ends with '/', empty element ('<tag .../>') is created.
+	/*! Constructs XML element with the given \a tag; if \a tag ends with '/', empty element ('<tag .../>') is created.
 	 * Element attributes may be provided as name-value pairs via additional named parameters */
 	{ DaoXMLElement_Create,		"Element(tag: string, ...: tuple<enum, string>) => Element" },
 
@@ -2525,7 +2525,7 @@ static DaoFuncItem xmlElemMeths[] =
 	{ DaoXMLElement_GetTag,		".tag(invar self: Element) => string" },
 	{ DaoXMLElement_SetTag,		".tag=(self: Element, value: string)" },
 
-	/*! Attribute \a attribute */
+	/*! Attribute \a attrib */
 	{ DaoXMLElement_GetAttr,	"[](invar self: Element, attrib: string) => string" },
 	{ DaoXMLElement_SetAttr,	"[]=(self: Element, value: string|none, attrib: string)" },
 
@@ -2533,7 +2533,7 @@ static DaoFuncItem xmlElemMeths[] =
 	 * \note Modifying the returned map has no effect on the element */
 	{ DaoXMLElement_Attributes,	".attribs(invar self: Element) => map<string,string>" },
 
-	/*! Returns \c true if element has \a attribute */
+	/*! Returns \c true if element has attribute \a attrib */
 	{ DaoXMLElement_HasAttr,	"has(invar self: Element, attrib: string) => bool" },
 
 	/*! Treats element as one containing character data only. Getting text succeeds if element has single child representing character data,
@@ -2587,7 +2587,9 @@ static DaoFuncItem xmlElemMeths[] =
 	 * picked). Element attributes may be provided as name-value pairs via additional variadic parameters */
 	{ DaoXMLElement_FindElems,	"select(invar self: Element, path: string, ...: tuple<enum, string>) => list<Element>" },
 
-	/*! Appends \a item to the list of children */
+	/*! Appends \a item to the list of children
+	 *
+	 * \note You cannot add the same element twice */
 	{ DaoXMLElement_Append,		"append(self: Element, item: Element|Instruction|CharData)" },
 
 	/*! Inserts \a item in the list of children at index \a at */
@@ -2602,7 +2604,7 @@ static DaoFuncItem xmlElemMeths[] =
 	/*! Returns namespace name (URI) associated with \a prefix (empty string if not found). If \a prefix is empty string,
 	 * default namespace is assumed
 	 * \warning Obtaining inherited namespace succeeds only if parent elements are preserved */
-	{ DaoXMLElement_Namespace,	"namespace(invar self: Element, prefix = '') => string" },
+	{ DaoXMLElement_Namespace,	"namespaceName(invar self: Element, prefix = '') => string" },
 	{ NULL, NULL }
 };
 
@@ -3207,7 +3209,7 @@ static DaoFuncItem xmlWriterMeths[] =
 	/*! Writes \a data as raw data (without preprocessing) and returns \a self */
 	{ DaoXMLWriter_RawData,	"raw(self: Writer, data: string) => Writer" },
 
-	/*! Writes \a value as text and returns \a self. Special characters in resulting text are replaced with references */
+	/*! Writes \a value as text and returns \a self. Special characters in resulting text are replaced with XML references */
 	{ DaoXMLWriter_Text,	"text(self: Writer, value: int|float|enum|string) => Writer" },
 
 	/*! Writes CDATA section containing \a data and returns \a self */
@@ -3220,14 +3222,14 @@ static DaoFuncItem xmlWriterMeths[] =
 	 * Attributes may be provided as name-value pairs via additional named parameters */
 	{ DaoXMLWriter_Tag,		"tag(self: Writer, name: string, ...: tuple<enum, string>) => Writer" },
 
-	/*! Writes start tag or empty-element \a name with \a attributes and returns \a self.
+	/*! Writes start tag or empty-element \a name with \a attribs and returns \a self.
 	 * An empty element is assumed if \a name ends with '/' */
-	{ DaoXMLWriter_Tag,		"tag(self: Writer, name: string, attributes: map<string,string>) => Writer" },
+	{ DaoXMLWriter_Tag,		"tag(self: Writer, name: string, attribs: map<string,string>) => Writer" },
 
 	/*! Writes end tag matching the last written start tag and returns \a self */
 	{ DaoXMLWriter_End,		"end(self: Writer) => Writer" },
 
-	/*! Writes XML declaration containing \a version, \a encoding and \a standalone parameters (\a encoding and \a standalone may be omitted),
+	/*! Writes XML declaration containing \a version, \a encoding and \a standalone parameters (\a encoding and \a standalone will be omitted if empty),
 	 * returns \a self
 	 * \note Specifying encoding has no effect on actual encoding of resulting XML document */
 	{ DaoXMLWriter_Header,	"header(self: Writer, version = '1.0', encoding = '', standalone = '') => Writer" },
