@@ -115,6 +115,8 @@ in the form '$<group number from 0 to 9>' or '$(<group name>)'; '$$' can be to e
  Returns `for` iterator to iterate over all matches in *target* in the range [*start*; *end*].
 
 __Note:__ Changing *target* has no effect on the iteration process (the iterator will still be bound to the original string)
+
+------
 #### <a name="match">`re::Match`</a>
 Single regular expression match providing information on matched sub-string and individual captured groups.
 
@@ -152,6 +154,8 @@ End position of the sub-string captured by *group*
 .groupCount(self: Match) => int
 ```
 Number of captured groups
+
+------
 #### <a name="iter">`re::Iter`</a>
 `for` iterator to iterate over regular expression matches in a string
 <a name="for"></a>
