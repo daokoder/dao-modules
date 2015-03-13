@@ -6,18 +6,18 @@ The module contains functions to read and write binary data, encode it in textua
 namespace [bin](#bin)
 
 Functions:
-- [read](#read)(_source_: io::Stream, _dest_: array<@T<int|float|complex>>, _count_ = 0) => int
-- [unpack](#unpack)(_source_: io::Stream, _dest_: array<int>, _size_: enum<byte,word,dword>, _count_ = 0) => int
-- [pack](#pack)(invar _source_: array<int>, _dest_: io::Stream, _size_: enum<byte,word,dword>, _count_ = 0) => int
-- [write](#write)(invar _source_: array<@T<int|float|complex>>, _dest_: io::Stream, _count_ = 0) => int
-- [get](#get1)(invar _source_: array<int>|string, _what_: enum<byte,ubyte,word,uword,dword,udword,qword,uqword>, _offset_: int) => int
-- [get](#get1)(invar _source_: array<int>|string, _what_: enum<float>, _offset_: int) => float
-- [get](#get2)(invar _source_: array<int>|string, _what_: enum<bits>, _offset_: int, _count_: int) => int
-- [set](#set1)(_dest_: array<int>, _what_: enum<byte,ubyte,word,uword,dword,udword,qword,uqword>, _offset_: int, value: int)
-- [set](#set1)(_dest_: array<int>, _what_: enum<float>, _offset_: int, _value_: float)
-- [set](#set2)(_dest_: array<int>, _what_: enum<bits>, _offset_: int, _count_: int, _value_: int)
-- [encode](#encode)(_str_: string, _codec_: enum<base64,z85,hex>) => string
-- [decode](#decode)(_str_: string, _codec_: enum<base64,z85,hex>) => string
+- [read](#read)(_source_: io::Stream, _dest_: array&lt;@T&lt;int|float|complex&gt;&gt;, _count_ = 0) => int
+- [unpack](#unpack)(_source_: io::Stream, _dest_: array&lt;int&gt;, _size_: enum&lt;byte,word,dword&gt;, _count_ = 0) => int
+- [pack](#pack)(invar _source_: array&lt;int&gt;, _dest_: io::Stream, _size_: enum&lt;byte,word,dword&gt;, _count_ = 0) => int
+- [write](#write)(invar _source_: array&lt;@T&lt;int|float|complex&gt;&gt;, _dest_: io::Stream, _count_ = 0) => int
+- [get](#get1)(invar _source_: array&lt;int&gt;|string, _what_: enum&lt;byte,ubyte,word,uword,dword,udword,qword,uqword&gt;, _offset_: int) => int
+- [get](#get1)(invar _source_: array&lt;int&gt;|string, _what_: enum&lt;float&gt;, _offset_: int) => float
+- [get](#get2)(invar _source_: array&lt;int&gt;|string, _what_: enum&lt;bits&gt;, _offset_: int, _count_: int) => int
+- [set](#set1)(_dest_: array&lt;int&gt;, _what_: enum&lt;byte,ubyte,word,uword,dword,udword,qword,uqword&gt;, _offset_: int, value: int)
+- [set](#set1)(_dest_: array&lt;int&gt;, _what_: enum&lt;float&gt;, _offset_: int, _value_: float)
+- [set](#set2)(_dest_: array&lt;int&gt;, _what_: enum&lt;bits&gt;, _offset_: int, _count_: int, _value_: int)
+- [encode](#encode)(_str_: string, _codec_: enum&lt;base64,z85,hex&gt;) => string
+- [decode](#decode)(_str_: string, _codec_: enum&lt;base64,z85,hex&gt;) => string
 
 <a name="bin"></a>
 ### Functions

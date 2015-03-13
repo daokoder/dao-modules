@@ -25,9 +25,9 @@ invar class [Regex](#regex)
 - [fetch](#fetch)(_self_: Regex, _target_: string, _group_: int|string = 0, _start_ = 0, _end_ = -1) => string
 - [search](#search)(_self_: Regex, _target_: string, _start_ = 0, _end_ = -1) => Match|none
 - [matches](#matches)(_self_: Regex, _target_: string) => bool
-- [extract](#extract)(_self_: Regex, _target_: string, _matchType_: enum<both,matched,unmatched> = $matched) => list<string>
+- [extract](#extract)(_self_: Regex, _target_: string, _matchType_: enum&lt;both,matched,unmatched&gt; = $matched) => list&lt;string&gt;
 - [replace](#replace)(_self_: Regex, _target_: string, _format_: string, _start_ = 0, _end_ = -1) => string
-- [scan](#scan)(_self_: Regex, _target_: string, _start_ = 0, _end_ = -1)[_found_: Match => none|@V] => list<@V>
+- [scan](#scan)(_self_: Regex, _target_: string, _start_ = 0, _end_ = -1)[_found_: Match => none|@V] => list&lt;@V&gt;
 - [replace](#replace2)(_self_: Regex, _target_: string, _start_ = 0, _end_ = -1)[_found_: Match => string] => string
 - [iter](#iter)(_self_: Regex, _target_: string, _start_ = 0, _end_ = -1) => Iter
 
@@ -44,7 +44,7 @@ class [Iter](#iter2)
 
 Functions:
 - [compile](#compile)(_pattern_: string) => Regex
-- [compile](#compile)(_pattern_: string, _options_: enum<strictSpacing;impliedSpacing;ignoreCase;allowComments;useBackslash>) => Regex
+- [compile](#compile)(_pattern_: string, _options_: enum&lt;strictSpacing;impliedSpacing;ignoreCase;allowComments;useBackslash&gt;) => Regex
 
 <a name="re"></a>
 ### Classes

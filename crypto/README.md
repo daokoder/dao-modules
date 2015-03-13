@@ -6,9 +6,9 @@ The module provides functions to compute cryptographic hashes, encrypt and decry
 namespace [crypto](#crypto)
 
 Functions:
-- [hash](#hash)(_str_: string, _method_: enum<md5,sha1>) => string
-- [encrypt](#encrypt)(_source_: string, _key_: string, _format_: enum<regular,hex> = $regular) => string
-- [decrypt](#decrypt)(_source_: string, _key_: string, _format_: enum<regular,hex> = $regular) => string
+- [hash](#hash)(_str_: string, _method_: enum&lt;md5,sha1&gt;) => string
+- [encrypt](#encrypt)(_source_: string, _key_: string, _format_: enum&lt;regular,hex&gt; = $regular) => string
+- [decrypt](#decrypt)(_source_: string, _key_: string, _format_: enum&lt;regular,hex&gt; = $regular) => string
 - [random](#random)(_count_: int) => string
 
 <a name="crypto"></a>

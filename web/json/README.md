@@ -9,9 +9,9 @@ Types:
 - [Data](#data)
 
 Functions:
-- [parse](#parse)(_str_: string) => map<string,Data>|list<Data>
-- [serialize](#serialize1)(invar _data_: map<string,Data>|list<Data>, _style_: enum<pretty,compact> = $pretty) => string
-- [serialize](#serialize2)(invar _data_: any, _style_: enum<pretty,compact> = $pretty)[invar _item_: any => Data|list<any>|map<string,any>] => string
+- [parse](#parse)(_str_: string) => map&lt;string,Data&gt;|list&lt;Data&gt;
+- [serialize](#serialize1)(invar _data_: map&lt;string,Data&gt;|list&lt;Data&gt;, _style_: enum&lt;pretty,compact&gt; = $pretty) => string
+- [serialize](#serialize2)(invar _data_: any, _style_: enum&lt;pretty,compact&gt; = $pretty)[invar _item_: any => Data|list&lt;any&gt;|map&lt;string,any&gt;] => string
 
 <a name="json"></a>
 ### Types

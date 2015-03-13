@@ -6,21 +6,21 @@ The module contains functions for computing basic statistical measures of sample
 namespace [stat](#std)
 
 Functions:
-- [mean](#mean)(invar _data_: array<@T<int|float>>) => float
-- [variance](#variance)(invar _data_: array<@T<int|float>>, _kind_: enum<sample,population> = $sample) => float
-- [variance](#variance)(invar _data_: array<@T<int|float>>, _mean_: float, _kind_: enum<sample,population> = $sample) => float
-- [median](#median)(_data_: array<@T<int|float>>) => float
-- [percentile](#percentile)(_data_: array<@T<int|float>>, _percentage_: float) => float
-- [mode](#mode)(invar _data_: array<@T<int|float>>) => @T
-- [range](#range)(invar _data_: array<@T<int|float>>) => tuple<min: @T, max: @T>
-- [distribution](#distribution1)(invar _data_: array<@T<int|float>>) => map<@T,int>
-- [distribution](#distribution2)(invar _data_: array<@T<int|float>>, _interval_: float, _start_ = 0.0) => map<int,int>
-- [correlation](#correlation)(invar _data1_: array<@T<int|float>>, invar _data2_: array<@T>, _coefficient_: enum<pearson,spearman>) => float
-- [correlation](#correlation)(invar _data1_: array<@T<int|float>>, invar _data2_: array<@T>, _coefficient_: enum<pearson,spearman>, _mean1_: float, _mean2_: float) => float
-- [skewness](#skewness)(invar _data_: array<@T<int|float>>) => float
-- [skewness](#skewness)(invar data: array<@T<int|float>>, mean: float) => float
-- [kurtosis](#kurtosis)(invar data: array<@T<int|float>>) => float
-- [kurtosis](#kurtosis)(invar _data_: array<@T<int|float>>, _mean_: float) => float
+- [mean](#mean)(invar _data_: array&lt;@T&lt;int|float&gt;&gt;) => float
+- [variance](#variance)(invar _data_: array&lt;@T&lt;int|float&gt;&gt;, _kind_: enum&lt;sample,population&gt; = $sample) => float
+- [variance](#variance)(invar _data_: array&lt;@T&lt;int|float&gt;&gt;, _mean_: float, _kind_: enum&lt;sample,population&gt; = $sample) => float
+- [median](#median)(_data_: array&lt;@T&lt;int|float&gt;&gt;) => float
+- [percentile](#percentile)(_data_: array&lt;@T&lt;int|float&gt;&gt;, _percentage_: float) => float
+- [mode](#mode)(invar _data_: array&lt;@T&lt;int|float&gt;&gt;) => @T
+- [range](#range)(invar _data_: array&lt;@T&lt;int|float&gt;&gt;) => tuple&lt;min: @T, max: @T&gt;
+- [distribution](#distribution1)(invar _data_: array&lt;@T&lt;int|float&gt;&gt;) => map&lt;@T,int&gt;
+- [distribution](#distribution2)(invar _data_: array&lt;@T&gt;int|float&gt;&gt;, _interval_: float, _start_ = 0.0) => map&lt;int,int&gt;
+- [correlation](#correlation)(invar _data1_: array&lt;@T&lt;int|float&gt;&gt;, invar _data2_: array&lt;@T&gt;, _coefficient_: enum&lt;pearson,spearman&gt;) => float
+- [correlation](#correlation)(invar _data1_: array&lt;@T&lt;int|float&gt;&gt;, invar _data2_: array&lt;@T&gt;, _coefficient_: enum&lt;pearson,spearman&gt;, _mean1_: float, _mean2_: float) => float
+- [skewness](#skewness)(invar _data_: array&lt;@T&lt;int|float&gt;&gt;) => float
+- [skewness](#skewness)(invar data: array&lt;@T&lt;int|float&gt;&gt;, mean: float) => float
+- [kurtosis](#kurtosis)(invar data: array&lt;@T&lt;int|float&gt;&gt;) => float
+- [kurtosis](#kurtosis)(invar _data_: array&lt;@T&lt;int|float&gt;&gt;, _mean_: float) => float
 
 <a name="stat"></a>
 ### Functions

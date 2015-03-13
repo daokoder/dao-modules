@@ -20,12 +20,12 @@ Functions:
 - [sleep](#sleep)(_seconds_: float)
 - [exit](#exit)(_code_ = 0)
 - [clock](#clock)() => float
-- [setlocale](#setlocale)(_category_: enum<all,collate,ctype,monetary,numeric,time> = $all, _locale_ = "")
-- [environ](#environ)() => map<string,string>
+- [setlocale](#setlocale)(_category_: enum&lt;all,collate,ctype,monetary,numeric,time&gt; = $all, _locale_ = "")
+- [environ](#environ)() => map&lt;string,string&gt;
 - [getenv](#getenv)( _name_: string ) => string
 - [putenv](#putenv)( _name_: string, value = "" )
 - [user](#user)() => string
-- [uname](#uname)() => tuple<_system_: string, _version_: string, _release_: string, _host_: string>
+- [uname](#uname)() => tuple&lt;_system_: string, _version_: string, _release_: string, _host_: string&gt;
 - [null](#null)() => io::Stream
 
 <a name="os"></a>
@@ -96,4 +96,4 @@ Generic system information: operating system name, version and release, computer
 ```ruby
 null() => io::Stream
 ```
-Returns write-only stream corresponding to system null device 
+Returns write-only stream corresponding to system null device
