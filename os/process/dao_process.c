@@ -1312,13 +1312,13 @@ static DaoFuncItem procMeths[] =
 	{ DaoOSProcess_LibKill,	"terminate(self: Process, how: enum<gracefully,forcibly> = $forcibly)" },
 
 	/*! Writable input pipe (stdin stream of the process), or `none` if input stream was redirected to a file */
-	{ DaoOSProcess_Stdin,	".input(self: Process) => Pipe|none" },
+	{ DaoOSProcess_Stdin,	".input(invar self: Process) => Pipe|none" },
 
 	/*! Readable output pipe (stdout stream of the process), or `none` if output stream was redirected to a file */
-	{ DaoOSProcess_Stdout,	".output(self: Process) => Pipe|none" },
+	{ DaoOSProcess_Stdout,	".output(invar self: Process) => Pipe|none" },
 
 	/*! Readable error pipe (stderr stream of the process), or `none` if error stream was redirected to a file */
-	{ DaoOSProcess_Stderr,	".errors(self: Process) => Pipe|none" },
+	{ DaoOSProcess_Stderr,	".errors(invar self: Process) => Pipe|none" },
 	{ NULL, NULL }
 };
 
@@ -1680,7 +1680,7 @@ static DaoFuncItem osMeths[] =
 	 * then 0). Returns the first found exited process, or `none` if timeouted or if \a children is empty
 	 *
 	 * \warning If the function is called concurrently from multiple threads, it will ignore the processes which are currently
-	 * tracked by its other invocations. Detached processes are ingored as well. */
+	 * tracked by its other invocations. Detached processes are ignored as well. */
 	{ OS_Wait,	"wait(invar children: list<Process>, timeout = -1.0) => Process|none" },
 #endif
 
@@ -1732,7 +1732,7 @@ DAO_DLL int DaoProcess_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DMutex_Init( &proc_mtx );
 	daox_type_process = DaoNamespace_WrapType( osns, &procTyper, 1 );
 #else
-	DaoStream_WriteChars( vmSpace->errorStream, "WARNING: Module \"os\" is incomplete without threading!\n" );
+	DaoStream_WriteChars( vmSpace->errorStream, "WARNING: Module \"os.process\" is incomplete without Dao threading support!\n" );
 #endif
 
 	DaoNamespace_WrapFunctions( osns, osMeths );
