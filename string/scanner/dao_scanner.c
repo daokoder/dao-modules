@@ -290,12 +290,12 @@ static DaoFuncItem scannerMeths[] =
 
 	/*! Current position */
 	{ DaoScanner_Position,	".pos(invar self: Scanner) => int" },
-	{ DaoScanner_SetPos,	".pos=(self: Scanner, pos: int)" },
+	{ DaoScanner_SetPos,	".pos=(self: Scanner, value: int)" },
 
 	/*! Number of bytes left to scan (from the current position to the end of the context) */
 	{ DaoScanner_Rest,		".rest(invar self: Scanner) => int" },
 
-	/*! Appends \a str to the context string */
+	/*! Appends \a str to the context */
 	{ DaoScanner_Append,	"append(self: Scanner, str: string)" },
 
 	/*! Returns \a count bytes starting from the current position and advances the scanner */
