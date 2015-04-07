@@ -15,6 +15,7 @@ Functions:
 
 <a name="json"></a>
 ### Types
+<a name="data"></a>
 ```ruby
 type Data = none|bool|int|float|string|list<Data>|map<string,Data>
 ```

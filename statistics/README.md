@@ -3,7 +3,7 @@
 The module contains functions for computing basic statistical measures of samples of data
 
 ### Index
-namespace [stat](#std)
+namespace [stat](#stat)
 
 Functions:
 - [mean](#mean)(invar _data_: array&lt;@T&lt;int|float&gt;&gt;) => float
@@ -85,7 +85,7 @@ If *mean1* and *mean2* are given, they are used for calculating Pearson coeffici
 
 **Note:** *self* and *other* must be of equal size
 
-Pearson:			r[X,Y] = E[(X - E[X])(Y - E[Y])] / σ[X]σ[Y]
+Pearson:			r[X,Y] = E[(X - E[X])(Y - E[Y])] / σ[X]σ[Y] <br>
 Spearman's rank:	ρ[X,Y] = r(Xrank, Yrank)
 <a name="skewness"></a>
 ```ruby

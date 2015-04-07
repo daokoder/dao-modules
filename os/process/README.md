@@ -7,8 +7,8 @@ namespace [os](#os)
 
 class [Process](#process)
 - [.id](#procid)(invar _self_: Process) => int
-- [.program](#)(invar _self_: Process) => string
-- [.arguments](invar _self_: Process) => list&lt;string&gt;
+- [.program](#program)(invar _self_: Process) => string
+- [.arguments](#arguments)(invar _self_: Process) => list&lt;string&gt;
 - [.workDir](#workdir)(invar _self_: Process) => string
 - [.environment](#environment)(invar _self_: Process) => list&lt;string&gt;|none
 - [.status](#status)(invar _self_: Process) => enum&lt;running,finished,terminated,detached&gt;

@@ -95,7 +95,7 @@ Returns all matches in *target* (or unmatched, or both, depending on *matchType*
 replace(self: Regex, target: string, format: string, start = 0, end = -1) => string
 ```
 Replaces all matches in *target* in the range [*start*; *end*] with *format* string. Returns the entire resulting string. *format* may contain backreferences
-in the form '$<group number from 0 to 9>' or '$(<group name>)'; '$$' can be to escape '$'
+in the form '$&lt;group number from 0 to 9&gt;' or '$(&lt;group name&gt;)'; '$$' can be to escape '$'
  <a name="scan"></a>
  ```ruby
  scan(self: Regex, target: string, start = 0, end = -1)[found: Match => none|@V] => list<@V>
@@ -123,9 +123,9 @@ Single regular expression match providing information on matched sub-string and 
 *group* parameter in `Match` methods may either be a group number or its name.
 
 Group number is interpreted the following way:
--*group* == 0 -- entire matched sub-string
--*group* > 0 and *group* <= `groupCount()` -- corresponding sub-match
--*group* < 0 or *group* > `groupCount()` -- not permitted
+- *group* == 0 -- entire matched sub-string
+- *group* > 0 and *group* <= `groupCount()` -- corresponding sub-match
+- *group* < 0 or *group* > `groupCount()` -- not permitted
 
 If *group* is a name, the last group in the pattern with this name is assumed (at least one such group must exist).
 #### Methods
