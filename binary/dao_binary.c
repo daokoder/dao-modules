@@ -329,11 +329,11 @@ static void DaoBinary_Read( DaoProcess *proc, DaoValue *p[], int N )
 	size_t size = 0;
 	DaoArray_Sliced( arr );
 	if( !file ){
-		DaoProcess_RaiseError( proc, NULL, "The stream is not a file" );
+		DaoProcess_RaiseError( proc, "Param", "The stream is not a file" );
 		return;
 	}
 	if( ( stream->mode & DAO_STREAM_READABLE ) == 0 ){
-		DaoProcess_RaiseError( proc, NULL, "The stream is not readable" );
+		DaoProcess_RaiseError( proc, "Param", "The stream is not readable" );
 		return;
 	}
 	switch( arr->etype ){
@@ -356,11 +356,11 @@ static void DaoBinary_Unpack( DaoProcess *proc, DaoValue *p[], int N )
 	dao_integer count = p[3]->xInteger.value;
 	DaoArray_Sliced( arr );
 	if( !file ){
-		DaoProcess_RaiseError( proc, NULL, "The stream is not a file" );
+		DaoProcess_RaiseError( proc, "Param", "The stream is not a file" );
 		return;
 	}
 	if( ( stream->mode & DAO_STREAM_READABLE ) == 0 ){
-		DaoProcess_RaiseError( proc, NULL, "The stream is not readable" );
+		DaoProcess_RaiseError( proc, "Param", "The stream is not readable" );
 		return;
 	}
 	if( count <= 0 || count > arr->size*sizeof(dao_integer)/size )
@@ -388,11 +388,11 @@ static void DaoBinary_Pack( DaoProcess *proc, DaoValue *p[], int N )
 	size_t i;
 	DaoArray_Sliced( arr );
 	if( !file ){
-		DaoProcess_RaiseError( proc, NULL, "The stream is not a file" );
+		DaoProcess_RaiseError( proc, "Param", "The stream is not a file" );
 		return;
 	}
 	if( ( stream->mode & DAO_STREAM_WRITABLE ) == 0 ){
-		DaoProcess_RaiseError( proc, NULL, "The stream is not writable" );
+		DaoProcess_RaiseError( proc, "Param", "The stream is not writable" );
 		return;
 	}
 	if( count <= 0 || count > arr->size )

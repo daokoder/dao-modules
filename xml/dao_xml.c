@@ -1716,7 +1716,7 @@ static void DaoXMLElement_GetText( DaoProcess *proc, DaoValue *p[], int N )
 	if ( str )
 		DaoProcess_PutString( proc, str );
 	else
-		DaoProcess_RaiseError( proc, xmlerr, "Element content is not a single chardata item" );
+		DaoProcess_RaiseError( proc, "Value", "Element content is not a single chardata item" );
 }
 
 static void DaoXMLElement_SetText( DaoProcess *proc, DaoValue *p[], int N )
@@ -2025,7 +2025,7 @@ static void DaoXMLElement_MapAttribs( DaoProcess *proc, DaoValue *p[], int N )
 			else {
 				char buf[200];
 				snprintf( buf, sizeof(buf), "Element has no attribute '%s'", key->chars );
-				DaoProcess_RaiseError( proc, xmlerr, buf );
+				DaoProcess_RaiseError( proc, "Value", buf );
 				goto Error;
 			}
 			DString_Delete( key );
@@ -2162,11 +2162,6 @@ static void DaoXMLElement_FindElems( DaoProcess *proc, DaoValue *p[], int N )
 	DString *path = p[1]->xString.value;
 	daoint i;
 	DaoList *lst = DaoProcess_PutList( proc );
-	for ( i = 2; i < N; i++ )
-		if ( p[i]->type != DAO_PAR_NAMED ){
-			DaoProcess_RaiseError( proc, "Param", "Additional method parameters must be named" );
-			return;
-		}
 	if ( self->kind == XMLElement ){
 		DString *tag = DString_New();
 		DaoXMLElement *el = ResolvePath( self, path, tag );
@@ -2207,7 +2202,7 @@ int GetElementData( DaoProcess *proc, DaoXMLElement *el, DString *path, DString 
 	else if ( el->kind == XMLEmptyElement ){
 		char buf[400];
 		snprintf( buf, sizeof(buf), "Element is empty: %s.%s", path->chars, el->tag.chars );
-		DaoProcess_RaiseError( proc, xmlerr, buf );
+		DaoProcess_RaiseError( proc, "Value", buf );
 		return 0;
 	}
 	else if ( NodesSize( el->c.children ) != 0 ){
@@ -2215,7 +2210,7 @@ int GetElementData( DaoProcess *proc, DaoXMLElement *el, DString *path, DString 
 												  GetNode( el->c.children, 0 )->kind != XMLCdata ) ){
 			char buf[400];
 			snprintf( buf, sizeof(buf), "Element content is not a single chardata item: %s.%s", path->chars, el->tag.chars );
-			DaoProcess_RaiseError( proc, xmlerr, buf );
+			DaoProcess_RaiseError( proc, "Value", buf );
 			return 0;
 		}
 		DString_Assign( data, &( (DaoXMLCharData*)GetNode( el->c.children, 0 ) )->data );
@@ -2232,7 +2227,7 @@ int MapContent( DaoProcess *proc, DaoXMLElement *el, DaoTuple *tup, DString *pat
 	if ( el->kind != XMLElement || NodesSize( el->c.children ) == 0 ){
 		char buf[400];
 		snprintf( buf, sizeof(buf), "Element does not contain sub-elements: %s", path->chars );
-		DaoProcess_RaiseError( proc, xmlerr, buf );
+		DaoProcess_RaiseError( proc, "Value", buf );
 		return 0;
 	}
 	for ( i = 0; i < tup->size; i++ ){
@@ -2313,7 +2308,7 @@ int MapContent( DaoProcess *proc, DaoXMLElement *el, DaoTuple *tup, DString *pat
 		if ( j == NodesSize( el->c.children ) ){
 			char buf[400];
 			snprintf( buf, sizeof(buf), "Element not found: %s.%s", path->chars, tag->chars );
-			DaoProcess_RaiseError( proc, xmlerr, buf );
+			DaoProcess_RaiseError( proc, "Value", buf );
 			goto Error;
 		}
 		DString_Delete( tag );
@@ -2774,7 +2769,7 @@ static void DaoXMLWriter_Create( DaoProcess *proc, DaoValue *p[], int N )
 			res->stream = &p[0]->xStream;
 		}
 		else {
-			DaoProcess_RaiseError( proc, xmlerr, "Stream not writable" );
+			DaoProcess_RaiseError( proc, "Param", "Stream not writable" );
 			DaoXMLWriter_Delete( res );
 			return;
 		}
@@ -2803,7 +2798,7 @@ void DaoXMLWriter_StartContent( DaoXMLWriter *self )
 int DaoXMLWriter_CheckClosed( DaoXMLWriter *self, DaoProcess *proc )
 {
 	if ( self->closed ){
-		DaoProcess_RaiseError( proc, xmlerr, "Stream is closed" );
+		DaoProcess_RaiseError( proc, "Param", "Stream is closed" );
 		return 0;
 	}
 	return 1;
@@ -2920,13 +2915,17 @@ static void DaoXMLWriter_Comment( DaoProcess *proc, DaoValue *p[], int N )
 	pos = DString_FindChars( text, "--", 0 );
 	if ( pos >= 0 )
 		RaiseValidationError( proc, XML_HyphensInComment, pos );
-	else if ( ValidateCharData( proc, text ) ){
+	else {
 		comm = DString_NewChars( "\t<!-- " );
-		DString_Append( comm, text );
-		DString_AppendChars( comm, " -->" );
-		DaoStream_WriteString( self->stream, comm );
-		self->start = 0;
-		DaoProcess_PutValue( proc, p[0] );
+		daoint pos = EscapeXMLMarkupChars( text, comm );
+		if ( pos >= 0 )
+			RaiseValidationError( proc, XML_InvalidChar, pos );
+		else {
+			DString_AppendChars( comm, " -->" );
+			DaoStream_WriteString( self->stream, comm );
+			self->start = 0;
+			DaoProcess_PutValue( proc, p[0] );
+		}
 		DString_Delete( comm );
 	}
 }
@@ -3130,21 +3129,29 @@ static void DaoXMLWriter_PInst( DaoProcess *proc, DaoValue *p[], int N )
 	DString *data = p[2]->xString.value;
 	DString_Trim( name, 1, 1, 0 );
 	DString_Trim( data, 1, 1, 0 );
-	if ( ValidateName( proc, name->chars ) && ValidateCharData( proc, data ) ){
-		if ( strcmp( name->chars, "xml" ) == 0 ){
-			char buf[100];
-			GetXMLErrorMessage( XML_ReservedInstructionName, buf );
-			DaoProcess_RaiseError( proc, xmlerr, buf );
-			return;
+	if ( ValidateName( proc, name->chars ) ){
+		DString *res = DString_New();
+		daoint pos = EscapeXMLMarkupChars( data, res );
+		if ( pos >= 0 )
+			RaiseValidationError( proc, XML_InvalidChar, pos );
+		else {
+			if ( strcmp( name->chars, "xml" ) == 0 ){
+				char buf[100];
+				GetXMLErrorMessage( XML_ReservedInstructionName, buf );
+				DaoProcess_RaiseError( proc, xmlerr, buf );
+			}
+			else {
+				self->start = 0;
+				DaoXMLWriter_Return( self );
+				DaoStream_WriteChars( self->stream, "<?" );
+				DaoStream_WriteString( self->stream, name );
+				DaoStream_WriteChars( self->stream, " " );
+				DaoStream_WriteString( self->stream, res );
+				DaoStream_WriteChars( self->stream, "?>" );
+				DaoProcess_PutValue( proc, p[0] );
+			}
 		}
-		self->start = 0;
-		DaoXMLWriter_Return( self );
-		DaoStream_WriteChars( self->stream, "<?" );
-		DaoStream_WriteString( self->stream, name );
-		DaoStream_WriteChars( self->stream, " " );
-		DaoStream_WriteString( self->stream, data );
-		DaoStream_WriteChars( self->stream, "?>" );
-		DaoProcess_PutValue( proc, p[0] );
+		DString_Delete(res);
 	}
 }
 
@@ -3206,16 +3213,16 @@ static DaoFuncItem xmlWriterMeths[] =
 	/*! Closes output stream */
 	{ DaoXMLWriter_Close,	"close(self: Writer)" },
 
-	/*! Writes \a data as raw data (without preprocessing) and returns \a self */
+	/*! Writes \a data as raw data (without escaping) and returns \a self */
 	{ DaoXMLWriter_RawData,	"raw(self: Writer, data: string) => Writer" },
 
 	/*! Writes \a value as text and returns \a self. Special characters in resulting text are replaced with XML references */
 	{ DaoXMLWriter_Text,	"text(self: Writer, value: int|float|enum|string) => Writer" },
 
-	/*! Writes CDATA section containing \a data and returns \a self */
+	/*! Writes CDATA section containing \a data (not escaped) and returns \a self */
 	{ DaoXMLWriter_Cdata,	"cdata(self: Writer, data: string) => Writer" },
 
-	/*! Writes comment containing \a text and returns \a self */
+	/*! Writes comment containing escaped \a text and returns \a self */
 	{ DaoXMLWriter_Comment,	"comment(self: Writer, text: string) => Writer" },
 
 	/*! Writes start tag or empty-element \a name and returns \a self. An empty element is assumed if \a name ends with '/'.

@@ -24,14 +24,19 @@ deserialize(text: string ) => any
 ```
 Deserializes value from *text*. For a class instance to be deserializeable, its class should provide constructor compatible with the data returned
 by the `serialize()` method; if the latter returns a tuple, the constructor should accept parameters corresponding to the individual fields of that tuple
+
+**Errors:** `Deserialize` if deserialization failed
 <a name="backup"></a>
 ```ruby
 backup(dest = "backup.sdo", limit = 0)
 ```
-Saves the current state of the program to the file specified by *dest*. if *limit* is greater then 0, objects whose serialized size exceeds *limit* * 1000 bytes
-are not	included in the backup
+Saves the current state of the program to the file specified by *dest*. if *limit* is greater then 0, objects whose serialized size exceeds *limit* * 1000 bytes are not included in the backup
+
+**Errors:** `File` if failed to write to *dest*
 <a name="restore"></a>
 ```ruby
 restore(source = "backup.sdo")
 ```
 Restores previously saved program state from the file specified by *source*
+
+**Errors:** `File` if failed to read to *dest*, `Deserialize` if deserialization failed

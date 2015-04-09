@@ -101,6 +101,8 @@ Constructs new XML document with *root* as its root element
 .version=(self: Document, value: string)
 ```
 XML version (in the header)
+
+**Errors:** `XML` when version is not valid
 <a name="encoding"></a>
 ```ruby
 .encoding(invar self: Document) => string
@@ -109,6 +111,7 @@ XML version (in the header)
 Encoding (in the header)
 
 __Note:__ Specifying encoding has no effect on actual encoding of resulting XML document
+**Errors:** `XML` when encoding is not valid
 <a name="standalone"></a>
 ```ruby
 .standalone(self: Document) => bool
@@ -121,7 +124,9 @@ Standalone document parameter (in the header)
 .doctype=(self: Document, value: string)
 ```
 Internal DTD section ('<!DOCTYPE ... >')
+
 __Note:__ DTD is not interpreted and thus has no effect on treatment of elements and attributes
+**Errors:** `XML` when DTD is not valid
 <a name="instructions"></a>
 ```ruby
 .instructions(invar self: Document) => list<Instruction>
@@ -157,12 +162,16 @@ Constructs XML processing instruction given its *name* and *data*
 .target=(self: Instruction, value: string)
 ```
 Instruction target
+
+**Error:** `XML` when trying to set invalid target
 <a name="in_data"></a>
 ```ruby
 .data(invar self: Instruction) => string
 .data=(self: Instruction, value: string)
 ```
 Instruction data
+
+**Error:** `XML` when trying to set invalid XML data
 ------
 #### <a name="element">`xml::Element`</a>
 XML element.
@@ -172,18 +181,24 @@ XML element.
 Element(tag: string, ...: tuple<enum, string>) => Element
 ```
 Constructs XML element with the given *tag*; if *tag* ends with '/', empty element ('<tag .../>') is created. Element attributes may be provided as name-value pairs via additional named parameters
+
+**Error:** `XML` when tag or atributes are not valid
 <a name="tag"></a>
 ```ruby
 .tag(invar self: Element) => string
 .tag=(self: Element, value: string)
 ```
 Tag
+
+**Error:** `XML` when trying to set invalid tag
 <a name="index"></a>
 ```ruby
 [](invar self: Element, attrib: string) => string
 []=(self: Element, value: string|none, attrib: string)
 ```
 Attribute *attrib*
+
+**Error:** `Param` upon getting when the element has no attribute *attrib*, `XML` upon setting when attribute name or value are not valid
 <a name="index"></a>
 ```ruby
 .attribs(invar self: Element) => map<string,string>
@@ -202,6 +217,8 @@ Returns `true` if element has attribute *attrib*
 .text=(self: Element, value: string)
 ```
 Treats element as one containing character data only. Getting text succeeds if element has single child representing character data, or has no chidren at all (but is not empty). Setting text of an element clears its list of children
+
+**Error:** `Value` when the element is not a single character data item
 <a name="el_size"></a>
 ```ruby
 .size(invar self: Element) => int
@@ -214,11 +231,15 @@ map(invar self: Element, what: enum<attribs,children>, mapping: type<@T<tuple<..
 Maps either element attributes or its children depending on *what* and returns the resulting data. *mapping* must be a tuple type with named items only, each of which refers to an existing attribute or child element by its name/tag (if there are multiple elements with the given tag, the first one is taken). Leaf elements (containing character data only) and attributes can be mapped to `int`, `float`, `string`, `enum` or `bool`. Non-leaf elements can be mapped to a tuple type, in which case the mapping proceeds recursively. 8mapping* may omit unneeded attributes and elements
 
 __Note:__ Use `tuple<tag: T,>` to map elements containing single sub-element
+
+**Errors:** `Type` when *mapping* contains unnamed fields or fields with unsupported types, `Conversion` in case of mapping error, `Value` when the element does not contain some of requested attributes or sub-elements, or when sub-elements cannot be mapped
 <a name="extend"></a>
 ```ruby
 extend(self: Element, ...: tuple<enum, any>)
 ```
 Additional named parameters of this method are converted into elements and appended to the list of children. For each parameter in the form *name => value*, an element '<name>value</name>' is created; specifying a tuple as value continues the conversion recursively. For leaf elements (containing character data only), supported types are `int`, `float`, `string`, `enum` and `bool`; `enum` flags are written separated by ';'
+
+**Errors:** `Type` when tuple arguments contain unnamed fields or fields with unsupported types, `XML` in case of invalid character data
 <a name="empty"></a>
 ```ruby
 .empty(invar self: Element) => bool
@@ -243,6 +264,8 @@ __Note:__ The returned list contains references to child items; however, modifyi
 child(invar self: Element, at: int) => Element|Instruction|CharData
 ```
 Returns direct child with index *at*
+
+**Error:** `Index::Range` wheh *at* is not valid
 <a name="elements"></a>
 ```ruby
 .elements(invar self: Element) => list<Element>
@@ -267,16 +290,21 @@ append(self: Element, item: Element|Instruction|CharData)
 Appends *item* to the list of children
 
 __Note:__ You cannot add the same element twice
+**Error:** `XML` when *item* already has parent, or when attempting to append an element to itself
 <a name="insert"></a>
 ```ruby
 insert(self: Element, item: Element|Instruction|CharData, at: int)
 ```
 Inserts *item* in the list of children at index *at*
+
+**Error:** `Index::Range` when *at* in invalid, `XML` when *item* already has parent, or when attempting to append an element to itself
 <a name="drop"></a>
 ```ruby
 drop(self: Element, at: int, count = 1)
 ```
 Removes at most *count* children at index *at* in the list of children
+
+**Error:** `Index::Range` when *at* is invalid, `Param` when *count* is invalid
 <a name="drop2"></a>
 ```ruby
 drop(self: Element, child: Element|Instruction|CharData)
@@ -299,18 +327,24 @@ XML character data
 CharData(data = '', kind: enum<text,cdata> = $text) => CharData
 ```
 Constructs XML character data containing *data*. Data representation form depends on *kind* and can be either plain text or CDATA section
+
+**Error:** `XML` when data is not valid, or when it contains ']]>' while *kind* is `cdata`
 <a name="kind"></a>
 ```ruby
 .kind(invar self: CharData) => enum<text,cdata>
 .kind=(self: CharData, value: enum<text,cdata>)
 ```
 Representation form: plain text or CDATA section
+
+**Error:** `XML` if setting `cdata` kind for text which contains ']]>'
 <a name="cd_data"></a>
 ```ruby
 .data(invar self: CharData) => string
 .data=(self: CharData, value: string)
 ```
 Represented character data
+
+**Error:** `XML` when trying to set invalid data, or when it contains ']]>' and [kind](#kind) is `cdata`
 <a name="cd_size"></a>
 ```ruby
 .size(invar self: CharData) => int
@@ -322,6 +356,8 @@ append(self: CharData, value: string)
 ```
 Appends *value* to character data
 
+**Error:** `XML` when trying to append invalid data, or when it contains ']]>' while [kind](#kind) is `cdata`
+
 ------
 #### <a name="writer">`xml::Writer`</a>
 Writable stream of XML data.
@@ -331,6 +367,8 @@ Writable stream of XML data.
 Writer(dest: io::Stream) => Writer
 ```
 Creates XML writer which writes to stream *dest*
+
+**Error:** `Param` when *dest* is not writable
 <a name="writer_ctor2"></a>
 ```ruby
 Writer() => Writer
@@ -355,37 +393,51 @@ Closes output stream
 ```ruby
 raw(self: Writer, data: string) => Writer
 ```
-Writes *data* as raw data (without preprocessing) and returns *self*
+Writes *data* as raw data (without escaping) and returns *self*
+
+**Error:** `XML` in case of invalid data, `Param` when the stream is closed
 <a name="wr_text"></a>
 ```ruby
 text(self: Writer, value: int|float|enum|string) => Writer
 ```
-Writes *value* as text and returns *self*. Special characters in resulting text are replaced with XML references
+Writes *value* as text and returns *self*. XML markup characters in resulting text are replaced with XML references
+
+**Errors:** `XML` in case of invalid character data, `Param` when the stream is closed, `XML` when not inside a tag
 <a name="cdata"></a>
 ```ruby
 cdata(self: Writer, data: string) => Writer
 ```
-Writes CDATA section containing *data* and returns *self*
+Writes CDATA section containing *data* (not escaped) and returns *self*
+
+**Errors:** `XML` in case of invalid character data, `Param` when the stream is closed, `XML` when not inside a tag
 <a name="comment"></a>
 ```ruby
 comment(self: Writer, text: string) => Writer
 ```
-Writes comment containing *text* and returns *self*
+Writes comment containing escaped *text* and returns *self*
+
+**Errors:** `XML` in case of invalid character data, `Param` when the stream is closed
 <a name="wr_tag"></a>
 ```ruby
 tag(self: Writer, name: string, ...: tuple<enum, string>) => Writer
 ```
 Writes start tag or empty-element *name* and returns *self*. An empty element is assumed if *name* ends with '/'. Attributes may be provided as name-value pairs via additional named parameters
+
+**Error:** `XML` in case of invalid tag or attributes, `Param` when the stream is closed
 <a name="wr_tag2"></a>
 ```ruby
 tag(self: Writer, name: string, attribs: map<string,string>) => Writer
 ```
 Writes start tag or empty-element *name* with *attribs* and returns *self*. An empty element is assumed if *name* ends with '/'
+
+**Error:** `XML` in case of invalid tag or attributes, `Param` when the stream is closed
 <a name="end"></a>
 ```ruby
 end(self: Writer) => Writer
 ```
 Writes end tag matching the last written start tag and returns *self*
+
+**Error:** `XML` when no tag is open
 <a name="header"></a>
 ```ruby
 header(self: Writer, version = '1.0', encoding = '', standalone = '') => Writer
@@ -393,19 +445,26 @@ header(self: Writer, version = '1.0', encoding = '', standalone = '') => Writer
 Writes XML declaration containing *version*, *encoding* and *standalone* parameters (*encoding* and *standalone* will be omitted if emtpy), returns *self*
 
 __Note:__ Specifying encoding has no effect on actual encoding of resulting XML document
+**Error:** `XML` in case of invalid version, encoding or standalone parameter, or when header was already written, or when it is misplaced, `Param` when the stream is closed
 <a name="wr_instruction"></a>
 ```ruby
 instruction(self: Writer, name: string, data = '') => Writer
 ```
-Writes processing instruction with *name* and *data* and returns *self*
+Writes processing instruction with *name* and escaped *data* and returns *self*
+
+**Error:** `XML` in case of invalid name or data, `Param` when the stream is closed
 <a name="wr_doctype"></a>
 ```ruby
 doctype(self: Writer, dtd: string) => Writer
 ```
 Writes DTD section and returns *self*; *dtd* should be in form of '<!DOCTYPE ... >'
+
+**Error:** `XML` in case of invalid DTD, or when it was already written, or when it is misplaced, `Param` when the stream is closed
 ### Functions
 <a name="parse"></a>
 ```ruby
 parse(str: string) => xml::Document
 ```
 Returns XML document parsed from *str*
+
+**Errors:** `XML` in case of parsing error

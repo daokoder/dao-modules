@@ -26,46 +26,62 @@ Functions:
 read(source: io::Stream, dest: array<@T<int|float|complex>>, count = 0) => int
 ```
 Reads *count* elements from *source* to *dest*. If *count* is zero, or greater than *dest* size, *dest* size is assumed. Returns the number of elements actually read
+
+**Errors:** `Param` when *source* is not a file stream or is not readable
 <a name="unpack"></a>
 ```ruby
 unpack(source: io::Stream, dest: array<int>, size: enum<byte,word,dword>, count = 0) => int
 ```
-Reads *count* chunks of size *size* from *source* into *dest* so that each chunk corresponds to a single *dest* element (with possible widening). If *count* is zero,
-or greater than *dest* element size, *dest* element size is assumed. Returns the number of chunks actually read
+Reads *count* chunks of size *size* from *source* into *dest* so that each chunk corresponds to a single *dest* element (with possible widening). If *count* is zero, or greater than *dest* element size, *dest* element size is assumed. Returns the number of chunks actually read
+
+**Errors:** `Param` when *source* is not a file stream or is not readable
 <a name="pack"></a>
 ```ruby
 pack(invar source: array<int>, dest: io::Stream, size: enum<byte,word,dword>, count = 0) => int
 ```
-Writes *count* chunks of size *size* to *dest* so that each *source* element corresponds to a single chunk (with possible narrowing). Returns the number of chunks
-actually written
+Writes *count* chunks of size *size* to *dest* so that each *source* element corresponds to a single chunk (with possible narrowing). Returns the number of chunks actually written
+
+**Errors:** `Param` when *dest* is not a file stream or is not writable
 <a name="write"></a>
 ```ruby
 write(invar source: array<@T<int|float|complex>>, dest: io::Stream, count = 0) => int
 ```
 Writes *count* elements from *source* to *dest*. If *count* is zero, or greater than *dest* size, all *dest* data is written. Returns the number of elements
 actually written
+
+**Errors:** `Param` when *dest* is not a file stream or is not writable
 <a name="get1"></a>
 ```ruby
 get(invar source: array<int>|string, what: enum<byte,ubyte,word,uword,dword,udword,qword,uqword>, offset: int) => int
 get(invar source: array<int>|string, what: enum<float>, offset: int) => float
 ```
 Reads value described by *what* from *source* at the given byte *offset*
+
+**Errors:** `Index::Range` when *offset* is invalid
 <a name="get2"></a>
 ```ruby
 get(invar source: array<int>|string, what: enum<bits>, offset: int, count: int) => int
 ```
 Reads *count* bits from *source* at the given bit *offset*
+
+**Note:** *count* must not exceed 32
+**Errors:** `Index::Range` for invalid *offset*, `Param` for invalid *count*
 <a name="set1"></a>
 ```ruby
 set(dest: array<int>, what: enum<byte,ubyte,word,uword,dword,udword,qword,uqword>,offset: int, value: int)
 set(dest: array<int>, what: enum<float>, offset: int, value: float)
 ```
 Writes *value* described by *what* to *dest* at the given byte *offset*
+
+**Errors:** `Index::Range` when *offset* is invalid
 <a name="set2"></a>
 ```ruby
 set(dest: array<int>, what: enum<bits>, offset: int, count: int, value: int)
 ```
 Writes *count* lower bits of *value* to *dest* at the given *offset*
+
+**Note:** *count* must not exceed 32
+**Errors:** `Index::Range` for invalid *offset*, `Param` for invalid *count*
 <a name="encode"></a>
 ```ruby
 encode(str: string, codec: enum<base64,z85,hex>) => string
@@ -73,8 +89,11 @@ encode(str: string, codec: enum<base64,z85,hex>) => string
 Returns *str* encoded with the given *codec*.
 
 **Note:** For Z85 codec, *str* size must be a multiple of 4
+**Errors:** `Bin` when the above does not hold
 <a name="decode"></a>
 ```ruby
 decode(str: string, codec: enum<base64,z85,hex>) => string
 ```
 Returns *str* decoded with the given *codec*
+
+**Errors:** `Bin` when *str* is not a valid *codec*-encoded string

@@ -249,6 +249,8 @@ Attribute names also mostly match HTML specification; the exceptions are:
 __Note:__ For `data_` parameter, any '_' in its name suffix is replaced with '-'.
 
 Additionally, `button()`, `command()` and `input()` do not accept 'type' attribute as named value, instead expecting single `enum` value as the first, non-variadic routine argument. This allows to provide overloaded version of these routines with different parameter sets similar to HTML specification for these tags.
+
+**Errors:** `HTML` when used ouside of [document{}](#document) or [fragment{}](#fragment), or within a different task
 <a name="functions"></a>
 ###Other functions
 <a name="document"></a>
@@ -256,18 +258,26 @@ Additionally, `button()`, `command()` and `input()` do not accept 'type' attribu
 document(...: tuple<enum<manifest,xml_lang>, string> | GlobalAttr)[] => string
 ```
 Returns HTML 5 document composed from content specified in the code section. Includes '<!DOCTYPE html>' and 'html' tag with the specified attributes
+
+**Errors:** `HTML` in case of nested contexts
 <a name="fragment"></a>
 ```ruby
 fragment()[] => string
 ```
 Returns HTML 5 code fragment composed from content specified in the code section
+
+**Errors:** `HTML` in case of nested contexts
 <a name="text"></a>
 ```ruby
 text(text: string)
 ```
 Specifies plain *text*, but may as well contain arbitrary HTML markup (*text* is included 'as-is' into the resulting HTML code)
+
+**Errors:** `HTML` when used ouside of [document{}](#document) or [fragment{}](#fragment), or within a different task
 <a name="comment"></a>
 ```ruby
 comment(text: string)
 ```
 Specifies comment with the given *text*
+
+**Errors:** `HTML` when used ouside of [document{}](#document) or [fragment{}](#fragment), or within a different task

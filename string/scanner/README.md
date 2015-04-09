@@ -58,6 +58,8 @@ Appends *str* to the context
 fetch(self: Scanner, count: int) => string
 ```
 Returns *count* bytes starting from the current position and advances the scanner
+
+**Errors:** `Param` when *count* < 0
 <a name="peek"></a>
 ```ruby
 peek(invar self: Scanner, count: int) => string

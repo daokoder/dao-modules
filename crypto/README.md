@@ -23,13 +23,19 @@ Returns hash string of *str* using the specified *method*
 encrypt(source: string, key: string, format: enum<regular,hex> = $regular) => string
 ```
 Encrypts *source* with XXTEA algorithm using the given *key*. Returns the resulting data in the specified *format*
+
+**Errors:** `Crypto` when *source* or *key* are not valid
 <a name="decrypt"></a>
 ```ruby
 decrypt(source: string, key: string, format: enum<regular,hex> = $regular) => string
 ```
 Decrypts *source* with XXTEA algorithm using the given *key*. Returns the resulting data in the specified *format*
+
+**Errors:** `Crypto` when *source* or *key* are not valid
 <a name="random"></a>
 ```ruby
 random(count: int) => string
 ```
 Returns binary string of *count* bytes read from system random number generator (uses `/dev/urandom` on Unix, `CryptGenRandom()` on Windows)
+
+**Errors:** `Crypto` if failed to use system RNG

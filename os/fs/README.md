@@ -96,6 +96,8 @@ File object kind: file or directory
 .dirup(invar self: Entry)=> Dir|none
 ```
 Directory which contains this entry
+
+**Errors:** `File` if failed to read upper directory data
 <a name="time"></a>
 ```ruby
 .time(invar self: Entry) => tuple<created: int, modified: int, accessed: int>
@@ -106,17 +108,23 @@ Time of creation, last modification and access (use `time` module to operate it)
 .owner(invar self: Entry) => string
 ```
 Owner name
+
+**Errors:** `File` if failed to get information about owner
 <a name="access"></a>
 ```ruby
 .access(invar self: Entry) => tuple<user: string, group: string, other: string>
 .access=(self: Entry, value: tuple<user: string, group: string, other: string>)
 ```
 Access mode as a combination of 'r', 'w' and 'x' flags. On Windows, only permissions for the current user are affected
+
+**Errors:** `Param` when trying to set invalid mode *value*, `File` if failed to set access mode
 <a name="move"></a>
 ```ruby
 move(self: Entry, path: string)
 ```
 Moves (renames) entry within the file system so that its full path becomes *path*. *path* may end with directory separator, omitting the entry name, in which case the current name is assumed
+
+**Errors:** `File` if failed to move the entry
 <a name="delete"></a>
 ```ruby
 delete(self: Entry)
@@ -124,11 +132,14 @@ delete(self: Entry)
 Deletes file or empty directory
 
 **Note:** Doing this does not invalidate the entry
+**Errors:** `File` if failed to delete the entry
 <a name="refresh"></a>
 ```ruby
 refresh(self: Entry)
 ```
 Re-reads all entry attributes
+
+**Errors:** `File` if failed to read entry data
 <a name="cast_string"></a>
 ```ruby
 (string)(invar self: Entry) => string
@@ -145,11 +156,15 @@ Inherits `fs::Entry`. Represents file.
 .size=(self: File, size: int)
 ```
 Size of the file in bytes
+
+**Errors:** `File` when resizing failed or when trying to set size of a directory
 <a name="copy"></a>
 ```ruby
 copy(self: File, path: string) => File
 ```
 Copies the file to *path* and returns `File` object of its copy. *path* may end with '/' to indicate the directory to copy to (preserving the original file name)
+
+**Errors:** `Param` if *path* is empty, `File` if failed to copy the file or read data of the copy
 <a name="copy2"></a>
 ```ruby
 copy(self: File, to: Dir) => File
@@ -165,16 +180,22 @@ Inherits `fs::Entry`. Represents directory.
 mkfile(self: Dir, path: string) => File
 ```
 Creates new file given relative *path* and returns its `File` object
+
+**Errors:** `File` if failed to create file
 <a name="mkdir"></a>
 ```ruby
 mkdir(self: Dir, path: string) => Dir
 ```
 Creates new directory given relative *path* and returns its `Dir` object
+
+**Errors:** `File` if failed to create directory
 <a name="entries"></a>
 ```ruby
 entries(invar self: Dir, filter = '*', filtering: enum<wildcard,pattern> = $wildcard) => list<Entry>
 ```
 Returns the list of inner entries with names matching *filter*, where *filter* type is defined by *filtering* and can be either a wildcard pattern or Dao string pattern
+
+**Errors:** `Param` when *filter* is too large, `File` in case of file system related error
 <a name="files"></a>
 ```ruby
 files(invar self: Dir, filter = '*', filtering: enum<wildcard,pattern> = $wildcard) => list<File>
@@ -190,16 +211,20 @@ Returns the list of inner directories with names matching *filter*, where *filte
 [](invar self: Dir, path: string) => Entry|none
 ```
 Returns sub-entry given its relative *path*, or `none` if *path* does not point to existing file or directory
+
+**Errors:** `File` if failed to read sub-entry data
 <a name="exists"></a>
 ```ruby
 exists(invar self: Dir, path: string) => bool
 ```
-Returns `$true` if sub-entry specified by relative *path* exists
+Returns `true` if sub-entry specified by relative *path* exists
 <a name="mktemp"></a>
 ```ruby
 mktemp(self: Dir, prefix = '') => File
 ```
 Creates file with unique name prefixed by *prefix* in this directory. Returns the corresponding `Entry`
+
+**Errors:** `Param` if *prefix* contains directory separators, `File` if failed to create file
 
 ------
 ### Functions
@@ -208,53 +233,73 @@ Creates file with unique name prefixed by *prefix* in this directory. Returns th
 entry(path: string) => Entry
 ```
 Returns new `Entry` bound to *path* of file or directory
+
+**Errors:** `File` if failed to read entry data or it is not a file or directory
 <a name="file_ctor"></a>
 ```ruby
 file(path: string) => File
 ```
 Returns `File` object bound to *path* if it points to a file, otherwise raises exception
+
+**Errors:** `File` if failed to read entry data or it is not a file
 <a name="dir_ctor"></a>
 ```ruby
 dir(path: string) => Dir
 ```
 Returns `Dir` object bound to *path* if it points to a directory, otherwise raises exception
+
+**Errors:** `File` if failed to read entry data or it is not a directory
 <a name="cwd"></a>
 ```ruby
 cwd() => Dir
 ```
 Returns the current working directory
+
+**Errors:** `File` if failed to read entry data of the current directory
 <a name="cd"></a>
 ```ruby
 cd(invar path: Dir)
 cd(path: string)
 ```
 Makes *Dir* the current working directory
+
+**Errors:** `File` if failed to set the current directory
 <a name="ls"></a>
 ```ruby
 ls(invar path: Dir) => list<string>
 ls(path = '.') => list<string>
 ```
 Returns list of names of all file objects in the directory specified by *path*
+
+**Errors:** `File` if failed to get list of file objects
 <a name="rm"></a>
 ```ruby
 rm(path: string)
 ```
 Deletes file object specified by *path*
+
+**Errors:** `File` if failed to delete the file object
 <a name="realpath"></a>
 ```ruby
 realpath(path: string) => string
 ```
 Returns absolute form of *path*, which must point to an existing file or directory. On Windows, replaces all '\' in path with '/'
+
+**Errors:** `File` if there were errors resolving the path
 <a name="symlink"></a>
 ```ruby
 symlink(path: string, link: string)
 ```
 Creates symbolic *link* to *path* (Unix-specific)
+
+**Errors:** `File` if failed to create symlink
 <a name="readlink"></a>
 ```ruby
 readlink(link: string) => string
 ```
 Returns file name to which symbolic *link* is pointed (Unix-specific). If *link* does not specify a symbolic link, returns empty string
+
+**Errors:** `File` if failed to read symlink data
 <a name="exists"></a>
 ```ruby
 exists(path: string) => bool
@@ -265,8 +310,12 @@ Returns `true` if *path* exists
 roots() => list<string>
 ```
 On Windows, returns list of root directories (drives). On other systems returns `{'/'}`
+
+**Errors:** `File` if failed get list of root directories
 <a name="home"></a>
 ```ruby
 home() => Dir
 ```
 Returns home directory for the current user (on Windows, 'Documents' directory is assumed)
+
+**Errors:** `File` if failed to get home directory

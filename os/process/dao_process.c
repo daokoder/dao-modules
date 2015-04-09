@@ -1223,7 +1223,7 @@ static void DaoOSProcess_Wait( DaoProcess *proc, DaoValue *p[], int N )
 	DaoOSProcess *self = (DaoOSProcess*)DaoValue_TryGetCdata( p[0] );
 	dao_float timeout = p[1]->xFloat.value;
 	if ( self->detached )
-		DaoProcess_RaiseError( proc, "Process", "Waiting for detached process" );
+		DaoProcess_RaiseError( proc, "Process", "Attempting to wait for detached process" );
 	else
 		DaoProcess_PutBoolean( proc, DaoOSProcess_WaitExit( self, timeout ) > 0 );
 }

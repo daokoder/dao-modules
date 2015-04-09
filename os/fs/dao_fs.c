@@ -897,7 +897,7 @@ static void FSNode_SetAccess(DaoProcess *proc, DaoValue *p[], int N)
 		FSNode_Update(proc, p, N);
 	return;
 Error:
-	DaoProcess_RaiseError( proc, fserr, "Invalid access mode format" );
+	DaoProcess_RaiseError( proc, "Param", "Invalid access mode format" );
 	DString_Delete( mode );
 }
 
@@ -1016,7 +1016,7 @@ static void DInode_Children( DInode *self, DaoProcess *proc, int type, DString *
 	filter = DString_GetData( pat );
 	len = strlen( filter );
 	if( len > MAX_PATH ){
-		DaoProcess_RaiseError( proc, fserr, "Filter is too large" );
+		DaoProcess_RaiseError( proc, "Param", "Filter is too large" );
 		return;
 	}
 	if( ft == 0 ){
@@ -1057,7 +1057,7 @@ static void DInode_Children( DInode *self, DaoProcess *proc, int type, DString *
 				buffer[j] = filter[i];
 			}
 		if( j >= MAX_PATH - 1 ){
-			DaoProcess_RaiseError( proc, fserr, "Filter is too large" );
+			DaoProcess_RaiseError( proc, "Param", "Filter is too large" );
 			return;
 		}
 		buffer[j] = ')';
@@ -1140,7 +1140,7 @@ static void FSNode_Copy( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	len = tcslen( path );
 	if ( !len ){
-		DaoProcess_RaiseError( proc, fserr, "Empty path" );
+		DaoProcess_RaiseError( proc, "Param", "Empty path" );
 		goto Exit;
 	}
 	if ( dir )
@@ -1216,7 +1216,7 @@ static void FSNode_Mktemp( DaoProcess *proc, DaoValue *p[], int N )
 				strcpy( errbuf, "Incorrect file prefix" );
 			else
 				GetErrorMessage( errbuf, errno, 0 );
-			DaoProcess_RaiseError( proc, fserr, errbuf );
+			DaoProcess_RaiseError( proc, res == -2? "Param" : fserr, errbuf );
 		}
 		else
 			DaoProcess_PutCdata( proc, fsnode, daox_type_file );

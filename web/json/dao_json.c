@@ -32,7 +32,7 @@
 #include "string.h"
 #include "errno.h"
 
-#include"../../../kernel/dao.h"
+#include"dao.h"
 #include"daoValue.h"
 #include"daoNamespace.h"
 #include"daoProcess.h"

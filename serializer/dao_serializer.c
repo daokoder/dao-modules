@@ -864,7 +864,7 @@ static void AUX_Deserialize( DaoProcess *proc, DaoValue *p[], int N )
 	int top = proc->factory->size;
 	DaoValue *value = NULL;
 	DaoValue_Deserialize( & value, p[0]->xString.value, proc->activeNamespace, proc );
-	if( value == NULL ) DaoProcess_RaiseError( proc, NULL, "deserialization failed" );
+	if( value == NULL ) DaoProcess_RaiseError( proc, "Deserialize", "deserialization failed" );
 	DaoProcess_PutValue( proc, value );
 	DaoProcess_PopValues( proc, proc->factory->size - top );
 	GC_DecRC( value );

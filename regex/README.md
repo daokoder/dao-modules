@@ -75,11 +75,14 @@ fetch(self: Regex, target: string, group: int|string = 0, start = 0, end = -1) =
 Finds the first match in *target* in the range [*start*; *end*] and returns sub-match specified by *group*.
 
 __Note:__ For the interpretation of group numbers, see [Match](#match)
+**Errors:** `Param` in case of invalid *group* or matching range
 <a name="search"></a>
 ```ruby
 search(self: Regex, target: string, start = 0, end = -1) => Match|none
 ```
 Returns the first match in *target* in the range [*start*; *end*], or `none` if no match was found
+
+**Errors:** `Param` in case of invalid matching range
 <a name="match"></a>
 ```ruby
 matches(self: Regex, target: string) => bool
@@ -96,18 +99,24 @@ replace(self: Regex, target: string, format: string, start = 0, end = -1) => str
 ```
 Replaces all matches in *target* in the range [*start*; *end*] with *format* string. Returns the entire resulting string. *format* may contain backreferences
 in the form '$&lt;group number from 0 to 9&gt;' or '$(&lt;group name&gt;)'; '$$' can be to escape '$'
+
+**Errors:** `Param` in case of invalid matching range, `Regex` in case of invalid backreference
  <a name="scan"></a>
  ```ruby
  scan(self: Regex, target: string, start = 0, end = -1)[found: Match => none|@V] => list<@V>
  ```
  Iterates over all matches in *target* in the range [*start*; *end*], yielding each match as *found*. Returns the list of values obtained from the code
  section
+
+ **Errors:** `Param` in case of invalid matching range
  <a name="replace2"></a>
  ```ruby
  replace(self: Regex, target: string, start = 0, end = -1)[found: Match => string] => string
  ```
  Iterates over all matches in *target*, yielding each of them as *found*. Returns the string formed by replacing each match in *target* by the corresponding
  string returned from the code section
+
+ **Errors:** `Param` in case of invalid matching range
  <a name="iter"></a>
  ```ruby
  iter(self: Regex, target: string, start = 0, end = -1) => Iter
@@ -115,6 +124,7 @@ in the form '$&lt;group number from 0 to 9&gt;' or '$(&lt;group name&gt;)'; '$$'
  Returns `for` iterator to iterate over all matches in *target* in the range [*start*; *end*].
 
 __Note:__ Changing *target* has no effect on the iteration process (the iterator will still be bound to the original string)
+**Errors:** `Param` in case of invalid matching range
 
 ------
 #### <a name="match">`re::Match`</a>
@@ -134,21 +144,29 @@ If *group* is a name, the last group in the pattern with this name is assumed (a
 string(self: Match, group: int|string = 0) => string
 ```
 Sub-string captured by *group*
+
+**Errors:** `Param` in case of invalid *group*
 <a name="size"></a>
 ```ruby
 size(self: Match, group: int|string = 0) => int
 ```
 Size of the sub-string captured by *group*
+
+**Errors:** `Param` in case of invalid *group*
 <a name="start"></a>
 ```ruby
 start(self: Match, group: int|string = 0) => int
 ```
 Start position of the sub-string captured by *group*
+
+**Errors:** `Param` in case of invalid *group*
 <a name="end"></a>
 ```ruby
 end(self: Match, group: int|string = 0) => int
 ```
 End position of the sub-string captured by *group*
+
+**Errors:** `Param` in case of invalid *group*
 <a name="groupCount2"></a>
 ```ruby
 .groupCount(self: Match) => int
@@ -188,3 +206,4 @@ and a pair of equal whitespace characters is interpreted as '\\s+'
 - `$useBackslash` -- use canonical '\' as control character
 
 __Note:__ Regular expression engine presumes UTF-8-encoded patterns
+**Errors:** `Param` in case of conflicting spacing options, `Regex` in case of regular expression grammar error

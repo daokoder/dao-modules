@@ -34,6 +34,8 @@ Deserialization of values (JSON => Dao):
 - string => string
 - null   => none
 - bool   => bool
+
+**Errors:** `JSON` in case of parsing error, or when resulting data is not a single JSON array or object
 <a name="serialize1"></a>
 ```ruby
 serialize(invar data: map<string,Data>|list<Data>, style: enum<pretty,compact> = $pretty) => string

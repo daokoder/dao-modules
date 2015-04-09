@@ -31,6 +31,8 @@ mean(invar data: array<@T<int|float>>) => float
 Returns arithmetic mean of *data*.
 
 E[X] = Σx / N
+
+**Errors:** `Value` when *data* is empty
 <a name="variance"></a>
 ```ruby
 variance(invar data: array<@T<int|float>>, kind: enum<sample,population> = $sample) => float
@@ -40,6 +42,8 @@ Returns variance of *data* (measure of spread) of the given *kind*. Uses *mean* 
 
 Sample:		σ²[X] = Σ(x - E[X]) / (N - 1)
 Population:	σ²[X] = Σ(x - E[X]) / N
+
+**Errors:** `Value` when *data* is empty or contains a single item
 <a name="median"></a>
 ```ruby
 median(data: array<@T<int|float>>) => float
@@ -51,22 +55,28 @@ percentile(data: array<@T<int|float>>, percentage: float) => float
 ```
 Returns percentile *percentage* (the value below which the given percentage of sample values fall) of *data* while partially sorting it. *percentage* must be
 in range (0; 100)
+
+**Errors:** `Value` when *data* is empty, `Param` when *percentage* is invalid
 <a name="mode"></a>
 ```ruby
 mode(invar data: array<@T<int|float>>) => @T
 ```
 Returns mode (most common value) of *data*
+**Errors:** `Param` when *data* is empty
 <a name="range"></a>
 ```ruby
 range(invar data: array<@T<int|float>>) => tuple<min: @T, max: @T>
 ```
 Returns minimum and maximum value in *data*
+
+**Errors:** `Value` when *data* is empty
 <a name="distribution1"></a>
 ```ruby
 distribution(invar data: array<@T<int|float>>) => map<@T,int>
 ```
-Returns distribution of values in *data* in the form `value` => `frequency`, where `value` is a single unique value and `frequency` is the number of its appearances
-in *data*
+Returns distribution of values in *data* in the form `value` => `frequency`, where `value` is a single unique value and `frequency` is the number of its appearances in *data*
+
+**Errors:** `Value` when *data* is empty
 <a name="distribution2"></a>
 ```ruby
 distribution(invar data: array<@T<int|float>>, interval: float, start = 0.0) => map<int,int>
@@ -75,6 +85,8 @@ Returns values of *data* grouped into ranges of width *interval* starting from *
 present in the sample. `index` identifies the range, it is equal to integer number of intervals *interval* between *start* and the beginning of the particular range;
 the exact range boundaries are [*start* + `floor`(`index` / *interval*); *start* + `floor`(`index` / *interval*) + *interval*). `frequency` is the number of values
 which fall in the range. The values lesser then *start* are not included in the resulting statistics
+
+**Errors:** `Param` when *data* is empty or *interval* is zero
 <a name="correlation"></a>
 ```ruby
 correlation(invar data1: array<@T<int|float>>, invar data2: array<@T>, coefficient: enum<pearson,spearman>) => float
@@ -87,6 +99,8 @@ If *mean1* and *mean2* are given, they are used for calculating Pearson coeffici
 
 Pearson:			r[X,Y] = E[(X - E[X])(Y - E[Y])] / σ[X]σ[Y] <br>
 Spearman's rank:	ρ[X,Y] = r(Xrank, Yrank)
+
+**Errors:** `Value` when *data1* or *data2* are empty or have different size
 <a name="skewness"></a>
 ```ruby
 skewness(invar data: array<@T<int|float>>) => float
@@ -95,6 +109,8 @@ skewness(invar data: array<@T<int|float>>, mean: float) => float
 Returns skewness (measure of asymmetry) of *data*. Uses *mean* if it is given.
 
 γ1[X] = E[((x - E[X]) / σ)^3]
+
+**Errors:** `Value` when *data* is empty
 <a name="kurtosis"></a>
 ```ruby
 kurtosis(invar data: array<@T<int|float>>) => float
@@ -103,3 +119,5 @@ kurtosis(invar data: array<@T<int|float>>, mean: float) => float
 Returns kurtosis (measure of "peakedness"). Uses *mean* if it is given
 
 γ2[X] = E[((x - E[X]) / σ)^4] - 3
+
+**Errors:** `Value` when *data* is empty

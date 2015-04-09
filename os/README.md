@@ -52,6 +52,8 @@ Closes \a pipe created by `popen()`, waits for the sub-process to finish and ret
 sleep(seconds: float)
 ```
 Suspends execution of the current thread for the specified amount of *seconds*
+
+**Errors:** `Param` when *seconds* is negative
 <a name="exit"></a>
 ```ruby
 exit(code = 0)
@@ -67,6 +69,8 @@ CPU time of the current process in seconds
 setlocale(category: enum<all,collate,ctype,monetary,numeric,time> = $all, locale = "") => string
 ```
 Sets *locale* for the given *category* and returns previous locale
+
+**Errors:** `Sys` when *locale* is invalid
 <a name="environ"></a>
 ```ruby
 environ() => map<string,string>
@@ -82,18 +86,26 @@ Value of environment variable *name*
 putenv(name: string, value = "")
 ```
 Sets environment variable *name* to the given *value*
+
+**Errors:** `Sys` if failed to set environment variable
 <a name="user"></a>
 ```ruby
 user(name: string, value = "")
 ```
 Name of the user associated with the current process
+
+**Errors:** `Sys` if failed to get information about the user
 <a name="uname"></a>
 ```ruby
 uname() => tuple<system: string, version: string, release: string, host: string>
 ```
 Generic system information: operating system name, version and release, computer host name
+
+**Errors:** `Sys` if failed to get information about the system
 <a name="null"></a>
 ```ruby
 null() => io::Stream
 ```
 Returns write-only stream corresponding to system null device
+
+**Errors:** `Sys` if failed to open the null device

@@ -98,8 +98,8 @@ wait(invar self: Process, timeout = -1.0) => bool
 Waits *timeout* seconds for process to exit.  If *timeout* is less then 0, waits indefinitely. Returns `true` if not timeouted
 
 __Note:__ Cannot be used on detached processes
-
-<a name="procwait"></a>
+**Errors:** `Process` if used on a detached process
+<a name="terminate"></a>
 ```ruby
 terminate(self: Process, how: enum<gracefully,forcibly> = $forcibly)
 ```
@@ -135,12 +135,16 @@ ID of the read and write ends of the pipe (file descriptors on Unix, handles on 
 .syncRead=(self: Pipe, value: bool)
 ```
 Determines if synchronous (blocking) mode is used for reading (`true` by default)
+
+**Errors:** `Pipe` if failed to set new mode
 <a name="syncwrite"></a>
 ```ruby
 .syncWrite(invar self: Pipe) => bool
 .syncWrite=(self: Pipe, value: bool)
 ```
 Determines if synchronous (blocking) mode is used for writing (`true` by default)
+
+**Errors:** `Pipe` if failed to set new mode
 <a name="autoclose"></a>
 ```ruby
 .autoClose(invar self: Pipe) => bool
@@ -156,11 +160,15 @@ Checks if the pipe is in the state specified by *what*
 read(self: Pipe, count = -1) => string
 ```
 Reads at most *count* bytes from the pipe, or all available data if *count* is less then 0
+
+**Errors:** `Pipe` if the pipe is not readable or if failed to open it for reading
 <a name="write"></a>
 ```ruby
 write(self: Pipe, data: string)
 ```
 Writes *data* to the input stream of the process. If *data* were not fully written, the method will raise `Pipe::Buffer` error containing the number of bytes which were not written
+
+**Errors:** `Pipe::Buffer` on partial write (see above), `Pipe` if the pipe is not writable or if failed to open it for writing
 <a name="pipewait"></a>
 ```ruby
 wait(invar self: Pipe, timeout = -1.0) => bool
@@ -168,6 +176,7 @@ wait(invar self: Pipe, timeout = -1.0) => bool
 Waits *timeout* seconds for the pipe to become available for reading. If *timeout* is less then 0, waits indefinitely. Returns `true` if not timeouted
 
 __Warning:__ On Windows, `wait()` uses system clock for short-term sleeping, thus the accuracy of waiting with timeout may vary depending on the current clock resolution
+**Errors:** `Pipe` in case of system error
 <a name="close"></a>
 ```ruby
 close(self: Pipe)
@@ -198,6 +207,8 @@ __Note:__ On Windows, the given *path* and *arguments* are concatenated into com
 __Note:__ The routine will fail with error on Windows if the execution cannot be started (for instance, *path* is not valid); on Unix, you may need to examine the process status or exit code (which will be set to 1) to detect execution failure.
 
 __Warning:__ On Windows, environment variable strings are assumed to be in local or ASCII encoding
+
+**Errors:** `Value` in case of invalid environment variable definition, `Value` when `io::Stream` used for redirection is not a file or is not readable/writable (depending on what is redirected), `Process` if failed to start new process
 <a name="shell"></a>
 ```ruby
 shell(command: string, ...:
@@ -218,6 +229,8 @@ tracked by its other invocations. Detached processes are ignored as well
 pipe(autoClose = true) => Pipe
 ```
 Creates new pipe and returns the corresponding [Pipe](#pipe) object. If *autoClose* is `true`, unused pipe end is automatically closed when the pipe is passed to [exec()](#exec) or [shell()](#shell); setting this parameter to `false` allows to pass single pipe to multiple processes, in which case you should manually close the unused pipe end (if any) in order to enable EOF check
+
+**Errors:** `Pipe` if failed to create new pipe
 <a name="pipe_ctor2"></a>
 ```ruby
 pipe(name: string, mode: string, action: enum<create>, autoClose = true) => Pipe
@@ -227,6 +240,8 @@ Creates named pipe with the specified *name* and access *mode* ('r', 'w' or 'rw'
 On Windows, named pipe is created with name '\\.\pipe\' + *name*, open mode corresponding to *mode* (inbound, outbound or duplex for 'r', 'w' and 'rw' accordingly) and full sharing. This pipe is removed from the system when no process has references to it (including the process which created the pipe).
 
 On Unix, FIFO file is created with the path specified by *name*, and is opened with read or write access (both cannot be specified). Depending on the system, the routine may block until another process opens this file with the opposite access type. The file is automatically unlinked from the file system when the `Pipe` object returned by this routine is fully closed, but it will remain accessible via the existing references to it
+
+**Errors:** `Param` when *mode* is not valid, `Pipe` if failed to create new pipe
 <a name="pipe_ctor3"></a>
 ```ruby
 pipe(name: string, mode: string, action: enum<open>, autoClose = true) => Pipe
@@ -236,6 +251,8 @@ Opens existing named pipe with the specified *name* using the given access *mode
 On Windows, named pipe with name '\\.\pipe\' + *name* is opened. For named pipe created with duplex mode ('rw'), any of the possible *mode* values are acceptable, pipe created with inbound ('r') or outbound('w') mode can only be opened with the opposite access type.
 
 On Unix, FIFO file with path specified by *name* is opened with read or write access (both cannot be specified), the routine may block (depending on the system) until another process opens this file with the opposite access type
+
+**Errors:** `Value` when *name* does not point to existing named pipe, `Param` when *mode* is not valid, `Pipe` if failed to open the pipe
 <a name="select"></a>
 ```ruby
 select(invar pipes: list<Pipe>, timeout = -1.0) => Pipe|none
@@ -244,3 +261,4 @@ Waits *timeout* seconds for one of *pipes* to become available for reading. If *
 indefinitely. Returns the first found readable pipe, or `none` if timeouted or if *pipes* is empty.
 
 __Warning:__ On Windows, `select()` uses system clock for short-term sleeping, thus the accuracy of waiting with timeout may vary depending on the current clock resolution
+**Errors:** `Pipe` if failed to select pipes
