@@ -355,7 +355,7 @@ static DaoFuncItem sysMeths[]=
 	/*! Spawns sub-process which executes the given shell \a command with redirected standard input or output depending on \a mode.
 	 * If \a mode is 'r', returns readable stream of the process output; if \a mode is 'w', returns writable stream of the process
 	 * input */
-	{ PIPE_New,     "popen( command: string, mode: string ) => os::PipeStream" },
+//	{ PIPE_New,     "popen( command: string, mode: string ) => os::PipeStream" },
 
 	/*! Closes \a pipe created by `popen()`, waits for the sub-process to finish and returns its exit code */
 	{ PIPE_Close,    "pclose( pipe: os::PipeStream ) => int" },
