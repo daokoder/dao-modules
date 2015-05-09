@@ -407,8 +407,8 @@ DAO_DLL int DaoOS_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	ns = DaoNamespace_GetNamespace( ns, "os" );
 
-	pipeTyper.supers[0] = dao_type_stream->typer;
-	daox_type_pipestream = DaoNamespace_WrapType( ns, & pipeTyper, 0 );
+//	pipeTyper.supers[0] = dao_type_stream->typer;
+//	daox_type_pipestream = DaoNamespace_WrapType( ns, & pipeTyper, 0 );
 
 	DaoNamespace_WrapFunctions( ns, sysMeths );
 	DaoNamespace_AddConstNumbers( ns, sysConsts );
