@@ -47,6 +47,7 @@ if( DaoMake::IsDir( "web" ) ) modules.AddDirectory( "web", "web" );
 
 if( DaoMake::IsDir( "statistics" ) ) modules.AddDirectory( "statistics", "statistics" );
 
+if( DaoMake::IsDir( "mlkit" ) ) modules.AddDirectory( "mlkit", "mlkit" );
 
 
 if( DaoMake::IsDir( "DaoSDL" ) ) modules.AddDirectory( "SDL", "DaoSDL" );

@@ -44,32 +44,36 @@
 //#define DMutex_Unlock(x)
 #endif
 
-typedef struct mg_callbacks mg_callbacks;
-typedef struct mg_request_info mg_request_info;
-typedef struct mg_connection mg_connection;
-typedef struct mg_context mg_context;
+typedef struct mg_callbacks     mg_callbacks;
+typedef struct mg_request_info  mg_request_info;
+typedef struct mg_connection    mg_connection;
+typedef struct mg_context       mg_context;
 
-typedef struct DaoxRequest DaoxRequest;
-typedef struct DaoxResponse DaoxResponse;
-typedef struct DaoxSession DaoxSession;
-typedef struct DaoxServer DaoxServer;
+typedef struct DaoxRequest   DaoxRequest;
+typedef struct DaoxResponse  DaoxResponse;
+typedef struct DaoxSession   DaoxSession;
+typedef struct DaoxCache     DaoxCache;
+typedef struct DaoxServer    DaoxServer;
 
 
 DAO_DLL DaoType *daox_type_request;
 DAO_DLL DaoType *daox_type_response;
 DAO_DLL DaoType *daox_type_session;
+DAO_DLL DaoType *daox_type_cache;
 DAO_DLL DaoType *daox_type_server;
 DAO_DLL DaoType *daox_type_client;
 
 DaoType *daox_type_request = NULL;
 DaoType *daox_type_response = NULL;
 DaoType *daox_type_session = NULL;
+DaoType *daox_type_cache = NULL;
 DaoType *daox_type_server = NULL;
 DaoType *daox_type_client = NULL;
 
 DaoType *daox_type_keyvalue = NULL;
 DaoType *daox_type_namestream = NULL;
 DaoType *daox_type_filemap = NULL;
+DaoType *daox_type_stringlist = NULL;
 
 static DaoVmSpace *dao_vmspace = NULL;
 static DaoProcess *dao_process = NULL;
@@ -90,6 +94,7 @@ struct DaoxRequest
 	DaoMap   *http_post;   // <string,string>;
 	DaoMap   *http_cookie; // <string,string>;
 	DaoMap   *http_file;   // <string,stream>;
+	DaoList  *http_uri;    // <string>
 
 	DaoString  *key;    // Buffer string;
 	DaoString  *value;  // Buffer string;
@@ -110,6 +115,7 @@ DaoxRequest* DaoxRequest_New()
 	self->http_post   = DaoMap_New( 1 + rand() );  /* To prevent hash DoS attacks; */
 	self->http_cookie = DaoMap_New( 1 + rand() );
 	self->http_file   = DaoMap_New( 1 + rand() );
+	self->http_uri    = DaoList_New();
 	DString_SetSharing( self->key->value, 0 );
 	DString_SetSharing( self->value->value, 0 );
 	DaoGC_IncRC( (DaoValue*) self->key );
@@ -118,10 +124,12 @@ DaoxRequest* DaoxRequest_New()
 	DaoGC_IncRC( (DaoValue*) self->http_post );
 	DaoGC_IncRC( (DaoValue*) self->http_cookie );
 	DaoGC_IncRC( (DaoValue*) self->http_file );
+	DaoGC_IncRC( (DaoValue*) self->http_uri );
 	DaoGC_Assign( (DaoValue**) & self->http_get->ctype, (DaoValue*) daox_type_keyvalue );
 	DaoGC_Assign( (DaoValue**) & self->http_post->ctype, (DaoValue*) daox_type_keyvalue );
 	DaoGC_Assign( (DaoValue**) & self->http_cookie->ctype, (DaoValue*) daox_type_keyvalue );
 	DaoGC_Assign( (DaoValue**) & self->http_file->ctype, (DaoValue*) daox_type_filemap );
+	DaoGC_Assign( (DaoValue**) & self->http_uri->ctype, (DaoValue*) daox_type_stringlist );
 	return self;
 }
 
@@ -134,6 +142,7 @@ static void DaoxRequest_Delete( DaoxRequest *self )
 	DaoGC_DecRC( (DaoValue*) self->http_post );
 	DaoGC_DecRC( (DaoValue*) self->http_cookie );
 	DaoGC_DecRC( (DaoValue*) self->http_file );
+	DaoGC_DecRC( (DaoValue*) self->http_uri );
 	DaoCstruct_Free( (DaoCstruct*) self );
 	dao_free( self );
 }
@@ -144,6 +153,7 @@ static void DaoxRequest_Reset( DaoxRequest *self )
 	DaoMap_Reset( self->http_post, 1 );
 	DaoMap_Reset( self->http_cookie, 1 );
 	DaoMap_Reset( self->http_file, 1 );
+	DaoList_Clear( self->http_uri );
 }
 
 DString* DaoxRequest_FindVariable( DaoxRequest *self, const char *name, DaoMap *vars )
@@ -156,6 +166,24 @@ DString* DaoxRequest_FindCookie( DaoxRequest *self, const char *name )
 {
 	return DaoxRequest_FindVariable( self, name, self->http_cookie );
 }
+
+void DaoxRequest_SetURI( DaoxRequest *self, const char *uri )
+{
+	DString *part = DaoString_Get( self->key );
+	daoint offset = 0;
+
+	DString_Reset( self->uri, 0 );
+	DString_AppendChars( self->uri, uri );
+
+	DaoList_Clear( self->http_uri );
+	while( offset < self->uri->size ){
+		daoint pos = DString_FindChar( self->uri, '/', offset + 1 );
+		if( pos == DAO_NULLPOS ) pos = self->uri->size;
+		DString_SetBytes( part, self->uri->chars + offset + 1, pos - offset - 1 );
+		DaoList_Append( self->http_uri, (DaoValue*) self->key );
+		offset = pos;
+	}
+} 
 
 #define HEXTOI(x) (isdigit(x) ? x - '0' : x - 'W')
 
@@ -461,6 +489,45 @@ static void DaoxSession_Reset( DaoxSession *self )
 
 
 
+
+/*==============================================================
+// HTTP Cache:
+//============================================================*/
+struct DaoxCache
+{
+	DAO_CSTRUCT_COMMON;
+
+	DMap       *variables;
+};
+
+DaoxCache* DaoxCache_New()
+{
+	DaoComplex com = {DAO_COMPLEX,0,0,0,1,{0.0,0.0}};
+	DaoxCache *self = (DaoxCache*) dao_calloc( 1, sizeof(DaoxCache) );
+	DaoCstruct_Init( (DaoCstruct*) self, daox_type_cache );
+	self->variables = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
+	return self;
+}
+
+static void DaoxCache_Delete( DaoxCache *self )
+{
+	DMap_Delete( self->variables );
+	DaoCstruct_Free( (DaoCstruct*) self );
+	dao_free( self );
+}
+static void DaoxCache_GetGCFields( void *p, DList *vs, DList *as, DList *maps, int rm )
+{
+	DaoxCache *self = (DaoxCache*) p;
+	DList_Append( maps, self->variables );
+}
+static void DaoxCache_Reset( DaoxCache *self )
+{
+	DMap_Clear( self->variables );
+}
+
+
+
+
 /*==============================================================
 // HTTP Server:
 //============================================================*/
@@ -481,10 +548,12 @@ struct DaoxServer
 	DList  *freeRequests;
 	DList  *freeResponses;
 	DList  *freeSessions;
+	DList  *freeCaches;
 
 	DList  *allRequests;
 	DList  *allResponses;
 	DList  *allSessions;
+	DList  *allCaches;
 
 	DMutex   mutex;
 	DMutex   mutex2;
@@ -507,9 +576,11 @@ DaoxServer* DaoxServer_New()
 	self->freeRequests  = DList_New(0); // <DaoxRequest*>
 	self->freeResponses = DList_New(0); // <DaoxResponses*>
 	self->freeSessions = DList_New(0); // <DaoxSessions*>
+	self->freeCaches = DList_New(0); // <DaoxCaches*>
 	self->allRequests  = DList_New( DAO_DATA_VALUE ); // <DaoxRequest*>
 	self->allResponses = DList_New( DAO_DATA_VALUE ); // <DaoxResponses*>
 	self->allSessions  = DList_New( DAO_DATA_VALUE ); // <DaoxSession*>
+	self->allCaches  = DList_New( DAO_DATA_VALUE ); // <DaoxCache*>
 	DString_SetChars( self->docroot, dao_vmspace->startPath->chars );
 	DaoxServer_InitMimeTypes( self );
 	DaoxServer_InitIndexFiles( self );
@@ -529,9 +600,11 @@ static void DaoxServer_Delete( DaoxServer *self )
 	DList_Delete( self->freeRequests );
 	DList_Delete( self->freeResponses );
 	DList_Delete( self->freeSessions );
+	DList_Delete( self->freeCaches );
 	DList_Delete( self->allRequests );
 	DList_Delete( self->allResponses );
 	DList_Delete( self->allSessions );
+	DList_Delete( self->allCaches );
 	DMutex_Destroy( & self->mutex );
 	DMutex_Destroy( & self->mutex2 );
 	DaoCstruct_Free( (DaoCstruct*) self );
@@ -543,6 +616,7 @@ static void DaoxServer_GetGCFields( void *p, DList *vs, DList *arrays, DList *ma
 	DList_Append( arrays, self->allRequests );
 	DList_Append( arrays, self->allResponses );
 	DList_Append( arrays, self->allSessions );
+	DList_Append( arrays, self->allCaches );
 }
 
 
@@ -571,7 +645,7 @@ DaoxRequest* DaoxServer_MakeRequest( DaoxServer *self, mg_connection *conn )
 	request->remote_ip = ri->remote_ip;
 	request->remote_port = ri->remote_port;
 
-	DString_SetChars( request->uri, ri->uri );
+	DaoxRequest_SetURI( request, ri->uri );
 	if( cookie ) DaoxRequest_ParseQueryString( request, request->http_cookie, cookie );
 	if( query_string ) DaoxRequest_ParseQueryString( request, request->http_get, query_string );
 	if( !strcmp( ri->request_method, "POST" ) ) DaoxRequest_ParsePostData( request, conn );
@@ -671,11 +745,33 @@ DaoxSession* DaoxServer_MakeSession( DaoxServer *self, mg_connection *conn, Daox
 #endif
 	return session;
 }
-static void DaoxServer_CacheObjects( DaoxServer *self, DaoxRequest *request, DaoxResponse *response, DaoxSession *session )
+DaoxCache* DaoxServer_MakeCache( DaoxServer *self )
+{
+	DaoxCache *cache = NULL;
+
+	if( self->freeCaches->size ){
+		DMutex_Lock( & self->mutex );
+		if( self->freeCaches->size ){
+			cache = (DaoxCache*) DList_PopFront( self->freeCaches );
+			DaoxCache_Reset( cache );
+		}
+		DMutex_Unlock( & self->mutex );
+	}
+
+	if( cache == NULL ){
+		cache = DaoxCache_New();
+		DMutex_Lock( & self->mutex );
+		DList_Append( self->allCaches, cache );
+		DMutex_Unlock( & self->mutex );
+	}
+	return cache;
+}
+static void DaoxServer_CacheObjects( DaoxServer *self, DaoxRequest *request, DaoxResponse *response, DaoxSession *session, DaoxCache *cache )
 {
 	DMutex_Lock( & self->mutex );
 	if( request != NULL ) DList_Append( self->freeRequests, request );
 	if( response != NULL ) DList_Append( self->freeResponses, response );
+	if( cache != NULL ) DList_Append( self->freeCaches, cache );
 	if( session != NULL ){
 		session->timestamp.value.imag = ++ self->sessionIndex;
 		DMap_Insert( self->timestampToSessions, (void*) & session->timestamp, session );
@@ -788,8 +884,12 @@ static void REQ_SETF_URI( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxRequest *request = (DaoxRequest*) p[0];
 	DString *uri = DaoValue_TryGetString( p[1] );
-	DString_Reset( request->uri, 0 );
-	DString_Append( request->uri, uri );
+	DaoxRequest_SetURI( request, uri->chars );
+}
+static void REQ_GETF_HttpURI( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxRequest *request = (DaoxRequest*) p[0];
+	void *pp = DaoProcess_PutValue( proc, (DaoValue*) request->http_uri );
 }
 static void REQ_GETF_HttpGet( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -834,16 +934,17 @@ static void REQ_SETF_HttpFile( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem RequestMeths[] =
 {
-	{ REQ_GETF_URI,        ".URI( self :Request ) => string" },
-	{ REQ_GETF_URI,        ".URI=( self :Request, uri :string )" },
-	{ REQ_GETF_HttpGet,    ".HttpGet( self :Request ) => map<string,string>" },
-	{ REQ_GETF_HttpPost,   ".HttpPost( self :Request ) => map<string,string>" },
-	{ REQ_GETF_HttpCookie, ".HttpCookie( self :Request ) => map<string,string>" },
-	{ REQ_GETF_HttpFile,   ".HttpFile( self :Request ) => map<string,HttpUpload>" },
-	{ REQ_SETF_HttpGet,    ".HttpGet=( self :Request, value :map<string,string> )" },
-	{ REQ_SETF_HttpPost,   ".HttpPost=( self :Request, value :map<string,string> )" },
-	{ REQ_GETF_HttpCookie, ".HttpCookie=( self :Request, value :map<string,string> )" },
-	{ REQ_GETF_HttpFile,   ".HttpFile=( self :Request, value :map<string,HttpUpload> )" },
+	{ REQ_GETF_URI,        ".URI( self: Request ) => string" },
+	{ REQ_GETF_URI,        ".URI=( self: Request, uri: string )" },
+	{ REQ_GETF_HttpURI,    ".HttpURI( self: Request ) => list<string>" },
+	{ REQ_GETF_HttpGet,    ".HttpGet( self: Request ) => map<string,string>" },
+	{ REQ_GETF_HttpPost,   ".HttpPost( self: Request ) => map<string,string>" },
+	{ REQ_GETF_HttpCookie, ".HttpCookie( self: Request ) => map<string,string>" },
+	{ REQ_GETF_HttpFile,   ".HttpFile( self: Request ) => map<string,HttpUpload>" },
+	{ REQ_SETF_HttpGet,    ".HttpGet=( self: Request, value: map<string,string> )" },
+	{ REQ_SETF_HttpPost,   ".HttpPost=( self: Request, value: map<string,string> )" },
+	{ REQ_GETF_HttpCookie, ".HttpCookie=( self: Request, value: map<string,string> )" },
+	{ REQ_GETF_HttpFile,   ".HttpFile=( self: Request, value: map<string,HttpUpload> )" },
 	{ NULL, NULL }
 };
 
@@ -859,7 +960,6 @@ static void RES_WriteHeader( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxResponse *response = (DaoxResponse*) p[0];
 	DaoMap *headers = (DaoMap*) p[2];
 	int status = p[1]->xInteger.value;
-	DString *session_cookie = DString_New();
 	DNode *it;
 
 	mg_printf( response->connection, "HTTP/1.1 %i %s\r\n", status, "OK" /* TODO */ );
@@ -873,7 +973,6 @@ static void RES_WriteHeader( DaoProcess *proc, DaoValue *p[], int N )
 		mg_printf( response->connection, "Set-Cookie: %s\r\n", value );
 	}
 	mg_printf( response->connection, "\r\n" );
-	DString_Delete( session_cookie );
 }
 static void RES_Write( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -887,12 +986,31 @@ static void RES_SendFile( DaoProcess *proc, DaoValue *p[], int N )
 	const char *path = DaoString_GetChars( (DaoString*) p[1] );
 	mg_send_file( response->connection, path );
 }
+static void RES_RespondError( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxResponse *response = (DaoxResponse*) p[0];
+	DaoString *message = (DaoString*) p[2];
+	int code = p[1]->xInteger.value;
+	DNode *it;
+
+	mg_printf( response->connection, "HTTP/1.1 %i %s\r\n", code, "Internal Server Error" );
+	mg_printf( response->connection, "Content-Type: text/html\r\n" );
+	for(it=DMap_First(response->cookies); it; it=DMap_Next(response->cookies,it)){
+		const char *value = DString_GetData( it->value.pString );
+		mg_printf( response->connection, "Set-Cookie: %s\r\n", value );
+	}
+	mg_printf( response->connection, "\r\n" );
+	mg_printf( response->connection, "<html><body><h3>Server Error:</h3><pre>\n" );
+	mg_printf( response->connection, "%s\n", message->value->chars );
+	mg_printf( response->connection, "</pre></body></html>" );
+}
 
 static DaoFuncItem ResponseMeths[] =
 {
-	{ RES_WriteHeader, "WriteHeader( self :Response, status = 200, headers :map<string,string> = {=>} )" },
-	{ RES_Write,    "Write( self :Response, content : string )" },
-	{ RES_SendFile, "SendFile( self :Response, path : string )" },
+	{ RES_WriteHeader, "WriteHeader( self: Response, status = 200, headers: map<string,string> = {=>} )" },
+	{ RES_Write,        "Write( self: Response, content: string )" },
+	{ RES_SendFile,     "SendFile( self: Response, path: string )" },
+	{ RES_RespondError, "RespondError( self: Response, code: int, message: string )" },
 	{ NULL, NULL }
 };
 
@@ -935,9 +1053,9 @@ static void SES_SetTimeout( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem SessionMeths[] =
 {
-	{ SES_GetVar,     "GetVariable( self :Session, name :string ) => any" },
-	{ SES_SetVar,     "SetVariable( self :Session, name :string, value :any )" },
-	{ SES_SetTimeout, "SetTimeout( self :Session, seconds :int )" },
+	{ SES_GetVar,     "GetVariable( self: Session, name: string ) => any" },
+	{ SES_SetVar,     "SetVariable( self: Session, name: string, value: any )" },
+	{ SES_SetTimeout, "SetTimeout( self: Session, seconds: int )" },
 	{ NULL, NULL }
 };
 
@@ -946,6 +1064,42 @@ static DaoTypeBase SessionTyper =
 	"Session", NULL, NULL, SessionMeths, {0}, {0},
 	(FuncPtrDel) DaoxSession_Delete, DaoxSession_GetGCFields
 };
+
+
+
+
+static void CACHE_GetVar( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxCache *cache = (DaoxCache*) p[0];
+	DString *key = DaoValue_TryGetString( p[1] );
+	DNode *it = DMap_Find( cache->variables, key );
+	if( it != NULL ){
+		DaoProcess_PutValue( proc, it->value.pValue );
+	}else{
+		DaoProcess_PutNone( proc );
+	}
+}
+static void CACHE_SetVar( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxCache *cache = (DaoxCache*) p[0];
+	DString *key = DaoValue_TryGetString( p[1] );
+	DMap_Insert( cache->variables, key, p[2] );
+}
+
+static DaoFuncItem CacheMeths[] =
+{
+	{ CACHE_GetVar,     "GetVariable( self: Cache, name: string ) => any" },
+	{ CACHE_SetVar,     "SetVariable( self: Cache, name: string, value: any )" },
+	{ NULL, NULL }
+};
+
+static DaoTypeBase CacheTyper =
+{
+	"Cache", NULL, NULL, CacheMeths, {0}, {0},
+	(FuncPtrDel) DaoxCache_Delete, DaoxCache_GetGCFields
+};
+
+
 
 
 static int DaoxHttp_TrySendFile( mg_connection *conn )
@@ -1008,7 +1162,7 @@ static int DaoxHttp_TrySendFile( mg_connection *conn )
 	if( sect_b >2 ){ /* Update session timestamp: */
 		request = DaoxServer_MakeRequest( server, conn );
 		session = DaoxServer_MakeSession( server, conn, request );
-		DaoxServer_CacheObjects( server, request, NULL, session );
+		DaoxServer_CacheObjects( server, request, NULL, session, NULL );
 	}
 	mg_send_file( conn, path->chars );
 	DString_Delete( path );
@@ -1026,6 +1180,7 @@ static int DaoxHttp_HandleRequest( mg_connection *conn )
 	DaoxRequest *request = NULL;
 	DaoxResponse *response = NULL;
 	DaoxSession *session = NULL;
+	DaoxCache *cache = NULL;
 	DaoVmCode *sect = NULL;
 	DString uri = DString_WrapChars( ri->uri );
 	DNode *it;
@@ -1049,6 +1204,7 @@ static int DaoxHttp_HandleRequest( mg_connection *conn )
 		time_t expire = time(NULL) + 12*3600;
 		session = DaoxServer_MakeSession( server, conn, request );
 		DaoxResponse_SetCookie( response, "WebdaoSession", session->cookie->chars, "/", expire );
+		if( sect_b > 3 ) cache = DaoxServer_MakeCache( server );
 	}
 
 	process = DaoVmSpace_AcquireProcess( dao_vmspace );
@@ -1060,7 +1216,7 @@ static int DaoxHttp_HandleRequest( mg_connection *conn )
 	if( sect == NULL ){
 		DaoProcess_PrintException( process, NULL, 1 );
 		DaoVmSpace_ReleaseProcess( dao_vmspace, process );
-		DaoxServer_CacheObjects( server, request, response, session );
+		DaoxServer_CacheObjects( server, request, response, session, cache );
 		return 1;
 	}
 
@@ -1072,11 +1228,12 @@ static int DaoxHttp_HandleRequest( mg_connection *conn )
 	if( sect_b >0 ) DaoProcess_SetValue( process, sect_a, (DaoValue*) request );
 	if( sect_b >1 ) DaoProcess_SetValue( process, sect_a+1, (DaoValue*) response );
 	if( sect_b >2 ) DaoProcess_SetValue( process, sect_a+2, (DaoValue*) session );
+	if( sect_b >3 ) DaoProcess_SetValue( process, sect_a+3, (DaoValue*) cache );
 	DaoProcess_Execute( process );
 
 	DaoVmSpace_ReleaseProcess( dao_vmspace, process );
 
-	DaoxServer_CacheObjects( server, request, response, session );
+	DaoxServer_CacheObjects( server, request, response, session, cache );
 	return 1;
 }
 
@@ -1126,8 +1283,10 @@ static void SERVER_Start( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem ServerMeths[] =
 {
 	{ SERVER_SetDocRoot, "SetDocumentRoot( docroot: string )" },
-	{ SERVER_Start,     "Start( port = 80, numthread = 8 )"
-	                 "[request:Request,response:Response,session:Session]" },
+	{ SERVER_Start,
+		"Start( port = 80, numthread = 8 )"
+			"[request: Request, response: Response, session: Session, cache: Cache]"
+	},
 	{ NULL, NULL }
 };
 
@@ -1234,11 +1393,13 @@ DAO_DLL int DaoHTTP_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	daox_type_request = DaoNamespace_WrapType( ns, & RequestTyper, 0 );
 	daox_type_response = DaoNamespace_WrapType( ns, & ResponseTyper, 0 );
 	daox_type_session = DaoNamespace_WrapType( ns, & SessionTyper, 0 );
+	daox_type_cache = DaoNamespace_WrapType( ns, & CacheTyper, 0 );
 	daox_type_server = DaoNamespace_WrapType( ns, & ServerTyper, 0 );
 	daox_type_client = DaoNamespace_WrapType( ns, & ClientTyper, 0 );
 	daox_type_keyvalue = DaoNamespace_ParseType( ns, "map<string,string>" );
 	daox_type_namestream = DaoNamespace_DefineType( ns, "tuple<file:string,size:int,data:io::Stream>", "HttpUpload" );
 	daox_type_filemap = DaoNamespace_ParseType( ns, "map<string,HttpUpload>" );
+	daox_type_stringlist = DaoNamespace_ParseType( ns, "list<string>" );
 	mg_init();
 	daox_webdao_server = DaoxServer_New();
 	DaoNamespace_AddConstValue( ns, "__WebdaoServer__", (DaoValue*) daox_webdao_server );
