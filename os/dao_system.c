@@ -358,7 +358,7 @@ static DaoFuncItem sysMeths[]=
 //	{ PIPE_New,     "popen( command: string, mode: string ) => os::PipeStream" },
 
 	/*! Closes \a pipe created by `popen()`, waits for the sub-process to finish and returns its exit code */
-	{ PIPE_Close,    "pclose( pipe: os::PipeStream ) => int" },
+//	{ PIPE_Close,    "pclose( pipe: os::PipeStream ) => int" },
 
 	/*! Suspends execution of the current thread for the specified amount of \a seconds */
 	{ OS_Sleep,     "sleep( seconds: float )" },

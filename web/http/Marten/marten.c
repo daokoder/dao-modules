@@ -4605,7 +4605,9 @@ static int set_ports_option(struct mg_context *ctx) {
                INVALID_SOCKET ||
                // On Windows, SO_REUSEADDR is recommended only for
                // broadcast UDP sockets
-               setsockopt(so.sock, SOL_SOCKET, SO_REUSEADDR,
+			   // 2015-05-26, modified to prevent:
+			   // "Program received signal SIGPIPE, Broken pipe" in GDB mode;
+               setsockopt(so.sock, SOL_SOCKET, SO_NOSIGPIPE,
                           (void *) &on, sizeof(on)) != 0 ||
 #if defined(USE_IPV6)
                (so.lsa.sa.sa_family == AF_INET6 &&

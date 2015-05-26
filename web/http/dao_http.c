@@ -27,6 +27,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 
 #include "dao.h"
 #include "daoStdtype.h"
@@ -935,7 +936,7 @@ static void REQ_SETF_HttpFile( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem RequestMeths[] =
 {
 	{ REQ_GETF_URI,        ".URI( self: Request ) => string" },
-	{ REQ_GETF_URI,        ".URI=( self: Request, uri: string )" },
+	{ REQ_SETF_URI,        ".URI=( self: Request, uri: string )" },
 	{ REQ_GETF_HttpURI,    ".HttpURI( self: Request ) => list<string>" },
 	{ REQ_GETF_HttpGet,    ".HttpGet( self: Request ) => map<string,string>" },
 	{ REQ_GETF_HttpPost,   ".HttpPost( self: Request ) => map<string,string>" },
@@ -943,8 +944,8 @@ static DaoFuncItem RequestMeths[] =
 	{ REQ_GETF_HttpFile,   ".HttpFile( self: Request ) => map<string,HttpUpload>" },
 	{ REQ_SETF_HttpGet,    ".HttpGet=( self: Request, value: map<string,string> )" },
 	{ REQ_SETF_HttpPost,   ".HttpPost=( self: Request, value: map<string,string> )" },
-	{ REQ_GETF_HttpCookie, ".HttpCookie=( self: Request, value: map<string,string> )" },
-	{ REQ_GETF_HttpFile,   ".HttpFile=( self: Request, value: map<string,HttpUpload> )" },
+	{ REQ_SETF_HttpCookie, ".HttpCookie=( self: Request, value: map<string,string> )" },
+	{ REQ_SETF_HttpFile,   ".HttpFile=( self: Request, value: map<string,HttpUpload> )" },
 	{ NULL, NULL }
 };
 
@@ -1212,7 +1213,7 @@ static int DaoxHttp_HandleRequest( mg_connection *conn )
 	process->activeCode = dao_process->activeCode;
 	DaoProcess_PushFunction( process, dao_process->topFrame->routine );
 	DaoProcess_SetActiveFrame( process, process->topFrame->prev );
-	sect = DaoProcess_InitCodeSection( process, 3 );
+	sect = DaoProcess_InitCodeSection( process, 4 );
 	if( sect == NULL ){
 		DaoProcess_PrintException( process, NULL, 1 );
 		DaoVmSpace_ReleaseProcess( dao_vmspace, process );
@@ -1239,6 +1240,7 @@ static int DaoxHttp_HandleRequest( mg_connection *conn )
 
 
 
+
 static void SERVER_SetDocRoot( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DString *docroot = DaoValue_TryGetString( p[0] );
@@ -1248,7 +1250,7 @@ static void SERVER_Start( DaoProcess *proc, DaoValue *p[], int N )
 {
 	mg_context *ctx;
 	mg_callbacks callbacks;
-	DaoVmCode *sect = DaoProcess_InitCodeSection( proc, 3 );
+	DaoVmCode *sect = DaoProcess_InitCodeSection( proc, 4 );
 	char port[16], numthd[16];
 	const char *options[7] = {
 		"document_root", ".",
@@ -1265,6 +1267,7 @@ static void SERVER_Start( DaoProcess *proc, DaoValue *p[], int N )
 	callbacks.begin_request = DaoxHttp_HandleRequest;
 
 	if( sect == NULL ) return;
+
 	DaoCGC_Start();
 
 	dao_process = proc;
