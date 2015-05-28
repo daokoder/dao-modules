@@ -1,0 +1,23 @@
+
+project = DaoMake::Project( "DaoCGI" ) 
+
+daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
+
+if( daovm == none ) return
+
+project.UseImportLibrary( daovm, "dao" )
+project.SetTargetPath( "../../../lib/dao/modules/web" )
+
+dao_cgi_objs = project.AddObjects( { "dao_cgi.c" } )
+
+dao_cgi_dll = project.AddSharedLibrary( "dao_cgi", dao_cgi_objs )
+dao_cgi_lib = project.AddStaticLibrary( "dao_cgi", dao_cgi_objs )
+
+path = DaoMake::MakePath( DaoMake::Variables[ "INSTALL_MOD" ], "web/cgi" )
+
+project.GenerateFinder( $TRUE );
+project.Install( path, dao_cgi_dll );
+project.Install( path, dao_cgi_lib );
+
+findpkg = DaoMake::MakePath( project.BinaryPath(), "FindDaoCGI.dao" );
+project.Install( DaoMake::Variables[ "INSTALL_FINDER" ], findpkg );

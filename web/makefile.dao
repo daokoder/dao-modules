@@ -5,38 +5,13 @@ daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
 
 if( daovm == none ) return
 
+project.AddDirectory( "http", "http" )
+project.AddDirectory( "json", "json" )
+project.AddDirectory( "cgi", "cgi" )
+project.AddDirectory( "html", "html" )
+
 project.UseImportLibrary( daovm, "dao" )
 project.SetTargetPath( "../../lib/dao/modules/web" )
 
-dao_http_objs = project.AddObjects( {"http/dao_http.c", "http/Marten/marten.c"}, {"http/Marten/marten.h"} )
-dao_cgi_objs  = project.AddObjects( { "cgi/dao_cgi.c" } )
-dao_json_objs = project.AddObjects( { "json/dao_json.c" } )
-dao_html_objs = project.AddObjects( { "html/dao_html.c" } )
-
-dao_http_dll = project.AddSharedLibrary( "dao_http", dao_http_objs )
-dao_http_lib = project.AddStaticLibrary( "dao_http", dao_http_objs )
-dao_cgi_dll  = project.AddSharedLibrary( "dao_cgi", dao_cgi_objs )
-dao_cgi_lib  = project.AddStaticLibrary( "dao_cgi", dao_cgi_objs )
-dao_json_dll = project.AddSharedLibrary( "dao_json", dao_json_objs )
-dao_json_lib = project.AddStaticLibrary( "dao_json", dao_json_objs )
-dao_html_dll = project.AddSharedLibrary( "dao_html", dao_html_objs )
-dao_html_lib = project.AddStaticLibrary( "dao_html", dao_html_objs )
-
-if( DaoMake::IsPlatform( "WIN32" ) ){
-	dao_http_dll.AddDefinition( "_WIN32" )
-	dao_http_lib.AddDefinition( "_WIN32" )
-	dao_http_dll.AddLinkingFlag( "-lws2_32" )
-	dao_http_lib.AddLinkingFlag( "-lws2_32" )
-}
-
 path = DaoMake::MakePath( DaoMake::Variables[ "INSTALL_MOD" ], "web" )
 
-project.GenerateFinder( $TRUE );
-project.Install( path, dao_http_dll );
-project.Install( path, dao_http_lib );
-project.Install( path, dao_cgi_dll );
-project.Install( path, dao_cgi_lib );
-project.Install( path, dao_json_dll );
-project.Install( path, dao_json_lib );
-project.Install( path, dao_html_dll );
-project.Install( path, dao_html_lib );

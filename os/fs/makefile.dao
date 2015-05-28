@@ -1,0 +1,23 @@
+
+project = DaoMake::Project( "DaoFS" )
+
+daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
+
+if( daovm == none ) return
+
+project.UseImportLibrary( daovm, "dao" )
+
+dao_fs_objs = project.AddObjects( { "dao_fs.c" } )
+dao_fs_dll  = project.AddSharedLibrary( "dao_fs", dao_fs_objs )
+dao_fs_lib  = project.AddStaticLibrary( "dao_fs", dao_fs_objs )
+
+project.SetTargetPath( "../../../lib/dao/modules/os" )
+
+path = DaoMake::MakePath( DaoMake::Variables[ "INSTALL_MOD" ], "os" )
+
+project.GenerateFinder( $TRUE );
+project.Install( path, dao_fs_dll );
+project.Install( path, dao_fs_lib );
+
+findpkg = DaoMake::MakePath( project.BinaryPath(), "FindDaoFS.dao" );
+project.Install( DaoMake::Variables[ "INSTALL_FINDER" ], findpkg );

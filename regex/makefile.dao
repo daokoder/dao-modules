@@ -8,14 +8,21 @@ project.UseImportLibrary( daovm, "dao" )
 project.SetTargetPath( "../../lib/dao/modules" )
 project.AddIncludePath( "Onigmo" )
 
+onigmo = project.AddCommand( "Onigmo/Makefile", "cd Onigmo && ./configure && make" );
+
 if( DaoMake::IsPlatform( "MINGW" ) )
     project.AddLinkingFlag("-Wl,--whole-archive Onigmo\\_libs\\onig.lib -Wl,--no-whole-archive")
+else if( DaoMake::IsPlatform( "MACOSX" )
+    project.AddLinkingFlag("Onigmo/.libs/libonig.a")
 else
     project.AddLinkingFlag("-Wl,--whole-archive Onigmo/.libs/libonig.a -Wl,--no-whole-archive")
 
 project_objs = project.AddObjects( { "dao_regex.c" } )
 project_dll  = project.AddSharedLibrary( "dao_regex", project_objs )
 project_lib  = project.AddStaticLibrary( "dao_regex", project_objs )
+
+project_dll.AddDependency( onigmo )
+project_lib.AddDependency( onigmo )
 
 project.GenerateFinder( $TRUE );
 project.Install( DaoMake::Variables[ "INSTALL_MOD" ], project_dll );

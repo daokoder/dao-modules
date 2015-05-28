@@ -1,0 +1,30 @@
+
+project = DaoMake::Project( "DaoHttp" ) 
+
+daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
+
+if( daovm == none ) return
+
+project.UseImportLibrary( daovm, "dao" )
+project.SetTargetPath( "../../../lib/dao/modules/web" )
+
+dao_http_objs = project.AddObjects( {"dao_http.c", "Marten/marten.c"}, {"Marten/marten.h"} )
+
+dao_http_dll = project.AddSharedLibrary( "dao_http", dao_http_objs )
+dao_http_lib = project.AddStaticLibrary( "dao_http", dao_http_objs )
+
+if( DaoMake::IsPlatform( "WIN32" ) ){
+	dao_http_dll.AddDefinition( "_WIN32" )
+	dao_http_lib.AddDefinition( "_WIN32" )
+	dao_http_dll.AddLinkingFlag( "-lws2_32" )
+	dao_http_lib.AddLinkingFlag( "-lws2_32" )
+}
+
+path = DaoMake::MakePath( DaoMake::Variables[ "INSTALL_MOD" ], "web/http" )
+
+project.GenerateFinder( $TRUE );
+project.Install( path, dao_http_dll );
+project.Install( path, dao_http_lib );
+
+findpkg = DaoMake::MakePath( project.BinaryPath(), "FindDaoHttp.dao" );
+project.Install( DaoMake::Variables[ "INSTALL_FINDER" ], findpkg );

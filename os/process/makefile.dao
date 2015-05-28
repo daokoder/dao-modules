@@ -1,0 +1,23 @@
+
+project = DaoMake::Project( "DaoProcess" )
+
+daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
+
+if( daovm == none ) return
+
+project.UseImportLibrary( daovm, "dao" )
+
+dao_process_objs = project.AddObjects( { "dao_process.c" } )
+dao_process_dll  = project.AddSharedLibrary( "dao_process", dao_process_objs )
+dao_process_lib  = project.AddStaticLibrary( "dao_process", dao_process_objs )
+
+project.SetTargetPath( "../../../lib/dao/modules/os" )
+
+path = DaoMake::MakePath( DaoMake::Variables[ "INSTALL_MOD" ], "os" )
+
+project.GenerateFinder( $TRUE );
+project.Install( path, dao_process_dll );
+project.Install( path, dao_process_lib );
+
+findpkg = DaoMake::MakePath( project.BinaryPath(), "FindDaoProcess.dao" );
+project.Install( DaoMake::Variables[ "INSTALL_FINDER" ], findpkg );

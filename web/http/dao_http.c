@@ -1390,7 +1390,7 @@ static DaoTypeBase ClientTyper =
 };
 
 
-DAO_DLL int DaoHTTP_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_DLL int DaoHttp_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	dao_vmspace = vmSpace;
 	daox_type_request = DaoNamespace_WrapType( ns, & RequestTyper, 0 );
