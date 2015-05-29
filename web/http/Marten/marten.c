@@ -4607,8 +4607,13 @@ static int set_ports_option(struct mg_context *ctx) {
                // broadcast UDP sockets
 			   // 2015-05-26, modified to prevent:
 			   // "Program received signal SIGPIPE, Broken pipe" in GDB mode;
-               setsockopt(so.sock, SOL_SOCKET, SO_NOSIGPIPE,
-                          (void *) &on, sizeof(on)) != 0 ||
+               setsockopt(so.sock, SOL_SOCKET,
+#ifdef MACOSX
+				   SO_NOSIGPIPE,
+#else
+				   SO_REUSEADDR|MSG_NOSIGNAL,
+#endif
+				   (void *) &on, sizeof(on)) != 0 ||
 #if defined(USE_IPV6)
                (so.lsa.sa.sa_family == AF_INET6 &&
                 setsockopt(so.sock, IPPROTO_IPV6, IPV6_V6ONLY, (void *) &off,

@@ -12,7 +12,7 @@ onigmo = project.AddCommand( "Onigmo/Makefile", "cd Onigmo && ./configure && mak
 
 if( DaoMake::IsPlatform( "MINGW" ) )
     project.AddLinkingFlag("-Wl,--whole-archive Onigmo\\_libs\\onig.lib -Wl,--no-whole-archive")
-else if( DaoMake::IsPlatform( "MACOSX" )
+else if( DaoMake::IsPlatform( "MACOSX" ) )
     project.AddLinkingFlag("Onigmo/.libs/libonig.a")
 else
     project.AddLinkingFlag("-Wl,--whole-archive Onigmo/.libs/libonig.a -Wl,--no-whole-archive")

@@ -15,9 +15,8 @@ dao_cgi_lib = project.AddStaticLibrary( "dao_cgi", dao_cgi_objs )
 
 path = DaoMake::MakePath( DaoMake::Variables[ "INSTALL_MOD" ], "web/cgi" )
 
-project.GenerateFinder( $TRUE );
 project.Install( path, dao_cgi_dll );
 project.Install( path, dao_cgi_lib );
 
-findpkg = DaoMake::MakePath( project.BinaryPath(), "FindDaoCGI.dao" );
+findpkg = project.GenerateFinder( $TRUE );
 project.Install( DaoMake::Variables[ "INSTALL_FINDER" ], findpkg );

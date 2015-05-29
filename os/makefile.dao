@@ -23,6 +23,5 @@ project.SetTargetPath( "../../lib/dao/modules" )
 project.Install( DaoMake::Variables[ "INSTALL_MOD" ], dao_os_dll );
 project.Install( DaoMake::Variables[ "INSTALL_MOD" ], dao_os_lib );
 
-project.GenerateFinder( $TRUE );
-findpkg = DaoMake::MakePath( project.BinaryPath(), "FindDaoOS.dao" );
+findpkg = project.GenerateFinder( $TRUE );
 project.Install( DaoMake::Variables[ "INSTALL_FINDER" ], findpkg );

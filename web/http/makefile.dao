@@ -22,9 +22,8 @@ if( DaoMake::IsPlatform( "WIN32" ) ){
 
 path = DaoMake::MakePath( DaoMake::Variables[ "INSTALL_MOD" ], "web/http" )
 
-project.GenerateFinder( $TRUE );
 project.Install( path, dao_http_dll );
 project.Install( path, dao_http_lib );
 
-findpkg = DaoMake::MakePath( project.BinaryPath(), "FindDaoHttp.dao" );
+findpkg = project.GenerateFinder( $TRUE );
 project.Install( DaoMake::Variables[ "INSTALL_FINDER" ], findpkg );

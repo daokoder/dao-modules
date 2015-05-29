@@ -15,9 +15,8 @@ dao_json_lib = project.AddStaticLibrary( "dao_json", dao_json_objs )
 
 path = DaoMake::MakePath( DaoMake::Variables[ "INSTALL_MOD" ], "web/json" )
 
-project.GenerateFinder( $TRUE );
 project.Install( path, dao_json_dll );
 project.Install( path, dao_json_lib );
 
-findpkg = DaoMake::MakePath( project.BinaryPath(), "FindDaoJson.dao" );
+findpkg = project.GenerateFinder( $TRUE );
 project.Install( DaoMake::Variables[ "INSTALL_FINDER" ], findpkg );

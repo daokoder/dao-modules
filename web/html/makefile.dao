@@ -15,9 +15,8 @@ dao_html_lib = project.AddStaticLibrary( "dao_html", dao_html_objs )
 
 path = DaoMake::MakePath( DaoMake::Variables[ "INSTALL_MOD" ], "web/html" )
 
-project.GenerateFinder( $TRUE );
 project.Install( path, dao_html_dll );
 project.Install( path, dao_html_lib );
 
-findpkg = DaoMake::MakePath( project.BinaryPath(), "FindDaoHtml.dao" );
+findpkg = project.GenerateFinder( $TRUE );
 project.Install( DaoMake::Variables[ "INSTALL_FINDER" ], findpkg );
