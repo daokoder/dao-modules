@@ -1,21 +1,35 @@
-project = DaoMake::Project( "Regex" )
 
 daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
-
 if( daovm == none ) return
+
+project = DaoMake::Project( "Regex" )
 
 project.UseImportLibrary( daovm, "dao" )
 project.SetTargetPath( "../../lib/dao/modules" )
 project.AddIncludePath( "Onigmo" )
 
-onigmo = project.AddCommand( "Onigmo/Makefile", "cd Onigmo && ./configure && make" );
+# Need absolute path for out-of-source build:
+onigmo_bld = project.BuildPath() / "Onigmo"
+onigmo_src = project.SourcePath() / "Onigmo"
+onigmo_cfg = onigmo_src / "configure"
 
-if( DaoMake::IsPlatform( "MINGW" ) )
-    project.AddLinkingFlag("-Wl,--whole-archive Onigmo\\_libs\\onig.lib -Wl,--no-whole-archive")
-else if( DaoMake::IsPlatform( "MACOSX" ) )
-    project.AddLinkingFlag("Onigmo/.libs/libonig.a")
-else
-    project.AddLinkingFlag("-Wl,--whole-archive Onigmo/.libs/libonig.a -Wl,--no-whole-archive")
+DaoMake::MakeDir( onigmo_bld )
+
+# Try configuring now, and skip this module if failed:
+ret = DaoMake::Shell2( "cd " + onigmo_bld + " && " + onigmo_cfg )
+if( ret ) return;
+
+onigmo = project.AddCommand( onigmo_bld / "Makefile", "cd " + onigmo_bld + " && make" );
+
+if( DaoMake::IsPlatform( "MINGW" ) ){
+	path = onigmo_bld + "\\_libs\\onig.lib"
+    project.AddLinkingFlag("-Wl,--whole-archive " + path + " -Wl,--no-whole-archive")
+}else if( DaoMake::IsPlatform( "MACOSX" ) ){
+    project.AddLinkingFlag( onigmo_bld / ".libs/libonig.a" )
+}else{
+	path = onigmo_bld / ".libs/libonig.a"
+    project.AddLinkingFlag("-Wl,--whole-archive " + path + " -Wl,--no-whole-archive")
+}
 
 project_objs = project.AddObjects( { "dao_regex.c" } )
 project_dll  = project.AddSharedLibrary( "dao_regex", project_objs )
