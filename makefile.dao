@@ -11,44 +11,32 @@ if( modules.SourcePath() != modules.BinaryPath() ){
 	modules.AddCommand( "copypkgtools:", "$(DAOMAKE) copy " + src + " " + dest );
 }
 
-modules.AddDirectory( "math", "math" )
-modules.AddDirectory( "meta", "meta" )
-modules.AddDirectory( "bigint", "bigint" )
-modules.AddDirectory( "coroutine", "coroutine" )
-modules.AddDirectory( "protobject", "protobject" )
-modules.AddDirectory( "serializer", "serializer" )
-modules.AddDirectory( "dataframe", "dataframe" )
+modules.AddDirectory( "math",        "math" )
+modules.AddDirectory( "meta",        "meta" )
+modules.AddDirectory( "bigint",      "bigint" )
+modules.AddDirectory( "coroutine",   "coroutine" )
+modules.AddDirectory( "protobject",  "protobject" )
+modules.AddDirectory( "serializer",  "serializer" )
+modules.AddDirectory( "dataframe",   "dataframe" )
+modules.AddDirectory( "time",        "time" );
+modules.AddDirectory( "string",      "string" );
+modules.AddDirectory( "net",         "net" );
+modules.AddDirectory( "os",          "os" );
+modules.AddDirectory( "crypto",      "crypto" );
+modules.AddDirectory( "zip",         "zip" );
+modules.AddDirectory( "web",         "web" );
+modules.AddDirectory( "sync",        "sync" );
+modules.AddDirectory( "xml",         "xml" );
+modules.AddDirectory( "regex",       "regex" );
+modules.AddDirectory( "statistics",  "statistics" );
+modules.AddDirectory( "image",       "image" );
+
 
 if( DaoMake::IsDir( "DaoJIT" ) ) modules.AddDirectory( "DaoJIT", "DaoJIT" );
 
-if( DaoMake::IsDir( "string" ) ) modules.AddDirectory( "string", "string" );
-
 if( DaoMake::IsDir( "graph" ) ) modules.AddDirectory( "graph", "graph" );
 
-if( DaoMake::IsDir( "time" ) ) modules.AddDirectory( "time", "time" );
-
-if( DaoMake::IsDir( "net" ) ) modules.AddDirectory( "net", "net" );
-
-# Temporarily diabled, for not compiling without thread:
-if( DaoMake::IsDir( "os" ) ) modules.AddDirectory( "os", "os" );
-
-if( DaoMake::IsDir( "binary" ) ) modules.AddDirectory( "binary", "binary" );
-
-if( DaoMake::IsDir( "sync" ) ) modules.AddDirectory( "sync", "sync" );
-
-if( DaoMake::IsDir( "xml" ) ) modules.AddDirectory( "xml", "xml" );
-
-if( DaoMake::IsDir( "zip" ) ) modules.AddDirectory( "zip", "zip" );
-
-if( DaoMake::IsDir( "crypto" ) ) modules.AddDirectory( "crypto", "crypto" );
-
-if( DaoMake::IsDir( "web" ) ) modules.AddDirectory( "web", "web" );
-
-
-if( DaoMake::IsDir( "statistics" ) ) modules.AddDirectory( "statistics", "statistics" );
-
 if( DaoMake::IsDir( "mlkit" ) ) modules.AddDirectory( "mlkit", "mlkit" );
-
 
 if( DaoMake::IsDir( "DaoSDL" ) ) modules.AddDirectory( "SDL", "DaoSDL" );
 
@@ -66,5 +54,3 @@ if( not DaoMake::IsPlatform( "IOS" ) ){
 	if( DaoMake::IsDir( "DaoGSL" ) ) modules.AddDirectory( "GSL", "DaoGSL" );
 
 }
-
-if( DaoMake::IsDir( "regex" ) ) modules.AddDirectory( "regex", "regex" );

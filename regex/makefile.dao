@@ -11,7 +11,7 @@ project.AddIncludePath( "Onigmo" )
 # Need absolute path for out-of-source build:
 onigmo_bld = project.BuildPath() / "Onigmo"
 onigmo_src = project.SourcePath() / "Onigmo"
-onigmo_cfg = onigmo_src / "configure"
+onigmo_cfg = onigmo_src / "configure --quiet"
 
 DaoMake::MakeDir( onigmo_bld )
 

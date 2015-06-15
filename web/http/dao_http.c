@@ -126,11 +126,11 @@ DaoxRequest* DaoxRequest_New()
 	DaoGC_IncRC( (DaoValue*) self->http_cookie );
 	DaoGC_IncRC( (DaoValue*) self->http_file );
 	DaoGC_IncRC( (DaoValue*) self->http_uri );
-	DaoGC_Assign( (DaoValue**) & self->http_get->ctype, (DaoValue*) daox_type_keyvalue );
-	DaoGC_Assign( (DaoValue**) & self->http_post->ctype, (DaoValue*) daox_type_keyvalue );
-	DaoGC_Assign( (DaoValue**) & self->http_cookie->ctype, (DaoValue*) daox_type_keyvalue );
-	DaoGC_Assign( (DaoValue**) & self->http_file->ctype, (DaoValue*) daox_type_filemap );
-	DaoGC_Assign( (DaoValue**) & self->http_uri->ctype, (DaoValue*) daox_type_stringlist );
+	DaoMap_SetType( self->http_get, daox_type_keyvalue );
+	DaoMap_SetType( self->http_post, daox_type_keyvalue );
+	DaoMap_SetType( self->http_cookie, daox_type_keyvalue );
+	DaoMap_SetType( self->http_file, daox_type_filemap );
+	DaoList_SetType( self->http_uri, daox_type_stringlist );
 	return self;
 }
 

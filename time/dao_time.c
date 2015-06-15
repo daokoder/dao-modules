@@ -409,6 +409,15 @@ static void DaoTime_Format( DaoProcess *proc, DaoValue *p[], int N )
 	else
 		DaoProcess_RaiseError( proc, "Param", "Invalid format" );
 }
+static void DaoTime_ToString( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTime *self = (DaoTime*)DaoValue_TryGetCdata( p[0] );
+	char buf[100];
+	if ( strftime( buf, sizeof(buf), "%F %T", &self->parts ))
+		DaoProcess_PutChars( proc, buf );
+	else
+		DaoProcess_RaiseError( proc, "Param", "Invalid format" );
+}
 
 static int addStringFromMap( DaoValue *self, DString *S, DaoMap *sym, const char *key, int id )
 {
@@ -682,7 +691,7 @@ static DaoFuncItem timeMeths[] =
 	{ DaoTime_Format,	"format(self: DateTime, format = '%F %T') => string" },
 
 	/*! Converts datetime to string; identical to calling `format()` with default format */
-	{ DaoTime_Format,	"(string)(self: DateTime)" },
+	{ DaoTime_ToString,	"(string)(self: DateTime)" },
 
 	/*! Returns datetime formatted to string using template \a format. \a names can specify custome names for months
 	 * ('month' => {<12 names>}), days of week ('week' => {<7 names>}), days of year ('day' => {<365/366 names>}) or

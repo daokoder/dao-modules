@@ -1,0 +1,38 @@
+
+
+project_headers = 
+{
+	"source/dao_image.h" ,
+	"source/lode_png.h" ,
+	"source/micro_jpeg.h" ,
+}
+
+project_sources = 
+{
+	"source/dao_image.c" ,
+	"source/lode_png.c" ,
+	"source/micro_jpeg.c" ,
+}
+
+
+
+daovm  = DaoMake::FindPackage( "Dao",    $REQUIRED )
+
+if( daovm == none ) return
+
+project = DaoMake::Project( "DaoImage" ) 
+
+
+project_objs = project.AddObjects( project_sources, project_headers )
+project_dll  = project.AddSharedLibrary( "dao_image", project_objs )
+project_lib  = project.AddStaticLibrary( "dao_image", project_objs )
+
+project.UseImportLibrary( daovm )
+
+project.SetTargetPath( "../../lib/dao/modules" )
+
+project.Install( DaoMake::Variables[ "INSTALL_MOD" ], project_dll );
+project.Install( DaoMake::Variables[ "INSTALL_MOD" ], project_lib );
+
+findpkg = project.GenerateFinder( $TRUE );
+project.Install( DaoMake::Variables[ "INSTALL_FINDER" ], findpkg );
