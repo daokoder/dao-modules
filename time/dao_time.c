@@ -404,7 +404,7 @@ static void DaoTime_Format( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*)DaoValue_TryGetCdata( p[0] );
 	char buf[100];
-	if ( strftime( buf, sizeof(buf), N > 1? p[1]->xString.value->chars : "%F %T", &self->parts ))
+	if ( strftime( buf, sizeof(buf), N > 1? p[1]->xString.value->chars : "%Y-%m-%d %H:%M:%S", &self->parts ))
 		DaoProcess_PutChars( proc, buf );
 	else
 		DaoProcess_RaiseError( proc, "Param", "Invalid format" );
@@ -413,7 +413,7 @@ static void DaoTime_ToString( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*)DaoValue_TryGetCdata( p[0] );
 	char buf[100];
-	if ( strftime( buf, sizeof(buf), "%F %T", &self->parts ))
+	if ( strftime( buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &self->parts ))
 		DaoProcess_PutChars( proc, buf );
 	else
 		DaoProcess_RaiseError( proc, "Param", "Invalid format" );
