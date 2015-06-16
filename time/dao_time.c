@@ -400,11 +400,36 @@ static void DaoTime_Zone( DaoProcess *proc, DaoValue *p[], int N )
 	DaoString_SetChars( &res->values[3]->xString, tzname[1] );
 }
 
+void DaoTime_GetTimezoneShift( DaoTime *self, char *buf, size_t size )
+{
+	int shift = self->local? -timezone : 0;
+	int hours = shift/3600, minutes = shift - hours*3600;
+
+	if ( minutes < 0 )
+		minutes = -minutes;
+
+	snprintf( buf, size, "%+02i:%02i", hours, minutes );
+}
+
 static void DaoTime_Format( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*)DaoValue_TryGetCdata( p[0] );
+	DString *fmt = p[1]->xString.value;
 	char buf[100];
-	if ( strftime( buf, sizeof(buf), N > 1? p[1]->xString.value->chars : "%Y-%m-%d %H:%M:%S", &self->parts ))
+	daoint i;
+
+	for ( i = 0; i < fmt->size; i++ )
+		if ( fmt->chars[i] == '%' ){
+			if ( fmt->chars[i + 1] == 't' ){
+				DaoTime_GetTimezoneShift( self, buf, sizeof(buf) );
+				DString_InsertChars( fmt, buf, i, 2, 0 );
+				i += 5;
+			}
+			else
+				i++;
+		}
+
+	if ( strftime( buf, sizeof(buf), fmt->chars, &self->parts ))
 		DaoProcess_PutChars( proc, buf );
 	else
 		DaoProcess_RaiseError( proc, "Param", "Invalid format" );
@@ -413,8 +438,12 @@ static void DaoTime_ToString( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*)DaoValue_TryGetCdata( p[0] );
 	char buf[100];
-	if ( strftime( buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &self->parts ))
+	if ( strftime( buf, sizeof(buf), "%Y-%m-%d %H:%M:%S ", &self->parts )){
+		int len = strlen( buf );
+
+		DaoTime_GetTimezoneShift( self, buf + len, sizeof(buf) - len );
 		DaoProcess_PutChars( proc, buf );
+	}
 	else
 		DaoProcess_RaiseError( proc, "Param", "Invalid format" );
 }
@@ -687,10 +716,13 @@ static DaoFuncItem timeMeths[] =
 	/*! Day of year */
 	{ DaoTime_YearDay,	".yday(self: DateTime) => int" },
 
-	/*! Returns datetime formatted to string using \a format, which follows the rules for C \c strftime() */
-	{ DaoTime_Format,	"format(self: DateTime, format = '%Y-%m-%d %H:%M:%S') => string" },
+	/*! Returns datetime formatted to string using \a format, which follows the rules for C \c strftime() with the exception of
+	 * '%t' serving as time zone offset specifier
+	 *
+	 * \warning Available format specifiers are platform-dependent. */
+	{ DaoTime_Format,	"format(self: DateTime, format = '%Y-%m-%d %H:%M:%S %t') => string" },
 
-	/*! Converts datetime to string; identical to calling `format()` with default format */
+	/*! Converts datetime to string; identical to calling \c format() with default format string */
 	{ DaoTime_ToString,	"(string)(self: DateTime)" },
 
 	/*! Returns datetime formatted to string using template \a format. \a names can specify custome names for months
