@@ -18,7 +18,9 @@ const html_form =
 port = 8080
 numthread = 4
 
-Server::Start( port, numthread ){
+server = http::Server()
+
+server.Start( port, numthread ){
 	[request, response, session]
 
 	response.WriteHeader( 200, {'Content-Type' => 'text/html'} );

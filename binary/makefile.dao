@@ -15,6 +15,8 @@ dao_binary_lib  = project.AddStaticLibrary( "dao_binary", dao_binary_objs )
 
 path = DaoMake::Variables[ "INSTALL_MOD" ]
 
-project.GenerateFinder( $TRUE );
 project.Install( path, dao_binary_dll );
 project.Install( path, dao_binary_lib );
+
+findpkg = project.GenerateFinder( $TRUE );
+project.Install( DaoMake::Variables[ "INSTALL_FINDER" ], findpkg );

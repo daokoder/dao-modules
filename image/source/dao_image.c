@@ -225,7 +225,7 @@ int DaoxImage_LoadPNG( DaoxImage *self, const char *file )
 }
 int DaoxImage_SavePNG( DaoxImage *self, const char *file )
 {
-	unsigned i, j, pixelBytes = 1 + self->depth;
+	unsigned i, pixelBytes = 1 + self->depth;
 	unsigned char *buffer = dao_malloc( self->width * self->height * pixelBytes );
 
 	for(i=0; i<self->height; ++i){
@@ -275,6 +275,34 @@ int DaoxImage_Decode( DaoxImage *self, DString *data )
 {
 	if( DaoxImage_DecodePNG( self, data ) ) return 1;
 	return DaoxImage_DecodeJPEG( self, data );
+}
+int DaoxImage_Encode( DaoxImage *self, DString *data, int format )
+{
+	unsigned i, pixelBytes = 1 + self->depth;
+	unsigned char *buffer = dao_malloc( self->width * self->height * pixelBytes );
+	unsigned char *out = NULL;
+	size_t outsize = 0;
+
+	for(i=0; i<self->height; ++i){
+		uchar_t *src = self->imageData + (self->height - i - 1) * self->widthStep;
+		uchar_t *dest = buffer + i * self->width * pixelBytes;
+		memcpy( dest, src, self->width*pixelBytes*sizeof(uchar_t) );
+	}
+
+	if( self->depth == DAOX_IMAGE_BIT32 ){
+		lodepng_encode32( & out, & outsize, buffer, self->width, self->height );
+	}else if( self->depth == DAOX_IMAGE_BIT24 ){
+		lodepng_encode24( & out, & outsize, buffer, self->width, self->height );
+	}else{
+		dao_free( buffer );
+		return 0;
+	}
+	if( out ){
+		DString_SetBytes( data, (char*) out, outsize );
+		free( out );
+	}
+	dao_free( buffer );
+	return 1;
 }
 
 void DaoxImage_Export( DaoxImage *self, DaoArray *matrix, float factor )
@@ -335,6 +363,12 @@ static void IMAGE_Save( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	if( ret == 0 ) DaoProcess_RaiseError( proc, NULL, "file saving failed" );
 }
+static void IMAGE_Encode( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxImage *self = (DaoxImage*) p[0];
+	DString *res = DaoProcess_PutChars( proc, "" );
+	DaoxImage_Encode( self, res, 0 ); // TODO: format;
+}
 static void IMAGE_Export( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxImage *self = (DaoxImage*) p[0];
@@ -349,6 +383,7 @@ static DaoFuncItem DaoxImageMeths[]=
 	{ IMAGE_New,     "Image()" },
 	{ IMAGE_Load,    "Load( self: Image, file: string )" },
 	{ IMAGE_Save,    "Save( self: Image, file: string )" },
+	{ IMAGE_Encode,  "Encode( self: Image, format: enum<png> ) => string" },
 	{ IMAGE_Export,  "Export( self: Image, channel: enum<red;grean;blue;alpha>, matrix: array<@T<int|float>>, factor: @T = 1 )" },
 	{ NULL, NULL }
 };

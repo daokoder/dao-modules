@@ -10,7 +10,8 @@ const numthread = 4
 
 routine MyStart() [...]
 {
-	Server::Start( port, numthread ){ ... }
+	server = http::Server()
+	server.Start( port, numthread ){ ... }
 }
 
 MyStart { [request, response]

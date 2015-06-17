@@ -1,5 +1,5 @@
 
-project = DaoMake::Project( "DaoMath" ) 
+project = DaoMake::Project( "DaoRandom" ) 
 
 daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
 
@@ -8,9 +8,9 @@ if( daovm == none ) return
 project.UseImportLibrary( daovm, "dao" )
 project.SetTargetPath( "../../lib/dao/modules" )
 
-project_objs = project.AddObjects( { "dao_math.c" } )
-project_dll  = project.AddSharedLibrary( "dao_math", project_objs )
-project_lib  = project.AddStaticLibrary( "dao_math", project_objs )
+project_objs = project.AddObjects( { "dao_random.c" } )
+project_dll  = project.AddSharedLibrary( "dao_random", project_objs )
+project_lib  = project.AddStaticLibrary( "dao_random", project_objs )
 
 
 project.Install( DaoMake::Variables[ "INSTALL_MOD" ], project_dll );

@@ -115,6 +115,15 @@ void DaoTime_CalcJulianDay( DaoTime *self )
 	self->jday = GetJulianDay( self->parts.tm_year + 1900, self->parts.tm_mon + 1, self->parts.tm_mday );
 }
 
+static void DaoTime_Count( DaoProcess *proc, DaoValue *p[], int N )
+{
+	time_t tm = time(NULL);
+	if ( tm == (time_t)-1 ){
+		DaoProcess_RaiseError( proc, timeerr, "Failed to get current datetime" );
+		return;
+	}
+	DaoProcess_PutInteger( proc, tm );
+}
 static void DaoTime_Get( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = DaoTime_New();
@@ -759,6 +768,9 @@ DaoTypeBase timeTyper = {
 
 static DaoFuncItem timeFuncs[] =
 {
+	/*! Returns the number of seconds passed since the epoch time (1970-1-1, 00:00:00 UTC) */
+	{ DaoTime_Count,	"count() => int" }, /* TODO: better name? */
+
 	/*! Returns current datetime of the given \a kind */
 	{ DaoTime_Get,		"now(kind: enum<local,utc> = $local) => DateTime" },
 
