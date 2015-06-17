@@ -768,8 +768,8 @@ DaoTypeBase timeTyper = {
 
 static DaoFuncItem timeFuncs[] =
 {
-	/*! Returns the number of seconds passed since the epoch time (1970-1-1, 00:00:00 UTC) */
-	{ DaoTime_Count,	"count() => int" }, /* TODO: better name? */
+	/*! Returns current \c time_t value -- the number of seconds passed since the epoch time (1970-1-1, 00:00:00 UTC) */
+	{ DaoTime_Count,	"value() => int" },
 
 	/*! Returns current datetime of the given \a kind */
 	{ DaoTime_Get,		"now(kind: enum<local,utc> = $local) => DateTime" },
@@ -806,6 +806,12 @@ static DaoFuncItem timeFuncs[] =
 DAO_DLL int DaoTime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *timens = DaoNamespace_GetNamespace( ns, "time" );
+
+	if ( sizeof(dao_integer) != 8 ){
+		fprintf( stderr, "This module is not compatible with Dao compiled with 32-bit int type!\n" );
+		exit( 1 );
+	}
+
 	daox_type_time = DaoNamespace_WrapType( timens, &timeTyper, DAO_CTYPE_INVAR|DAO_CTYPE_OPAQUE );
 	DaoNamespace_WrapFunctions( timens, timeFuncs );
 	return 0;
