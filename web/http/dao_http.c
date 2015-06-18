@@ -637,6 +637,7 @@ DaoProcess* DaoxServer_AcquireProcess( DaoxServer *self )
 	if( proc == NULL ) return DaoVmSpace_AcquireProcess( self->vmspace );
 	return proc;
 }
+/* In order to keep process auxiliary data such as states of random number generator: */
 void DaoxServer_ReleaseProcess( DaoxServer *self, DaoProcess *proc )
 {
 	DMutex_Lock( & self->mutex2 );
@@ -1239,7 +1240,7 @@ static int DaoxHttp_HandleRequest( mg_connection *conn )
 		if( sectCode->b > 3 ) cache = DaoxServer_MakeCache( server );
 	}
 
-	process = DaoVmSpace_AcquireProcess( server->vmspace );
+	process = DaoxServer_AcquireProcess( server );
 	DaoProcess_PushRoutine( process, caller->activeRoutine, caller->activeObject );
 	process->activeCode = caller->activeCode;
 	DaoProcess_PushFunction( process, caller->topFrame->routine );
@@ -1247,7 +1248,7 @@ static int DaoxHttp_HandleRequest( mg_connection *conn )
 	sect = DaoProcess_InitCodeSection( process, 4 );
 	if( sect == NULL ){
 		DaoProcess_PrintException( process, NULL, 1 );
-		DaoVmSpace_ReleaseProcess( server->vmspace, process );
+		DaoxServer_ReleaseProcess( server, process );
 		DaoxServer_CacheObjects( server, request, response, session, cache );
 		return 1;
 	}
@@ -1263,7 +1264,7 @@ static int DaoxHttp_HandleRequest( mg_connection *conn )
 	if( sectCode->b >3 ) DaoProcess_SetValue( process, sectCode->a+3, (DaoValue*) cache );
 	DaoProcess_Execute( process );
 
-	DaoVmSpace_ReleaseProcess( server->vmspace, process );
+	DaoxServer_ReleaseProcess( server, process );
 
 	DaoxServer_CacheObjects( server, request, response, session, cache );
 	return 1;

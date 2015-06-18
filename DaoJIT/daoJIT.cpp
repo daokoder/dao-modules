@@ -2212,7 +2212,6 @@ Function* DaoJitHandle::Compile( int start, int end )
 			case DVM_MATH_EXP  : mathfunc = daojit_exp_double;  break;
 			case DVM_MATH_FLOOR : mathfunc = daojit_floor_double; break;
 			case DVM_MATH_LOG  : mathfunc = daojit_log_double;  break;
-			case DVM_MATH_RAND : mathfunc = daojit_rand_double; break;
 			case DVM_MATH_SIN  : mathfunc = daojit_sin_double;  break;
 			case DVM_MATH_SINH : mathfunc = daojit_sinh_double; break;
 			case DVM_MATH_SQRT : mathfunc = daojit_sqrt_double; break;

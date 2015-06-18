@@ -101,38 +101,8 @@ static void MATH_tanh( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoProcess_PutFloat( proc, tanh( p[0]->xFloat.value ) );
 }
-static void MATH_rand( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoProcess_PutFloat( proc, p[0]->xFloat.value * DaoProcess_UniformRand( proc ) );
-}
-static void MATH_srand( DaoProcess *proc, DaoValue *p[], int N )
-{
-	uint_t seed = (uint_t)p[0]->xInteger.value;
-	DaoProcess_SeedRandom( proc, seed );
-	srand( seed );
-}
 
-typedef struct DaoGaussRandCache DaoGaussRandCache;
-struct DaoGaussRandCache
-{
-	int    iset;
-	float  gset;
-};
-static DaoGaussRandCache* DaoGaussRandCache_New()
-{
-	DaoGaussRandCache *self = (DaoGaussRandCache*) dao_calloc( 1, sizeof(DaoGaussRandCache) );
-	return self;
-}
-static void DaoGaussRandCache_Delete( DaoGaussRandCache *self )
-{
-	dao_free( self );
-}
 
-static void MATH_rand_gaussian( DaoProcess *proc, DaoValue *p[], int N )
-{
-	float R = p[0]->xFloat.value;
-	DaoProcess_PutFloat( proc, R * DaoProcess_NormalRand( proc ) );
-}
 static void MATH_pow( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoProcess_PutFloat( proc, pow( p[0]->xFloat.value, p[1]->xFloat.value ) );
@@ -363,11 +333,8 @@ static DaoFuncItem mathMeths[]=
 	{ MATH_sqrt,      "sqrt( p: float )=>float" },
 	{ MATH_tan,       "tan( p: float )=>float" },
 	{ MATH_tanh,      "tanh( p: float )=>float" },
-	{ MATH_rand,      "rand( p: float=1.0 )=>float" },
 #endif
 
-	{ MATH_srand,     "srand( p: int)" },
-	{ MATH_rand_gaussian,  "randGaussian( p: float = 1.0 )=>float" },
 	{ MATH_round,     "round( p: float )=>float" },
 	{ MATH_hypot,     "hypot( p1: float, p2: float )=>float" },
 	{ MATH_isnan,     "isnan( p: float )=>int" },

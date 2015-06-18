@@ -24,19 +24,41 @@
 // LIABILITY,  WHETHER IN CONTRACT,  STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 // OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
-// Redistribution and use in source and binary forms, with or without modification,
-// are permitted provided that the following conditions are met:
 */
 
 #include<time.h>
+#include"daoValue.h"
 #include"dao_random.h"
 
+#define DAO_MTCOUNT 624
 
-void DaoxRandMT_Seed( DaoxRandMT *self, uint_t seed )
+typedef struct DaoxRandGenWrapper DaoxRandGenWrapper;
+
+struct DaoxRandGenerator
+{
+	uint_t  states[DAO_MTCOUNT];
+	uint_t  index;
+	uint_t  iset;
+	float   gset;
+};
+
+
+DaoxRandGenerator* DaoxRandGenerator_New( uint_t seed )
+{
+	DaoxRandGenerator *self = (DaoxRandGenerator*) dao_malloc( sizeof(DaoxRandGenerator) );
+	DaoxRandGenerator_Seed( self, seed );
+	return self;
+}
+void DaoxRandGenerator_Delete( DaoxRandGenerator *self )
+{
+	dao_free( self );
+}
+void DaoxRandGenerator_Seed( DaoxRandGenerator *self, uint_t seed )
 {
 	int i;
 	if( seed == 0 ) seed = time(NULL);
+	self->iset = 0;
+	self->gset = 0.0;
 	self->index = 0;
 	self->states[0] = seed;
 	for(i=1; i<DAO_MTCOUNT; ++i){
@@ -44,8 +66,7 @@ void DaoxRandMT_Seed( DaoxRandMT *self, uint_t seed )
 		self->states[i] = 0x6c078965 * (prev ^ (prev>>30)) + i;
 	}
 }
-
-void DaoxRandMT_Generate( DaoxRandMT *self )
+static void DaoxRandGenerator_GenerateMT( DaoxRandGenerator *self )
 {
 	uint_t i, *mtnums = self->states;
 	for(i=1; i<DAO_MTCOUNT; ++i){
@@ -54,11 +75,10 @@ void DaoxRandMT_Generate( DaoxRandMT *self )
 		if( y % 2 ) mtnums[i] ^= 0x9908b0df;
 	}
 }
-
-uint_t DaoxRandMT_Extract( DaoxRandMT *self )
+static uint_t DaoxRandGenerator_ExtractMT( DaoxRandGenerator *self )
 {
 	uint_t y;
-	if( self->index == 0 ) DaoxRandMT_Generate( self );
+	if( self->index == 0 ) DaoxRandGenerator_GenerateMT( self );
 	y = self->states[ self->index ];
 	y ^= y>>11;
 	y ^= (y<<7) & 0x9d2c5680;
@@ -67,52 +87,11 @@ uint_t DaoxRandMT_Extract( DaoxRandMT *self )
 	self->index = (self->index + 1) % DAO_MTCOUNT;
 	return y;
 }
-
-double DaoxRandMT_Uniform( DaoxRandMT *self )
+double DaoxRandGenerator_GetUniform( DaoxRandGenerator *self )
 {
-	return DaoxRandMT_Extract( self ) / (double) 0xffffffff;
+	return DaoxRandGenerator_ExtractMT( self ) / (double) 0xffffffff;
 }
-
-
-
-
-DaoxUniformRand* DaoxUniformRand_New( uint_t seed )
-{
-	DaoxUniformRand *self = (DaoxUniformRand*) dao_calloc( 1, sizeof(DaoxUniformRand) );
-	DaoCstruct_Init( (DaoCstruct*)self, daox_type_uniform_rand );
-	DaoxRandMT_Seed( & self->randmt, seed );
-	return self;
-}
-
-void DaoxUniformRand_Delete( DaoxUniformRand *self )
-{
-	DaoCstruct_Free( (DaoCstruct*) self );
-	dao_free( self );
-}
-
-double DaoxUniformRand_Get( DaoxUniformRand *self )
-{
-	return DaoxRandMT_Uniform( & self->randmt );
-}
-
-
-DaoxNormalRand* DaoxNormalRand_New( uint_t seed )
-{
-	DaoxNormalRand *self = (DaoxNormalRand*) dao_calloc( 1, sizeof(DaoxNormalRand) );
-	DaoCstruct_Init( (DaoCstruct*)self, daox_type_normal_rand );
-	DaoxRandMT_Seed( & self->randmt, seed );
-	self->gset = 0.0;
-	self->iset = 0;
-	return self;
-}
-
-void DaoxNormalRand_Delete( DaoxNormalRand *self )
-{
-	DaoCstruct_Free( (DaoCstruct*) self );
-	dao_free( self );
-}
-
-double DaoxNormalRand_Get( DaoxNormalRand *self )
+double DaoxRandGenerator_GetNormal( DaoxRandGenerator *self )
 {
 	float fac, rsq, v1, v2;
 
@@ -121,8 +100,8 @@ double DaoxNormalRand_Get( DaoxNormalRand *self )
 		return self->gset;
 	}
 	do {
-		v1 = 2.0 * DaoxRandMT_Uniform( & self->randmt ) -1.0;
-		v2 = 2.0 * DaoxRandMT_Uniform( & self->randmt ) -1.0;
+		v1 = 2.0 * DaoxRandGenerator_GetUniform( self ) -1.0;
+		v2 = 2.0 * DaoxRandGenerator_GetUniform( self ) -1.0;
 		rsq = v1*v1 + v2*v2 ;
 	} while( rsq >= 1.0 || rsq == 0.0 );
 	fac = sqrt( -2.0 * log( rsq ) / rsq );
@@ -132,156 +111,160 @@ double DaoxNormalRand_Get( DaoxNormalRand *self )
 }
 
 
-static void UNI_New( DaoProcess *proc, DaoValue *p[], int N )
+
+
+struct DaoxRandGenWrapper
 {
-	DaoxUniformRand *self = DaoxUniformRand_New( N ? p[0]->xInteger.value : time(NULL) );
+	DAO_CSTRUCT_COMMON;
+
+	DaoxRandGenerator generator;
+};
+DAO_DLL DaoType *daox_type_rand_generator;
+
+
+
+DaoxRandGenWrapper* DaoxRandGenWrapper_New( uint_t seed )
+{
+	DaoxRandGenWrapper *self = (DaoxRandGenWrapper*) dao_calloc(1, sizeof(DaoxRandGenWrapper));
+	DaoCstruct_Init( (DaoCstruct*)self, daox_type_rand_generator );
+	DaoxRandGenerator_Seed( & self->generator, seed );
+	return self;
+}
+
+void DaoxRandGenWrapper_Delete( DaoxRandGenWrapper *self )
+{
+	DaoCstruct_Free( (DaoCstruct*) self );
+	dao_free( self );
+}
+
+
+
+static void GEN_New( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxRandGenWrapper *self = DaoxRandGenWrapper_New( N ? p[0]->xInteger.value : time(NULL) );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
-static void UNI_Get( DaoProcess *proc, DaoValue *p[], int N )
+static void GEN_GetUniform( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxUniformRand *self = (DaoxUniformRand*) p[0];
+	DaoxRandGenWrapper *self = (DaoxRandGenWrapper*) p[0];
+	double random = DaoxRandGenerator_GetUniform( & self->generator );
 	double max = p[1]->xFloat.value;
-	DaoProcess_PutFloat( proc, max * DaoxUniformRand_Get( self ) );
+	DaoProcess_PutFloat( proc, max * random );
 }
-static void UNI_Get2( DaoProcess *proc, DaoValue *p[], int N )
+static void GEN_GetUniform2( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxUniformRand *self = (DaoxUniformRand*) p[0];
+	DaoxRandGenWrapper *self = (DaoxRandGenWrapper*) p[0];
+	double random = DaoxRandGenerator_GetUniform( & self->generator );
 	double min = p[1]->xFloat.value;
 	double max = p[2]->xFloat.value;
 	if( max < min ){
 		DaoProcess_RaiseError( proc, "Param", "invalid range" );
 		return;
 	}
-	DaoProcess_PutFloat( proc, min + (max - min) * DaoxUniformRand_Get( self ) );
+	DaoProcess_PutFloat( proc, min + (max - min) * random );
 }
-static void UNI_GetInt( DaoProcess *proc, DaoValue *p[], int N )
+static void GEN_GetUniformInt( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxUniformRand *self = (DaoxUniformRand*) p[0];
+	DaoxRandGenWrapper *self = (DaoxRandGenWrapper*) p[0];
+	double random = DaoxRandGenerator_GetUniform( & self->generator );
 	dao_integer max = p[1]->xInteger.value;
-	double random = DaoxUniformRand_Get( self );
 	if( max < 0 ){
 		DaoProcess_PutInteger( proc, (max - 1) * random );
 	}else{
 		DaoProcess_PutInteger( proc, (max + 1) * random );
 	}
 }
-static void UNI_GetInt2( DaoProcess *proc, DaoValue *p[], int N )
+static void GEN_GetUniformInt2( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxUniformRand *self = (DaoxUniformRand*) p[0];
+	DaoxRandGenWrapper *self = (DaoxRandGenWrapper*) p[0];
+	double random = DaoxRandGenerator_GetUniform( & self->generator );
 	dao_integer min = p[1]->xInteger.value;
 	dao_integer max = p[2]->xInteger.value;
 	if( max < min ){
 		DaoProcess_RaiseError( proc, "Param", "invalid range" );
 		return;
 	}
-	DaoProcess_PutFloat( proc, min + (max - min + 1) * DaoxUniformRand_Get( self ) );
+	DaoProcess_PutFloat( proc, min + (max - min + 1) * random );
 }
 
-static DaoFuncItem DaoxUniformRandMeths[]=
+static void GEN_GetNormal( DaoProcess *proc, DaoValue *p[], int N )
 {
-	{ UNI_New,       "Uniform( seed = 0 )" },
-
-	{ UNI_Get,       "Get( self: Uniform, max = 1.0 ) => float" },
-	{ UNI_Get2,      "Get( self: Uniform, min: float, max: float ) => float" },
-
-	{ UNI_GetInt,    "Get( self: Uniform, max: int ) => int" },
-	{ UNI_GetInt2,   "Get( self: Uniform, min: int, max: int ) => float" },
-
-	{ UNI_Get,       "()( self: Uniform, max = 1.0 ) => float" },
-	{ UNI_GetInt,    "()( self: Uniform, max: int ) => int" },
-
-	{ NULL, NULL }
-};
-
-DaoTypeBase DaoxUniformRand_Typer =
-{
-	"Uniform", NULL, NULL, (DaoFuncItem*) DaoxUniformRandMeths, { NULL }, { NULL },
-	(FuncPtrDel)DaoxUniformRand_Delete, NULL
-};
-
-
-
-static void NORM_New( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxNormalRand *self = DaoxNormalRand_New( N ? p[0]->xInteger.value : time(NULL) );
-	DaoProcess_PutValue( proc, (DaoValue*) self );
-}
-static void NORM_Get( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxNormalRand *self = (DaoxNormalRand*) p[0];
+	DaoxRandGenWrapper *self = (DaoxRandGenWrapper*) p[0];
+	double random = DaoxRandGenerator_GetNormal( & self->generator );
 	double stdev = p[1]->xFloat.value;
-	DaoProcess_PutFloat( proc, stdev * DaoxNormalRand_Get( self ) );
+	DaoProcess_PutFloat( proc, stdev * random );
 }
-static void NORM_Get2( DaoProcess *proc, DaoValue *p[], int N )
+static void GEN_GetNormal2( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxNormalRand *self = (DaoxNormalRand*) p[0];
+	DaoxRandGenWrapper *self = (DaoxRandGenWrapper*) p[0];
+	double random = DaoxRandGenerator_GetNormal( & self->generator );
 	double mean = p[1]->xFloat.value;
 	double stdev = p[2]->xFloat.value;
-	DaoProcess_PutFloat( proc, mean + stdev * DaoxNormalRand_Get( self ) );
+	DaoProcess_PutFloat( proc, mean + stdev * random );
 }
 
-static DaoFuncItem DaoxNormalRandMeths[]=
+static DaoFuncItem DaoxRandGeneratorMeths[]=
 {
-	{ NORM_New,       "Normal( seed = 0 )" },
+	{ GEN_New,             "Generator( seed = 0 )" },
 
-	{ NORM_Get,       "Get( self: Normal, stdev = 1.0 ) => float" },
-	{ NORM_Get2,      "Get( self: Normal, mean: float, stdev: float ) => float" },
+	{ GEN_GetUniform,      "GetUniform( self: Generator, max = 1.0 ) => float" },
+	{ GEN_GetUniform2,     "GetUniform( self: Generator, min: float, max: float ) => float" },
+
+	{ GEN_GetUniformInt,   "GetUniform( self: Generator, max: int ) => int" },
+	{ GEN_GetUniformInt2,  "GetUniform( self: Generator, min: int, max: int ) => float" },
+
+	{ GEN_GetUniform,      "()( self: Generator, max = 1.0 ) => float" },
+	{ GEN_GetUniformInt,   "()( self: Generator, max: int ) => int" },
+
+	{ GEN_GetNormal,       "GetNormal( self: Generator, stdev = 1.0 ) => float" },
+	{ GEN_GetNormal2,      "GetNormal( self: Generator, mean: float, stdev: float ) => float" },
 
 	{ NULL, NULL }
 };
 
-DaoTypeBase DaoxNormalRand_Typer =
+DaoTypeBase DaoxRandGenerator_Typer =
 {
-	"Normal", NULL, NULL, (DaoFuncItem*) DaoxNormalRandMeths, { NULL }, { NULL },
-	(FuncPtrDel)DaoxNormalRand_Delete, NULL
+	"Generator", NULL, NULL, (DaoFuncItem*) DaoxRandGeneratorMeths, { NULL }, { NULL },
+	(FuncPtrDel)DaoxRandGenWrapper_Delete, NULL
 };
 
 
 
-static DaoxRandMT* DaoxRandMT_New( uint_t seed )
+
+static DaoxRandGenerator* DaoProcess_GetRandCache( DaoProcess *self, uint_t seeding )
 {
-	DaoxRandMT *self = (DaoxRandMT*) dao_malloc( sizeof(DaoxRandMT) );
-	DaoxRandMT_Seed( self, seed );
-	return self;
-}
-static void DaoxRandMT_Delete( DaoxRandMT *self )
-{
-	dao_free( self );
-}
-static DaoxRandMT* DaoProcess_GetRandCache( DaoProcess *self, uint_t seeding )
-{
-	void *randgen = DaoProcess_GetAuxData( self, DaoxRandMT_Delete );
+	void *randgen = DaoProcess_GetAuxData( self, DaoxRandGenerator_Delete );
 	if( randgen == NULL ){
-		randgen = DaoxRandMT_New( seeding ? seeding : (uint_t)time(NULL) );
-		DaoProcess_SetAuxData( self, DaoxRandMT_Delete, randgen );
+		randgen = DaoxRandGenerator_New( seeding ? seeding : (uint_t)time(NULL) );
+		DaoProcess_SetAuxData( self, DaoxRandGenerator_Delete, randgen );
 	}
-	return (DaoxRandMT*) randgen;
+	return (DaoxRandGenerator*) randgen;
 }
 
 static void RAND_Swap( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxUniformRand *self = (DaoxUniformRand*) p[0];
-	DaoxRandMT *randmt = DaoProcess_GetRandCache( proc, 0 );
-	DaoxRandMT tmp = *randmt;
-	*randmt = self->randmt;
-	self->randmt = tmp;
+	DaoxRandGenWrapper *self = (DaoxRandGenWrapper*) p[0];
+	DaoxRandGenerator *generator = DaoProcess_GetRandCache( proc, 0 );
+	DaoxRandGenerator tmp = *generator;
+	*generator = self->generator;
+	self->generator = tmp;
 }
 static void RAND_SRand( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxRandMT *randmt = DaoProcess_GetRandCache( proc, 0 );
+	DaoxRandGenerator *generator = DaoProcess_GetRandCache( proc, 0 );
 	uint_t seed = (uint_t)p[0]->xInteger.value;
-	DaoxRandMT_Seed( randmt, seed );
+	DaoxRandGenerator_Seed( generator, seed );
 }
 static void RAND_Rand( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxRandMT *randmt = DaoProcess_GetRandCache( proc, 0 );
+	DaoxRandGenerator *generator = DaoProcess_GetRandCache( proc, 0 );
 	double max = p[0]->xFloat.value;
-	DaoProcess_PutFloat( proc, max * DaoxRandMT_Uniform( randmt ) );
+	DaoProcess_PutFloat( proc, max * DaoxRandGenerator_GetUniform( generator ) );
 }
 static void RAND_Rand2( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxRandMT *randmt = DaoProcess_GetRandCache( proc, 0 );
-	double random = DaoxRandMT_Uniform( randmt );
+	DaoxRandGenerator *generator = DaoProcess_GetRandCache( proc, 0 );
+	double random = DaoxRandGenerator_GetUniform( generator );
 	dao_integer max = p[0]->xInteger.value;
 	if( max < 0 ){
 		DaoProcess_PutInteger( proc, (max - 1) * random );
@@ -303,7 +286,7 @@ static void RAND_Rand2( DaoProcess *proc, DaoValue *p[], int N )
 */
 static DaoFuncItem randomMeths[]=
 {
-	{ RAND_Swap,      "swap( randgen: Uniform )" },
+	{ RAND_Swap,      "swap( randgen: Generator )" },
 	{ RAND_SRand,     "srand( seed: int )" },
 	{ RAND_Rand,      "rand( max = 1.0 ) => float" },
 	{ RAND_Rand2,     "rand( max: int ) => int" },
@@ -311,14 +294,12 @@ static DaoFuncItem randomMeths[]=
 };
 
 
-DaoType *daox_type_uniform_rand = NULL;
-DaoType *daox_type_normal_rand = NULL;
+DaoType *daox_type_rand_generator = NULL;
 
 DAO_DLL int DaoRandom_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *randomns = DaoNamespace_GetNamespace( ns, "random" );
-	daox_type_uniform_rand = DaoNamespace_WrapType( randomns, & DaoxUniformRand_Typer, 0 );
-	daox_type_normal_rand = DaoNamespace_WrapType( randomns, & DaoxNormalRand_Typer, 0 );
+	daox_type_rand_generator = DaoNamespace_WrapType( randomns, & DaoxRandGenerator_Typer, 1 );
 	DaoNamespace_WrapFunctions( randomns, randomMeths );
 	return 0;
 }

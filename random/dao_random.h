@@ -24,9 +24,6 @@
 // LIABILITY,  WHETHER IN CONTRACT,  STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 // OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
-// Redistribution and use in source and binary forms, with or without modification,
-// are permitted provided that the following conditions are met:
 */
 
 #ifndef __DAO_RANDOM_H__
@@ -34,47 +31,15 @@
 
 #include<stdlib.h>
 #include<math.h>
-#include"daoValue.h"
 
 
-#define DAO_MTCOUNT 624
+typedef struct DaoxRandGenerator DaoxRandGenerator;
 
-typedef struct DaoxRandMT       DaoxRandMT;
-typedef struct DaoxUniformRand  DaoxUniformRand;
-typedef struct DaoxNormalRand   DaoxNormalRand;
-
-/* Mersenne Twister: */
-struct DaoxRandMT
-{
-	uint_t  states[DAO_MTCOUNT];
-	uint_t  index;
-};
-
-DAO_DLL void DaoxRandMT_Seed( DaoxRandMT *self, uint_t seed );
-DAO_DLL void DaoxRandMT_Generate( DaoxRandMT *self );
-DAO_DLL uint_t DaoxRandMT_Extract( DaoxRandMT *self );
-
-
-
-struct DaoxUniformRand
-{
-	DAO_CSTRUCT_COMMON;
-
-	DaoxRandMT randmt;
-};
-DAO_DLL DaoType *daox_type_uniform_rand;
-
-
-
-struct DaoxNormalRand
-{
-	DAO_CSTRUCT_COMMON;
-
-	DaoxRandMT randmt;
-	float      gset;
-	int        iset;
-};
-DAO_DLL DaoType *daox_type_normal_rand;
+DAO_DLL DaoxRandGenerator* DaoxRandGenerator_New( uint_t seed );
+DAO_DLL void DaoxRandGenerator_Delete( DaoxRandGenerator *self );
+DAO_DLL void DaoxRandGenerator_Seed( DaoxRandGenerator *self, uint_t seed );
+DAO_DLL double DaoxRandGenerator_GetUniform( DaoxRandGenerator *self );
+DAO_DLL double DaoxRandGenerator_GetNormal( DaoxRandGenerator *self );
 
 
 #endif

@@ -38,6 +38,10 @@
 #define tzname _tzname
 #endif
 
+/*
+// TODO: support fraction seconds (like a timestamp)?
+*/
+
 static const char timeerr[] = "Time";
 static DaoType *daox_type_time = NULL;
 
@@ -115,12 +119,15 @@ void DaoTime_CalcJulianDay( DaoTime *self )
 	self->jday = GetJulianDay( self->parts.tm_year + 1900, self->parts.tm_mon + 1, self->parts.tm_mday );
 }
 
-static void DaoTime_Count( DaoProcess *proc, DaoValue *p[], int N )
+static void DaoTime_Value2( DaoProcess *proc, DaoValue *p[], int N )
 {
 	time_t tm = time(NULL);
 	if ( tm == (time_t)-1 ){
 		DaoProcess_RaiseError( proc, timeerr, "Failed to get current datetime" );
 		return;
+	}
+	if( sizeof(dao_integer) < sizeof(time_t) ){
+		DaoProcess_RaiseWarning( proc, timeerr, "The time value might overflow the int type" );
 	}
 	DaoProcess_PutInteger( proc, tm );
 }
@@ -769,7 +776,7 @@ DaoTypeBase timeTyper = {
 static DaoFuncItem timeFuncs[] =
 {
 	/*! Returns current \c time_t value -- the number of seconds passed since the epoch time (1970-1-1, 00:00:00 UTC) */
-	{ DaoTime_Count,	"value() => int" },
+	{ DaoTime_Value2,	"value() => int" },
 
 	/*! Returns current datetime of the given \a kind */
 	{ DaoTime_Get,		"now(kind: enum<local,utc> = $local) => DateTime" },
@@ -807,10 +814,15 @@ DAO_DLL int DaoTime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *timens = DaoNamespace_GetNamespace( ns, "time" );
 
+#if 0
+	/* Warning will be raised by time::value(). */
 	if ( sizeof(dao_integer) != 8 ){
-		fprintf( stderr, "This module is not compatible with Dao compiled with 32-bit int type!\n" );
-		exit( 1 );
+		DaoStream* stream = DaoVmSpace_ErrorStream( vmSpace );
+		DaoStream_WriteChars( stream,
+				"This module is not compatible with Dao compiled with 32-bit int type!\n" );
+		return 1;
 	}
+#endif
 
 	daox_type_time = DaoNamespace_WrapType( timens, &timeTyper, DAO_CTYPE_INVAR|DAO_CTYPE_OPAQUE );
 	DaoNamespace_WrapFunctions( timens, timeFuncs );
