@@ -1,5 +1,5 @@
 
-project = DaoMake::Project( "DaoJson" ) 
+project = DaoMake::Project( "DaoJson" )
 
 daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
 
@@ -13,7 +13,7 @@ dao_json_objs = project.AddObjects( { "dao_json.c" } )
 dao_json_dll = project.AddSharedLibrary( "dao_json", dao_json_objs )
 dao_json_lib = project.AddStaticLibrary( "dao_json", dao_json_objs )
 
-path = DaoMake::MakePath( DaoMake::Variables[ "INSTALL_MOD" ], "web/json" )
+path = DaoMake::MakePath( DaoMake::Variables[ "INSTALL_MOD" ], "web" )
 
 project.Install( path, dao_json_dll );
 project.Install( path, dao_json_lib );

@@ -1,5 +1,5 @@
 
-project = DaoMake::Project( "DaoHttp" ) 
+project = DaoMake::Project( "DaoHttp" )
 
 daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
 
@@ -20,7 +20,7 @@ if( DaoMake::IsPlatform( "WIN32" ) ){
 	dao_http_lib.AddLinkingFlag( "-lws2_32" )
 }
 
-path = DaoMake::MakePath( DaoMake::Variables[ "INSTALL_MOD" ], "web/http" )
+path = DaoMake::MakePath( DaoMake::Variables[ "INSTALL_MOD" ], "web" )
 
 project.Install( path, dao_http_dll );
 project.Install( path, dao_http_lib );
