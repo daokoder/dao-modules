@@ -327,11 +327,11 @@ static void DaoTime_Set( DaoProcess *proc, DaoValue *p[], int N )
 	DaoTime_CalcJulianDay( res );
 }
 
-static void DaoTime_Copy( DaoProcess *proc, DaoValue *p[], int N )
+static void DaoTime_Clone( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoTime *other = (DaoTime*)DaoValue_TryGetCdata( p[0] );
+	DaoTime *self = (DaoTime*)DaoValue_TryGetCdata( p[0] );
 	DaoTime *res = DaoTime_New();
-	*res = *other;
+	*res = *self;
 	DaoProcess_PutCdata( proc, res, daox_type_time );
 }
 
@@ -764,6 +764,9 @@ static DaoFuncItem timeMeths[] =
 	{ DaoTime_NotEqual,	"!=(a: DateTime, b: DateTime) => bool" },
 	{ DaoTime_Lesser,	"<(a: DateTime, b: DateTime) => bool" },
 	{ DaoTime_LessOrEq,	"<=(a: DateTime, b: DateTime) => bool" },
+
+	/*! Returns datetime copy */
+	{ DaoTime_Clone,		"clone(self: DateTime) => DateTime" },
 	{ NULL, NULL }
 };
 
@@ -790,9 +793,6 @@ static DaoFuncItem timeFuncs[] =
 	/*! Returns local datetime parsed from \a value, which should contain date ('YYYY-MM-DD', 'YYYY-MM' or 'MM-DD')
 	 * and/or time ('HH:MM:SS' or 'HH:MM') separated by ' ' */
 	{ DaoTime_Parse,	"parse(value: string) => DateTime" },
-
-	/*! Returns \a other copy */
-	{ DaoTime_Copy,		"copy(other: DateTime) => DateTime" },
 
 	/*! Returns the difference between \a start and \a end datetime in days and seconds.
 	 *

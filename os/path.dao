@@ -277,6 +277,11 @@ public
     routine [](target: string) => Path {
         Path(tp, target).relativeTo(self)
     }
+
+    # Returns path copy
+    routine clone() => Path {
+        Path(tp, p, false)
+    }
 }
 
 # Constructs and validates path object with the given *value* and *kind*
