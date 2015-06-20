@@ -1,0 +1,61 @@
+
+load canvas
+load tiger_data
+
+routine LoadTiger( canvas : Canvas )
+{
+	group = canvas.AddGroup()
+	group.Rotate( 180 );
+	group.Move( 100, 100 );
+	brush = canvas.PushBrush()
+	for( i = 0 : pathCount-1 ){
+	#for( i = pathCount-60 : pathCount-50 ){
+		commands = commandArrays[i]
+		points = dataArrays[i]
+		style = styleArrays[i];
+
+		brush = canvas.PushBrush()
+		brush.SetStrokeColor( style[0], style[1], style[2], style[3] )
+		brush.SetFillColor( style[4], style[5], style[6], style[7] )
+
+		# vgDrawPath(path,paintModes), style[9] is the paintModes:
+		strokeWidth = (((int)style[9]) & 1) ? style[8] : 0;
+		brush.SetStrokeWidth( strokeWidth )
+		
+		path = Path();
+		canvas.AddPath( path );
+		k = 0;
+		for( j = 0 : commandCounts[i]-1 ){
+			switch( commands[j] ){
+			case VG_MOVE_TO_ABS  :
+				path.MoveTo( points[k], points[k+1] );
+				k += 2;
+			case VG_LINE_TO_ABS  :
+				path.LineAbsTo( points[k], points[k+1] );
+				k += 2;
+			case VG_CUBIC_TO_ABS :
+				path.CubicAbsTo( points[k], points[k+1], points[k+2], points[k+3], points[k+4], points[k+5] );
+				k += 6;
+			case VG_CLOSE_PATH   :
+				path.Close();
+			}
+		}
+		canvas.PopBrush()
+	}
+	canvas.PopBrush()
+}
+
+routine main( save : string, width = 1200, height = 900 )
+{
+
+	canvas = Canvas();
+	canvas.SetBackground( 1.0, 1.0, 1.0, 0.0 );
+	canvas.SetViewport( -400, 400, -300, 300 );
+
+	LoadTiger( canvas );
+
+	image = Image();
+	painter = Painter();
+	painter.RenderToImage( canvas, image, width, height );
+	image.Save( save );
+}

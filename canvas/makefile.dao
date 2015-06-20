@@ -1,0 +1,50 @@
+
+
+project_headers = 
+{
+	"source/dao_common.h" ,
+	"source/dao_font.h" ,
+	"source/dao_path.h" ,
+	"source/dao_canvas.h" ,
+	"source/dao_painter.h" ,
+	"source/dao_rasterizer.h" ,
+	"source/stb_truetype.h" ,
+}
+
+project_sources = 
+{
+	"source/dao_common.c" ,
+	"source/dao_font.c" ,
+	"source/dao_path.c" ,
+	"source/dao_canvas.c" ,
+	"source/dao_painter.c" ,
+	"source/dao_rasterizer.c" ,
+	"source/dao_onload.c" ,
+}
+
+
+
+daovm  = DaoMake::FindPackage( "Dao",      $REQUIRED )
+daoim  = DaoMake::FindPackage( "DaoImage", $REQUIRED )
+
+if( daovm == none or daoim == none ) return
+
+project = DaoMake::Project( "Canvas" ) 
+
+
+project_objs = project.AddObjects( project_sources, project_headers )
+project_dll  = project.AddSharedLibrary( "dao_canvas", project_objs )
+project_lib  = project.AddStaticLibrary( "dao_canvas", project_objs )
+
+project.UseImportLibrary( daovm )
+
+project.AddIncludePath( "../image/source" )
+project_dll.UseSharedLibrary( daoim, "dao_image" )
+
+project.SetTargetPath( "../../lib/dao/modules" )
+
+project.Install( DaoMake::Variables[ "INSTALL_MOD" ], project_dll );
+project.Install( DaoMake::Variables[ "INSTALL_MOD" ], project_lib );
+
+findpkg = project.GenerateFinder( $TRUE );
+project.Install( DaoMake::Variables[ "INSTALL_FINDER" ], findpkg );

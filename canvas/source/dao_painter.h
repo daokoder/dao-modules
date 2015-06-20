@@ -1,8 +1,8 @@
 /*
-// Dao Graphics Engine
+// Dao Canvas Module
 // http://www.daovm.net
 //
-// Copyright (c) 2012-2014, Limin Fu
+// Copyright (c) 2015, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -25,61 +25,33 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifndef __DAO_PAINTER_H__
+#define __DAO_PAINTER_H__
 
-#ifndef __DAO_IMAGE_H__
-#define __DAO_IMAGE_H__
+#include "dao_canvas.h"
+#include "dao_rasterizer.h"
 
-#include "daoStdtype.h"
-
-
-typedef struct DaoxImage  DaoxImage;
-
-
-/*
-// Image depths including the alpha channel:
-*/
-enum DaoxImageDepth
-{
-	DAOX_IMAGE_BIT8 ,
-	DAOX_IMAGE_BIT16 ,
-	DAOX_IMAGE_BIT24 ,
-	DAOX_IMAGE_BIT32
-};
+typedef struct DaoxPainter     DaoxPainter;
 
 
-/*
-// DaoxImage supports only RGBA with different depth.
-// Each channel is encoded in the same number of bits.
-*/
-struct DaoxImage
+struct DaoxPainter
 {
 	DAO_CSTRUCT_COMMON;
 
-	DArray  buffer;  /* Data buffer; */
-	uint_t  stride;  /* Number of bytes per row; */
-	uint_t  width;   /* Number of pixels per row; */
-	uint_t  height;  /* Number of pixels per column; */
-	uint_t  depth;   /* Color depth type; */
+	DaoxOBBox2D      obbox;
+	DaoxImage       *buffer;
+	DaoxRenderer    *renderer;
+	DaoxRasterizer  *rasterizer;
+	DaoxGradient    *gradient;
 };
-DAO_DLL DaoType *daox_type_image;
+extern DaoType *daox_type_painter;
+
+DaoxPainter* DaoxPainter_New();
+void DaoxPainter_Delete( DaoxPainter *self );
 
 
-DAO_DLL DaoxImage* DaoxImage_New();
-void DaoxImage_Delete( DaoxImage *self );
+void DaoxPainter_Paint( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D viewport );
 
-void DaoxImage_Resize( DaoxImage *self, int width, int height );
-
-int DaoxImage_Convert( DaoxImage *self, int dep );
-
-int DaoxImage_Decode( DaoxImage *self, DString *data );
-int DaoxImage_Encode( DaoxImage *self, DString *data, int format );
-
-int DaoxImage_LoadBMP( DaoxImage *self, const char *file );
-int DaoxImage_SaveBMP( DaoxImage *self, const char *file );
-
-int DaoxImage_LoadPNG( DaoxImage *self, const char *file );
-int DaoxImage_SavePNG( DaoxImage *self, const char *file );
-
-void DaoxImage_Export( DaoxImage *self, DaoArray *matrix, float factor );
+void DaoxPainter_PaintCanvasImage( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D viewport, DaoxImage *image, int width, int height );
 
 #endif

@@ -26,60 +26,62 @@
 */
 
 
-#ifndef __DAO_IMAGE_H__
-#define __DAO_IMAGE_H__
+#ifndef __DAO_FONT_H__
+#define __DAO_FONT_H__
 
+#include "dao_path.h"
 #include "daoStdtype.h"
+#include "stb_truetype.h"
 
 
-typedef struct DaoxImage  DaoxImage;
+typedef stbtt_fontinfo  DFontInfo;
+
+typedef struct DaoxGlyph  DaoxGlyph;
+typedef struct DaoxFont   DaoxFont;
 
 
-/*
-// Image depths including the alpha channel:
-*/
-enum DaoxImageDepth
-{
-	DAOX_IMAGE_BIT8 ,
-	DAOX_IMAGE_BIT16 ,
-	DAOX_IMAGE_BIT24 ,
-	DAOX_IMAGE_BIT32
-};
 
-
-/*
-// DaoxImage supports only RGBA with different depth.
-// Each channel is encoded in the same number of bits.
-*/
-struct DaoxImage
+struct DaoxGlyph
 {
 	DAO_CSTRUCT_COMMON;
 
-	DArray  buffer;  /* Data buffer; */
-	uint_t  stride;  /* Number of bytes per row; */
-	uint_t  width;   /* Number of pixels per row; */
-	uint_t  height;  /* Number of pixels per column; */
-	uint_t  depth;   /* Color depth type; */
+	size_t  codepoint;
+
+	int  advanceWidth;
+	int  leftSideBearing;
+
+	DaoxPath  *shape;
 };
-DAO_DLL DaoType *daox_type_image;
+extern DaoType* daox_type_glyph;
+
+DaoxGlyph* DaoxGlyph_New();
+void DaoxGlyph_Delete( DaoxGlyph *self );
 
 
-DAO_DLL DaoxImage* DaoxImage_New();
-void DaoxImage_Delete( DaoxImage *self );
 
-void DaoxImage_Resize( DaoxImage *self, int width, int height );
 
-int DaoxImage_Convert( DaoxImage *self, int dep );
+struct DaoxFont
+{
+	DAO_CSTRUCT_COMMON;
 
-int DaoxImage_Decode( DaoxImage *self, DString *data );
-int DaoxImage_Encode( DaoxImage *self, DString *data, int format );
+	DFontInfo  info;
+	DString   *buffer;
+	DMap      *glyphs;  /* Codepoint to glyph; */
 
-int DaoxImage_LoadBMP( DaoxImage *self, const char *file );
-int DaoxImage_SaveBMP( DaoxImage *self, const char *file );
+	int  ascent;
+	int  descent;
+	int  fontHeight;
+	int  lineSpace;
+};
+extern DaoType* daox_type_font;
 
-int DaoxImage_LoadPNG( DaoxImage *self, const char *file );
-int DaoxImage_SavePNG( DaoxImage *self, const char *file );
 
-void DaoxImage_Export( DaoxImage *self, DaoArray *matrix, float factor );
+DaoxFont* DaoxFont_New();
+int DaoxFont_Init( DaoxFont *self, DString *ttfData );
+
+DaoxGlyph* DaoxFont_GetGlyph( DaoxFont *self, size_t codepoint );
+
+DaoxFont* DaoxFont_GetDefault();
+
 
 #endif

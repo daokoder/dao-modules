@@ -8,6 +8,8 @@ project.UseImportLibrary( daovm, "dao" )
 project.SetTargetPath( "../../lib/dao/modules" )
 project.AddIncludePath( "Onigmo" )
 
+# TODO: daomake files for Onigmo. (configure is just too slow.)
+
 # Need absolute path for out-of-source build:
 onigmo_bld = project.BuildPath() / "Onigmo"
 onigmo_src = project.SourcePath() / "Onigmo"

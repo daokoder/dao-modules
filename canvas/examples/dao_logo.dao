@@ -1,0 +1,185 @@
+#
+#  Dao Language Logo
+#  By Limin Fu, 2012
+#
+
+load canvas;
+
+
+canvas = Canvas();
+
+canvas.SetViewport( -500, 500, -400, 400 );
+
+canvas.SetBackground( 1.0, 1.0, 1.0, 1.0 );
+
+fontRoboto = DefaultFont;#( "fonts/Roboto-Bold.ttf" );
+
+
+brush = canvas.PushBrush()
+brush.SetFont( fontRoboto, 120 );
+brush.SetStrokeWidth( 0.5 );
+brush.SetStrokeColor( 0.0, 0.0, 0.5, 0.9 );
+brush.SetFillColor( 0.0, 0.0, 0.5, 0.9 );
+
+text = canvas.AddText( "Dao", -100, 240 );
+
+brush = canvas.PushBrush()
+brush.SetFont( fontRoboto, 75 );
+brush.SetStrokeWidth( 0.5 );
+brush.SetStrokeColor( 0.0, 0.0, 0.5, 0.9 );
+brush.SetFillColor( 0.0, 0.0, 0.5, 0.9 );
+
+path = Path();
+#item = canvas.AddPath( path );
+#item.SetVisible( $false );
+
+path.MoveTo( -330, -90 )
+path.ArcTo( 650, 0, 135 )
+
+#canvas.SetFont( fontRoboto, 80 );
+#text = canvas.AddText( "Programming Language", path );
+text = canvas.AddText( "PROGRAMMING LANGUAGE", path );
+canvas.PopBrush();
+#{
+#}
+canvas.PopBrush();
+
+canvas.PushBrush()
+
+unit = 100;
+
+brush = canvas.PushBrush().SetJunction( $flat ).SetStrokeWidth(0)
+
+grad_O = brush.SetRadialGradient();
+grad_O.AddStop( 0.0, (1.0, 1.0, 1.0, 0.9) )
+grad_O.AddStop( 0.1, (0.9, 0.8, 0.9, 0.9) )
+grad_O.AddStop( 0.8, (0.6, 0.0, 0.9, 0.9) )
+grad_O.AddStop( 0.97, (0.5, 0.0, 0.8, 0.9) )
+grad_O.AddStop( 1.0, (1.0, 1.0, 1.0, 0.0) )
+grad_O.SetCenter( 0, 0 );
+grad_O.SetFocus( 0, 0 );
+grad_O.SetRadius( sqrt(5)*unit );
+#{
+#}
+
+
+path = Path();
+canvas.AddPath( path );
+
+path.MoveTo( 2*unit, -unit )
+.ArcAbsBy( 0, 0, -180 )
+.ArcAbsTo(  0, 0, -180 )
+.ArcAbsTo( 2*unit, -unit, +180 )
+path.Close();
+
+
+canvas.PopBrush()
+
+
+brush = canvas.PushBrush().SetJunction( $flat ).SetStrokeWidth(0)
+
+grad_O = brush.SetRadialGradient();
+grad_O.AddStop( 0.0, (1.0, 1.0, 1.0, 0.9) )
+grad_O.AddStop( 0.1, (0.9, 0.8, 0.9, 0.9) )
+grad_O.AddStop( 0.8, (0.9, 0.4, 0.0, 0.9) )
+grad_O.AddStop( 0.97, (0.8, 0.3, 0.0, 0.9) )
+grad_O.AddStop( 1.0, (1.0, 1.0, 1.0, 0.0) )
+grad_O.SetCenter( 0, 0 );
+grad_O.SetFocus( 0, 0 );
+grad_O.SetRadius( sqrt(5)*unit );
+
+path = Path();
+canvas.AddPath( path );
+
+#{
+path.MoveTo( 2*unit, -unit )
+.ArcAbsBy( 0, 0, 180 )
+.ArcAbsTo( 0, 0, - 180 + 0.1 )
+.ArcAbsTo( 2*unit, -unit, 180 + 0.1 )
+path.Close();
+#}
+
+path.MoveTo( -2*unit, unit )
+.ArcAbsBy( 0, 0, -180 )
+.ArcAbsTo( 0, 0, - 180 )
+.ArcAbsTo( -2*unit, unit, 180 )
+path.Close();
+
+
+canvas.PopBrush()
+
+brush = canvas.PushBrush().SetJunction( $flat ).SetStrokeWidth(0)
+
+grad_A = brush.SetRadialGradient();
+grad_A.AddStop( 0.0, (0.6, 0.7, 0.6, 0.1) )
+grad_A.AddStop( 0.3, (0.5, 0.6, 0.5, 0.4) )
+grad_A.AddStop( 0.5, (0.2, 0.9, 0.2, 0.7) )
+grad_A.AddStop( 0.7, (0.0, 0.6, 0.0, 0.8) )
+grad_A.AddStop( 0.725, (0.6, 0.6, 0.6, 0.0) )
+grad_A.AddStop( 0.725, (0.3, 0.6, 0.3, 0.7) )
+grad_A.AddStop( 0.95, (0.0, 0.5, 0.0, 0.7) )
+grad_A.AddStop( 1.0, (0.0, 0.5, 0.0, 0.0) )
+grad_A.SetCenter( 0, 0 );
+grad_A.SetFocus( 0, 0 );
+grad_A.SetRadius( sqrt(5)*unit );
+
+path = Path();
+canvas.AddPath( path );
+
+path.MoveTo( 2*unit, -unit )
+.ArcBy( -unit-0.1, 0.5*unit-0.1, -90 )
+.ArcAbsBy( 0, 0, -320 )
+.ArcAbsTo( 2*unit, -unit, 90 )
+path.Close();
+
+
+
+canvas.PopBrush()
+
+brush = canvas.PushBrush().SetJunction( $flat ).SetStrokeWidth(5)
+.SetStrokeColor( 0.8, 0.4, 0.0, 0.9 );
+
+grad_A = brush.SetRadialGradient();
+grad_A.AddStop( 0.0, (1.0, 0.9, 0.4, 0.7) )
+grad_A.AddStop( 0.5, (0.8, 0.7, 0.0, 0.7) )
+grad_A.AddStop( 0.95, (0.9, 0.6, 0.3, 0.7) )
+grad_A.AddStop( 1.0, (0.8, 0.5, 0.3, 0.0) )
+grad_A.SetCenter( 0, 0 );
+grad_A.SetFocus( 0, 0 );
+grad_A.SetRadius( 1.3*unit );
+#{
+#}
+
+
+path = Path();
+canvas.AddPath( path );
+path.MoveTo( -50, 100 );
+path.CubicTo( 100, 0, 0, 80, 150, -100 )
+path.CubicTo( 100, 0, -150, -100 )
+path.CubicTo( -50, 0, -30, 0, 0, 40 )
+path.CubicTo( 20, 0, 20, 0, 0, 120 )
+path.CubicTo( -30, 0, -50, 0, 0, 40 )
+path.Close()
+
+path.MoveTo( 0, -60 );
+path.CubicTo( 20, 0, 0, -50, 60, 60 )
+path.CubicTo( 20, 0, -60, 60 )
+path.CubicTo( 0, 60, 0, -60 )
+path.CubicTo( -20, 0, 0, -60 )
+path.Close()
+
+
+canvas.PopBrush()
+
+#{
+image = Image();
+image.Load( "WELLTEXT.JPG" );
+canvas.AddImage( image, -200, -200 );
+#}
+
+image = Image();
+canvas.SetViewport( -500, 500, -400, 400 );
+
+painter = Painter();
+painter.RenderToImage( canvas, image, 800, 600 );
+image.Save( "test.png" );

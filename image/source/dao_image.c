@@ -42,12 +42,13 @@ DaoxImage* DaoxImage_New()
 {
 	DaoxImage *self = (DaoxImage*) dao_calloc( 1, sizeof(DaoxImage) );
 	DaoCstruct_Init( (DaoCstruct*)self, daox_type_image );
+	self->depth = DAOX_IMAGE_BIT32;
 	return self;
 }
 void DaoxImage_Delete( DaoxImage *self )
 {
-	if( self->imageData ) dao_free( self->imageData );
 	DaoCstruct_Free( (DaoCstruct*) self );
+	DArray_Clear( & self->buffer );
 	dao_free( self );
 }
 
@@ -58,12 +59,16 @@ void DaoxImage_Resize( DaoxImage *self, int width, int height )
 
 	assert( self->depth <= DAOX_IMAGE_BIT32 );
 
+	if( pixelBytes != self->buffer.stride ){
+		self->buffer.size = (self->buffer.size * self->buffer.stride) / pixelBytes;
+		self->buffer.capacity = (self->buffer.capacity * self->buffer.stride) / pixelBytes;
+		self->buffer.stride = pixelBytes;
+	}
 	if( widthStep % 4 ) widthStep += 4 - (widthStep % 4);
 	self->width = width;
 	self->height = height;
-	self->widthStep = widthStep;
-	self->imageSize = widthStep * height;
-	self->imageData = (uchar_t*)dao_realloc( self->imageData, self->imageSize*sizeof(uchar_t) );
+	self->stride = widthStep;
+	DArray_Resize( & self->buffer, widthStep * height );
 }
 int DaoxImage_Convert( DaoxImage *self, int dep )
 {
@@ -118,10 +123,10 @@ int DaoxImage_LoadBMP( DaoxImage *self, const char *file )
 	}
 	DaoxImage_Resize( self, width, height );
 
-	pixelBytes = 1 + self->depth;
+	pixelBytes = self->buffer.stride;
 	for(i=0; i<height; ++i){
-		uchar_t *dest = self->imageData + i * self->widthStep;
-		uchar_t *src = data + pixelArray + i * self->widthStep;
+		uchar_t *dest = self->buffer.data.uchars + i * self->stride;
+		uchar_t *src = data + pixelArray + i * self->stride;
 		for(j=0;  j<width;  ++j, dest += pixelBytes, src += pixelBytes){
 			dest[0] = src[2];
 			dest[1] = src[1];
@@ -149,12 +154,12 @@ void daox_write_short( FILE *fout, short i )
 int DaoxImage_SaveBMP( DaoxImage *self, const char *file )
 {
 	FILE *fout = fopen( file, "w+" );
-	int i, j, pixelBytes = 1 + self->depth;
+	int i, j, pixelBytes = self->buffer.stride;
 
 	if( fout == NULL ) return 0;
 
 	fprintf( fout, "BM" );
-	daox_write_int( fout, 14 + 40 + self->imageSize );
+	daox_write_int( fout, 14 + 40 + self->buffer.size * self->buffer.stride );
 	daox_write_short( fout, 0 );
 	daox_write_short( fout, 0 );
 	daox_write_int( fout, 14 + 40 );
@@ -164,13 +169,13 @@ int DaoxImage_SaveBMP( DaoxImage *self, const char *file )
 	daox_write_short( fout, 1 );
 	daox_write_short( fout, 8*(1+self->depth) );
 	daox_write_int( fout, 0 );
-	daox_write_int( fout, self->imageSize );
+	daox_write_int( fout, self->buffer.size * self->buffer.stride );
 	daox_write_int( fout, 2835  );
 	daox_write_int( fout, 2835  );
 	daox_write_int( fout, 0 );
 	daox_write_int( fout, 0 );
 	for(i=0; i<self->height; ++i){
-		uchar_t *pix = self->imageData + i * self->widthStep;
+		uchar_t *pix = self->buffer.data.uchars + i * self->stride;
 		for(j=0;  j<self->width;  ++j, pix += pixelBytes){
 			fprintf( fout, "%c%c%c", pix[2], pix[1], pix[0] );
 			if( self->depth == DAOX_IMAGE_BIT32 ) fprintf( fout, "%c", pix[3] );
@@ -187,9 +192,9 @@ void DaoxImage_SetData( DaoxImage *self, unsigned char *buffer, int width, int h
 	self->depth = dep;
 	DaoxImage_Resize( self, width, height );
 
-	pixelBytes = 1 + self->depth;
+	pixelBytes = self->buffer.stride;
 	for(i=0; i<height; ++i){
-		uchar_t *dest = self->imageData + (height - i - 1) * self->widthStep;
+		uchar_t *dest = self->buffer.data.uchars + (height - i - 1) * self->stride;
 		uchar_t *src = buffer + i * width * pixelBytes;
 		memcpy( dest, src, width*pixelBytes*sizeof(uchar_t) );
 	}
@@ -225,11 +230,11 @@ int DaoxImage_LoadPNG( DaoxImage *self, const char *file )
 }
 int DaoxImage_SavePNG( DaoxImage *self, const char *file )
 {
-	unsigned i, pixelBytes = 1 + self->depth;
+	unsigned i, pixelBytes = self->buffer.stride;
 	unsigned char *buffer = dao_malloc( self->width * self->height * pixelBytes );
 
 	for(i=0; i<self->height; ++i){
-		uchar_t *src = self->imageData + (self->height - i - 1) * self->widthStep;
+		uchar_t *src = self->buffer.data.uchars + (self->height - i - 1) * self->stride;
 		uchar_t *dest = buffer + i * self->width * pixelBytes;
 		memcpy( dest, src, self->width*pixelBytes*sizeof(uchar_t) );
 	}
@@ -278,13 +283,13 @@ int DaoxImage_Decode( DaoxImage *self, DString *data )
 }
 int DaoxImage_Encode( DaoxImage *self, DString *data, int format )
 {
-	unsigned i, pixelBytes = 1 + self->depth;
+	unsigned i, pixelBytes = self->buffer.stride;
 	unsigned char *buffer = dao_malloc( self->width * self->height * pixelBytes );
 	unsigned char *out = NULL;
 	size_t outsize = 0;
 
 	for(i=0; i<self->height; ++i){
-		uchar_t *src = self->imageData + (self->height - i - 1) * self->widthStep;
+		uchar_t *src = self->buffer.data.uchars + (self->height - i - 1) * self->stride;
 		uchar_t *dest = buffer + i * self->width * pixelBytes;
 		memcpy( dest, src, self->width*pixelBytes*sizeof(uchar_t) );
 	}
@@ -307,14 +312,14 @@ int DaoxImage_Encode( DaoxImage *self, DString *data, int format )
 
 void DaoxImage_Export( DaoxImage *self, DaoArray *matrix, float factor )
 {
-	int i, j, pixelBytes = 1 + self->depth;
+	int i, j, pixelBytes = self->buffer.stride;
 	daoint dims[2];
 
 	dims[0] = self->height;
 	dims[1] = self->width;
 	DaoArray_ResizeArray( matrix, dims, 2 );
 	for(i=0; i<self->height; ++i){
-		uchar_t *pix = self->imageData + i * self->widthStep;
+		uchar_t *pix = self->buffer.data.uchars + i * self->stride;
 		for(j=0;  j<self->width;  ++j, pix += pixelBytes){
 			daoint k = i * self->width + j;
 			switch( matrix->etype ){

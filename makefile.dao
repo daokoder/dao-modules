@@ -29,9 +29,10 @@ modules.AddDirectory( "zip",         "zip" );
 modules.AddDirectory( "web",         "web" );
 modules.AddDirectory( "sync",        "sync" );
 modules.AddDirectory( "xml",         "xml" );
-#modules.AddDirectory( "regex",       "regex" );
+modules.AddDirectory( "regex",       "regex" );
 modules.AddDirectory( "statistics",  "statistics" );
 modules.AddDirectory( "image",       "image" );
+modules.AddDirectory( "canvas",      "canvas" );
 
 
 if( DaoMake::IsDir( "DaoJIT" ) ) modules.AddDirectory( "DaoJIT", "DaoJIT" );
@@ -40,7 +41,6 @@ if( DaoMake::IsDir( "graph" ) ) modules.AddDirectory( "graph", "graph" );
 
 if( DaoMake::IsDir( "mlkit" ) ) modules.AddDirectory( "mlkit", "mlkit" );
 
-if( DaoMake::IsDir( "canvas" ) ) modules.AddDirectory( "canvas", "canvas" );
 
 if( DaoMake::IsDir( "DaoSDL" ) ) modules.AddDirectory( "SDL", "DaoSDL" );
 

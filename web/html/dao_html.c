@@ -197,7 +197,7 @@ void DaoHtmlContext_NewLine( DaoHtmlContext *self )
 	DString *line = DString_NewChars( "\n" );
 	int i;
 	for ( i = 0; i < self->indent; i++ )
-		DString_AppendChar( line, '\t' );
+		DString_AppendChars( line, "  " );
 	DList_Append( self->content, line );
 	self->size += line->size;
 	self->pending = 1;
@@ -379,6 +379,7 @@ static void Html_Fragment( DaoProcess *proc, DaoValue *p[], int N )
 
 const char *html_global_attr =
 	"tuple<enum<accesskey,_class,contextmenu,id,lang,style,title>, string> | tuple<enum<dropzone>, enum<copy;move;link>|string> | "
+	"tuple<enum<width,height>, string> | "
 	"tuple<enum<data_>, tuple<enum, string>> | tuple<enum<dir>, enum<ltr,rtl,auto>> | enum<contenteditable,hidden,spellcheck> | "
 	"tuple<enum<contenteditable,draggable,spellcheck>, bool> | tuple<enum<tabindex>, int> | "
 	"tuple<enum<translate>, enum<yes,no>> | "
