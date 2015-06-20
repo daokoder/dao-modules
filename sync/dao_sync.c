@@ -614,13 +614,19 @@ void DaoQueue_Delete( DaoQueue *self )
 static void DaoQueue_GetGCFields( void *p, DList *values, DList *arrays, DList *maps, int remove )
 {
 	DaoQueue *self = (DaoQueue*)p;
-	while( self->tail != NULL ){
-		QueueItem *item = self->tail;
-		self->tail = item->previous;
-		if( item->value ){
-			DList_Append( values, item->value );
-			if( remove ) item->value = NULL;
+	if ( remove )
+		// unwind the queue
+		while( self->tail != NULL ){
+			QueueItem *item = self->tail;
+			self->tail = item->previous;
+			if( item->value )
+				DList_Append( values, item->value );
+			dao_free( item );
 		}
+	else {
+		QueueItem *item;
+		for( item = self->tail; item; item = item->previous )
+			DList_Append( values, item->value );
 	}
 }
 
