@@ -29,6 +29,8 @@
 
 #include <string.h>
 #include "dao.h"
+#include "daoString.h"
+#include "daoGC.h"
 #include "daoValue.h"
 #include "daoStdtype.h"
 #include "daoProcess.h"
@@ -381,7 +383,7 @@ const char *html_global_attr =
 	"tuple<enum<accesskey,_class,contextmenu,id,lang,style,title>, string> | tuple<enum<dropzone>, enum<copy;move;link>|string> | "
 	"tuple<enum<width,height>, string> | "
 	"tuple<enum<data_>, tuple<enum, string>> | tuple<enum<dir>, enum<ltr,rtl,auto>> | enum<contenteditable,hidden,spellcheck> | "
-	"tuple<enum<contenteditable,draggable,spellcheck>, bool> | tuple<enum<tabindex>, int> | "
+	"tuple<enum<contenteditable,draggable,spellcheck>, int> | tuple<enum<tabindex>, int> | "
 	"tuple<enum<translate>, enum<yes,no>> | "
 	"tuple<enum<onabort,onblur,oncancel,oncanplay,oncanplaythrough,onchange,onclick,onclose,oncontextmenu,oncuechange,"
 			   "ondblclick,ondrag,ondragend,ondragenter,ondragleave,ondragover,ondragstart,ondrop,ondurationchange,onemptied,"
@@ -639,10 +641,692 @@ static DaoFuncItem htmlMeths[] =
 	{ NULL, NULL }
 };
 
+
+
+#include "gumbo.h"
+
+typedef struct DaoxHtmlNode    DaoxHtmlNode;
+typedef struct DaoxHtmlParser  DaoxHtmlParser;
+
+
+struct DaoxHtmlNode
+{
+	DAO_CSTRUCT_COMMON;
+
+	DaoxHtmlParser  *parser;  /* For GC, to ensure GumboOutput is never freed before this; */
+	GumboNode       *node;
+	DString         *text;
+	short            html;
+};
+DaoType *daox_type_html_node;
+DaoType *daox_type_html_document_node;
+DaoType *daox_type_html_element_node;
+DaoType *daox_type_html_text_node;
+
+
+
+DaoxHtmlNode* DaoxHtmlNode_New( DaoxHtmlParser *parser )
+{
+	DaoxHtmlNode *self = (DaoxHtmlNode*) dao_calloc(1, sizeof(DaoxHtmlNode));
+	DaoCstruct_Init( (DaoCstruct*)self, daox_type_html_node );
+	self->text = DString_New();
+	self->parser = parser;
+	GC_IncRC( parser );
+	return self;
+}
+
+void DaoxHtmlNode_Delete( DaoxHtmlNode *self )
+{
+	DString_Delete( self->text );
+	GC_IncRC( self->parser );
+	DaoCstruct_Free( (DaoCstruct*) self );
+	dao_free( self );
+}
+
+static int DaoxHtmlNode_GetAttValue( DaoxHtmlNode *self, const char *name, DString *value )
+{
+	GumboAttribute *att;
+
+	if( self->node->type != GUMBO_NODE_ELEMENT ) return 0;
+
+	att = gumbo_get_attribute( & self->node->v.element.attributes, name );
+	if( att == NULL ) return 0;
+
+	DString_SetChars( value, att->value );
+	return 1;
+}
+static int DaoxHtmlNode_SetAttValue( DaoxHtmlNode *self, const char *name, const char *value )
+{
+	GumboOptions options = kGumboDefaultOptions;
+	GumboAttribute *att;
+	int len = strlen( value );
+
+	if( self->node->type != GUMBO_NODE_ELEMENT ) return 0;
+
+	att = gumbo_get_attribute( & self->node->v.element.attributes, name );
+	if( att == NULL ) return 0;
+
+	options.deallocator( options.userdata, (void*) att->value );
+	att->value = options.allocator( options.userdata, len + 1 );
+	strncpy( (char*)att->value, value, len );
+	return 1;
+}
+static DaoxHtmlNode* DaoxHtmlNode_FindByAttValue( DaoxHtmlNode *self, const char *name, const char *value )
+{
+	GumboAttribute *att;
+	int i;
+
+	if( self->node->type != GUMBO_NODE_ELEMENT ) return NULL;
+
+	att = gumbo_get_attribute( & self->node->v.element.attributes, name );
+	if( att && strcmp( att->value, value ) == 0 ) return self;
+
+	for(i=0; i<self->node->v.element.children.length; ++i){
+		GumboNode *child = (GumboNode*) self->node->v.element.children.data[i];
+		DaoxHtmlNode *find = DaoxHtmlNode_FindByAttValue( (DaoxHtmlNode*) child->userdata, name, value );
+		if( find ) return find;
+	}
+	return NULL;
+}
+
+
+
+struct DaoxHtmlParser
+{
+	DAO_CSTRUCT_COMMON;
+
+	GumboOutput  *output;
+	DList        *allWrappers;
+	DList        *freeWrappers;
+	DList        *strings;
+	daoint        useCount;
+};
+DaoType *daox_type_html_parser;
+
+
+
+DaoxHtmlParser* DaoxHtmlParser_New()
+{
+	DaoxHtmlParser *self = (DaoxHtmlParser*) dao_calloc(1, sizeof(DaoxHtmlParser));
+	DaoCstruct_Init( (DaoCstruct*)self, daox_type_html_parser );
+	self->strings = DList_New( DAO_DATA_STRING );
+	self->allWrappers = DList_New( DAO_DATA_VALUE );
+	self->freeWrappers = DList_New(0);
+	self->useCount = 0;
+	return self;
+}
+
+void DaoxHtmlParser_Reset( DaoxHtmlParser *self );
+
+void DaoxHtmlParser_Delete( DaoxHtmlParser *self )
+{
+	DaoxHtmlParser_Reset( self );
+	DaoCstruct_Free( (DaoCstruct*) self );
+	DList_Delete( self->allWrappers );
+	DList_Delete( self->freeWrappers );
+	dao_free( self );
+}
+
+void DaoxHtmlParser_Reset( DaoxHtmlParser *self )
+{
+	int i;
+
+	self->useCount = 0;
+	self->freeWrappers->size = 0;
+	for(i=0; i<self->allWrappers->size; ++i){
+		DList_Append( self->freeWrappers, self->allWrappers->items.pVoid[i] );
+	}
+	
+	if( self->output == NULL ) return;
+	gumbo_destroy_output( & kGumboDefaultOptions, self->output );
+	self->output = NULL;
+}
+static DaoxHtmlNode* DaoxHtmlParser_MakeWrapper( DaoxHtmlParser *self, GumboNode *node )
+{
+	DaoxHtmlNode *wrapper = (DaoxHtmlNode*) DList_PopBack( self->freeWrappers );
+	if( wrapper == NULL ){
+		wrapper = DaoxHtmlNode_New( self );
+		DList_Append( self->allWrappers, wrapper );
+	}
+	wrapper->node = node;
+	node->userdata = wrapper;
+	return wrapper;
+}
+static void DaoxHtmlParser_WrapNode( DaoxHtmlParser *self, GumboNode *node )
+{
+	int i;
+
+	node->userdata = DaoxHtmlParser_MakeWrapper( self, node );
+
+	if( node->type > GUMBO_NODE_TEXT ) return;
+
+	//if( node->type == GUMBO_NODE_TEXT ){ }
+	if( node->type != GUMBO_NODE_DOCUMENT && node->type != GUMBO_NODE_ELEMENT ){
+		return;
+	}
+	for(i=0; i<node->v.element.children.length; ++i){
+		GumboNode* child = (GumboNode*) node->v.element.children.data[i];
+		DaoxHtmlParser_WrapNode( self, child );
+	}
+}
+static DaoxHtmlNode* DaoxHtmlParser_FindRealRoot( DaoxHtmlParser *self, GumboNode *node )
+{
+	int i;
+
+	if( node->type != GUMBO_NODE_ELEMENT ) return NULL;
+	if( node->v.element.original_tag.length > 0 ) return (DaoxHtmlNode*) node->userdata;
+
+	for(i=0; i<node->v.element.children.length; ++i){
+		GumboNode *child = (GumboNode*) node->v.element.children.data[i];
+		DaoxHtmlNode *wrapper = DaoxHtmlParser_FindRealRoot( self, child );
+		if( wrapper ) return wrapper;
+	}
+	return NULL;
+}
+void DaoxHtmlParser_Parse( DaoxHtmlParser *self, DString *source )
+{
+	GumboOptions options = kGumboDefaultOptions;
+
+	DaoxHtmlParser_Reset( self );
+	self->output = gumbo_parse_with_options( & options, source->chars, source->size );
+
+	DaoxHtmlParser_WrapNode( self, self->output->document );
+}
+DString* DaoxHtmlParser_AcquireString( DaoxHtmlParser *self )
+{
+	DString *res;
+	DString temp = DString_WrapChars( "" );
+	if( self->strings->size <= self->useCount ) DList_Append( self->strings, & temp );
+	res = self->strings->items.pString[ self->useCount ++ ];
+	DString_Reset( res, 0 );
+	return res;
+}
+
+
+
+/*
+// Adapted from gumbo-parser/examples/serialize.cc!
+*/
+
+const char *nonbreaking_inline  = "|a|abbr|acronym|b|bdo|big|cite|code|dfn|em|font|i|img|kbd|nobr|s|small|span|strike|strong|sub|sup|tt|";
+const char *empty_tags          = "|area|base|basefont|bgsound|br|command|col|embed|event-source|frame|hr|image|img|input|keygen|link|menuitem|meta|param|source|spacer|track|wbr|";
+const char *special_handling    = "|html|body|";
+const char *no_entity_sub       = "|script|style|";
+
+
+static void substitute_xml_entities_into_text(DString *text)
+{
+	DString_Change( text, "{{&}}", "&amp;", 0 );
+	DString_Change( text, "{{<}}", "&lt;", 0 );
+	DString_Change( text, "{{>}}", "&gt;", 0 );
+}
+
+
+static void substitute_xml_entities_into_attributes(char quote, DString *text)
+{
+	substitute_xml_entities_into_text(text);
+	if (quote == '"') {
+		DString_Change( text, "{{\"}}", "&quot;", 0 );
+	} else if (quote == '\'') {
+		DString_Change( text,"{{'}}", "&apos;", 0 );
+	}
+}
+
+
+static void handle_unknown_tag(GumboStringPiece *text, DString *tagname )
+{
+	// work with copy GumboStringPiece to prevent asserts 
+	// if try to read same unknown tag name more than once
+	GumboStringPiece gsp = *text;
+
+	DString_Reset( tagname, 0 );
+
+	if (text->data == NULL) return;
+
+	gumbo_tag_from_original_text(&gsp);
+	DString_SetBytes( tagname, gsp.data, gsp.length );
+}
+
+
+static void get_tag_name(GumboNode *node, DString *tagname )
+{
+	DString_Reset( tagname, 0 );
+	// work around lack of proper name for document node
+	if (node->type == GUMBO_NODE_DOCUMENT) {
+		DString_SetChars( tagname, "document" );
+	} else {
+		DString_SetChars( tagname, gumbo_normalized_tagname(node->v.element.tag) );
+	}
+	if (tagname->size == 0) {
+		handle_unknown_tag(&node->v.element.original_tag, tagname);
+	}
+}
+
+
+static void build_doctype(GumboNode *node, DString *results)
+{
+	DString_Reset( results, 0 );
+	if (node->v.document.has_doctype) {
+		DString pi = DString_WrapChars(node->v.document.public_identifier);
+		DString_AppendChars( results, "<!DOCTYPE ");
+		DString_AppendChars( results, node->v.document.name);
+		if ((node->v.document.public_identifier != NULL) && pi.size ) {
+			DString_AppendChars( results, " PUBLIC \"");
+			DString_AppendChars( results, node->v.document.public_identifier);
+			DString_AppendChars( results, "\" \"");
+			DString_AppendChars( results, node->v.document.system_identifier);
+			DString_AppendChars( results, "\"");
+		}
+		DString_AppendChars( results, ">\n");
+	}
+}
+
+
+static void DaoxHtmlNode_BuildAttribute( DaoxHtmlNode *self, GumboAttribute *at, int no_entities, DString *atts)
+{
+	DString *value = DaoxHtmlParser_AcquireString( self->parser );
+
+	DString_AppendChar( atts, ' ' );
+	DString_AppendChars( atts, at->name );
+
+	DString_SetChars( value, at->value );
+	if ( value->size || 
+			(at->original_value.data[0] == '"') || 
+			(at->original_value.data[0] == '\'') ) {
+
+		char quote = at->original_value.data[0];
+		char qs = quote == '\'' || quote == '"' ? quote : 0;
+
+		DString_AppendChar( atts, '=' );
+		if( qs ) DString_AppendChar( atts, qs );
+
+		if (no_entities) {
+			DString_Append( atts, value );
+		} else {
+			substitute_xml_entities_into_attributes(quote, value);
+			DString_Append( atts, value );
+		}
+		if( qs ) DString_AppendChar( atts, qs );
+	}
+	self->parser->useCount --;
+}
+
+
+static void DaoNode_Serialize( DaoxHtmlNode *self, int level, DString *indent, DString *output );
+
+static void DaoNode_SerializeContents( DaoxHtmlNode *self, int level, DString *indent, DString *contents)
+{
+	int useCount = self->parser->useCount;
+	int i, no_entity_substitution;
+	GumboNode *node = self->node;
+	GumboVector* children;
+	DString *tagname = DaoxHtmlParser_AcquireString( self->parser );
+	DString *key = DaoxHtmlParser_AcquireString( self->parser );
+	DString *val = DaoxHtmlParser_AcquireString( self->parser );
+
+	get_tag_name( node, tagname );
+	DString_SetChars( key, "|" );
+	DString_Append( key, tagname );
+	DString_AppendChar( key, '|' );
+
+	no_entity_substitution = strstr( no_entity_sub, key->chars ) != NULL;
+
+	children = & node->v.element.children;
+
+	for (i = 0; i < children->length; ++i) {
+		GumboNode* child = (GumboNode*) children->data[i];
+
+		if (child->type == GUMBO_NODE_TEXT) {
+
+			DString_SetChars( val, child->v.text.text );
+
+			if (! no_entity_substitution) {
+				substitute_xml_entities_into_text( val );
+			}
+
+			DString_Append( contents, val );
+
+		} else if ((child->type == GUMBO_NODE_ELEMENT) || (child->type == GUMBO_NODE_TEMPLATE)) {
+
+			DString_Reset( val, 0 );
+			DaoNode_Serialize( (DaoxHtmlNode*) child->userdata, level, indent, val);
+			DString_Append( contents, val );
+
+		} else if (child->type == GUMBO_NODE_WHITESPACE) {
+
+			DString_AppendChars( contents, child->v.text.text );
+
+		} else if (child->type != GUMBO_NODE_COMMENT) {
+			fprintf(stderr, "unknown element of type: %d\n", child->type); 
+
+		}
+
+	}
+	if( self && self->text->size ){
+		DString_Assign( val, self->text );
+		if( self->html == 0 ) substitute_xml_entities_into_text( val );
+		DString_Append( contents, val );
+	}
+	self->parser->useCount = useCount;
+}
+
+
+static void DaoNode_Serialize( DaoxHtmlNode *self, int level, DString *indent, DString *output )
+{
+	int useCount = self->parser->useCount;
+	DString *close    = DaoxHtmlParser_AcquireString( self->parser );
+	DString *closeTag = DaoxHtmlParser_AcquireString( self->parser );
+	DString *atts     = DaoxHtmlParser_AcquireString( self->parser );
+	DString *tagname  = DaoxHtmlParser_AcquireString( self->parser );
+	DString *key      = DaoxHtmlParser_AcquireString( self->parser );
+	DString *contents = DaoxHtmlParser_AcquireString( self->parser );
+	GumboNode *node = self->node;
+	const GumboVector *attribs;
+	int need_special_handling;
+	int no_entity_substitution;
+	int is_empty_tag;
+	int i; 
+
+	if( node->v.element.original_tag.length == 0 ){
+		DaoNode_SerializeContents( self, level+1, indent, output );
+		self->parser->useCount = useCount;
+		return;
+	}
+
+	if (node->type == GUMBO_NODE_DOCUMENT) {
+		build_doctype(node, output);
+		DaoNode_SerializeContents( self, level+1, indent, output );
+		self->parser->useCount = useCount;
+		return;
+	}
+
+	get_tag_name( node, tagname );
+	DString_SetChars( key, "|" );
+	DString_Append( key, tagname );
+	DString_AppendChar( key, '|' );
+
+	need_special_handling   = strstr( special_handling, key->chars ) != NULL;
+	is_empty_tag            = strstr( empty_tags, key->chars ) != NULL;
+	no_entity_substitution  = strstr( no_entity_sub, key->chars ) != NULL;
+
+	attribs = & node->v.element.attributes;
+	for (i=0; i< attribs->length; ++i) {
+		GumboAttribute* at = (GumboAttribute*) attribs->data[i];
+		DaoxHtmlNode_BuildAttribute( self, at, no_entity_substitution, atts);
+	}
+
+	if (is_empty_tag) {
+		DString_SetChars( close, "/" );
+	} else {
+		DString_SetChars( closeTag, "</" );
+		DString_Append( closeTag, tagname );
+		DString_AppendChar( closeTag, '>' );
+	}
+
+	contents = DString_New();
+	DaoNode_SerializeContents( self, level+1, indent, contents );
+
+	if (need_special_handling) {
+		DString_Trim( contents, 1, 1, 0 );
+		DString_AppendChar( contents, '\n' );
+	}
+
+	DString_AppendChar( output, '<' );
+	DString_Append( output, tagname );
+	DString_Append( output, atts );
+	DString_Append( output, close );
+	DString_AppendChar( output, '>' );
+
+	if (need_special_handling) DString_AppendChar( output, '\n' );
+
+	DString_Append( output, contents );
+	DString_Append( output, closeTag );
+	if (need_special_handling)  DString_AppendChar( output, '\n' );
+
+	self->parser->useCount = useCount;
+}
+
+
+
+
+static void NODE_ID( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxHtmlNode *self = (DaoxHtmlNode*) p[0];
+	DString *id = p[1]->xString.value;
+	DaoxHtmlNode *res = DaoxHtmlNode_FindByAttValue( self, "id", id->chars );
+	if( res ){
+		DaoProcess_PutValue( proc, (DaoValue*) res );
+	}else{
+		DaoProcess_PutNone( proc );
+	}
+}
+static void NODE_GetATT( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxHtmlNode *self = (DaoxHtmlNode*) p[0];
+	DString *name = p[1]->xString.value;
+	DString *value = DaoProcess_PutChars( proc, "" );
+	if( DaoxHtmlNode_GetAttValue( self, name->chars, value ) == 0 ){
+		DaoProcess_PutNone( proc );
+	}
+}
+static void NODE_SetATT( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxHtmlNode *self = (DaoxHtmlNode*) p[0];
+	DString *value = p[1]->xString.value;
+	DString *name = p[2]->xString.value;
+	if( DaoxHtmlNode_SetAttValue( self, name->chars, value->chars ) == 0 ){
+		DaoProcess_PutNone( proc );
+	}
+}
+static void NODE_GetText( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxHtmlNode *self = (DaoxHtmlNode*) p[0];
+	DString *text = DaoProcess_PutChars( proc, "" );
+	int i;
+	if( self->node->type == GUMBO_NODE_TEXT ){
+		DString_SetChars( text, self->node->v.text.text );
+		return;
+	}
+	for(i=0; i<self->node->v.element.children.length; ++i){
+		GumboNode *child = (GumboNode*) self->node->v.element.children.data[i];
+		if( child->type == GUMBO_NODE_TEXT ){
+			DString_AppendChars( text, child->v.text.text );
+		}
+	}
+}
+static void GumboNode_SetText( GumboNode *node, const char *text )
+{
+	GumboOptions options = kGumboDefaultOptions;
+	int len = strlen( text );
+
+	options.deallocator( options.userdata, (void*) node->v.text.text );
+	node->v.text.text = options.allocator( options.userdata, len + 1 );
+	strncpy( (char*)node->v.text.text, text, len );
+}
+static void NODE_SetText( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxHtmlNode *self = (DaoxHtmlNode*) p[0];
+	DString *text = p[1]->xString.value;
+	int i;
+	if( self->node->type == GUMBO_NODE_TEXT ){
+		GumboNode_SetText( self->node, text->chars );
+		return;
+	}
+	for(i=0; i<self->node->v.element.children.length; ++i){
+		GumboNode *child = (GumboNode*) self->node->v.element.children.data[i];
+		if( child->type == GUMBO_NODE_TEXT ){
+			GumboNode_SetText( child, text->chars );
+			return;
+		}
+	}
+	DString_Assign( self->text, text );
+	self->html = 0;
+}
+static void NODE_GetHtml( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxHtmlNode *self = (DaoxHtmlNode*) p[0];
+	DString *html = DaoProcess_PutChars( proc, "" );
+	DString indent = DString_WrapChars( "  " );
+	DaoNode_Serialize( self, 1, & indent, html );
+}
+static void NODE_SetHtml( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxHtmlNode *self = (DaoxHtmlNode*) p[0];
+	DString *text = p[1]->xString.value;
+	DString_Assign( self->text, text );
+	self->html = 1;
+}
+static void NODE_EachAtt( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxHtmlNode *self = (DaoxHtmlNode*) p[0];
+	DaoVmCode *sect = DaoProcess_InitCodeSection( proc, 2 );
+	GumboVector *attribs = & self->node->v.element.attributes;
+	DaoString *name, *value;
+	int i, entry;
+
+	if( sect == NULL ) return;
+
+	name = DaoString_New();
+	value = DaoString_New();
+	entry = proc->topFrame->entry;
+	for (i=0; i< attribs->length; ++i) {
+		GumboAttribute* at = (GumboAttribute*) attribs->data[i];
+		if( sect->b > 0 ){
+			DaoString_SetChars( name, at->name );
+			DaoProcess_SetValue( proc, sect->a, (DaoValue*) name );
+		}
+		if( sect->b > 1 ){
+			DaoString_SetChars( value, at->value );
+			DaoProcess_SetValue( proc, sect->a+1, (DaoValue*) value );
+		}
+		proc->topFrame->entry = entry;
+		DaoProcess_Execute( proc );
+		if( proc->status == DAO_PROCESS_ABORTED ) break;
+		if( proc->stackValues[0] && proc->stackValues[0]->type == DAO_STRING ){
+			DaoxHtmlNode_SetAttValue( self, at->name, proc->stackValues[0]->xString.value->chars );
+		}
+	}
+	DaoProcess_PopFrame( proc );
+	DaoString_Delete( name );
+	DaoString_Delete( value );
+}
+static void NODE_EachSub( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxHtmlNode *self = (DaoxHtmlNode*) p[0];
+	DaoVmCode *sect;
+	GumboVector *children;
+	int i, entry;
+
+	if( self->node->type != GUMBO_NODE_DOCUMENT && self->node->type != GUMBO_NODE_ELEMENT ){
+		DaoProcess_RaiseError( proc, "Param", "this node has no children node" );
+		return;
+	}
+
+	sect = DaoProcess_InitCodeSection( proc, 2 );
+	if( sect == NULL ) return;
+
+	entry = proc->topFrame->entry;
+	children = & self->node->v.element.children;
+	for (i = 0; i < children->length; ++i) {
+		GumboNode* child = (GumboNode*) children->data[i];
+		if( sect->b > 0 ) DaoProcess_SetValue( proc, sect->a, (DaoValue*) child->userdata );
+		proc->topFrame->entry = entry;
+		DaoProcess_Execute( proc );
+		if( proc->status == DAO_PROCESS_ABORTED ) break;
+	}
+	DaoProcess_PopFrame( proc );
+}
+
+static DaoFuncItem DaoxHtmlNodeMeths[]=
+{
+	{ NODE_ID,      ".( self: Node, id: string ) => Node|none" },
+	{ NODE_GetATT,  "[]( self: Node, name: string ) => string|none" },
+	{ NODE_SetATT,  "[]=( self: Node, name: string, value: string )" },
+
+	{ NODE_GetText, ".text( self: Node ) => string" },
+	{ NODE_SetText, ".text=( self: Node, text: string )" },
+
+	{ NODE_GetHtml, ".html( self: Node ) => string" },
+	{ NODE_SetHtml, ".html=( self: Node, html: string )" },
+
+	{ NODE_EachAtt, "EachAttribute( self: Node )"
+		"[name: string, value: string => string|none]"
+	},
+	// TODO: filtering by node type;
+	{ NODE_EachSub, "EachSubNode( self: Node )[node: Node]" },
+
+	{ NULL, NULL }
+};
+
+static void DaoxHtmlNode_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int rm )
+{
+	DaoxHtmlNode *self = (DaoxHtmlNode*) p;
+	DList_Append( values, self->parser );
+	if( rm ) self->parser = NULL;
+}
+
+DaoTypeBase DaoxHtmlNode_Typer =
+{
+	"Node", NULL, NULL, (DaoFuncItem*) DaoxHtmlNodeMeths, { NULL }, { NULL },
+	(FuncPtrDel)DaoxHtmlNode_Delete, DaoxHtmlNode_GetGCFields
+};
+
+
+
+static void PARS_New( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxHtmlParser *self = DaoxHtmlParser_New();
+	DaoProcess_PutValue( proc, (DaoValue*) self );
+}
+static void PARS_Parse( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxHtmlParser *self = (DaoxHtmlParser*) p[0];
+	DString *source = p[1]->xString.value;
+	DaoxHtmlParser_Parse( self, source );
+	DaoProcess_PutValue( proc, (DaoValue*) self->output->root->userdata );
+}
+static void PARS_GetDocument( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxHtmlParser *self = (DaoxHtmlParser*) p[0];
+	DaoProcess_PutValue( proc, (DaoValue*) self->output->document->userdata );
+}
+static void PARS_GetRoot( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxHtmlParser *self = (DaoxHtmlParser*) p[0];
+	DaoProcess_PutValue( proc, (DaoValue*) self->output->root->userdata );
+}
+
+static DaoFuncItem DaoxHtmlParserMeths[]=
+{
+	{ PARS_New,          "Parser()" },
+	{ PARS_Parse,        "Parse( self: Parser, source: string ) => Node" },
+	{ PARS_GetDocument,  ".document( self: Parser ) => Node" },
+	{ PARS_GetRoot,      ".root( self: Parser ) => Node" },
+
+	{ NULL, NULL }
+};
+
+static void DaoxHtmlParser_GetGCFields( void *p, DList *vs, DList *lists, DList *maps, int rm )
+{
+	DaoxHtmlParser *self = (DaoxHtmlParser*) p;
+	DList_Append( lists, self->allWrappers );
+}
+
+DaoTypeBase DaoxHtmlParser_Typer =
+{
+	"Parser", NULL, NULL, (DaoFuncItem*) DaoxHtmlParserMeths, { NULL }, { NULL },
+	(FuncPtrDel)DaoxHtmlParser_Delete, DaoxHtmlParser_GetGCFields
+};
+
+
+
 DAO_DLL int DaoHtml_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	DaoNamespace *htmlns;
-	htmlns = DaoNamespace_GetNamespace( ns, "html" );
+	DaoNamespace *htmlns = DaoNamespace_GetNamespace( ns, "html" );
+
+	daox_type_html_node = DaoNamespace_WrapType( htmlns, & DaoxHtmlNode_Typer, 0 );
+	daox_type_html_parser = DaoNamespace_WrapType( htmlns, & DaoxHtmlParser_Typer, 0 );
+
 	DaoNamespace_DefineType( htmlns, html_global_attr, "GlobalAttr" );
 	DaoNamespace_DefineType( htmlns, html_step_attr, "Step" );
 	DaoNamespace_DefineType( htmlns, html_target_attr, "Target" );

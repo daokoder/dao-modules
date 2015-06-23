@@ -56,9 +56,9 @@ struct DaoxImage
 	DAO_CSTRUCT_COMMON;
 
 	DArray  buffer;  /* Data buffer; */
-	uint_t  stride;  /* Number of bytes per row; */
-	uint_t  width;   /* Number of pixels per row; */
-	uint_t  height;  /* Number of pixels per column; */
+	uint_t  stride;  /* Number of pixels per row in the buffer; */
+	uint_t  width;   /* Number of pixels per row in the image; */
+	uint_t  height;  /* Number of pixels per column in the image; */
 	uint_t  depth;   /* Color depth type; */
 };
 DAO_DLL DaoType *daox_type_image;

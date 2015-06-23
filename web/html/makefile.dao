@@ -5,8 +5,15 @@ daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
 
 if( daovm == none ) return
 
+project.AddDirectory( "gumbo-parser", "gumbo-parser" );
+
 project.UseImportLibrary( daovm, "dao" )
 project.SetTargetPath( "../../../lib/dao/modules/web" )
+
+gumbo_parser = DaoMake::FindPackage( "GumboParser", $REQUIRED )
+project.UseStaticLibrary( gumbo_parser, "gumbo_parser" )
+
+project.AddIncludePath( "gumbo-parser/src" )
 
 dao_html_objs = project.AddObjects( { "dao_html.c" } )
 
