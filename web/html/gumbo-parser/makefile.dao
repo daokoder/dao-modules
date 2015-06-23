@@ -4,7 +4,7 @@
 
 project = DaoMake::Project( "GumboParser" )
 
-inclist = 
+inclist =
 {
 	"src/attribute.h",
 	"src/parser.h",
@@ -26,7 +26,7 @@ inclist =
 	"src/tokenizer_states.h"
 }
 
-srclist = 
+srclist =
 {
 	"src/attribute.c",
 	"src/parser.c",
@@ -42,9 +42,9 @@ srclist =
 }
 
 project.AddIncludePath( "src" )
+project.AddCompilingFlag( "-std=c99" )
 
 gumbo_parser_objs = project.AddObjects( srclist, inclist )
 
 gumbo_parser_dll = project.AddSharedLibrary( "gumbo_parser", gumbo_parser_objs )
 gumbo_parser_lib = project.AddStaticLibrary( "gumbo_parser", gumbo_parser_objs )
-
