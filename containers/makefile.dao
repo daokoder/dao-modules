@@ -1,0 +1,15 @@
+
+project = DaoMake::Project( "DaoContainers" )
+
+daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
+
+if( daovm == none ) return
+
+project.AddDirectory( "set", "set" )
+
+project.UseImportLibrary( daovm, "dao" )
+
+project.SetTargetPath( "../../lib/dao/modules" )
+
+findpkg = project.GenerateFinder( $TRUE );
+project.Install( DaoMake::Variables[ "INSTALL_FINDER" ], findpkg );

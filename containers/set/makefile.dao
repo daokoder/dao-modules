@@ -1,0 +1,22 @@
+
+project = DaoMake::Project( "DaoSet" )
+
+daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
+
+if( daovm == none ) return
+
+project.UseImportLibrary( daovm, "dao" )
+
+dao_set_objs = project.AddObjects( { "dao_set.c" } )
+dao_set_dll  = project.AddSharedLibrary( "dao_set", dao_set_objs )
+dao_set_lib  = project.AddStaticLibrary( "dao_set", dao_set_objs )
+
+project.SetTargetPath( "../../../lib/dao/modules/containers" )
+
+path = DaoMake::MakePath( DaoMake::Variables[ "INSTALL_MOD" ], "containers" )
+
+project.Install( path, dao_set_dll );
+project.Install( path, dao_set_lib );
+
+findpkg = project.GenerateFinder( $TRUE );
+project.Install( DaoMake::Variables[ "INSTALL_FINDER" ], findpkg );
