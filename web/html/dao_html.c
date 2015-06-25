@@ -645,18 +645,183 @@ static DaoFuncItem htmlMeths[] =
 
 #include "gumbo.h"
 
+typedef struct DaoxHtmlTag DaoxHtmlTag;
+
+struct DaoxHtmlTag
+{
+	const char *name;
+	short       tag;
+	short       ctx;
+};
+
+DaoxHtmlTag html_tags[] =
+{
+	{ "html",           GUMBO_TAG_HTML,            GUMBO_TAG_LAST },
+	{ "head",           GUMBO_TAG_HEAD,            GUMBO_TAG_LAST },
+	{ "title",          GUMBO_TAG_TITLE,           GUMBO_TAG_LAST },
+	{ "base",           GUMBO_TAG_BASE,            GUMBO_TAG_LAST },
+	{ "link",           GUMBO_TAG_LINK,            GUMBO_TAG_LAST },
+	{ "meta",           GUMBO_TAG_META,            GUMBO_TAG_LAST },
+	{ "style",          GUMBO_TAG_STYLE,           GUMBO_TAG_LAST },
+	{ "script",         GUMBO_TAG_SCRIPT,          GUMBO_TAG_LAST },
+	{ "noscript",       GUMBO_TAG_NOSCRIPT,        GUMBO_TAG_LAST },
+	{ "template",       GUMBO_TAG_TEMPLATE,        GUMBO_TAG_LAST },
+	{ "body",           GUMBO_TAG_BODY,            GUMBO_TAG_LAST },
+	{ "article",        GUMBO_TAG_ARTICLE,         GUMBO_TAG_LAST },
+	{ "section",        GUMBO_TAG_SECTION,         GUMBO_TAG_LAST },
+	{ "nav",            GUMBO_TAG_NAV,             GUMBO_TAG_LAST },
+	{ "aside",          GUMBO_TAG_ASIDE,           GUMBO_TAG_LAST },
+	{ "h1",             GUMBO_TAG_H1,              GUMBO_TAG_LAST },
+	{ "h2",             GUMBO_TAG_H2,              GUMBO_TAG_LAST },
+	{ "h3",             GUMBO_TAG_H3,              GUMBO_TAG_LAST },
+	{ "h4",             GUMBO_TAG_H4,              GUMBO_TAG_LAST },
+	{ "h5",             GUMBO_TAG_H5,              GUMBO_TAG_LAST },
+	{ "h6",             GUMBO_TAG_H6,              GUMBO_TAG_LAST },
+	{ "hgroup",         GUMBO_TAG_HGROUP,          GUMBO_TAG_LAST },
+	{ "header",         GUMBO_TAG_HEADER,          GUMBO_TAG_LAST },
+	{ "footer",         GUMBO_TAG_FOOTER,          GUMBO_TAG_LAST },
+	{ "address",        GUMBO_TAG_ADDRESS,         GUMBO_TAG_LAST },
+	{ "p",              GUMBO_TAG_P,               GUMBO_TAG_LAST },
+	{ "hr",             GUMBO_TAG_HR,              GUMBO_TAG_LAST },
+	{ "pre",            GUMBO_TAG_PRE,             GUMBO_TAG_LAST },
+	{ "blockquote",     GUMBO_TAG_BLOCKQUOTE,      GUMBO_TAG_LAST },
+	{ "ol",             GUMBO_TAG_OL,              GUMBO_TAG_LAST },
+	{ "ul",             GUMBO_TAG_UL,              GUMBO_TAG_LAST },
+	{ "li",             GUMBO_TAG_LI,              GUMBO_TAG_OL },
+	{ "dl",             GUMBO_TAG_DL,              GUMBO_TAG_LAST },
+	{ "dt",             GUMBO_TAG_DT,              GUMBO_TAG_LAST },
+	{ "dd",             GUMBO_TAG_DD,              GUMBO_TAG_LAST },
+	{ "figure",         GUMBO_TAG_FIGURE,          GUMBO_TAG_LAST },
+	{ "figcaption",     GUMBO_TAG_FIGCAPTION,      GUMBO_TAG_LAST },
+	{ "main",           GUMBO_TAG_MAIN,            GUMBO_TAG_LAST },
+	{ "div",            GUMBO_TAG_DIV,             GUMBO_TAG_LAST },
+	{ "a",              GUMBO_TAG_A,               GUMBO_TAG_LAST },
+	{ "em",             GUMBO_TAG_EM,              GUMBO_TAG_LAST },
+	{ "strong",         GUMBO_TAG_STRONG,          GUMBO_TAG_LAST },
+	{ "small",          GUMBO_TAG_SMALL,           GUMBO_TAG_LAST },
+	{ "s",              GUMBO_TAG_S,               GUMBO_TAG_LAST },
+	{ "cite",           GUMBO_TAG_CITE,            GUMBO_TAG_LAST },
+	{ "q",              GUMBO_TAG_Q,               GUMBO_TAG_LAST },
+	{ "dfn",            GUMBO_TAG_DFN,             GUMBO_TAG_LAST },
+	{ "abbr",           GUMBO_TAG_ABBR,            GUMBO_TAG_LAST },
+	{ "data",           GUMBO_TAG_DATA,            GUMBO_TAG_LAST },
+	{ "time",           GUMBO_TAG_TIME,            GUMBO_TAG_LAST },
+	{ "code",           GUMBO_TAG_CODE,            GUMBO_TAG_LAST },
+	{ "var",            GUMBO_TAG_VAR,             GUMBO_TAG_LAST },
+	{ "samp",           GUMBO_TAG_SAMP,            GUMBO_TAG_LAST },
+	{ "kbd",            GUMBO_TAG_KBD,             GUMBO_TAG_LAST },
+	{ "sub",            GUMBO_TAG_SUB,             GUMBO_TAG_LAST },
+	{ "sup",            GUMBO_TAG_SUP,             GUMBO_TAG_LAST },
+	{ "i",              GUMBO_TAG_I,               GUMBO_TAG_LAST },
+	{ "b",              GUMBO_TAG_B,               GUMBO_TAG_LAST },
+	{ "u",              GUMBO_TAG_U,               GUMBO_TAG_LAST },
+	{ "mark",           GUMBO_TAG_MARK,            GUMBO_TAG_LAST },
+	{ "ruby",           GUMBO_TAG_RUBY,            GUMBO_TAG_LAST },
+	{ "rt",             GUMBO_TAG_RT,              GUMBO_TAG_LAST },
+	{ "rp",             GUMBO_TAG_RP,              GUMBO_TAG_LAST },
+	{ "bdi",            GUMBO_TAG_BDI,             GUMBO_TAG_LAST },
+	{ "bdo",            GUMBO_TAG_BDO,             GUMBO_TAG_LAST },
+	{ "span",           GUMBO_TAG_SPAN,            GUMBO_TAG_LAST },
+	{ "br",             GUMBO_TAG_BR,              GUMBO_TAG_LAST },
+	{ "wbr",            GUMBO_TAG_WBR,             GUMBO_TAG_LAST },
+	{ "ins",            GUMBO_TAG_INS,             GUMBO_TAG_LAST },
+	{ "del",            GUMBO_TAG_DEL,             GUMBO_TAG_LAST },
+	{ "image",          GUMBO_TAG_IMAGE,           GUMBO_TAG_LAST },
+	{ "img",            GUMBO_TAG_IMG,             GUMBO_TAG_LAST },
+	{ "iframe",         GUMBO_TAG_IFRAME,          GUMBO_TAG_LAST },
+	{ "embed",          GUMBO_TAG_EMBED,           GUMBO_TAG_LAST },
+	{ "object",         GUMBO_TAG_OBJECT,          GUMBO_TAG_LAST },
+	{ "param",          GUMBO_TAG_PARAM,           GUMBO_TAG_LAST },
+	{ "video",          GUMBO_TAG_VIDEO,           GUMBO_TAG_LAST },
+	{ "audio",          GUMBO_TAG_AUDIO,           GUMBO_TAG_LAST },
+	{ "source",         GUMBO_TAG_SOURCE,          GUMBO_TAG_LAST },
+	{ "track",          GUMBO_TAG_TRACK,           GUMBO_TAG_LAST },
+	{ "canvas",         GUMBO_TAG_CANVAS,          GUMBO_TAG_LAST },
+	{ "map",            GUMBO_TAG_MAP,             GUMBO_TAG_LAST },
+	{ "area",           GUMBO_TAG_AREA,            GUMBO_TAG_LAST },
+	{ "math",           GUMBO_TAG_MATH,            GUMBO_TAG_LAST },
+	{ "mi",             GUMBO_TAG_MI,              GUMBO_TAG_LAST },
+	{ "mo",             GUMBO_TAG_MO,              GUMBO_TAG_LAST },
+	{ "mn",             GUMBO_TAG_MN,              GUMBO_TAG_LAST },
+	{ "ms",             GUMBO_TAG_MS,              GUMBO_TAG_LAST },
+	{ "mtext",          GUMBO_TAG_MTEXT,           GUMBO_TAG_LAST },
+	{ "mglyph",         GUMBO_TAG_MGLYPH,          GUMBO_TAG_LAST },
+	{ "malignmark",     GUMBO_TAG_MALIGNMARK,      GUMBO_TAG_LAST },
+	{ "annotation-xml", GUMBO_TAG_ANNOTATION_XML,  GUMBO_TAG_LAST },
+	{ "svg",            GUMBO_TAG_SVG,             GUMBO_TAG_LAST },
+	{ "foreignobject",  GUMBO_TAG_FOREIGNOBJECT,   GUMBO_TAG_LAST },
+	{ "desc",           GUMBO_TAG_DESC,            GUMBO_TAG_LAST },
+	{ "table",          GUMBO_TAG_TABLE,           GUMBO_TAG_LAST },
+	{ "caption",        GUMBO_TAG_CAPTION,         GUMBO_TAG_TABLE },
+	{ "colgroup",       GUMBO_TAG_COLGROUP,        GUMBO_TAG_TABLE },
+	{ "col",            GUMBO_TAG_COL,             GUMBO_TAG_TABLE },
+	{ "tbody",          GUMBO_TAG_TBODY,           GUMBO_TAG_TABLE },
+	{ "thead",          GUMBO_TAG_THEAD,           GUMBO_TAG_TABLE },
+	{ "tfoot",          GUMBO_TAG_TFOOT,           GUMBO_TAG_TABLE },
+	{ "tr",             GUMBO_TAG_TR,              GUMBO_TAG_TABLE },
+	{ "td",             GUMBO_TAG_TD,              GUMBO_TAG_TABLE },
+	{ "th",             GUMBO_TAG_TH,              GUMBO_TAG_TABLE },
+	{ "form",           GUMBO_TAG_FORM,            GUMBO_TAG_LAST },
+	{ "fieldset",       GUMBO_TAG_FIELDSET,        GUMBO_TAG_LAST },
+	{ "legend",         GUMBO_TAG_LEGEND,          GUMBO_TAG_LAST },
+	{ "label",          GUMBO_TAG_LABEL,           GUMBO_TAG_LAST },
+	{ "input",          GUMBO_TAG_INPUT,           GUMBO_TAG_LAST },
+	{ "button",         GUMBO_TAG_BUTTON,          GUMBO_TAG_LAST },
+	{ "select",         GUMBO_TAG_SELECT,          GUMBO_TAG_LAST },
+	{ "datalist",       GUMBO_TAG_DATALIST,        GUMBO_TAG_LAST },
+	{ "optgroup",       GUMBO_TAG_OPTGROUP,        GUMBO_TAG_LAST },
+	{ "option",         GUMBO_TAG_OPTION,          GUMBO_TAG_LAST },
+	{ "textarea",       GUMBO_TAG_TEXTAREA,        GUMBO_TAG_LAST },
+	{ "keygen",         GUMBO_TAG_KEYGEN,          GUMBO_TAG_LAST },
+	{ "output",         GUMBO_TAG_OUTPUT,          GUMBO_TAG_LAST },
+	{ "progress",       GUMBO_TAG_PROGRESS,        GUMBO_TAG_LAST },
+	{ "meter",          GUMBO_TAG_METER,           GUMBO_TAG_LAST },
+	{ "details",        GUMBO_TAG_DETAILS,         GUMBO_TAG_LAST },
+	{ "summary",        GUMBO_TAG_SUMMARY,         GUMBO_TAG_LAST },
+	{ "menu",           GUMBO_TAG_MENU,            GUMBO_TAG_LAST },
+	{ "menuitem",       GUMBO_TAG_MENUITEM,        GUMBO_TAG_LAST },
+	{ "applet",         GUMBO_TAG_APPLET,          GUMBO_TAG_LAST },
+	{ "acronym",        GUMBO_TAG_ACRONYM,         GUMBO_TAG_LAST },
+	{ "bgsound",        GUMBO_TAG_BGSOUND,         GUMBO_TAG_LAST },
+	{ "dir",            GUMBO_TAG_DIR,             GUMBO_TAG_LAST },
+	{ "frame",          GUMBO_TAG_FRAME,           GUMBO_TAG_LAST },
+	{ "frameset",       GUMBO_TAG_FRAMESET,        GUMBO_TAG_LAST },
+	{ "noframes",       GUMBO_TAG_NOFRAMES,        GUMBO_TAG_LAST },
+	{ "isindex",        GUMBO_TAG_ISINDEX,         GUMBO_TAG_LAST },
+	{ "listing",        GUMBO_TAG_LISTING,         GUMBO_TAG_LAST },
+	{ "xmp",            GUMBO_TAG_XMP,             GUMBO_TAG_LAST },
+	{ "nextid",         GUMBO_TAG_NEXTID,          GUMBO_TAG_LAST },
+	{ "noembed",        GUMBO_TAG_NOEMBED,         GUMBO_TAG_LAST },
+	{ "plaintext",      GUMBO_TAG_PLAINTEXT,       GUMBO_TAG_LAST },
+	{ "rb",             GUMBO_TAG_RB,              GUMBO_TAG_LAST },
+	{ "strike",         GUMBO_TAG_STRIKE,          GUMBO_TAG_LAST },
+	{ "basefont",       GUMBO_TAG_BASEFONT,        GUMBO_TAG_LAST },
+	{ "big",            GUMBO_TAG_BIG,             GUMBO_TAG_LAST },
+	{ "blink",          GUMBO_TAG_BLINK,           GUMBO_TAG_LAST },
+	{ "center",         GUMBO_TAG_CENTER,          GUMBO_TAG_LAST },
+	{ "font",           GUMBO_TAG_FONT,            GUMBO_TAG_LAST },
+	{ "marquee",        GUMBO_TAG_MARQUEE,         GUMBO_TAG_LAST },
+	{ "multicol",       GUMBO_TAG_MULTICOL,        GUMBO_TAG_LAST },
+	{ "nobr",           GUMBO_TAG_NOBR,            GUMBO_TAG_LAST },
+	{ "spacer",         GUMBO_TAG_SPACER,          GUMBO_TAG_LAST },
+	{ "tt",             GUMBO_TAG_TT,              GUMBO_TAG_LAST },
+	{ "rtc",            GUMBO_TAG_RTC,             GUMBO_TAG_LAST },
+	{ NULL, 0, 0 }
+};
+
+
 typedef struct DaoxHtmlNode    DaoxHtmlNode;
-typedef struct DaoxHtmlParser  DaoxHtmlParser;
+typedef struct DaoxHtmlDocument  DaoxHtmlDocument;
 
 
 struct DaoxHtmlNode
 {
 	DAO_CSTRUCT_COMMON;
 
-	DaoxHtmlParser  *parser;  /* For GC, to ensure GumboOutput is never freed before this; */
-	GumboNode       *node;
-	DString         *text;
-	short            html;
+	DaoxHtmlDocument  *document;  /* For GC, to ensure GumboOutput is never freed before this; */
+	GumboNode         *node;
+	DString           *text;
+	short              html;
 };
 DaoType *daox_type_html_node;
 DaoType *daox_type_html_document_node;
@@ -665,20 +830,20 @@ DaoType *daox_type_html_text_node;
 
 
 
-DaoxHtmlNode* DaoxHtmlNode_New( DaoxHtmlParser *parser )
+DaoxHtmlNode* DaoxHtmlNode_New( DaoxHtmlDocument *document )
 {
 	DaoxHtmlNode *self = (DaoxHtmlNode*) dao_calloc(1, sizeof(DaoxHtmlNode));
 	DaoCstruct_Init( (DaoCstruct*)self, daox_type_html_node );
 	self->text = DString_New();
-	self->parser = parser;
-	GC_IncRC( parser );
+	self->document = document;
+	GC_IncRC( document );
 	return self;
 }
 
 void DaoxHtmlNode_Delete( DaoxHtmlNode *self )
 {
 	DString_Delete( self->text );
-	GC_IncRC( self->parser );
+	GC_IncRC( self->document );
 	DaoCstruct_Free( (DaoCstruct*) self );
 	dao_free( self );
 }
@@ -708,7 +873,7 @@ static int DaoxHtmlNode_SetAttValue( DaoxHtmlNode *self, const char *name, const
 
 	options.deallocator( options.userdata, (void*) att->value );
 	att->value = options.allocator( options.userdata, len + 1 );
-	strncpy( (char*)att->value, value, len );
+	strcpy( (char*)att->value, value );
 	return 1;
 }
 static DaoxHtmlNode* DaoxHtmlNode_FindByAttValue( DaoxHtmlNode *self, const char *name, const char *value )
@@ -731,7 +896,7 @@ static DaoxHtmlNode* DaoxHtmlNode_FindByAttValue( DaoxHtmlNode *self, const char
 
 
 
-struct DaoxHtmlParser
+struct DaoxHtmlDocument
 {
 	DAO_CSTRUCT_COMMON;
 
@@ -739,35 +904,44 @@ struct DaoxHtmlParser
 	DList        *allWrappers;
 	DList        *freeWrappers;
 	DList        *strings;
+	DMap         *tags; /* TODO: move elsewhere; */
 	daoint        useCount;
 };
-DaoType *daox_type_html_parser;
+DaoType *daox_type_html_document;
 
 
 
-DaoxHtmlParser* DaoxHtmlParser_New()
+DaoxHtmlDocument* DaoxHtmlDocument_New()
 {
-	DaoxHtmlParser *self = (DaoxHtmlParser*) dao_calloc(1, sizeof(DaoxHtmlParser));
-	DaoCstruct_Init( (DaoCstruct*)self, daox_type_html_parser );
+	int i;
+	DaoxHtmlDocument *self = (DaoxHtmlDocument*) dao_calloc(1, sizeof(DaoxHtmlDocument));
+	DaoCstruct_Init( (DaoCstruct*)self, daox_type_html_document );
 	self->strings = DList_New( DAO_DATA_STRING );
 	self->allWrappers = DList_New( DAO_DATA_VALUE );
 	self->freeWrappers = DList_New(0);
+	self->tags = DHash_New( DAO_DATA_STRING, 0 );
 	self->useCount = 0;
+	for(i=0; html_tags[i].name != NULL; ++i){
+		DString key = DString_WrapChars( html_tags[i].name );
+		DMap_Insert( self->tags, & key, (void*)(size_t) html_tags[i].tag );
+	}
 	return self;
 }
 
-void DaoxHtmlParser_Reset( DaoxHtmlParser *self );
+void DaoxHtmlDocument_Reset( DaoxHtmlDocument *self );
 
-void DaoxHtmlParser_Delete( DaoxHtmlParser *self )
+void DaoxHtmlDocument_Delete( DaoxHtmlDocument *self )
 {
-	DaoxHtmlParser_Reset( self );
+	DaoxHtmlDocument_Reset( self );
 	DaoCstruct_Free( (DaoCstruct*) self );
 	DList_Delete( self->allWrappers );
 	DList_Delete( self->freeWrappers );
+	DList_Delete( self->strings);
+	DMap_Delete( self->tags );
 	dao_free( self );
 }
 
-void DaoxHtmlParser_Reset( DaoxHtmlParser *self )
+void DaoxHtmlDocument_Reset( DaoxHtmlDocument *self )
 {
 	int i;
 
@@ -781,7 +955,17 @@ void DaoxHtmlParser_Reset( DaoxHtmlParser *self )
 	gumbo_destroy_output( & kGumboDefaultOptions, self->output );
 	self->output = NULL;
 }
-static DaoxHtmlNode* DaoxHtmlParser_MakeWrapper( DaoxHtmlParser *self, GumboNode *node )
+DString* DaoxHtmlDocument_AcquireString( DaoxHtmlDocument *self )
+{
+	DString *res;
+	DString temp = DString_WrapChars( "" );
+	if( self->strings->size <= self->useCount ) DList_Append( self->strings, & temp );
+	res = self->strings->items.pString[ self->useCount ++ ];
+	DString_Reset( res, 0 );
+	return res;
+}
+
+static DaoxHtmlNode* DaoxHtmlDocument_MakeWrapper( DaoxHtmlDocument *self, GumboNode *node )
 {
 	DaoxHtmlNode *wrapper = (DaoxHtmlNode*) DList_PopBack( self->freeWrappers );
 	if( wrapper == NULL ){
@@ -792,11 +976,11 @@ static DaoxHtmlNode* DaoxHtmlParser_MakeWrapper( DaoxHtmlParser *self, GumboNode
 	node->userdata = wrapper;
 	return wrapper;
 }
-static void DaoxHtmlParser_WrapNode( DaoxHtmlParser *self, GumboNode *node )
+static void DaoxHtmlDocument_WrapNode( DaoxHtmlDocument *self, GumboNode *node )
 {
 	int i;
 
-	node->userdata = DaoxHtmlParser_MakeWrapper( self, node );
+	node->userdata = DaoxHtmlDocument_MakeWrapper( self, node );
 
 	if( node->type > GUMBO_NODE_TEXT ) return;
 
@@ -806,10 +990,10 @@ static void DaoxHtmlParser_WrapNode( DaoxHtmlParser *self, GumboNode *node )
 	}
 	for(i=0; i<node->v.element.children.length; ++i){
 		GumboNode* child = (GumboNode*) node->v.element.children.data[i];
-		DaoxHtmlParser_WrapNode( self, child );
+		DaoxHtmlDocument_WrapNode( self, child );
 	}
 }
-static DaoxHtmlNode* DaoxHtmlParser_FindRealRoot( DaoxHtmlParser *self, GumboNode *node )
+static DaoxHtmlNode* DaoxHtmlDocument_FindRealRoot( DaoxHtmlDocument *self, GumboNode *node )
 {
 	int i;
 
@@ -818,34 +1002,40 @@ static DaoxHtmlNode* DaoxHtmlParser_FindRealRoot( DaoxHtmlParser *self, GumboNod
 
 	for(i=0; i<node->v.element.children.length; ++i){
 		GumboNode *child = (GumboNode*) node->v.element.children.data[i];
-		DaoxHtmlNode *wrapper = DaoxHtmlParser_FindRealRoot( self, child );
+		DaoxHtmlNode *wrapper = DaoxHtmlDocument_FindRealRoot( self, child );
 		if( wrapper ) return wrapper;
 	}
 	return NULL;
 }
-void DaoxHtmlParser_Parse( DaoxHtmlParser *self, DString *source )
+void DaoxHtmlDocument_Parse( DaoxHtmlDocument *self, DString *source )
 {
+	daoint start = 0, end = 0;
+	char *chars = source->chars;
+	DString *part = DaoxHtmlDocument_AcquireString( self );
 	GumboOptions options = kGumboDefaultOptions;
+	DNode *it;
 
-	DaoxHtmlParser_Reset( self );
+	while( start < source->size && isalpha( chars[start] ) == 0 ) start += 1;
+	end = start;
+	while( end < source->size && (isalnum( chars[end] ) || chars[end] == '-') ) end += 1;
+
+	DString_SubString( source, part, start, end - start );
+
+	it = DMap_Find( self->tags, part );
+	if( it ) options.fragment_context = html_tags[ it->value.pInt ].ctx;
+
+	self->useCount --;
+
+	DaoxHtmlDocument_Reset( self );
 	self->output = gumbo_parse_with_options( & options, source->chars, source->size );
 
-	DaoxHtmlParser_WrapNode( self, self->output->document );
-}
-DString* DaoxHtmlParser_AcquireString( DaoxHtmlParser *self )
-{
-	DString *res;
-	DString temp = DString_WrapChars( "" );
-	if( self->strings->size <= self->useCount ) DList_Append( self->strings, & temp );
-	res = self->strings->items.pString[ self->useCount ++ ];
-	DString_Reset( res, 0 );
-	return res;
+	DaoxHtmlDocument_WrapNode( self, self->output->document );
 }
 
 
 
 /*
-// Adapted from gumbo-parser/examples/serialize.cc!
+// Adapted from gumbo-document/examples/serialize.cc!
 */
 
 const char *nonbreaking_inline  = "|a|abbr|acronym|b|bdo|big|cite|code|dfn|em|font|i|img|kbd|nobr|s|small|span|strike|strong|sub|sup|tt|";
@@ -924,7 +1114,7 @@ static void build_doctype(GumboNode *node, DString *results)
 
 static void DaoxHtmlNode_BuildAttribute( DaoxHtmlNode *self, GumboAttribute *at, int no_entities, DString *atts)
 {
-	DString *value = DaoxHtmlParser_AcquireString( self->parser );
+	DString *value = DaoxHtmlDocument_AcquireString( self->document );
 
 	DString_AppendChar( atts, ' ' );
 	DString_AppendChars( atts, at->name );
@@ -948,7 +1138,7 @@ static void DaoxHtmlNode_BuildAttribute( DaoxHtmlNode *self, GumboAttribute *at,
 		}
 		if( qs ) DString_AppendChar( atts, qs );
 	}
-	self->parser->useCount --;
+	self->document->useCount --;
 }
 
 
@@ -956,13 +1146,13 @@ static void DaoNode_Serialize( DaoxHtmlNode *self, int level, DString *indent, D
 
 static void DaoNode_SerializeContents( DaoxHtmlNode *self, int level, DString *indent, DString *contents)
 {
-	int useCount = self->parser->useCount;
+	int useCount = self->document->useCount;
 	int i, no_entity_substitution;
 	GumboNode *node = self->node;
 	GumboVector* children;
-	DString *tagname = DaoxHtmlParser_AcquireString( self->parser );
-	DString *key = DaoxHtmlParser_AcquireString( self->parser );
-	DString *val = DaoxHtmlParser_AcquireString( self->parser );
+	DString *tagname = DaoxHtmlDocument_AcquireString( self->document );
+	DString *key = DaoxHtmlDocument_AcquireString( self->document );
+	DString *val = DaoxHtmlDocument_AcquireString( self->document );
 
 	get_tag_name( node, tagname );
 	DString_SetChars( key, "|" );
@@ -1007,19 +1197,19 @@ static void DaoNode_SerializeContents( DaoxHtmlNode *self, int level, DString *i
 		if( self->html == 0 ) substitute_xml_entities_into_text( val );
 		DString_Append( contents, val );
 	}
-	self->parser->useCount = useCount;
+	self->document->useCount = useCount;
 }
 
 
 static void DaoNode_Serialize( DaoxHtmlNode *self, int level, DString *indent, DString *output )
 {
-	int useCount = self->parser->useCount;
-	DString *close    = DaoxHtmlParser_AcquireString( self->parser );
-	DString *closeTag = DaoxHtmlParser_AcquireString( self->parser );
-	DString *atts     = DaoxHtmlParser_AcquireString( self->parser );
-	DString *tagname  = DaoxHtmlParser_AcquireString( self->parser );
-	DString *key      = DaoxHtmlParser_AcquireString( self->parser );
-	DString *contents = DaoxHtmlParser_AcquireString( self->parser );
+	int useCount = self->document->useCount;
+	DString *close    = DaoxHtmlDocument_AcquireString( self->document );
+	DString *closeTag = DaoxHtmlDocument_AcquireString( self->document );
+	DString *atts     = DaoxHtmlDocument_AcquireString( self->document );
+	DString *tagname  = DaoxHtmlDocument_AcquireString( self->document );
+	DString *key      = DaoxHtmlDocument_AcquireString( self->document );
+	DString *contents = DaoxHtmlDocument_AcquireString( self->document );
 	GumboNode *node = self->node;
 	const GumboVector *attribs;
 	int need_special_handling;
@@ -1029,14 +1219,14 @@ static void DaoNode_Serialize( DaoxHtmlNode *self, int level, DString *indent, D
 
 	if( node->v.element.original_tag.length == 0 ){
 		DaoNode_SerializeContents( self, level+1, indent, output );
-		self->parser->useCount = useCount;
+		self->document->useCount = useCount;
 		return;
 	}
 
 	if (node->type == GUMBO_NODE_DOCUMENT) {
 		build_doctype(node, output);
 		DaoNode_SerializeContents( self, level+1, indent, output );
-		self->parser->useCount = useCount;
+		self->document->useCount = useCount;
 		return;
 	}
 
@@ -1083,7 +1273,7 @@ static void DaoNode_Serialize( DaoxHtmlNode *self, int level, DString *indent, D
 	DString_Append( output, closeTag );
 	if (need_special_handling)  DString_AppendChar( output, '\n' );
 
-	self->parser->useCount = useCount;
+	self->document->useCount = useCount;
 }
 
 
@@ -1099,6 +1289,11 @@ static void NODE_ID( DaoProcess *proc, DaoValue *p[], int N )
 	}else{
 		DaoProcess_PutNone( proc );
 	}
+}
+static void NODE_SetID( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxHtmlNode *self = (DaoxHtmlNode*) p[0];
+	DString *id = p[1]->xString.value;
 }
 static void NODE_GetATT( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1141,7 +1336,7 @@ static void GumboNode_SetText( GumboNode *node, const char *text )
 
 	options.deallocator( options.userdata, (void*) node->v.text.text );
 	node->v.text.text = options.allocator( options.userdata, len + 1 );
-	strncpy( (char*)node->v.text.text, text, len );
+	strcpy( (char*)node->v.text.text, text );
 }
 static void NODE_SetText( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1240,8 +1435,9 @@ static void NODE_EachSub( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem DaoxHtmlNodeMeths[]=
 {
 	{ NODE_ID,      ".( self: Node, id: string ) => Node|none" },
+	{ NODE_SetID,   ".=( self: Node, id: string, node: Node|none )" },
 	{ NODE_GetATT,  "[]( self: Node, name: string ) => string|none" },
-	{ NODE_SetATT,  "[]=( self: Node, name: string, value: string )" },
+	{ NODE_SetATT,  "[]=( self: Node, value: string, name: string )" },
 
 	{ NODE_GetText, ".text( self: Node ) => string" },
 	{ NODE_SetText, ".text=( self: Node, text: string )" },
@@ -1261,8 +1457,8 @@ static DaoFuncItem DaoxHtmlNodeMeths[]=
 static void DaoxHtmlNode_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int rm )
 {
 	DaoxHtmlNode *self = (DaoxHtmlNode*) p;
-	DList_Append( values, self->parser );
-	if( rm ) self->parser = NULL;
+	DList_Append( values, self->document );
+	if( rm ) self->document = NULL;
 }
 
 DaoTypeBase DaoxHtmlNode_Typer =
@@ -1273,49 +1469,51 @@ DaoTypeBase DaoxHtmlNode_Typer =
 
 
 
-static void PARS_New( DaoProcess *proc, DaoValue *p[], int N )
+static void DOC_New( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxHtmlParser *self = DaoxHtmlParser_New();
+	DaoxHtmlDocument *self = DaoxHtmlDocument_New();
+	DString *source = p[0]->xString.value;
+	DaoxHtmlDocument_Parse( self, source );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
-static void PARS_Parse( DaoProcess *proc, DaoValue *p[], int N )
+static void DOC_Parse( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxHtmlParser *self = (DaoxHtmlParser*) p[0];
+	DaoxHtmlDocument *self = (DaoxHtmlDocument*) p[0];
 	DString *source = p[1]->xString.value;
-	DaoxHtmlParser_Parse( self, source );
+	DaoxHtmlDocument_Parse( self, source );
 	DaoProcess_PutValue( proc, (DaoValue*) self->output->root->userdata );
 }
-static void PARS_GetDocument( DaoProcess *proc, DaoValue *p[], int N )
+static void DOC_GetRoot( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxHtmlParser *self = (DaoxHtmlParser*) p[0];
+	DaoxHtmlDocument *self = (DaoxHtmlDocument*) p[0];
 	DaoProcess_PutValue( proc, (DaoValue*) self->output->document->userdata );
 }
-static void PARS_GetRoot( DaoProcess *proc, DaoValue *p[], int N )
+static void DOC_GetContent( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxHtmlParser *self = (DaoxHtmlParser*) p[0];
+	DaoxHtmlDocument *self = (DaoxHtmlDocument*) p[0];
 	DaoProcess_PutValue( proc, (DaoValue*) self->output->root->userdata );
 }
 
-static DaoFuncItem DaoxHtmlParserMeths[]=
+static DaoFuncItem DaoxHtmlDocumentMeths[]=
 {
-	{ PARS_New,          "Parser()" },
-	{ PARS_Parse,        "Parse( self: Parser, source: string ) => Node" },
-	{ PARS_GetDocument,  ".document( self: Parser ) => Node" },
-	{ PARS_GetRoot,      ".root( self: Parser ) => Node" },
+	{ DOC_New,          "Document( source = '' )" },
+	{ DOC_Parse,        "Parse( self: Document, source: string ) => Node" },
+	{ DOC_GetRoot,      ".root( self: Document ) => Node" },
+	{ DOC_GetContent,   ".content( self: Document ) => Node" },
 
 	{ NULL, NULL }
 };
 
-static void DaoxHtmlParser_GetGCFields( void *p, DList *vs, DList *lists, DList *maps, int rm )
+static void DaoxHtmlDocument_GetGCFields( void *p, DList *vs, DList *lists, DList *maps, int rm )
 {
-	DaoxHtmlParser *self = (DaoxHtmlParser*) p;
+	DaoxHtmlDocument *self = (DaoxHtmlDocument*) p;
 	DList_Append( lists, self->allWrappers );
 }
 
-DaoTypeBase DaoxHtmlParser_Typer =
+DaoTypeBase DaoxHtmlDocument_Typer =
 {
-	"Parser", NULL, NULL, (DaoFuncItem*) DaoxHtmlParserMeths, { NULL }, { NULL },
-	(FuncPtrDel)DaoxHtmlParser_Delete, DaoxHtmlParser_GetGCFields
+	"Document", NULL, NULL, (DaoFuncItem*) DaoxHtmlDocumentMeths, { NULL }, { NULL },
+	(FuncPtrDel)DaoxHtmlDocument_Delete, DaoxHtmlDocument_GetGCFields
 };
 
 
@@ -1325,7 +1523,7 @@ DAO_DLL int DaoHtml_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace *htmlns = DaoNamespace_GetNamespace( ns, "html" );
 
 	daox_type_html_node = DaoNamespace_WrapType( htmlns, & DaoxHtmlNode_Typer, 0 );
-	daox_type_html_parser = DaoNamespace_WrapType( htmlns, & DaoxHtmlParser_Typer, 0 );
+	daox_type_html_document = DaoNamespace_WrapType( htmlns, & DaoxHtmlDocument_Typer, 0 );
 
 	DaoNamespace_DefineType( htmlns, html_global_attr, "GlobalAttr" );
 	DaoNamespace_DefineType( htmlns, html_step_attr, "Step" );

@@ -15,3 +15,20 @@ htmlForm = fragment {
 }
 
 io.writeln(htmlForm)
+
+doc = Document( htmlForm )
+
+# Get the <html> node:
+node = doc.content
+
+# Get element by id as field name:
+e = node.confirm_password;
+
+# Change the text content:
+e.text = "Confirm Password"
+
+# Access attribute by name as key:
+node.password["value"] = "123456"
+
+# Generate HTML:
+io.writeln( node.html )

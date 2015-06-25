@@ -29,6 +29,7 @@
 #ifndef __DAO_IMAGE_H__
 #define __DAO_IMAGE_H__
 
+#include "dao.h"
 #include "daoStdtype.h"
 
 
@@ -65,21 +66,21 @@ DAO_DLL DaoType *daox_type_image;
 
 
 DAO_DLL DaoxImage* DaoxImage_New();
-void DaoxImage_Delete( DaoxImage *self );
+DAO_DLL void DaoxImage_Delete( DaoxImage *self );
 
-void DaoxImage_Resize( DaoxImage *self, int width, int height );
+DAO_DLL void DaoxImage_Resize( DaoxImage *self, int width, int height );
 
-int DaoxImage_Convert( DaoxImage *self, int dep );
+DAO_DLL int DaoxImage_Convert( DaoxImage *self, int dep );
 
-int DaoxImage_Decode( DaoxImage *self, DString *data );
-int DaoxImage_Encode( DaoxImage *self, DString *data, int format );
+DAO_DLL int DaoxImage_Decode( DaoxImage *self, DString *data );
+DAO_DLL int DaoxImage_Encode( DaoxImage *self, DString *data, int format );
 
-int DaoxImage_LoadBMP( DaoxImage *self, const char *file );
-int DaoxImage_SaveBMP( DaoxImage *self, const char *file );
+DAO_DLL int DaoxImage_LoadBMP( DaoxImage *self, const char *file );
+DAO_DLL int DaoxImage_SaveBMP( DaoxImage *self, const char *file );
 
-int DaoxImage_LoadPNG( DaoxImage *self, const char *file );
-int DaoxImage_SavePNG( DaoxImage *self, const char *file );
+DAO_DLL int DaoxImage_LoadPNG( DaoxImage *self, const char *file );
+DAO_DLL int DaoxImage_SavePNG( DaoxImage *self, const char *file );
 
-void DaoxImage_Export( DaoxImage *self, DaoArray *matrix, float factor );
+DAO_DLL void DaoxImage_Export( DaoxImage *self, DaoArray *matrix, float factor );
 
 #endif
