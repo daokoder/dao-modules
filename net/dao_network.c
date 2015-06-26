@@ -64,8 +64,8 @@ typedef size_t socklen_t;
 
 #endif
 
-#include"..\..\kernel\dao.h"
-#include"..\..\kernel\daoValue.h"
+#include"dao.h"
+#include"daoValue.h"
 #include"daoStream.h"
 #include"daoThread.h"
 
