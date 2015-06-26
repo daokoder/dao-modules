@@ -1,6 +1,6 @@
 
 load net;
-load sys;
+load os;
 
 class Server
 {
@@ -13,7 +13,7 @@ class Server
 		while(1){
 			sockfd = sock.accept();
 			message = sockfd.receive();
-			io.writeln( sockfd.peername );
+			io.writeln( sockfd.peer );
 			io.writeln( 'received', message );
 			sockfd.sendDao( 'TEST', 12.345, [1,2,3] );
 			sockfd.close();

@@ -732,6 +732,8 @@ struct DaoIPv4Address {
 
 extern DaoTypeBase socketTyper;
 DaoType *daox_type_socket = NULL;
+DaoType *daox_type_tcpstream = NULL;
+DaoType *daox_type_tcplistener = NULL;
 DaoType *daox_type_ipv4addr = NULL;
 
 static DaoSocket* DaoSocket_New(  )
@@ -856,7 +858,7 @@ static void DaoSocket_Lib_Accept( DaoProcess *proc, DaoValue *par[], int N  )
 		return;
 	}
 	sock->state = Socket_Connected;
-	DaoProcess_PutCdata( proc, (void*)sock, daox_type_socket );
+	DaoProcess_PutCdata( proc, (void*)sock, daox_type_tcpstream );
 }
 
 static void DaoSocket_Lib_Connect( DaoProcess *proc, DaoValue *par[], int N  )
@@ -1059,45 +1061,8 @@ static void DaoSocket_Lib_Check( DaoProcess *proc, DaoValue *par[], int N  )
 
 static DaoFuncItem socketMeths[] =
 {
-	/*! Binds the socket to \a port using \a address options if specified. For the description of \a address, see \c net.bind() */
-	{  DaoSocket_Lib_Bind,          "bind( self: Socket, port: int )" },
-	{  DaoSocket_Lib_Bind,          "bind( self: Socket, port: int, address: enum<shared;exclusive;reused;default> )" },
-
-	/*! Listens the socket using \a backLog as the maximum size of the queue of pending connections */
-	{  DaoSocket_Lib_Listen,        "listen( self: Socket, backLog = 10 )" },
-
-	/*! Accepts connection */
-	{  DaoSocket_Lib_Accept,        "accept( self: Socket ) => socket" },
-
-	/*! Connects to \a host : \a port */
-	{  DaoSocket_Lib_Connect,       "connect( self: Socket, host: string|IPv4Address, port: int )" },
-
-	/*! Sends data \a data */
-	{  DaoSocket_Lib_Send,          "send( self: Socket, data: string )" },
-
-	/*! Identical to `send()`; required to satisfy `io::Device` interface */
-	{  DaoSocket_Lib_Send,          "write( self: Socket, data: string )" },
-
-	/*! Receives at most \a limit bytes and returnes the received data */
-	{  DaoSocket_Lib_Receive,       "receive( self: Socket, limit = 512 ) => string" },
-
-	/*! Identical to `receive()`; required to satisfy `io::Device` interface */
-	{  DaoSocket_Lib_Receive,       "read( self: Socket, count = -1 ) => string" },
-
-	/*! Sends data via the internal serialization protocol */
-	{  DaoSocket_Lib_SendDao,       "sendDao( self: Socket, ... )" },
-
-	/*! Receives data via the internal serialization protocol */
-	{  DaoSocket_Lib_ReceiveDao,    "receiveDao( self: Socket ) => list<int|float|complex|string|array>" },
-
-	/*! Checks the property specified by \a what; required to satisfy `io::Device` interface  */
-	{  DaoSocket_Lib_Check,			"check(self: Socket, what: enum<readable,writable,open,eof>) => bool" },
-
 	/*! Address to which the socket is bound */
 	{  DaoSocket_Lib_GetSockName,   ".name( invar self: Socket ) => string" },
-
-	/*! Peer address of a connected socket */
-	{  DaoSocket_Lib_GetPeerName,   ".peer( invar self: Socket ) => string" },
 
 	/*! Socket file descriptor */
 	{  DaoSocket_Lib_Id,            ".id( invar self: Socket ) => int" },
@@ -1105,23 +1070,77 @@ static DaoFuncItem socketMeths[] =
 	/*! Current socket state */
 	{  DaoSocket_Lib_State,         ".state( invar self: Socket ) => enum<closed,bound,listening,connected>" },
 
-	/*! Shuts down the connection, stopping further operations specified by \a what */
-	{  DaoSocket_Lib_Shutdown,      "shutdown( self: Socket, what: enum<send,receive,all> )" },
-
 	/*! Closes the socket */
 	{  DaoSocket_Lib_Close,         "close( self: Socket )" },
-
-	/*! Returns stream opened with \a mode bound to the socket
-	 * \warning Not supported on Windows */
-	{  DaoSocket_Lib_GetStream,     "open( invar self: Socket, mode: string ) => io::Stream" },
-
-	/*! String representation of the socket (its name) */
-	{  DaoSocket_Lib_GetSockName,   "(string)( invar self: Socket )" },
 	{ NULL, NULL }
 };
 
+//! Abstract socket type
 DaoTypeBase socketTyper = {
 	"Socket", NULL, NULL, socketMeths, {0}, {0}, (FuncPtrDel)DaoSocket_Delete, NULL
+};
+
+static DaoFuncItem tcpstreamMeths[] =
+{
+	/*! Connects to \a host : \a port */
+	{  DaoSocket_Lib_Connect,       "connect( self: TCPStream, host: string|IPv4Address, port: int )" },
+
+	/*! Sends data \a data */
+	{  DaoSocket_Lib_Send,          "send( self: TCPStream, data: string )" },
+
+	/*! Identical to `send()`; required to satisfy `io::Device` interface */
+	{  DaoSocket_Lib_Send,          "write( self: TCPStream, data: string )" },
+
+	/*! Receives at most \a limit bytes and returnes the received data */
+	{  DaoSocket_Lib_Receive,       "receive( self: TCPStream, limit = 512 ) => string" },
+
+	/*! Identical to `receive()`; required to satisfy `io::Device` interface */
+	{  DaoSocket_Lib_Receive,       "read( self: TCPStream, count = -1 ) => string" },
+
+	/*! Peer address of the connected socket */
+	{  DaoSocket_Lib_GetPeerName,   ".peer( invar self: TCPStream ) => string" },
+
+	/*! Sends data via the internal serialization protocol */
+	{  DaoSocket_Lib_SendDao,       "sendDao( self: TCPStream, ... )" },
+
+	/*! Receives data via the internal serialization protocol */
+	{  DaoSocket_Lib_ReceiveDao,    "receiveDao( self: TCPStream ) => list<int|float|complex|string|array>" },
+
+	/*! Checks the property specified by \a what; required to satisfy `io::Device` interface  */
+	{  DaoSocket_Lib_Check,			"check(self: TCPStream, what: enum<readable,writable,open,eof>) => bool" },
+
+	/*! Shuts down the connection, stopping further operations specified by \a what */
+	{  DaoSocket_Lib_Shutdown,      "shutdown( self: TCPStream, what: enum<send,receive,all> )" },
+
+	/*! Returns stream opened with \a mode bound to the socket
+	 *
+	 * \warning Not supported on Windows */
+	{  DaoSocket_Lib_GetStream,     "open( invar self: TCPStream, mode: string ) => io::Stream" },
+	{ NULL, NULL }
+};
+
+//! TCP stream socket (a connection endpoint)
+DaoTypeBase tcpstreamTyper = {
+	"TCPStream", NULL, NULL, tcpstreamMeths, {&socketTyper, NULL}, {0}, (FuncPtrDel)DaoSocket_Delete, NULL
+};
+
+static DaoFuncItem tcplistenerMeths[] =
+{
+	/*! Binds the socket to \a port using \a address options if specified. For the description of \a address, see \c net.bind() */
+	{  DaoSocket_Lib_Bind,          "bind( self: TCPListener, port: int )" },
+	{  DaoSocket_Lib_Bind,          "bind( self: TCPListener, port: int, address: enum<shared;exclusive;reused;default> )" },
+
+	/*! Listens the socket using \a backLog as the maximum size of the queue of pending connections */
+	{  DaoSocket_Lib_Listen,        "listen( self: TCPListener, backLog = 10 )" },
+
+	/*! Accepts connection, returning its server-side endpoint */
+	{  DaoSocket_Lib_Accept,        "accept( self: TCPListener ) => TCPStream" },
+	{ NULL, NULL }
+};
+
+//! TCP server-side socket
+DaoTypeBase tcplistenerTyper = {
+	"TCPListener", NULL, NULL, tcplistenerMeths, {&socketTyper, NULL}, {0}, (FuncPtrDel)DaoSocket_Delete, NULL
 };
 
 void DaoIPv4Address_Delete( DaoIPv4Address *self )
@@ -1287,7 +1306,7 @@ static void DaoNetLib_Bind( DaoProcess *proc, DaoValue *par[], int N  )
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 		return;
 	}
-	DaoProcess_PutCdata( proc, (void*)sock, daox_type_socket );
+	DaoProcess_PutCdata( proc, (void*)sock, daox_type_tcplistener );
 }
 static void DaoNetLib_Connect( DaoProcess *proc, DaoValue *p[], int N  )
 {
@@ -1310,7 +1329,7 @@ static void DaoNetLib_Connect( DaoProcess *proc, DaoValue *p[], int N  )
 		if( DaoSocket_ConnectToIP( sock, ip, p[1]->xInteger.value ) == -1 )
 			goto Error;
 	}
-	DaoProcess_PutCdata( proc, (void*)sock, daox_type_socket );
+	DaoProcess_PutCdata( proc, (void*)sock, daox_type_tcpstream );
 	return;
 Error:
 	GetErrorMessage( errbuf, GetError() );
@@ -1482,7 +1501,7 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 
 static DaoFuncItem netMeths[] =
 {
-	/*! Returns socket bound to \a port using \a address options if specified.
+	/*! Returns server-side TCP socket bound to \a port using \a address options if specified.
 	 *
 	 * Meaning of \a address values:
 	 * -\c shared -- non-exclusive binding of the address and port, other sockets will be able to bind to the same address and port
@@ -1494,11 +1513,11 @@ static DaoFuncItem netMeths[] =
 	 * -\c default -- default mode for the current platform (\c exclusive + \c reused on Unix, \c shared on Windows)
 	 *
 	 * If \a address is not specified, exclusive address mode is used */
-	{  DaoNetLib_Bind,          "bind( port: int ) => Socket" },
-	{  DaoNetLib_Bind,          "bind( port: int, address: enum<shared;exclusive;reused;default> ) => Socket" },
+	{  DaoNetLib_Bind,          "bind( port: int ) => TCPListener" },
+	{  DaoNetLib_Bind,          "bind( port: int, address: enum<shared;exclusive;reused;default> ) => TCPListener" },
 
-	/*! Returns socket connected to \a host : \a port */
-	{  DaoNetLib_Connect,       "connect( host: string|IPv4Address, port: int ) => Socket" },
+	/*! Returns client-side TCP connection endpoint connected to \a host : \a port */
+	{  DaoNetLib_Connect,       "connect( host: string|IPv4Address, port: int ) => TCPStream" },
 
 	/*! Returns information for host with the given \a id, which may be either name or address */
 	{  DaoNetLib_GetHost,       "host( id: string ) => tuple<name: string, aliases: list<string>, addresses: list<string>>" },
@@ -1508,6 +1527,7 @@ static DaoFuncItem netMeths[] =
 
 	/*! Waits \a timeout seconds for any object in \a read or \a write list to become available for reading or writing accordingly.
 	 * Returns sub-lists of \a read and \a write containing available objects
+	 *
 	 * \warning On Windows, selecting streams is not supported	*/
 	{  DaoNetLib_Select,
 		"select( invar read: list<@X<io::Stream|Socket>>, invar write: list<@Y<io::Stream|Socket>>,"
@@ -1538,6 +1558,8 @@ DAO_DLL int DaoNet_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace *netns = DaoNamespace_GetNamespace( ns, "net" );
 	daox_type_ipv4addr = DaoNamespace_WrapType( netns, & ipv4addrTyper, DAO_CTYPE_INVAR | DAO_CTYPE_OPAQUE );
 	daox_type_socket = DaoNamespace_WrapType( netns, & socketTyper, DAO_CTYPE_OPAQUE );
+	daox_type_tcpstream = DaoNamespace_WrapType( netns, & tcpstreamTyper, DAO_CTYPE_OPAQUE );
+	daox_type_tcplistener = DaoNamespace_WrapType( netns, & tcplistenerTyper, DAO_CTYPE_OPAQUE );
 	DaoNamespace_WrapFunctions( netns, netMeths );
 	DaoNetwork_Init( vmSpace, ns );
 	return 0;
