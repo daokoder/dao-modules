@@ -251,7 +251,7 @@ int DaoNetwork_Connect( const char *host, unsigned short port )
 	struct sockaddr_in addr;
 	struct hostent *he;
 	NET_TRANS( he = gethostbyname( host ) ); /*  get the host info */
-	if( he == NULL) return -1;
+	if( he == NULL) return -2; // to distinguish gethostbyname() errors
 	if( ( sockfd = socket( AF_INET, SOCK_STREAM, 0 ) ) == -1) return -1;
 
 	addr.sin_family = AF_INET;    /*  host byte order */
@@ -262,6 +262,26 @@ int DaoNetwork_Connect( const char *host, unsigned short port )
 	if( connect( sockfd, (struct sockaddr *)& addr, sizeof(struct sockaddr)) == -1){
 		DaoNetwork_Close( sockfd );
 		/* printf( "DaoNetwork_Connect() failed: %s, %i %i\n", host, port, sockfd ); */
+		/* perror("connect"); */
+		return -1;
+	}
+	return sockfd;
+}
+
+int DaoNetwork_ConnectToIP( struct in_addr *ip, unsigned short port )
+{
+	int sockfd;
+	struct sockaddr_in addr;
+	if( ( sockfd = socket( AF_INET, SOCK_STREAM, 0 ) ) == -1) return -1;
+
+	addr.sin_family = AF_INET;    /*  host byte order */
+	addr.sin_port = htons( port );  /*  short, network byte order */
+	addr.sin_addr = *ip;
+
+	/* printf( "DaoNetwork_ConnectToIP() : %s, %i %i\n", host, port, sockfd ); */
+	if( connect( sockfd, (struct sockaddr *)& addr, sizeof(struct sockaddr)) == -1){
+		DaoNetwork_Close( sockfd );
+		/* printf( "DaoNetwork_ConnectToIP() failed: %s, %i %i\n", host, port, sockfd ); */
 		/* perror("connect"); */
 		return -1;
 	}
@@ -697,12 +717,17 @@ enum {
 
 typedef short socket_state;
 typedef struct DaoSocket DaoSocket;
+typedef struct DaoIPv4Address DaoIPv4Address;
 
 struct DaoSocket
 {
 	int id;
 	socket_state state;
 	shutdown_flag shutflag;
+};
+
+struct DaoIPv4Address {
+	uchar_t octets[4];
 };
 
 extern DaoTypeBase socketTyper;
@@ -757,6 +782,15 @@ static int DaoSocket_Connect( DaoSocket *self, DString *host, int port )
 {
 	DaoSocket_Close( self );
 	self->id = DaoNetwork_Connect( DString_GetData( host ), port );
+	if( self->id >= 0 )
+		self->state = Socket_Connected;
+	return self->id;
+}
+
+static int DaoSocket_ConnectToIP( DaoSocket *self, DaoIPv4Address *ip, int port )
+{
+	DaoSocket_Close( self );
+	self->id = DaoNetwork_ConnectToIP( (struct in_addr*)ip->octets, port );
 	if( self->id != -1 )
 		self->state = Socket_Connected;
 	return self->id;
@@ -829,10 +863,27 @@ static void DaoSocket_Lib_Connect( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
-	if( DaoSocket_Connect( self, par[1]->xString.value, par[2]->xInteger.value ) == -1 ){
-		GetErrorMessage( errbuf, GetError() );
-		DaoProcess_RaiseError( proc, neterr, errbuf );
+	if ( par[1]->type == DAO_STRING ){
+		int res;
+		if( ( res = DaoSocket_Connect( self, par[1]->xString.value, par[2]->xInteger.value ) ) < 0 ){
+			if ( res == -2 ){
+				GetHostErrorMessage( errbuf, GetHostError() );
+				DaoProcess_RaiseError( proc, neterr, errbuf );
+				return;
+			}
+			else
+				goto Error;
+		}
 	}
+	else {
+		DaoIPv4Address *ip = (DaoIPv4Address*)DaoValue_TryGetCdata( par[1] );
+		if( DaoSocket_ConnectToIP( self, ip, par[2]->xInteger.value ) == -1 )
+			goto Error;
+	}
+	return;
+Error:
+	GetErrorMessage( errbuf, GetError() );
+	DaoProcess_RaiseError( proc, neterr, errbuf );
 }
 
 static void DaoSocket_Lib_Send( DaoProcess *proc, DaoValue *par[], int N  )
@@ -1019,7 +1070,7 @@ static DaoFuncItem socketMeths[] =
 	{  DaoSocket_Lib_Accept,        "accept( self: Socket ) => socket" },
 
 	/*! Connects to \a host : \a port */
-	{  DaoSocket_Lib_Connect,       "connect( self: Socket, host: string, port: int )" },
+	{  DaoSocket_Lib_Connect,       "connect( self: Socket, host: string|IPv4Address, port: int )" },
 
 	/*! Sends data \a data */
 	{  DaoSocket_Lib_Send,          "send( self: Socket, data: string )" },
@@ -1071,12 +1122,6 @@ static DaoFuncItem socketMeths[] =
 
 DaoTypeBase socketTyper = {
 	"Socket", NULL, NULL, socketMeths, {0}, {0}, (FuncPtrDel)DaoSocket_Delete, NULL
-};
-
-typedef struct DaoIPv4Address DaoIPv4Address;
-
-struct DaoIPv4Address {
-	uchar_t octets[4];
 };
 
 void DaoIPv4Address_Delete( DaoIPv4Address *self )
@@ -1248,12 +1293,28 @@ static void DaoNetLib_Connect( DaoProcess *proc, DaoValue *p[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *sock = DaoSocket_New(  );
-	if( DaoSocket_Connect( sock, p[0]->xString.value, p[1]->xInteger.value ) == -1 ){
-		GetErrorMessage( errbuf, GetError() );
-		DaoProcess_RaiseError( proc, neterr, errbuf );
-		return;
+	if ( p[0]->type == DAO_STRING ){
+		int res;
+		if( ( res = DaoSocket_Connect( sock, p[0]->xString.value, p[1]->xInteger.value ) ) < 0 ){
+			if ( res == -2 ){
+				GetHostErrorMessage( errbuf, GetHostError() );
+				DaoProcess_RaiseError( proc, neterr, errbuf );
+				return;
+			}
+			else
+				goto Error;
+		}
+	}
+	else {
+		DaoIPv4Address *ip = (DaoIPv4Address*)DaoValue_TryGetCdata( p[0] );
+		if( DaoSocket_ConnectToIP( sock, ip, p[1]->xInteger.value ) == -1 )
+			goto Error;
 	}
 	DaoProcess_PutCdata( proc, (void*)sock, daox_type_socket );
+	return;
+Error:
+	GetErrorMessage( errbuf, GetError() );
+	DaoProcess_RaiseError( proc, neterr, errbuf );
 }
 static void DaoNetLib_GetHost( DaoProcess *proc, DaoValue *par[], int N  )
 {
@@ -1437,7 +1498,7 @@ static DaoFuncItem netMeths[] =
 	{  DaoNetLib_Bind,          "bind( port: int, address: enum<shared;exclusive;reused;default> ) => Socket" },
 
 	/*! Returns socket connected to \a host : \a port */
-	{  DaoNetLib_Connect,       "connect( host: string, port: int ) => Socket" },
+	{  DaoNetLib_Connect,       "connect( host: string|IPv4Address, port: int ) => Socket" },
 
 	/*! Returns information for host with the given \a id, which may be either name or address */
 	{  DaoNetLib_GetHost,       "host( id: string ) => tuple<name: string, aliases: list<string>, addresses: list<string>>" },
@@ -1475,8 +1536,8 @@ void DaoNetwork_Init( DaoVmSpace *vms, DaoNamespace *ns )
 DAO_DLL int DaoNet_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *netns = DaoNamespace_GetNamespace( ns, "net" );
-	daox_type_socket = DaoNamespace_WrapType( netns, & socketTyper, DAO_CTYPE_OPAQUE );
 	daox_type_ipv4addr = DaoNamespace_WrapType( netns, & ipv4addrTyper, DAO_CTYPE_INVAR | DAO_CTYPE_OPAQUE );
+	daox_type_socket = DaoNamespace_WrapType( netns, & socketTyper, DAO_CTYPE_OPAQUE );
 	DaoNamespace_WrapFunctions( netns, netMeths );
 	DaoNetwork_Init( vmSpace, ns );
 	return 0;
