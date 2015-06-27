@@ -1235,11 +1235,13 @@ static void DaoIPv4Addr_ToString( DaoProcess *proc, DaoValue *p[], int N  )
 }
 
 enum {
-	IPv4Multicast = 0,
+	IPv4Unspecified = 0,
+	IPv4Multicast,
 	IPv4Private,
 	IPv4Global,
 	IPv4Loopback,
-	IPv4LinkLocal
+	IPv4LinkLocal,
+	IPv4Broadcast
 };
 
 static void DaoIPv4Addr_Check( DaoProcess *proc, DaoValue *p[], int N  )
@@ -1248,6 +1250,9 @@ static void DaoIPv4Addr_Check( DaoProcess *proc, DaoValue *p[], int N  )
 	int res;
 	uchar_t *octets = self->octets;
 	switch ( p[1]->xEnum.value ){
+	case IPv4Unspecified: // 0.0.0.0
+		res = *(int*)self->octets == 0;
+		break;
 	case IPv4Multicast: // RFC 5771
 		res = ( octets[0] == 224 && ( octets[1] <= 5 || octets[1] >= 252 ) ) ||
 				( octets[0] >= 225 && octets[0] <= 239 );
@@ -1259,11 +1264,14 @@ static void DaoIPv4Addr_Check( DaoProcess *proc, DaoValue *p[], int N  )
 		if ( p[1]->xEnum.value == IPv4Global )
 			res = !res;
 		break;
-	case IPv4Loopback: // RFC 990
-		res = octets[0] == 127;
+	case IPv4Loopback:
+		res = octets[0] == 127 && octets[1] == 0 && octets[2] == 0;
 		break;
 	case IPv4LinkLocal: // RFC 3927
 		res = octets[0] == 169 && octets[1] == 254;
+		break;
+	case IPv4Broadcast: // RFC 919
+		res = *(int*)self->octets == 0xFFFFFFFF;
 		break;
 	}
 	DaoProcess_PutBoolean( proc, res );
@@ -1323,6 +1331,15 @@ static void DaoIPv4Addr_Lib_Sub( DaoProcess *proc, DaoValue *p[], int N  )
 	DaoProcess_PutCdata( proc, res, daox_type_ipv4addr );
 }
 
+static void DaoIPv4Addr_Octets( DaoProcess *proc, DaoValue *p[], int N  )
+{
+	DaoIPv4Addr *self = (DaoIPv4Addr*)DaoValue_TryGetCdata( p[0] );
+	DaoTuple *tup = DaoProcess_PutTuple( proc, 4 );
+	daoint i;
+	for ( i = 0; i < 4; i++ )
+		tup->values[i]->xInteger.value = self->octets[i];
+}
+
 static DaoFuncItem ipv4addrMeths[] =
 {
 	//! Creates IPv4 address from dotted string \a value or given the individual octets \a a, \a b, \a c and \a d
@@ -1330,13 +1347,17 @@ static DaoFuncItem ipv4addrMeths[] =
 	{ DaoIPv4Addr_Create,	"IPv4Addr(a: int, b: int, c: int, d: int)" },
 
 	//! Dotted string value
-	{ DaoIPv4Addr_ToString,	"value(self: IPv4Addr) => string" },
+	{ DaoIPv4Addr_ToString,	".value(self: IPv4Addr) => string" },
+
+	//! Individual address octets
+	{ DaoIPv4Addr_Octets,	".octets(self: IPv4Addr) => tuple<int,int,int,int>" },
 
 	//! Same as calling value()
 	{ DaoIPv4Addr_ToString,	"(string)(self: IPv4Addr)" },
 
 	//! Returns true if the address belongs to the kind specified by \a what
-	{ DaoIPv4Addr_Check,	"is(self: IPv4Addr, what: enum<multicast,private,global,loopback,linkLocal>) => bool" },
+	{ DaoIPv4Addr_Check,	"is(self: IPv4Addr, "
+								"what: enum<unspecified,multicast,private,global,loopback,linkLocal,broadcast>) => bool" },
 
 	//! Address comparison
 	{ DaoIPv4Addr_Lt,		"<(a: IPv4Addr, b: IPv4Addr) => bool" },
