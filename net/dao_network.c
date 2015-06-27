@@ -1071,7 +1071,7 @@ static void DaoSocket_Lib_For( DaoProcess *proc, DaoValue *p[], int N )
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
 	DaoTuple *iter = &p[1]->xTuple;
 	if ( self->state != Socket_Listening ){
-		DaoProcess_RaiseError( proc, neterr, "Socket not in the listening state" );
+		DaoProcess_RaiseError( proc, neterr, "The socket not in the listening state" );
 		return;
 	}
 	DaoTuple_SetItem( iter, (DaoValue*)DaoInteger_New( 1 ), 0 );
@@ -1154,15 +1154,14 @@ static DaoFuncItem tcplistenerMeths[] =
 	{ DaoSocket_Lib_Bind,		"bind( self: TCPListener, port: int )" },
 	{ DaoSocket_Lib_Bind,		"bind( self: TCPListener, port: int, address: enum<shared;exclusive;reused;default> )" },
 
-	/*! Listens the socket using \a backLog as the maximum size of the queue of pending connections (use \c MAX_BACKLOG constant
-	 * to assign the maximum queue size) */
+	/*! Sets the socket into the listening state using \a backLog as the maximum size of the queue of pending connections
+	 * (use \c MAX_BACKLOG constant to assign the maximum queue size) */
 	{ DaoSocket_Lib_Listen,		"listen( self: TCPListener, backLog = 10 )" },
 
-	/*! Accepts connection, returning its server-side endpoint */
+	/*! Accepts new connection, returning its server-side endpoint */
 	{ DaoSocket_Lib_Accept,		"accept( self: TCPListener ) => TCPStream" },
 
-	//! Equivalient to an infinite loop calling \c listen() (with default back \c Log) and \c accept() on each iteration,
-	//! yielding a new connection
+	//! Equivalient to an infinite loop calling \c accept() on each iteration, yielding a new connection
 	{ DaoSocket_Lib_For,		"for( self: TCPListener, iterator: ForIterator )" },
 	{ DaoSocket_Lib_Get,		"[]( self: TCPListener, index: ForIterator ) => TCPStream" },
 	{ NULL, NULL }
@@ -1496,7 +1495,7 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 		value = DaoList_GetItem( list1, i );
 		fd = value->type == DAO_INTEGER? value->xInteger.value : ( (DaoSocket*)DaoValue_TryGetCdata( value ) )->id;
 		if( fd < 0 ){
-			DaoProcess_RaiseError( proc, "Value", "The read list contains a closed socket (or invalid fd)" );
+			DaoProcess_RaiseError( proc, "Value", "The read list contains a closed socket (or an invalid fd)" );
 			return;
 		}
 		FD_SET( fd, &set1 );
@@ -1505,7 +1504,7 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 		value = DaoList_GetItem( list2, i );
 		fd = value->type == DAO_INTEGER? value->xInteger.value : ( (DaoSocket*)DaoValue_TryGetCdata( value ) )->id;
 		if( fd < 0 ){
-			DaoProcess_RaiseError( proc, "Value", "The write list contains a closed socket (or invalid fd)" );
+			DaoProcess_RaiseError( proc, "Value", "The write list contains a closed socket (or an invalid fd)" );
 			return;
 		}
 		FD_SET( fd, &set2 );
