@@ -830,7 +830,7 @@ static void DaoSocket_Lib_Listen( DaoProcess *proc, DaoValue *par[], int N  )
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
 	if( self->state != Socket_Bound ){
-		DaoProcess_RaiseError( proc, neterr, "The socket is not bound" );
+		DaoProcess_RaiseError( proc, neterr, "The socket is not in the bound state" );
 		return;
 	}
 	if( DaoNetwork_Listen( self->id, DaoValue_TryGetInteger( par[1] ) ) == -1 ){
@@ -852,10 +852,10 @@ static void DaoSocket_Lib_Accept( DaoProcess *proc, DaoValue *par[], int N  )
 	}
 	sock = DaoSocket_New(  );
 	sock->id = DaoNetwork_Accept( self->id );
-	self->state = Socket_Bound;
 	if( sock->id == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
+		DaoSocket_Delete( sock );
 		return;
 	}
 	sock->state = Socket_Connected;
