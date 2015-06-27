@@ -11,7 +11,7 @@ class Server
 		sock = net.bind( 10000 );
 		for (conn in sock){
 			message = conn.receive();
-			io.writeln( conn.peer );
+			io.writeln( conn.peerAddr );
 			io.writeln( 'received', message );
 			conn.sendDao( 'TEST', 12.345, [1,2,3] );
 			conn.close();

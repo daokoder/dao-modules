@@ -972,8 +972,9 @@ static void DaoSocket_Lib_State( DaoProcess *proc, DaoValue *par[], int N  )
 
 static void DaoSocket_Lib_GetPeerName( DaoProcess *proc, DaoValue *par[], int N  )
 {
-	DString *res;
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	DaoTuple *tup = DaoProcess_PutTuple( proc, 2 );
+	DaoIPv4Addr *ip;
 	char errbuf[MAX_ERRMSG];
 	struct sockaddr_in addr;
 #ifdef WIN32
@@ -990,15 +991,18 @@ static void DaoSocket_Lib_GetPeerName( DaoProcess *proc, DaoValue *par[], int N 
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 		return;
 	}
-	res = DaoProcess_PutChars( proc, "" );
-	DString_SetChars( res, inet_ntoa( addr.sin_addr ) );
+	ip = (DaoIPv4Addr*)dao_malloc( sizeof(DaoIPv4Addr) );
+	*(int*)ip->octets = addr.sin_addr.s_addr;
+	DaoTuple_SetItem( tup, (DaoValue*)DaoProcess_NewCdata( proc, daox_type_ipv4addr, ip, 1 ), 0 );
+	tup->values[1]->xInteger.value = ntohs( addr.sin_port );
 }
 
 static void DaoSocket_Lib_GetSockName( DaoProcess *proc, DaoValue *par[], int N  )
 {
-	DString *res;
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	DaoTuple *tup = DaoProcess_PutTuple( proc, 2 );
 	char errbuf[MAX_ERRMSG];
+	DaoIPv4Addr *ip;
 	struct sockaddr_in addr;
 #ifdef WIN32
 	int size = sizeof( struct sockaddr_in );
@@ -1010,8 +1014,10 @@ static void DaoSocket_Lib_GetSockName( DaoProcess *proc, DaoValue *par[], int N 
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 		return;
 	}
-	res = DaoProcess_PutChars( proc, "" );
-	DString_SetChars( res, inet_ntoa( addr.sin_addr ) );
+	ip = (DaoIPv4Addr*)dao_malloc( sizeof(DaoIPv4Addr) );
+	*(int*)ip->octets = addr.sin_addr.s_addr;
+	DaoTuple_SetItem( tup, (DaoValue*)DaoProcess_NewCdata( proc, daox_type_ipv4addr, ip, 1 ), 0 );
+	tup->values[1]->xInteger.value = ntohs( addr.sin_port );
 }
 
 static void DaoSocket_Lib_GetStream( DaoProcess *proc, DaoValue *par[], int N  )
@@ -1097,7 +1103,7 @@ Stop:
 static DaoFuncItem socketMeths[] =
 {
 	/*! Address to which the socket is bound */
-	{  DaoSocket_Lib_GetSockName,   ".name( invar self: Socket ) => string" },
+	{  DaoSocket_Lib_GetSockName,   ".localAddr( invar self: Socket ) => tuple<ip: IPv4Addr, port: int>" },
 
 	/*! Socket file descriptor */
 	{  DaoSocket_Lib_Id,            ".id( invar self: Socket ) => int" },
@@ -1133,7 +1139,7 @@ static DaoFuncItem tcpstreamMeths[] =
 	{  DaoSocket_Lib_Receive,       "read( self: TCPStream, count = -1 ) => string" },
 
 	/*! Peer address of the connected socket */
-	{  DaoSocket_Lib_GetPeerName,   ".peer( invar self: TCPStream ) => string" },
+	{  DaoSocket_Lib_GetPeerName,   ".peerAddr( invar self: TCPStream ) => tuple<ip: IPv4Addr, port: int>" },
 
 	/*! Sends data via the internal serialization protocol */
 	{  DaoSocket_Lib_SendDao,       "sendDao( self: TCPStream, ... )" },
