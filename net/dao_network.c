@@ -1458,7 +1458,10 @@ static void DaoNetLib_GetHost( DaoProcess *proc, DaoValue *par[], int N  )
 			p ++;
 		}
 		while ( *q ){
-			DaoList_Append( &tup->values[2]->xList, (DaoValue*)DaoString_NewChars( inet_ntoa( *(struct in_addr*) (*q) ) ) );
+			DaoIPv4Addr *ip = (DaoIPv4Addr*)dao_malloc( sizeof(DaoIPv4Addr) );
+			*(int*)ip->octets = ( (struct in_addr*)(*q) )->s_addr;
+			DaoValue *value = (DaoValue*)DaoProcess_NewCdata( proc, daox_type_ipv4addr, ip, 1 );
+			DaoList_Append( &tup->values[2]->xList, value );
 			q ++;
 		}
 	}else{ /* AF_INET6 */
@@ -1571,10 +1574,10 @@ static DaoFuncItem netMeths[] =
 	/*! Returns client-side TCP connection endpoint connected to \a host : \a port */
 	{  DaoNetLib_Connect,       "connect( host: string|IPv4Addr, port: int ) => TCPStream" },
 
-	/*! Returns information for host with the given \a id, which may be either name or address */
-	{  DaoNetLib_GetHost,       "host( id: string ) => tuple<name: string, aliases: list<string>, addresses: list<string>>" },
+	/*! Returns information for host with the given \a id, which may be either a name or an IPv4 address in dotted form */
+	{  DaoNetLib_GetHost,       "host( id: string ) => tuple<name: string, aliases: list<string>, addrs: list<IPv4Addr>>" },
 
-	/*! Returns information for TCP service with the given \a id, which may be either name or port */
+	/*! Returns information for TCP service with the given \a id, which may be either a name or a port number */
 	{  DaoNetLib_GetService,    "service( id: string|int ) => tuple<name: string, port: int, aliases: list<string>>" },
 
 	/*! Waits \a timeout seconds for any \c Socket or file descriptor in \a read or \a write list to become available for
