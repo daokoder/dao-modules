@@ -717,7 +717,7 @@ enum {
 
 typedef short socket_state;
 typedef struct DaoSocket DaoSocket;
-typedef struct DaoIPv4Address DaoIPv4Address;
+typedef struct DaoIPv4Addr DaoIPv4Addr;
 
 struct DaoSocket
 {
@@ -726,7 +726,7 @@ struct DaoSocket
 	shutdown_flag shutflag;
 };
 
-struct DaoIPv4Address {
+struct DaoIPv4Addr {
 	uchar_t octets[4];
 };
 
@@ -789,7 +789,7 @@ static int DaoSocket_Connect( DaoSocket *self, DString *host, int port )
 	return self->id;
 }
 
-static int DaoSocket_ConnectToIP( DaoSocket *self, DaoIPv4Address *ip, int port )
+static int DaoSocket_ConnectToIP( DaoSocket *self, DaoIPv4Addr *ip, int port )
 {
 	DaoSocket_Close( self );
 	self->id = DaoNetwork_ConnectToIP( (struct in_addr*)ip->octets, port );
@@ -878,7 +878,7 @@ static void DaoSocket_Lib_Connect( DaoProcess *proc, DaoValue *par[], int N  )
 		}
 	}
 	else {
-		DaoIPv4Address *ip = (DaoIPv4Address*)DaoValue_TryGetCdata( par[1] );
+		DaoIPv4Addr *ip = (DaoIPv4Addr*)DaoValue_TryGetCdata( par[1] );
 		if( DaoSocket_ConnectToIP( self, ip, par[2]->xInteger.value ) == -1 )
 			goto Error;
 	}
@@ -1118,7 +1118,7 @@ DaoTypeBase socketTyper = {
 static DaoFuncItem tcpstreamMeths[] =
 {
 	/*! Connects to \a host : \a port */
-	{  DaoSocket_Lib_Connect,       "connect( self: TCPStream, host: string|IPv4Address, port: int )" },
+	{  DaoSocket_Lib_Connect,       "connect( self: TCPStream, host: string|IPv4Addr, port: int )" },
 
 	/*! Sends data \a data */
 	{  DaoSocket_Lib_Send,          "send( self: TCPStream, data: string )" },
@@ -1184,36 +1184,51 @@ DaoTypeBase tcplistenerTyper = {
 	"TCPListener", NULL, NULL, tcplistenerMeths, {&socketTyper, NULL}, {0}, (FuncPtrDel)DaoSocket_Delete, NULL
 };
 
-void DaoIPv4Address_Delete( DaoIPv4Address *self )
+void DaoIPv4Addr_Delete( DaoIPv4Addr *self )
 {
 	dao_free( self );
 }
 
-static void DaoIPv4Address_Create( DaoProcess *proc, DaoValue *p[], int N  )
+static void DaoIPv4Addr_Create( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoIPv4Address *res = (DaoIPv4Address*)dao_malloc( sizeof(DaoIPv4Address) );
-	DString *str = p[0]->xString.value;
-	if ( !str->size ){
-		DaoProcess_RaiseError( proc, "Value", "Empty IPv4 address string" );
-		dao_free( res );
-		return;
-	}
+	DaoIPv4Addr *res = (DaoIPv4Addr*)dao_malloc( sizeof(DaoIPv4Addr) );
+	if ( p[0]->type == DAO_STRING ){
+		DString *str = p[0]->xString.value;
+		if ( !str->size ){
+			DaoProcess_RaiseError( proc, "Value", "Empty IPv4 address string" );
+			dao_free( res );
+			return;
+		}
 #ifdef WIN32
-	int i, value = inet_addr( str->chars );
-	*(unsigned long*)res->octets = value;
-	if ( value == INADDR_NONE ){
+		int i, value = inet_addr( str->chars );
+		*(unsigned long*)res->octets = value;
+		if ( value == INADDR_NONE ){
 #else
-	if ( !inet_pton( AF_INET, p[0]->xString.value->chars, res->octets ) ){
+		if ( !inet_pton( AF_INET, p[0]->xString.value->chars, res->octets ) ){
 #endif
-		DaoProcess_RaiseError( proc, "Value", "Invalid IPv4 address string" );
-		dao_free( res );
+			DaoProcess_RaiseError( proc, "Value", "Invalid IPv4 address string" );
+			dao_free( res );
+			return;
+		}
+	}
+	else {
+		daoint i;
+		for ( i = 0; i < 4; i++ ){
+			dao_integer octet = p[i]->xInteger.value;
+			if ( octet < 0 || octet > 255 ){
+				DaoProcess_RaiseError( proc, "Value", "Invalid IPv4 address octet" );
+				dao_free( res );
+				return;
+			}
+			res->octets[i] = octet;
+		}
 	}
 	DaoProcess_PutCdata( proc, res, daox_type_ipv4addr );
 }
 
-static void DaoIPv4Address_ToString( DaoProcess *proc, DaoValue *p[], int N  )
+static void DaoIPv4Addr_ToString( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoIPv4Address *self = (DaoIPv4Address*)DaoValue_TryGetCdata( p[0] );
+	DaoIPv4Addr *self = (DaoIPv4Addr*)DaoValue_TryGetCdata( p[0] );
 	char buf[20];
 	snprintf( buf, sizeof(buf), "%i.%i.%i.%i", self->octets[0], self->octets[1], self->octets[2], self->octets[3] );
 	DaoProcess_PutChars( proc, buf );
@@ -1227,9 +1242,9 @@ enum {
 	IPv4LinkLocal
 };
 
-static void DaoIPv4Address_Check( DaoProcess *proc, DaoValue *p[], int N  )
+static void DaoIPv4Addr_Check( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoIPv4Address *self = (DaoIPv4Address*)DaoValue_TryGetCdata( p[0] );
+	DaoIPv4Addr *self = (DaoIPv4Addr*)DaoValue_TryGetCdata( p[0] );
 	int res;
 	uchar_t *octets = self->octets;
 	switch ( p[1]->xEnum.value ){
@@ -1254,35 +1269,35 @@ static void DaoIPv4Address_Check( DaoProcess *proc, DaoValue *p[], int N  )
 	DaoProcess_PutBoolean( proc, res );
 }
 
-static void DaoIPv4Address_Lt( DaoProcess *proc, DaoValue *p[], int N  )
+static void DaoIPv4Addr_Lt( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoIPv4Address *a = (DaoIPv4Address*)DaoValue_TryGetCdata( p[0] );
-	DaoIPv4Address *b = (DaoIPv4Address*)DaoValue_TryGetCdata( p[1] );
+	DaoIPv4Addr *a = (DaoIPv4Addr*)DaoValue_TryGetCdata( p[0] );
+	DaoIPv4Addr *b = (DaoIPv4Addr*)DaoValue_TryGetCdata( p[1] );
 	DaoProcess_PutBoolean( proc, memcmp( a->octets, b->octets, 4 ) < 0 );
 }
 
-static void DaoIPv4Address_Le( DaoProcess *proc, DaoValue *p[], int N  )
+static void DaoIPv4Addr_Le( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoIPv4Address *a = (DaoIPv4Address*)DaoValue_TryGetCdata( p[0] );
-	DaoIPv4Address *b = (DaoIPv4Address*)DaoValue_TryGetCdata( p[1] );
+	DaoIPv4Addr *a = (DaoIPv4Addr*)DaoValue_TryGetCdata( p[0] );
+	DaoIPv4Addr *b = (DaoIPv4Addr*)DaoValue_TryGetCdata( p[1] );
 	DaoProcess_PutBoolean( proc, memcmp( a->octets, b->octets, 4 ) <= 0 );
 }
 
-static void DaoIPv4Address_Eq( DaoProcess *proc, DaoValue *p[], int N  )
+static void DaoIPv4Addr_Eq( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoIPv4Address *a = (DaoIPv4Address*)DaoValue_TryGetCdata( p[0] );
-	DaoIPv4Address *b = (DaoIPv4Address*)DaoValue_TryGetCdata( p[1] );
+	DaoIPv4Addr *a = (DaoIPv4Addr*)DaoValue_TryGetCdata( p[0] );
+	DaoIPv4Addr *b = (DaoIPv4Addr*)DaoValue_TryGetCdata( p[1] );
 	DaoProcess_PutBoolean( proc, memcmp( a->octets, b->octets, 4 ) == 0 );
 }
 
-static void DaoIPv4Address_Neq( DaoProcess *proc, DaoValue *p[], int N  )
+static void DaoIPv4Addr_Neq( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoIPv4Address *a = (DaoIPv4Address*)DaoValue_TryGetCdata( p[0] );
-	DaoIPv4Address *b = (DaoIPv4Address*)DaoValue_TryGetCdata( p[1] );
+	DaoIPv4Addr *a = (DaoIPv4Addr*)DaoValue_TryGetCdata( p[0] );
+	DaoIPv4Addr *b = (DaoIPv4Addr*)DaoValue_TryGetCdata( p[1] );
 	DaoProcess_PutBoolean( proc, memcmp( a->octets, b->octets, 4 ) != 0 );
 }
 
-void IPv4_Add( DaoIPv4Address *self, int value, DaoIPv4Address *res )
+void IPv4_Add( DaoIPv4Addr *self, int value, DaoIPv4Addr *res )
 {
 	int i, bin = 0;
 	for ( i = 0; i < 4; i++ )
@@ -1292,50 +1307,51 @@ void IPv4_Add( DaoIPv4Address *self, int value, DaoIPv4Address *res )
 		res->octets[i] = ( bin >> ( 3 - i )*CHAR_BIT ) & 0xFF;
 }
 
-static void DaoIPv4Address_Lib_Add( DaoProcess *proc, DaoValue *p[], int N  )
+static void DaoIPv4Addr_Lib_Add( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoIPv4Address *self = (DaoIPv4Address*)DaoValue_TryGetCdata( p[0] );
-	DaoIPv4Address *res = (DaoIPv4Address*)dao_malloc( sizeof(DaoIPv4Address) );
+	DaoIPv4Addr *self = (DaoIPv4Addr*)DaoValue_TryGetCdata( p[0] );
+	DaoIPv4Addr *res = (DaoIPv4Addr*)dao_malloc( sizeof(DaoIPv4Addr) );
 	IPv4_Add( self, p[1]->xInteger.value, res );
 	DaoProcess_PutCdata( proc, res, daox_type_ipv4addr );
 }
 
-static void DaoIPv4Address_Lib_Sub( DaoProcess *proc, DaoValue *p[], int N  )
+static void DaoIPv4Addr_Lib_Sub( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoIPv4Address *self = (DaoIPv4Address*)DaoValue_TryGetCdata( p[0] );
-	DaoIPv4Address *res = (DaoIPv4Address*)dao_malloc( sizeof(DaoIPv4Address) );
+	DaoIPv4Addr *self = (DaoIPv4Addr*)DaoValue_TryGetCdata( p[0] );
+	DaoIPv4Addr *res = (DaoIPv4Addr*)dao_malloc( sizeof(DaoIPv4Addr) );
 	IPv4_Add( self, -p[1]->xInteger.value, res );
 	DaoProcess_PutCdata( proc, res, daox_type_ipv4addr );
 }
 
 static DaoFuncItem ipv4addrMeths[] =
 {
-	//! Creates IPv4 address from dotted string \a value
-	{ DaoIPv4Address_Create,	"IPv4Address(value: string)" },
+	//! Creates IPv4 address from dotted string \a value or given the individual octets \a a, \a b, \a c and \a d
+	{ DaoIPv4Addr_Create,	"IPv4Addr(value: string)" },
+	{ DaoIPv4Addr_Create,	"IPv4Addr(a: int, b: int, c: int, d: int)" },
 
 	//! Dotted string value
-	{ DaoIPv4Address_ToString,	"value(self: IPv4Address) => string" },
+	{ DaoIPv4Addr_ToString,	"value(self: IPv4Addr) => string" },
 
 	//! Same as calling value()
-	{ DaoIPv4Address_ToString,	"(string)(self: IPv4Address)" },
+	{ DaoIPv4Addr_ToString,	"(string)(self: IPv4Addr)" },
 
 	//! Returns true if the address belongs to the kind specified by \a what
-	{ DaoIPv4Address_Check,		"is(self: IPv4Address, what: enum<multicast,private,global,loopback,linkLocal>) => bool" },
+	{ DaoIPv4Addr_Check,	"is(self: IPv4Addr, what: enum<multicast,private,global,loopback,linkLocal>) => bool" },
 
 	//! Address comparison
-	{ DaoIPv4Address_Lt,		"<(a: IPv4Address, b: IPv4Address) => bool" },
-	{ DaoIPv4Address_Le,		"<=(a: IPv4Address, b: IPv4Address) => bool" },
-	{ DaoIPv4Address_Eq,		"==(a: IPv4Address, b: IPv4Address) => bool" },
-	{ DaoIPv4Address_Neq,		"!=(a: IPv4Address, b: IPv4Address) => bool" },
+	{ DaoIPv4Addr_Lt,		"<(a: IPv4Addr, b: IPv4Addr) => bool" },
+	{ DaoIPv4Addr_Le,		"<=(a: IPv4Addr, b: IPv4Addr) => bool" },
+	{ DaoIPv4Addr_Eq,		"==(a: IPv4Addr, b: IPv4Addr) => bool" },
+	{ DaoIPv4Addr_Neq,		"!=(a: IPv4Addr, b: IPv4Addr) => bool" },
 
 	//! Address arithmetic
-	{ DaoIPv4Address_Lib_Add,	"+(a: IPv4Address, b: int) => IPv4Address" },
-	{ DaoIPv4Address_Lib_Sub,	"-(a: IPv4Address, b: int) => IPv4Address" },
+	{ DaoIPv4Addr_Lib_Add,	"+(a: IPv4Addr, b: int) => IPv4Addr" },
+	{ DaoIPv4Addr_Lib_Sub,	"-(a: IPv4Addr, b: int) => IPv4Addr" },
 	{ NULL, NULL }
 };
 
 DaoTypeBase ipv4addrTyper = {
-	"IPv4Address", NULL, NULL, ipv4addrMeths, {0}, {0}, (FuncPtrDel)DaoIPv4Address_Delete, NULL
+	"IPv4Addr", NULL, NULL, ipv4addrMeths, {0}, {0}, (FuncPtrDel)DaoIPv4Addr_Delete, NULL
 };
 
 static void DaoNetLib_Bind( DaoProcess *proc, DaoValue *par[], int N  )
@@ -1366,7 +1382,7 @@ static void DaoNetLib_Connect( DaoProcess *proc, DaoValue *p[], int N  )
 		}
 	}
 	else {
-		DaoIPv4Address *ip = (DaoIPv4Address*)DaoValue_TryGetCdata( p[0] );
+		DaoIPv4Addr *ip = (DaoIPv4Addr*)DaoValue_TryGetCdata( p[0] );
 		if( DaoSocket_ConnectToIP( sock, ip, p[1]->xInteger.value ) == -1 )
 			goto Error;
 	}
@@ -1558,7 +1574,7 @@ static DaoFuncItem netMeths[] =
 	{  DaoNetLib_Bind,          "bind( port: int, address: enum<shared;exclusive;reused;default> ) => TCPListener" },
 
 	/*! Returns client-side TCP connection endpoint connected to \a host : \a port */
-	{  DaoNetLib_Connect,       "connect( host: string|IPv4Address, port: int ) => TCPStream" },
+	{  DaoNetLib_Connect,       "connect( host: string|IPv4Addr, port: int ) => TCPStream" },
 
 	/*! Returns information for host with the given \a id, which may be either name or address */
 	{  DaoNetLib_GetHost,       "host( id: string ) => tuple<name: string, aliases: list<string>, addresses: list<string>>" },
