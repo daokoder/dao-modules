@@ -1142,7 +1142,7 @@ static DaoFuncItem tcpstreamMeths[] =
 	{  DaoSocket_Lib_GetPeerName,   ".peerAddr( invar self: TCPStream ) => tuple<ip: IPv4Addr, port: int>" },
 
 	/*! Sends data via the internal serialization protocol */
-	{  DaoSocket_Lib_SendDao,       "sendDao( self: TCPStream, ... )" },
+	{  DaoSocket_Lib_SendDao,       "sendDao( self: TCPStream, ...: int|float|complex|string|array )" },
 
 	/*! Receives data via the internal serialization protocol */
 	{  DaoSocket_Lib_ReceiveDao,    "receiveDao( self: TCPStream ) => list<int|float|complex|string|array>" },
