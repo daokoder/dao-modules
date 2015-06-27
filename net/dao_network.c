@@ -1493,64 +1493,36 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
 	struct timeval tv;
-	int i;
+	int i, fd;
 	fd_set set1, set2;
 	DaoTuple *tuple = DaoProcess_PutTuple( proc, 2 );
 	DaoList *list1 = DaoValue_CastList( par[0] );
 	DaoList *list2 = DaoValue_CastList( par[1] );
 	DaoList *reslist;
 	DaoValue *value;
-	DaoSocket *socket;
-	FILE *file;
 	if( DaoList_Size( list1 ) == 0 && DaoList_Size( list2 ) == 0 ){
-		DaoProcess_RaiseError( proc, neterr, "Both read and write parameters are empty lists" );
+		DaoProcess_RaiseError( proc, "Param", "Both read and write parameters are empty lists" );
 		return;
 	}
 	FD_ZERO( &set1 );
 	FD_ZERO( &set2 );
 	for( i = 0; i < DaoList_Size( list1 ); i++ ){
 		value = DaoList_GetItem( list1, i );
-		if( DaoValue_CastStream( value ) ){
-#ifdef WIN32
-			DaoProcess_RaiseError( proc, neterr, "Selecting streams not supported on the current platform" );
+		fd = value->type == DAO_INTEGER? value->xInteger.value : ( (DaoSocket*)DaoValue_TryGetCdata( value ) )->id;
+		if( fd < 0 ){
+			DaoProcess_RaiseError( proc, "Value", "The read list contains a closed socket (or invalid fd)" );
 			return;
-#endif
-			file = DaoStream_GetFile( DaoValue_CastStream( value ) );
-			if( file == NULL ){
-				DaoProcess_RaiseError( proc, neterr, "The read list contains a stream not associated with a file" );
-				return;
-			}
-			FD_SET( fileno( file ), &set1 );
-		}else{
-			socket = (DaoSocket*)DaoValue_TryGetCdata( value );
-			if( socket->id == -1 ){
-				DaoProcess_RaiseError( proc, neterr, "The read list contains a closed socket" );
-				return;
-			}
-			FD_SET( socket->id, &set1 );
 		}
+		FD_SET( fd, &set1 );
 	}
 	for( i = 0; i < DaoList_Size( list2 ); i++ ){
 		value = DaoList_GetItem( list2, i );
-		if( DaoValue_CastStream( value ) ){
-#ifdef WIN32
-			DaoProcess_RaiseError( proc, neterr, "Selecting streams not supported on the current platform" );
+		fd = value->type == DAO_INTEGER? value->xInteger.value : ( (DaoSocket*)DaoValue_TryGetCdata( value ) )->id;
+		if( fd < 0 ){
+			DaoProcess_RaiseError( proc, "Value", "The write list contains a closed socket (or invalid fd)" );
 			return;
-#endif
-			file = DaoStream_GetFile( DaoValue_CastStream( value ) );
-			if( file == NULL ){
-				DaoProcess_RaiseError( proc, neterr, "The write list contains a stream not associated with a file" );
-				return;
-			}
-			FD_SET( fileno( file ), &set2 );
-		}else{
-			socket = (DaoSocket*)DaoValue_TryGetCdata( value );
-			if( socket->id == -1 ){
-				DaoProcess_RaiseError( proc, neterr, "The write list contains a closed socket" );
-				return;
-			}
-			FD_SET( socket->id, &set2 );
 		}
+		FD_SET( fd, &set2 );
 	}
 	tv.tv_sec = (int)DaoValue_TryGetFloat( par[2] );
 	tv.tv_usec = ( DaoValue_TryGetFloat( par[2] )- tv.tv_sec ) * 1E6;
@@ -1564,10 +1536,8 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 	reslist = DaoValue_CastList( DaoTuple_GetItem( tuple, 0 ) );
 	for( i = 0; i < DaoList_Size( list1 ); i++ ){
 		value = DaoList_GetItem( list1, i );
-		if( DaoValue_CastStream( value ) ){
-			if( FD_ISSET( fileno( DaoStream_GetFile( DaoValue_CastStream( value ) ) ), &set1 ) )
-				DaoList_PushBack( reslist, value );
-		}else if( FD_ISSET( ((DaoSocket*)DaoValue_TryGetCdata( value ))->id, &set1 ) )
+		fd = value->type == DAO_INTEGER? value->xInteger.value : ( (DaoSocket*)DaoValue_TryGetCdata( value ) )->id;
+		if( FD_ISSET( fd, &set1 ) )
 			DaoList_PushBack( reslist, value );
 	}
 	value = (DaoValue*) DaoProcess_NewList( proc );
@@ -1575,10 +1545,8 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 	reslist = DaoValue_CastList( DaoTuple_GetItem( tuple, 1 ) );
 	for( i = 0; i < DaoList_Size( list2 ); i++ ){
 		value = DaoList_GetItem( list2, i );
-		if( DaoValue_CastStream( value ) ){
-			if( FD_ISSET( fileno( DaoStream_GetFile( DaoValue_CastStream( value ) ) ), &set2 ) )
-				DaoList_PushBack( reslist, value );
-		}else if( FD_ISSET( ((DaoSocket*)DaoValue_TryGetCdata( value ))->id, &set2 ) )
+		fd = value->type == DAO_INTEGER? value->xInteger.value : ( (DaoSocket*)DaoValue_TryGetCdata( value ) )->id;
+		if( FD_ISSET( fd, &set2 ) )
 			DaoList_PushBack( reslist, value );
 	}
 }
@@ -1609,13 +1577,13 @@ static DaoFuncItem netMeths[] =
 	/*! Returns information for TCP service with the given \a id, which may be either name or port */
 	{  DaoNetLib_GetService,    "service( id: string|int ) => tuple<name: string, port: int, aliases: list<string>>" },
 
-	/*! Waits \a timeout seconds for any object in \a read or \a write list to become available for reading or writing accordingly.
-	 * Returns sub-lists of \a read and \a write containing available objects
+	/*! Waits \a timeout seconds for any \c Socket or file descriptor in \a read or \a write list to become available for
+	 * reading or writing accordingly. Returns sub-lists of \a read and \a write containing available sockets/descriptors.
 	 *
-	 * \warning On Windows, selecting streams is not supported	*/
+	 * \note On Windows, only socket descriptors can be selected */
 	{  DaoNetLib_Select,
-		"select( invar read: list<@X<io::Stream|Socket>>, invar write: list<@Y<io::Stream|Socket>>,"
-				"timeout: float )=>tuple<read: list<@X>, write: list<@Y>>" },
+		"select( invar read: list<@R<Socket|int>>, invar write: list<@W<Socket|int>>, timeout: float )"
+				" => tuple<read: list<@R>, write: list<@W>>" },
 	{ NULL, NULL }
 };
 
