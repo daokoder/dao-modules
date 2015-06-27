@@ -857,7 +857,7 @@ static void DaoSocket_Lib_Accept( DaoProcess *proc, DaoValue *par[], int N  )
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 		return;
 	}
-	sock->state = Socket_Connected;
+	sock->state = Socket_Bound;
 	DaoProcess_PutCdata( proc, (void*)sock, daox_type_tcpstream );
 }
 
@@ -1059,6 +1059,41 @@ static void DaoSocket_Lib_Check( DaoProcess *proc, DaoValue *par[], int N  )
 	DaoProcess_PutBoolean( proc, res );
 }
 
+static void DaoSocket_Lib_For( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	DaoTuple *iter = &p[1]->xTuple;
+	if ( self->state != Socket_Bound ){
+		DaoProcess_RaiseError( proc, neterr, "Socket not bound" );
+		return;
+	}
+	DaoTuple_SetItem( iter, (DaoValue*)DaoInteger_New( 1 ), 0 );
+	DaoTuple_SetItem( iter, (DaoValue*)DaoInteger_New( 0 ), 1 );
+}
+
+static void DaoSocket_Lib_Get( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	DaoTuple *iter = &p[1]->xTuple;
+	if ( self->state != Socket_Bound ){
+		DaoProcess_RaiseError( proc, neterr, "Socket not bound" );
+		goto Stop;
+	}
+	else {
+		DaoInteger backlog = {DAO_INTEGER, 0, 0, 0, 0, 10};
+		DaoValue* par[] = {p[0], (DaoValue*)&backlog};
+		DaoSocket_Lib_Listen( proc, par, 2 );
+		if ( self->state != Socket_Listening )
+			goto Stop;
+		DaoSocket_Lib_Accept( proc, par, 1 );
+		if ( self->state != Socket_Bound )
+			goto Stop;
+	}
+	return;
+Stop:
+	iter->values[0]->xInteger.value = 0;
+}
+
 static DaoFuncItem socketMeths[] =
 {
 	/*! Address to which the socket is bound */
@@ -1127,14 +1162,20 @@ DaoTypeBase tcpstreamTyper = {
 static DaoFuncItem tcplistenerMeths[] =
 {
 	/*! Binds the socket to \a port using \a address options if specified. For the description of \a address, see \c net.bind() */
-	{  DaoSocket_Lib_Bind,          "bind( self: TCPListener, port: int )" },
-	{  DaoSocket_Lib_Bind,          "bind( self: TCPListener, port: int, address: enum<shared;exclusive;reused;default> )" },
+	{ DaoSocket_Lib_Bind,		"bind( self: TCPListener, port: int )" },
+	{ DaoSocket_Lib_Bind,		"bind( self: TCPListener, port: int, address: enum<shared;exclusive;reused;default> )" },
 
-	/*! Listens the socket using \a backLog as the maximum size of the queue of pending connections */
-	{  DaoSocket_Lib_Listen,        "listen( self: TCPListener, backLog = 10 )" },
+	/*! Listens the socket using \a backLog as the maximum size of the queue of pending connections (use \c MAX_BACKLOG constant
+	 * to assign the maximum queue size) */
+	{ DaoSocket_Lib_Listen,		"listen( self: TCPListener, backLog = 10 )" },
 
 	/*! Accepts connection, returning its server-side endpoint */
-	{  DaoSocket_Lib_Accept,        "accept( self: TCPListener ) => TCPStream" },
+	{ DaoSocket_Lib_Accept,		"accept( self: TCPListener ) => TCPStream" },
+
+	//! Equivalient to an infinite loop calling \c listen() (with default back \c Log) and \c accept() on each iteration,
+	//! yielding a new connection
+	{ DaoSocket_Lib_For,		"for( self: TCPListener, iterator: ForIterator )" },
+	{ DaoSocket_Lib_Get,		"[]( self: TCPListener, index: ForIterator ) => TCPStream" },
 	{ NULL, NULL }
 };
 
@@ -1535,6 +1576,13 @@ static DaoFuncItem netMeths[] =
 	{ NULL, NULL }
 };
 
+DaoNumItem netConsts[] =
+{
+	/*! Largest possible backLog value for TCPListener::listen() */
+	{ "MAX_BACKLOG", DAO_INTEGER, SOMAXCONN },
+	{ NULL, 0.0, 0.0 }
+};
+
 void DaoNetwork_Init( DaoVmSpace *vms, DaoNamespace *ns )
 {
 #ifdef WIN32
@@ -1556,6 +1604,7 @@ void DaoNetwork_Init( DaoVmSpace *vms, DaoNamespace *ns )
 DAO_DLL int DaoNet_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *netns = DaoNamespace_GetNamespace( ns, "net" );
+	DaoNamespace_AddConstNumbers( ns, netConsts );
 	daox_type_ipv4addr = DaoNamespace_WrapType( netns, & ipv4addrTyper, DAO_CTYPE_INVAR | DAO_CTYPE_OPAQUE );
 	daox_type_socket = DaoNamespace_WrapType( netns, & socketTyper, DAO_CTYPE_OPAQUE );
 	daox_type_tcpstream = DaoNamespace_WrapType( netns, & tcpstreamTyper, DAO_CTYPE_OPAQUE );

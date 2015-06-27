@@ -9,14 +9,12 @@ class Server
 #	io.writeln( net.gethost( '127.0.0.1' ) );
 		io.writeln( net.host( 'localhost' ) );
 		sock = net.bind( 10000 );
-		sock.listen();
-		while(1){
-			sockfd = sock.accept();
-			message = sockfd.receive();
-			io.writeln( sockfd.peer );
+		for (conn in sock){
+			message = conn.receive();
+			io.writeln( conn.peer );
 			io.writeln( 'received', message );
-			sockfd.sendDao( 'TEST', 12.345, [1,2,3] );
-			sockfd.close();
+			conn.sendDao( 'TEST', 12.345, [1,2,3] );
+			conn.close();
 			break;
 		}
 	}
