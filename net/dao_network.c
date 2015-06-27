@@ -1594,6 +1594,9 @@ DaoNumItem netConsts[] =
 {
 	/*! Largest possible backLog value for TCPListener::listen() */
 	{ "MAX_BACKLOG", DAO_INTEGER, SOMAXCONN },
+
+	/*! Maximum number of file descriptors net.select() can handle for each input list */
+	{ "SELECT_CAP", DAO_INTEGER, FD_SETSIZE },
 	{ NULL, 0.0, 0.0 }
 };
 
@@ -1618,7 +1621,7 @@ void DaoNetwork_Init( DaoVmSpace *vms, DaoNamespace *ns )
 DAO_DLL int DaoNet_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *netns = DaoNamespace_GetNamespace( ns, "net" );
-	DaoNamespace_AddConstNumbers( ns, netConsts );
+	DaoNamespace_AddConstNumbers( netns, netConsts );
 	daox_type_ipv4addr = DaoNamespace_WrapType( netns, & ipv4addrTyper, DAO_CTYPE_INVAR | DAO_CTYPE_OPAQUE );
 	daox_type_socket = DaoNamespace_WrapType( netns, & socketTyper, DAO_CTYPE_OPAQUE );
 	daox_type_tcpstream = DaoNamespace_WrapType( netns, & tcpstreamTyper, DAO_CTYPE_OPAQUE );
