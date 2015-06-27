@@ -852,12 +852,13 @@ static void DaoSocket_Lib_Accept( DaoProcess *proc, DaoValue *par[], int N  )
 	}
 	sock = DaoSocket_New(  );
 	sock->id = DaoNetwork_Accept( self->id );
+	self->state = Socket_Bound;
 	if( sock->id == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 		return;
 	}
-	sock->state = Socket_Bound;
+	sock->state = Socket_Connected;
 	DaoProcess_PutCdata( proc, (void*)sock, daox_type_tcpstream );
 }
 
