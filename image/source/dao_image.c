@@ -69,6 +69,7 @@ void DaoxImage_Resize( DaoxImage *self, int width, int height )
 	self->height = height;
 	self->stride = widthStep;
 	DArray_Resize( & self->buffer, widthStep * height );
+	memset( self->buffer.data.base, 0, widthStep * height );
 }
 int DaoxImage_Convert( DaoxImage *self, int dep )
 {

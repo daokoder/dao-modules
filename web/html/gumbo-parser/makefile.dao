@@ -44,6 +44,10 @@ srclist =
 project.AddIncludePath( "src" )
 project.AddCompilingFlag( "-std=c99" )
 
+if( DaoMake::IsPlatform( "UNIX" ) ){
+	project.AddCompilingFlag( "-fPIC" )
+}
+
 gumbo_parser_objs = project.AddObjects( srclist, inclist )
 
 gumbo_parser_dll = project.AddSharedLibrary( "gumbo_parser", gumbo_parser_objs )

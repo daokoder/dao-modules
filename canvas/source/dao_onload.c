@@ -229,7 +229,11 @@ static void DaoxPathMesh_GetGCFields( void *p, DList *values, DList *lists, DLis
 {
 	DaoxPathMesh *self = (DaoxPathMesh*) p;
 	if( self->path ) DList_Append( values, self->path );
-	if( remove ) self->path = NULL;
+	if( self->stroke ) DList_Append( values, self->stroke );
+	if( remove ){
+		self->path = NULL;
+		self->stroke = NULL;
+	}
 }
 DaoTypeBase DaoxPathMesh_Typer =
 {

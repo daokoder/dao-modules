@@ -235,10 +235,6 @@ struct DaoxPathMesh
 
 	DaoxPath  *path;
 	DaoxPath  *stroke;
-
-	DArray  *workPoints;
-	DArray  *workTriangles;
-	DArray  *workBeziers;
 };
 extern DaoType *daox_type_path_mesh;
 

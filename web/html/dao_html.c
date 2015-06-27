@@ -203,6 +203,7 @@ void DaoHtmlContext_NewLine( DaoHtmlContext *self )
 	DList_Append( self->content, line );
 	self->size += line->size;
 	self->pending = 1;
+	DString_Delete( line );
 }
 
 void DaoHtmlContext_Fold( DaoHtmlContext *self, DString *dest )
@@ -242,6 +243,7 @@ static void Html_EmptyTag( DaoProcess *proc, DaoValue *p[], int N )
 		DString_AppendChars( tag, ">" );
 		DaoHtmlContext_AddContent( ctx, tag, 0 );
 	}
+	DString_Delete( tag );
 }
 
 static void Html_Tag( DaoProcess *proc, DaoValue *p[], int N )
@@ -1253,7 +1255,6 @@ static void DaoNode_Serialize( DaoxHtmlNode *self, int level, DString *indent, D
 		DString_AppendChar( closeTag, '>' );
 	}
 
-	contents = DString_New();
 	DaoNode_SerializeContents( self, level+1, indent, contents );
 
 	if (need_special_handling) {

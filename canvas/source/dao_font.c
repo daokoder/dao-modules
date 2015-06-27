@@ -153,6 +153,7 @@ DaoxGlyph* DaoxFont_LoadGlyph( DaoxFont *self, size_t codepoint )
 		}
 	}
 	if( i ) DaoxPath_Close( glyph->shape );
+	stbtt_FreeShape( & self->info, vertices );
 
 	return glyph;
 }

@@ -207,22 +207,24 @@ DaoxPathSegment* DaoxPathComponent_PushSegment( DaoxPathComponent *self )
 	self->last = segment;
 	return segment;
 }
-void DaoxPathComponent_Reset( DaoxPathComponent *self )
+static void DaoxPathComponent_Clear( DaoxPathComponent *self )
 {
 	DaoxPathSegment *segment = self->first;
-	do {
-		segment->next = self->path->freeSegments;
-		self->path->freeSegments = segment;
-		segment = segment->next;
-	} while( segment && segment != self->first );
+	if( self->first == NULL ) return;
+	self->last->next = self->path->freeSegments;
+	self->path->freeSegments = self->first;
 	self->first = self->last = NULL;
 	self->refinedFirst = self->refinedLast = NULL;
-	DaoxPathComponent_PushSegment( self ); // XXX free:
+}
+void DaoxPathComponent_Reset( DaoxPathComponent *self )
+{
+	DaoxPathComponent_Clear( self );
+	DaoxPathComponent_PushSegment( self );
 }
 void DaoxPathComponent_Copy( DaoxPathComponent *self, DaoxPathComponent *other )
 {
 	DaoxPathSegment *segment = other->first;
-	DaoxPathComponent_Reset( self );
+	DaoxPathComponent_Clear( self );
 	do {
 		DaoxPathSegment *segment2 = DaoxPathComponent_PushSegment( self );
 		DaoxPathSegment_Copy( segment2, segment );
@@ -232,7 +234,7 @@ void DaoxPathComponent_Copy( DaoxPathComponent *self, DaoxPathComponent *other )
 }
 void DaoxPathComponent_Delete( DaoxPathComponent *self )
 {
-	DaoxPathComponent_Reset( self );
+	DaoxPathComponent_Clear( self );
 	dao_free( self );
 }
 
@@ -248,11 +250,23 @@ DaoxPath* DaoxPath_New()
 	self->first = self->last = DaoxPathComponent_New( self );
 	return self;
 }
+static void DaoxPath_Clear( DaoxPath *self )
+{
+	DaoxPathComponent *com;
+	self->hashed = 0;
+	for(com=self->first; com; com=com->next) DaoxPathComponent_Clear( com );
+	if( self->first ){
+		self->last->next = self->freeComponents;
+		self->freeComponents = self->first;
+	}
+	self->mode = DAOX_PATH_CMD_ABS;
+	self->first = self->last = NULL;
+}
 void DaoxPath_Delete( DaoxPath *self )
 {
 	DNode *it;
 	DaoCstruct_Free( (DaoCstruct*) self );
-	DaoxPath_Reset( self );
+	DaoxPath_Clear( self );
 	while( self->freeComponents ){
 		DaoxPathComponent *com = self->freeComponents;
 		self->freeComponents = self->freeComponents->next;
@@ -273,6 +287,7 @@ DaoxPathComponent* DaoxPath_PushComponent( DaoxPath *self )
 	if( self->freeComponents ){
 		com = self->freeComponents;
 		self->freeComponents = com->next;
+		DaoxPathComponent_PushSegment( com );
 	}else{
 		com = DaoxPathComponent_New( self );
 	}
@@ -300,7 +315,7 @@ void DaoxPath_Reset( DaoxPath *self )
 void DaoxPath_Copy( DaoxPath *self, DaoxPath *other )
 {
 	DaoxPathComponent *com;
-	DaoxPath_Reset( self );
+	DaoxPath_Clear( self );
 	self->mode = other->mode;
 	self->hash = other->hash;
 	self->hashed = other->hashed;
