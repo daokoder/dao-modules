@@ -1070,8 +1070,8 @@ static void DaoSocket_Lib_For( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
 	DaoTuple *iter = &p[1]->xTuple;
-	if ( self->state != Socket_Bound ){
-		DaoProcess_RaiseError( proc, neterr, "Socket not bound" );
+	if ( self->state != Socket_Listening ){
+		DaoProcess_RaiseError( proc, neterr, "Socket not in the listening state" );
 		return;
 	}
 	DaoTuple_SetItem( iter, (DaoValue*)DaoInteger_New( 1 ), 0 );
@@ -1080,25 +1080,7 @@ static void DaoSocket_Lib_For( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoSocket_Lib_Get( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
-	DaoTuple *iter = &p[1]->xTuple;
-	if ( self->state != Socket_Bound ){
-		DaoProcess_RaiseError( proc, neterr, "Socket not bound" );
-		goto Stop;
-	}
-	else {
-		DaoInteger backlog = {DAO_INTEGER, 0, 0, 0, 0, 10};
-		DaoValue* par[] = {p[0], (DaoValue*)&backlog};
-		DaoSocket_Lib_Listen( proc, par, 2 );
-		if ( self->state != Socket_Listening )
-			goto Stop;
-		DaoSocket_Lib_Accept( proc, par, 1 );
-		if ( self->state != Socket_Bound )
-			goto Stop;
-	}
-	return;
-Stop:
-	iter->values[0]->xInteger.value = 0;
+	DaoSocket_Lib_Accept( proc, p, 1 );
 }
 
 static DaoFuncItem socketMeths[] =

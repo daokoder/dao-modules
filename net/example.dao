@@ -9,6 +9,7 @@ class Server
 #	io.writeln( net.gethost( '127.0.0.1' ) );
 		io.writeln( net.host( 'localhost' ) );
 		sock = net.bind( 10000 );
+		sock.listen();
 		for (conn in sock){
 			message = conn.receive();
 			io.writeln( conn.peerAddr );
