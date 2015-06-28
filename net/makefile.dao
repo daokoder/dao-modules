@@ -13,7 +13,7 @@ project_dll  = project.AddSharedLibrary( "dao_net", project_objs )
 project_lib  = project.AddStaticLibrary( "dao_net", project_objs )
 
 if( DaoMake::IsPlatform( "WIN32" ) ){
-	if( DaoMake::IsPlatform( "MINGW" ) ) project.AddLinkingFlag( "-lwsock32" )
+	if( DaoMake::IsPlatform( "MINGW" ) ) project.AddLinkingFlag( "-lws2_32" )
 }
 
 project.GenerateFinder( $TRUE );

@@ -51,8 +51,9 @@
 #define NET_TRANS( st ) st
 #define NET_INIT()
 
-#include"winsock2.h"
-#include"winsock.h"
+//#include"winsock2.h"
+//#include"winsock.h"
+#include"ws2tcpip.h"
 
 #ifndef SO_EXCLUSIVEADDRUSE
 #define SO_EXCLUSIVEADDRUSE ((int)(~SO_REUSEADDR))
@@ -1203,47 +1204,50 @@ static void DaoSocket_Lib_ReceiveFrom( DaoProcess *proc, DaoValue *p[], int N )
 	tup->values[1]->xInteger.value = ntohs( addr.sin_port );
 }
 
-int GetSockOpt( int fd, int opt, int *value )
+int GetSockOpt( DaoProcess *proc, DaoSocket *sock, int opt, int *value )
 {
 	socklen_t size = sizeof(*value);
-	return getsockopt( fd, SOL_SOCKET, opt, (char*)value, &size );
+	if ( sock->state == Socket_Closed ){
+		DaoProcess_RaiseError( proc, neterr, "The socket is closed" );
+		return 0;
+	}
+	if ( getsockopt( sock->id, SOL_SOCKET, opt, (char*)value, &size ) == -1 ){
+		char errbuf[MAX_ERRMSG];
+		GetErrorMessage( errbuf, GetError() );
+		DaoProcess_RaiseError( proc, neterr, errbuf );
+		return 0;
+	}
+	return 1;
 }
 
-int SetSockOpt( int fd, int opt, int value )
+int SetSockOpt( DaoProcess *proc, DaoSocket *sock, int opt, int value )
 {
-	return setsockopt( fd, SOL_SOCKET, opt, (char*)&value, sizeof(value) );
+	if ( sock->state == Socket_Closed ){
+		DaoProcess_RaiseError( proc, neterr, "The socket is closed" );
+		return 0;
+	}
+	if ( setsockopt( sock->id, SOL_SOCKET, opt, (char*)&value, sizeof(value) ) == -1 ){
+		char errbuf[MAX_ERRMSG];
+		GetErrorMessage( errbuf, GetError() );
+		DaoProcess_RaiseError( proc, neterr, errbuf );
+		return 0;
+	}
+	return 1;
 }
 
 static void DaoSocket_Lib_KeepAlive( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
 	int value;
-	if ( self->state == Socket_Closed ){
-		DaoProcess_RaiseError( proc, neterr, "The socket is closed" );
-		return;
-	}
-	if ( GetSockOpt( self->id, SO_KEEPALIVE, &value ) == -1 ){
-		char errbuf[MAX_ERRMSG];
-		GetErrorMessage( errbuf, GetError() );
-		DaoProcess_RaiseError( proc, neterr, errbuf );
-		return;
-	}
-	DaoProcess_PutBoolean( proc, value );
+	if ( GetSockOpt( proc, self, SO_KEEPALIVE, &value ) )
+		DaoProcess_PutBoolean( proc, value );
 }
 
 static void DaoSocket_Lib_SetKeepAlive( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
 	int value = p[1]->xBoolean.value;
-	if ( self->state == Socket_Closed ){
-		DaoProcess_RaiseError( proc, neterr, "The socket is closed" );
-		return;
-	}
-	if ( SetSockOpt( self->id, SO_KEEPALIVE, value ) == -1 ){
-		char errbuf[MAX_ERRMSG];
-		GetErrorMessage( errbuf, GetError() );
-		DaoProcess_RaiseError( proc, neterr, errbuf );
-	}
+	SetSockOpt( proc, self, SO_KEEPALIVE, value );
 }
 
 static void DaoSocket_Lib_NoDelay( DaoProcess *proc, DaoValue *p[], int N )
@@ -1283,32 +1287,147 @@ static void DaoSocket_Lib_Broadcast( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
 	int value;
-	if ( self->state == Socket_Closed ){
-		DaoProcess_RaiseError( proc, neterr, "The socket is closed" );
-		return;
-	}
-	if ( GetSockOpt( self->id, SO_BROADCAST, &value ) == -1 ){
-		char errbuf[MAX_ERRMSG];
-		GetErrorMessage( errbuf, GetError() );
-		DaoProcess_RaiseError( proc, neterr, errbuf );
-		return;
-	}
-	DaoProcess_PutBoolean( proc, value );
+	if ( GetSockOpt( proc, self, SO_BROADCAST, &value ) )
+		DaoProcess_PutBoolean( proc, value );
 }
 
 static void DaoSocket_Lib_SetBroadcast( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
 	int value = p[1]->xBoolean.value;
-	if ( self->state == Socket_Closed ){
+	SetSockOpt( proc, self, SO_BROADCAST, value );
+}
+
+#ifdef WIN32
+typedef DWORD numsockopt_t;
+#else
+typedef uchar_t numsockopt_t;
+#endif
+
+int GetIPSockOpt( DaoProcess *proc, DaoSocket *sock, int opt, numsockopt_t *value )
+{
+	socklen_t size = sizeof(*value);
+	if ( sock->state == Socket_Closed ){
 		DaoProcess_RaiseError( proc, neterr, "The socket is closed" );
-		return;
+		return 0;
 	}
-	if ( SetSockOpt( self->id, SO_BROADCAST, value ) == -1 ){
+	if ( getsockopt( sock->id, IPPROTO_IP, opt, (char*)value, &size ) == -1 ){
+		char errbuf[MAX_ERRMSG];
+		GetErrorMessage( errbuf, GetError() );
+		DaoProcess_RaiseError( proc, neterr, errbuf );
+		return 0;
+	}
+	return 1;
+}
+
+int SetIPSockOpt( DaoProcess *proc, DaoSocket *sock, int opt, numsockopt_t value )
+{
+	if ( sock->state == Socket_Closed ){
+		DaoProcess_RaiseError( proc, neterr, "The socket is closed" );
+		return 0;
+	}
+	if ( setsockopt( sock->id, IPPROTO_IP, opt, (char*)&value, sizeof(value) ) == -1 ){
+		char errbuf[MAX_ERRMSG];
+		GetErrorMessage( errbuf, GetError() );
+		DaoProcess_RaiseError( proc, neterr, errbuf );
+		return 0;
+	}
+	return 1;
+}
+
+static void DaoSocket_Lib_MultiLoop( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	numsockopt_t value;
+	if ( GetIPSockOpt( proc, self, IP_MULTICAST_LOOP, &value ) )
+		DaoProcess_PutBoolean( proc, value );
+}
+
+static void DaoSocket_Lib_SetMultiLoop( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	numsockopt_t value = p[1]->xBoolean.value;
+	SetIPSockOpt( proc, self, IP_MULTICAST_LOOP, value );
+}
+
+void MultiGroupOperation( DaoProcess *proc, DaoValue *p[], int N, int add )
+{
+	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	struct ip_mreq value;
+	struct in_addr *paddr;
+	struct hostent *he;
+	int res;
+	paddr = GetAddr( proc, p[1], &he );
+	if ( !paddr )
+		return;
+	value.imr_multiaddr = *paddr;
+	value.imr_interface.s_addr = INADDR_ANY;
+	res = setsockopt( self->id, IPPROTO_IP, add? IP_ADD_MEMBERSHIP : IP_DROP_MEMBERSHIP, (char*)&value, sizeof(value) );
+	if ( res == -1 ){
 		char errbuf[MAX_ERRMSG];
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 	}
+}
+
+static void DaoSocket_Lib_JoinMultiGroup( DaoProcess *proc, DaoValue *p[], int N )
+{
+	MultiGroupOperation( proc, p, N, 1 );
+}
+
+static void DaoSocket_Lib_LeaveMultiGroup( DaoProcess *proc, DaoValue *p[], int N )
+{
+	MultiGroupOperation( proc, p, N, 0 );
+}
+
+static void DaoSocket_Lib_MultiTTL( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	numsockopt_t value;
+	if ( GetIPSockOpt( proc, self, IP_MULTICAST_TTL, &value ) )
+		DaoProcess_PutBoolean( proc, value );
+}
+
+static void DaoSocket_Lib_SetMultiTTL( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	numsockopt_t value;
+	value = p[1]->xInteger.value;
+	SetIPSockOpt( proc, self, IP_MULTICAST_TTL, value );
+}
+
+static void TTLOperation( DaoProcess *proc, DaoValue *p[], int N, int get )
+{
+	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+#ifdef WIN32
+	DWORD value;
+#else
+	int value;
+#endif
+	int res;
+	socklen_t size = sizeof(value);
+	value = p[1]->xInteger.value;
+	if ( self->state == Socket_Closed ){
+		DaoProcess_RaiseError( proc, neterr, "The socket is closed" );
+		return;
+	}
+	res = get? getsockopt( self->id, IPPROTO_IP, IP_TTL, (char*)&value, &size ) :
+			   setsockopt( self->id, IPPROTO_IP, IP_TTL, (char*)&value, size );
+	if ( res == -1 ){
+		char errbuf[MAX_ERRMSG];
+		GetErrorMessage( errbuf, GetError() );
+		DaoProcess_RaiseError( proc, neterr, errbuf );
+	}
+}
+
+static void DaoSocket_Lib_TTL( DaoProcess *proc, DaoValue *p[], int N )
+{
+	TTLOperation( proc, p, N, 1 );
+}
+
+static void DaoSocket_Lib_SetTTL( DaoProcess *proc, DaoValue *p[], int N )
+{
+	TTLOperation( proc, p, N, 0 );
 }
 
 static DaoFuncItem socketMeths[] =
@@ -1423,6 +1542,24 @@ static DaoFuncItem udpsocketMeths[] =
 	/*! UDP broadcast option (SO_BROADCAST) */
 	{ DaoSocket_Lib_Broadcast,		".broadcast( invar self: UDPSocket ) => bool" },
 	{ DaoSocket_Lib_SetBroadcast,	".broadcast=( self: UDPSocket, value: bool )" },
+
+	/*! Multicast loop socket option (IP_MULTICAST_LOOP) */
+	{ DaoSocket_Lib_MultiLoop,		".multicastLoop( invar self: UDPSocket ) => bool" },
+	{ DaoSocket_Lib_SetMultiLoop,	".multicastLoop=( self: UDPSocket, value: bool )" },
+
+	/*! Joins multicast \a group specified by its host name or ip address */
+	{ DaoSocket_Lib_JoinMultiGroup,	"joinGroup( self: UDPSocket, group: string|IPv4Addr )" },
+
+	/*! Leaves multicast \a group specified by its host name or ip address */
+	{ DaoSocket_Lib_LeaveMultiGroup,"leaveGroup( self: UDPSocket, group: string|IPv4Addr )" },
+
+	/*! Multicast TTL value (IP_MULTICAST_TTL) */
+	{ DaoSocket_Lib_MultiTTL,		".multicastTtl( invar self: UDPSocket ) => int" },
+	{ DaoSocket_Lib_SetMultiTTL,	".multicastTtl=( self: UDPSocket, value: int )" },
+
+	/*! TTL value (IP_TTL) */
+	{ DaoSocket_Lib_TTL,			".ttl( invar self: UDPSocket ) => int" },
+	{ DaoSocket_Lib_SetTTL,			".ttl=( self: UDPSocket, value: int )" },
 	{ NULL, NULL }
 };
 
