@@ -1203,6 +1203,114 @@ static void DaoSocket_Lib_ReceiveFrom( DaoProcess *proc, DaoValue *p[], int N )
 	tup->values[1]->xInteger.value = ntohs( addr.sin_port );
 }
 
+int GetSockOpt( int fd, int opt, int *value )
+{
+	socklen_t size = sizeof(*value);
+	return getsockopt( fd, SOL_SOCKET, opt, (char*)value, &size );
+}
+
+int SetSockOpt( int fd, int opt, int value )
+{
+	return setsockopt( fd, SOL_SOCKET, opt, (char*)&value, sizeof(value) );
+}
+
+static void DaoSocket_Lib_KeepAlive( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	int value;
+	if ( self->state == Socket_Closed ){
+		DaoProcess_RaiseError( proc, neterr, "The socket is closed" );
+		return;
+	}
+	if ( GetSockOpt( self->id, SO_KEEPALIVE, &value ) == -1 ){
+		char errbuf[MAX_ERRMSG];
+		GetErrorMessage( errbuf, GetError() );
+		DaoProcess_RaiseError( proc, neterr, errbuf );
+		return;
+	}
+	DaoProcess_PutBoolean( proc, value );
+}
+
+static void DaoSocket_Lib_SetKeepAlive( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	int value = p[1]->xBoolean.value;
+	if ( self->state == Socket_Closed ){
+		DaoProcess_RaiseError( proc, neterr, "The socket is closed" );
+		return;
+	}
+	if ( SetSockOpt( self->id, SO_KEEPALIVE, value ) == -1 ){
+		char errbuf[MAX_ERRMSG];
+		GetErrorMessage( errbuf, GetError() );
+		DaoProcess_RaiseError( proc, neterr, errbuf );
+	}
+}
+
+static void DaoSocket_Lib_NoDelay( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	int value;
+	socklen_t size = sizeof(value);
+	if ( self->state == Socket_Closed ){
+		DaoProcess_RaiseError( proc, neterr, "The socket is closed" );
+		return;
+	}
+	if ( getsockopt( self->id, IPPROTO_TCP, TCP_NODELAY, (char*)&value, &size ) == -1 ){
+		char errbuf[MAX_ERRMSG];
+		GetErrorMessage( errbuf, GetError() );
+		DaoProcess_RaiseError( proc, neterr, errbuf );
+		return;
+	}
+	DaoProcess_PutBoolean( proc, value );
+}
+
+static void DaoSocket_Lib_SetNoDelay( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	int value = p[1]->xBoolean.value;
+	if ( self->state == Socket_Closed ){
+		DaoProcess_RaiseError( proc, neterr, "The socket is closed" );
+		return;
+	}
+	if ( setsockopt( self->id, IPPROTO_TCP, TCP_NODELAY, (char*)&value, sizeof(value) ) == -1 ){
+		char errbuf[MAX_ERRMSG];
+		GetErrorMessage( errbuf, GetError() );
+		DaoProcess_RaiseError( proc, neterr, errbuf );
+	}
+}
+
+static void DaoSocket_Lib_Broadcast( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	int value;
+	if ( self->state == Socket_Closed ){
+		DaoProcess_RaiseError( proc, neterr, "The socket is closed" );
+		return;
+	}
+	if ( GetSockOpt( self->id, SO_BROADCAST, &value ) == -1 ){
+		char errbuf[MAX_ERRMSG];
+		GetErrorMessage( errbuf, GetError() );
+		DaoProcess_RaiseError( proc, neterr, errbuf );
+		return;
+	}
+	DaoProcess_PutBoolean( proc, value );
+}
+
+static void DaoSocket_Lib_SetBroadcast( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	int value = p[1]->xBoolean.value;
+	if ( self->state == Socket_Closed ){
+		DaoProcess_RaiseError( proc, neterr, "The socket is closed" );
+		return;
+	}
+	if ( SetSockOpt( self->id, SO_BROADCAST, value ) == -1 ){
+		char errbuf[MAX_ERRMSG];
+		GetErrorMessage( errbuf, GetError() );
+		DaoProcess_RaiseError( proc, neterr, errbuf );
+	}
+}
+
 static DaoFuncItem socketMeths[] =
 {
 	/*! Address to which the socket is bound */
@@ -1260,6 +1368,14 @@ static DaoFuncItem tcpstreamMeths[] =
 	 *
 	 * \warning Not supported on Windows */
 	{ DaoSocket_Lib_GetStream,		"open( invar self: TCPStream, mode: string ) => io::Stream" },
+
+	/*! TCP keep-alive option (SO_KEEPALIVE) */
+	{ DaoSocket_Lib_KeepAlive,		".keepAlive( invar self: TCPStream ) => bool" },
+	{ DaoSocket_Lib_SetKeepAlive,	".keepAlive=( self: TCPStream, value: bool )" },
+
+	/*! TCP no-delay option (SO_NODELAY) */
+	{ DaoSocket_Lib_NoDelay,		".noDelay( invar self: TCPStream ) => bool" },
+	{ DaoSocket_Lib_SetNoDelay,		".noDelay=( self: TCPStream, value: bool )" },
 	{ NULL, NULL }
 };
 
@@ -1271,19 +1387,19 @@ DaoTypeBase tcpstreamTyper = {
 static DaoFuncItem tcplistenerMeths[] =
 {
 	/*! Binds the socket to \a port using \a address options if specified. For the description of \a address, see \c net.bind() */
-	{ DaoSocket_Lib_BindTCP,	"bind( self: TCPListener, port: int )" },
-	{ DaoSocket_Lib_BindTCP,	"bind( self: TCPListener, port: int, address: enum<shared;exclusive;reused;default> )" },
+	{ DaoSocket_Lib_BindTCP,		"bind( self: TCPListener, port: int )" },
+	{ DaoSocket_Lib_BindTCP,		"bind( self: TCPListener, port: int, address: enum<shared;exclusive;reused;default> )" },
 
 	/*! Sets the socket into the listening state using \a backLog as the maximum size of the queue of pending connections
 	 * (use \c MAX_BACKLOG constant to assign the maximum queue size) */
-	{ DaoSocket_Lib_Listen,		"listen( self: TCPListener, backLog = 10 )" },
+	{ DaoSocket_Lib_Listen,			"listen( self: TCPListener, backLog = 10 )" },
 
 	/*! Accepts new connection, returning its server-side endpoint */
-	{ DaoSocket_Lib_Accept,		"accept( self: TCPListener ) => TCPStream" },
+	{ DaoSocket_Lib_Accept,			"accept( self: TCPListener ) => TCPStream" },
 
 	//! Equivalient to an infinite loop calling \c accept() on each iteration, yielding a new connection
-	{ DaoSocket_Lib_For,		"for( self: TCPListener, iterator: ForIterator )" },
-	{ DaoSocket_Lib_Get,		"[]( self: TCPListener, index: ForIterator ) => TCPStream" },
+	{ DaoSocket_Lib_For,			"for( self: TCPListener, iterator: ForIterator )" },
+	{ DaoSocket_Lib_Get,			"[]( self: TCPListener, index: ForIterator ) => TCPStream" },
 	{ NULL, NULL }
 };
 
@@ -1303,6 +1419,10 @@ static DaoFuncItem udpsocketMeths[] =
 
 	/*! Receives at most \a limit bytes and returnes the received data and the address of its sender */
 	{ DaoSocket_Lib_ReceiveFrom,	"receive( self: UDPSocket, limit = 512 ) => tuple<ip: IPv4Addr, port: int, data: string>" },
+
+	/*! UDP broadcast option (SO_BROADCAST) */
+	{ DaoSocket_Lib_Broadcast,		".broadcast( invar self: UDPSocket ) => bool" },
+	{ DaoSocket_Lib_SetBroadcast,	".broadcast=( self: UDPSocket, value: bool )" },
 	{ NULL, NULL }
 };
 
