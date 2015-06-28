@@ -29,6 +29,7 @@
 #ifndef __DAO_PATH_H__
 #define __DAO_PATH_H__
 
+#define DAO_CANVAS
 
 #include "dao_common.h"
 
@@ -187,16 +188,16 @@ void DaoxPath_Copy( DaoxPath *self, DaoxPath *other );
 
 uint_t DaoxPath_Hash( DaoxPath *self );
 
-DAO_DLL void DaoxPath_SetRelativeMode( DaoxPath *self, int relative );
-DAO_DLL void DaoxPath_MoveTo( DaoxPath *self, float x, float y );
-DAO_DLL void DaoxPath_Close( DaoxPath *self );
-DAO_DLL void DaoxPath_LineTo( DaoxPath *self, float x, float y );
-DAO_DLL void DaoxPath_QuadTo( DaoxPath *self, float cx, float cy, float x, float y );
-DAO_DLL void DaoxPath_CubicTo( DaoxPath *self, float cx, float cy, float x, float y );
-DAO_DLL void DaoxPath_CubicTo2( DaoxPath *self, float cx1, float cy1, float cx2, float cy2, float x2, float y2 );
-DAO_DLL void DaoxPath_ArcTo( DaoxPath *self, float x, float y, float degrees );
-DAO_DLL void DaoxPath_ArcTo2( DaoxPath *self, float x, float y, float degrees, float deg2 );
-DAO_DLL void DaoxPath_ArcBy( DaoxPath *self, float cx, float cy, float degrees );
+DAO_CANVAS_DLL void DaoxPath_SetRelativeMode( DaoxPath *self, int relative );
+DAO_CANVAS_DLL void DaoxPath_MoveTo( DaoxPath *self, float x, float y );
+DAO_CANVAS_DLL void DaoxPath_Close( DaoxPath *self );
+DAO_CANVAS_DLL void DaoxPath_LineTo( DaoxPath *self, float x, float y );
+DAO_CANVAS_DLL void DaoxPath_QuadTo( DaoxPath *self, float cx, float cy, float x, float y );
+DAO_CANVAS_DLL void DaoxPath_CubicTo( DaoxPath *self, float cx, float cy, float x, float y );
+DAO_CANVAS_DLL void DaoxPath_CubicTo2( DaoxPath *self, float cx1, float cy1, float cx2, float cy2, float x2, float y2 );
+DAO_CANVAS_DLL void DaoxPath_ArcTo( DaoxPath *self, float x, float y, float degrees );
+DAO_CANVAS_DLL void DaoxPath_ArcTo2( DaoxPath *self, float x, float y, float degrees, float deg2 );
+DAO_CANVAS_DLL void DaoxPath_ArcBy( DaoxPath *self, float cx, float cy, float degrees );
 
 void DaoxPath_ImportPath( DaoxPath *self, DaoxPath *path, DaoxMatrix3D *transform );
 

@@ -29,7 +29,7 @@
 #include "stdlib.h"
 #include "math.h"
 #include "assert.h"
-#include "dao_common.h"
+#include "dao_path.h"
 
 
 typedef struct DaoxMatrix2D  DaoxMatrix2D;

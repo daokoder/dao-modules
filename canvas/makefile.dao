@@ -46,5 +46,9 @@ project.SetTargetPath( "../../lib/dao/modules" )
 project.Install( DaoMake::Variables[ "INSTALL_MOD" ], project_dll );
 project.Install( DaoMake::Variables[ "INSTALL_MOD" ], project_lib );
 
+dest = DaoMake::MakePath( project.BinaryPath(), "." );
+src = DaoMake::MakePath( project.SourcePath(), "canvas.dao" );
+cmd = project.AddCommand( "copypath:", "$(DAOMAKE) copy " + src + " " + dest );
+
 findpkg = project.GenerateFinder( $TRUE );
 project.Install( DaoMake::Variables[ "INSTALL_FINDER" ], findpkg );

@@ -1014,9 +1014,9 @@ DaoType *daox_type_canvas_image = NULL;
 DaoType *daox_type_painter = NULL;
 
 
-DAO_DLL int DaoFont_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
+DAO_CANVAS_DLL int DaoFont_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
 
-DAO_DLL int DaoCanvas_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
+DAO_CANVAS_DLL int DaoCanvas_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 {
 	DaoNamespace *sqlns = DaoVmSpace_LinkModule( vmSpace, nspace, "image" );
 	DaoNamespace *ns = nspace;

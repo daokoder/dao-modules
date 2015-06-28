@@ -32,6 +32,11 @@
 #include "dao.h"
 #include "daoStdtype.h"
 
+#ifdef DAO_IMAGE
+#  define DAO_IMAGE_DLL DAO_DLL_EXPORT
+#else
+#  define DAO_IMAGE_DLL DAO_DLL_IMPORT
+#endif
 
 typedef struct DaoxImage  DaoxImage;
 

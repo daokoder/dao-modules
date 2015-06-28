@@ -25,6 +25,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#define DAO_IMAGE
 
 #include <assert.h>
 #include <stdlib.h>

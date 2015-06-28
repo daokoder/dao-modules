@@ -242,7 +242,7 @@ DaoxFont* DaoxFont_GetDefault()
 	return daox_default_font;
 }
 
-DAO_DLL int DaoFont_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_CANVAS_DLL int DaoFont_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoxFont *font;
 

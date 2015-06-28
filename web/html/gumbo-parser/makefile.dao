@@ -46,6 +46,8 @@ project.AddCompilingFlag( "-std=c99" )
 
 if( DaoMake::IsPlatform( "UNIX" ) ){
 	project.AddCompilingFlag( "-fPIC" )
+}else if( DaoMake::IsPlatform( "WIN32" ) ){
+	project.AddCompilingFlag( "-U__STRICT_ANSI__" )
 }
 
 gumbo_parser_objs = project.AddObjects( srclist, inclist )

@@ -53,6 +53,13 @@
 #include "daoGC.h"
 
 
+#ifdef DAO_CANVAS
+#  define DAO_CANVAS_DLL DAO_DLL_EXPORT
+#else
+#  define DAO_CANVAS_DLL DAO_DLL_IMPORT
+#endif
+
+
 #define EPSILON 1E-16
 
 extern float daox_graphics_device_width;
