@@ -31,13 +31,22 @@ static DaoType *daox_type_regex = NULL;
 static DaoType *daox_type_match = NULL;
 static DaoType *daox_type_iter = NULL;
 
+static int Onig_New(OnigRegex*rgx, const char* pattern, const char* pattern_end, OnigOptionType option, OnigEncoding enc, OnigSyntaxType* syntax, OnigErrorInfo* einfo)
+{
+	return onig_new( rgx, (OnigUChar*)pattern, (OnigUChar*)pattern_end, option, enc, syntax, einfo );
+}
+static OnigPosition Onig_Search (OnigRegex rgx, const char* str, const char* end, const char* start, const char* range, OnigRegion* region, OnigOptionType option)
+{
+	return onig_search( rgx, (OnigUChar*)str, (OnigUChar*)end, (OnigUChar*)start, (OnigUChar*)range, region, option );
+}
+
 DaoOnigRegex* DaoOnigRegex_New( DString *pt, int icase, OnigErrorInfo *error, int *errcode )
 {
 	DaoOnigRegex *res = (DaoOnigRegex*)dao_malloc( sizeof(DaoOnigRegex) );
 	res->icase = icase;
 	res->regex = NULL;
 	res->pattern = DString_Copy( pt );
-	*errcode = onig_new( &res->regex, pt->chars, pt->chars + pt->size,
+	*errcode = Onig_New( &res->regex, pt->chars, pt->chars + pt->size,
 						 icase? ONIG_OPTION_IGNORECASE : ONIG_OPTION_NONE, ONIG_ENCODING_UTF8, ONIG_SYNTAX_DEFAULT, error );
 	return res;
 }
@@ -121,7 +130,7 @@ static void DaoOnigRegex_Create( DaoProcess *proc, DaoValue *p[], int N )
 	if ( errcode != ONIG_NORMAL ){
 		DString *msg = DString_New();
 		DString_Resize( msg, ONIG_MAX_ERROR_MESSAGE_LEN );
-		DString_Resize( msg, onig_error_code_to_str( msg->chars, errcode, error ) );
+		DString_Resize( msg, onig_error_code_to_str( (OnigUChar*)msg->chars, errcode, error ) );
 		DString_AppendChars( msg, ": " );
 		DString_Append( msg, pt );
 		DaoProcess_RaiseError( proc, "Regex", msg->chars );
@@ -176,7 +185,7 @@ int GetGroupNumber( DaoProcess *proc, regex_t *regex, OnigRegion *match, DaoValu
 	int num = -1;
 	if ( group->type == DAO_STRING ){
 		DString *name = group->xString.value;
-		num = onig_name_to_backref_number( regex, name->chars, name->chars + name->size, match );
+		num = onig_name_to_backref_number( regex, (OnigUChar*)name->chars, (OnigUChar*)(name->chars + name->size), match );
 		if ( num < 0 )
 			DaoProcess_RaiseError( proc, "Param", "Invalid group name" );
 	}
@@ -296,7 +305,7 @@ static void DaoOnigRegex_Fetch( DaoProcess *proc, DaoValue *p[], int N )
 	DString *res = DaoProcess_PutChars( proc, "" );
 	if ( NormBounds( proc, str, &start, &end ) && start < str->size ){
 		OnigRegion *match = onig_region_new();
-		int group, pos = onig_search( self->regex, str->chars, str->chars + str->size, str->chars + start, str->chars + end + 1,
+		int group, pos = Onig_Search( self->regex, str->chars, str->chars + str->size, str->chars + start, str->chars + end + 1,
 									  match, ONIG_OPTION_NONE );
 		if ( pos >= 0 && ( group = GetGroupNumber( proc, self->regex, match, p[2] ) ) >= 0 )
 			DString_AppendBytes( res, str->chars + match->beg[group], match->end[group] - match->beg[group] );
@@ -309,7 +318,7 @@ static void DaoOnigRegex_Matches( DaoProcess *proc, DaoValue *p[], int N )
 	DaoOnigRegex *self = (DaoOnigRegex*)DaoValue_TryGetCdata( p[0] );
 	DString *str = p[1]->xString.value;
 	OnigRegion *match = onig_region_new();
-	int res = onig_match( self->regex, str->chars, str->chars + str->size, str->chars, match, ONIG_OPTION_NONE );
+	int res = onig_match( self->regex, (OnigUChar*)str->chars, (OnigUChar*)(str->chars + str->size), (OnigUChar*)str->chars, match, ONIG_OPTION_NONE );
 	DaoProcess_PutBoolean( proc, res == str->size );
 	onig_region_free( match, 1 );
 }
@@ -324,7 +333,7 @@ static void DaoOnigRegex_Extract( DaoProcess *proc, DaoValue *p[], int N )
 	OnigRegion *match = onig_region_new();
 	int pos, start = 0;
 	do {
-		pos = onig_search( self->regex, str->chars, str->chars + str->size, str->chars + start, str->chars + str->size, match,
+		pos = Onig_Search( self->regex, str->chars, str->chars + str->size, str->chars + start, str->chars + str->size, match,
 						   ONIG_OPTION_NONE );
 		if ( unmatched && pos != start ){
 			DaoString *item = DaoString_New();
@@ -360,7 +369,7 @@ static void DaoOnigRegex_Replace( DaoProcess *proc, DaoValue *p[], int N )
 		OnigRegion *match = onig_region_new();
 		int pos;
 		do {
-			pos = onig_search( self->regex, str->chars, str->chars + str->size, str->chars + start, str->chars + end + 1, match,
+			pos = Onig_Search( self->regex, str->chars, str->chars + str->size, str->chars + start, str->chars + end + 1, match,
 							   ONIG_OPTION_NONE );
 			DString_AppendBytes( res, str->chars + start, ( ( pos >= 0 )? pos : end + 1 ) - start );
 			if ( pos >= 0 ){
@@ -380,7 +389,7 @@ static void DaoOnigRegex_Replace( DaoProcess *proc, DaoValue *p[], int N )
 							int group;
 							if ( end < 0 )
 								goto Error;
-							group = onig_name_to_backref_number( self->regex, fmt->chars + i, fmt->chars + end, match );
+							group = onig_name_to_backref_number( self->regex, (OnigUChar*)(fmt->chars + i), (OnigUChar*)(fmt->chars + end), match );
 							if ( group < 0 )
 								goto Error;
 							DString_AppendBytes( res, str->chars + match->beg[group], match->end[group] - match->beg[group] );
@@ -419,7 +428,7 @@ static void DaoOnigRegex_Search( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_PutNone( proc );
 	else {
 		OnigRegion *match = onig_region_new();
-		int pos = onig_search( self->regex, str->chars, str->chars + str->size, str->chars + start, str->chars + end + 1, match,
+		int pos = Onig_Search( self->regex, str->chars, str->chars + str->size, str->chars + start, str->chars + end + 1, match,
 							   ONIG_OPTION_NONE );
 		if ( pos >= 0 )
 			DaoProcess_PutCdata( proc, DaoOnigMatch_New( str, p[0], match ), daox_type_match );
@@ -448,7 +457,7 @@ static void DaoOnigRegex_Scan( DaoProcess *proc, DaoValue *p[], int N )
 		int entry = proc->topFrame->entry;
 		int pos;
 		do {
-			pos = onig_search( self->regex, str->chars, str->chars + str->size, str->chars + start, str->chars + end + 1, match,
+			pos = Onig_Search( self->regex, str->chars, str->chars + str->size, str->chars + start, str->chars + end + 1, match,
 							   ONIG_OPTION_NONE );
 			if ( pos >= 0 ){
 				if ( sect->b > 0 )
@@ -490,7 +499,7 @@ static void DaoOnigRegex_Change( DaoProcess *proc, DaoValue *p[], int N )
 		int pos;
 		DString_AppendBytes( res, str->chars, start );
 		do {
-			pos = onig_search( self->regex, str->chars, str->chars + str->size, str->chars + start, str->chars + end + 1, match,
+			pos = Onig_Search( self->regex, str->chars, str->chars + str->size, str->chars + start, str->chars + end + 1, match,
 							   ONIG_OPTION_NONE );
 			DString_AppendBytes( res, str->chars + start, ( ( pos >= 0 )? pos : end + 1 ) - start );
 			if ( pos >= 0 ){
@@ -544,7 +553,7 @@ static void DaoOnigIter_Init( DaoProcess *proc, DaoValue *p[], int N )
 		DaoInteger *start = &iter->values[1]->xInteger;
 		char *chs = self->target->chars;
 		if ( valid->value ){
-			int pos = onig_search( self->regex->regex, chs, chs + self->target->size, chs + start->value, chs + self->end + 1,
+			int pos = Onig_Search( self->regex->regex, chs, chs + self->target->size, chs + start->value, chs + self->end + 1,
 								   self->match, ONIG_OPTION_NONE );
 			valid->value = pos >= 0;
 			if ( valid->value )
@@ -564,7 +573,7 @@ static void DaoOnigIter_Get( DaoProcess *proc, DaoValue *p[], int N )
 		int pos;
 		DaoProcess_PutCdata( proc, DaoOnigMatch_New( self->target, self->regval, self->match ), daox_type_match );
 		pos = ( start->value < self->target->size )?
-					onig_search( self->regex->regex, chs, chs + self->target->size, chs + start->value, chs + self->end + 1, self->match,
+					Onig_Search( self->regex->regex, chs, chs + self->target->size, chs + start->value, chs + self->end + 1, self->match,
 								 ONIG_OPTION_NONE ) : -1;
 		valid->value = pos >= 0;
 		if ( valid->value )

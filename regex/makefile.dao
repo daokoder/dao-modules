@@ -10,6 +10,7 @@ project.AddIncludePath( "Onigmo" )
 
 # TODO: daomake files for Onigmo. (configure is just too slow.)
 
+#{
 # Need absolute path for out-of-source build:
 onigmo_bld = project.BuildPath() / "Onigmo"
 onigmo_src = project.SourcePath() / "Onigmo"
@@ -32,13 +33,17 @@ if( DaoMake::IsPlatform( "MINGW" ) ){
 	path = onigmo_bld / ".libs/libonig.a"
     project.AddLinkingFlag("-Wl,--whole-archive " + path + " -Wl,--no-whole-archive")
 }
+#}
+
+project.AddDirectory( "Onigmo", "Onigmo" );
+
+onigmo = DaoMake::FindPackage( "Onigmo", $REQUIRED )
+project.UseStaticLibrary( onigmo, "onigmo" )
+
 
 project_objs = project.AddObjects( { "dao_regex.c" } )
 project_dll  = project.AddSharedLibrary( "dao_regex", project_objs )
 project_lib  = project.AddStaticLibrary( "dao_regex", project_objs )
-
-project_dll.AddDependency( onigmo )
-project_lib.AddDependency( onigmo )
 
 project.GenerateFinder( $TRUE );
 project.Install( DaoMake::Variables[ "INSTALL_MOD" ], project_dll );

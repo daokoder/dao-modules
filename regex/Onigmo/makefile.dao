@@ -1,0 +1,86 @@
+
+
+project = DaoMake::Project( "Onigmo" )
+
+inclist =
+{
+	"regenc.h",
+	"regparse.h",
+	"oniguruma.h",
+	"regint.h",
+	"st.h"
+}
+
+srclist =
+{
+	"regcomp.c",
+	"regexec.c",
+	"regparse.c",
+	"regsyntax.c",
+	"st.c",
+	"regenc.c",
+	"regext.c",
+	"regtrav.c",
+	"regerror.c",
+	"reggnu.c",
+	"regversion.c",
+	"enc/ascii.c",
+	"enc/iso8859_10.c",
+	"enc/iso8859_5.c",
+	"enc/unicode.c",
+	"enc/big5.c",
+	"enc/iso8859_11.c",
+	"enc/iso8859_6.c",
+	"enc/utf16_be.c",
+	"enc/cp1251.c",
+	"enc/iso8859_13.c",
+	"enc/iso8859_7.c",
+	"enc/utf16_le.c",
+	"enc/cp932.c",
+	"enc/iso8859_14.c",
+	"enc/iso8859_8.c",
+	"enc/utf32_be.c",
+	"enc/euc_jp.c",
+	"enc/iso8859_15.c",
+	"enc/iso8859_9.c",
+	"enc/utf32_le.c",
+	"enc/euc_kr.c",
+	"enc/iso8859_16.c",
+	"enc/koi8.c",
+	"enc/utf8.c",
+	"enc/euc_tw.c",
+	"enc/iso8859_2.c",
+	"enc/koi8_r.c",
+	"enc/gb18030.c",
+	"enc/iso8859_3.c",
+	"enc/mktable.c",
+	"enc/iso8859_1.c",
+	"enc/iso8859_4.c",
+	"enc/sjis.c"
+}
+
+project.AddIncludePath( "." )
+
+if( DaoMake::IsPlatform( "UNIX" ) ){
+	inclist.append( "config.h" )
+	inclist.append( "onigposix.h" )
+	srclist.append( "regposerr.c" )
+	srclist.append( "regposix.c" )
+#{
+	inclist.append( "oniggnu.h" ) # ?
+	srclist.append( "reggnu.c" )
+#}
+	project.AddCompilingFlag( "-fPIC" )
+}else if( DaoMake::IsPlatform( "WIN32" ) ){
+	project.AddIncludePath( "win32" )
+	inclist.append( "win32/config.h" )
+	if( DaoMake::IsPlatform( "MINGW" ) ){  # ?
+		inclist.append( "onigposix.h" )
+		#inclist.append( "oniggnu.h" )
+	}
+}
+
+onigmo_objs = project.AddObjects( srclist, inclist )
+
+onigmo_dll = project.AddSharedLibrary( "onigmo", onigmo_objs )
+onigmo_lib = project.AddStaticLibrary( "onigmo", onigmo_objs )
