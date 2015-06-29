@@ -207,7 +207,7 @@ void DString_SHA1( DString *self, DString *sha1 )
 			W[15] = bits & 0xFFFFFFFF;
 		}
 		else { /* usual processing */
-			uchar_t *chs = self->chars + i;
+			uchar_t *chs = (uchar_t*)self->chars + i;
 			int limit = ( N - i > 64 )? 64 : N - i - 1;
 			if ( limit < 64 ){ /* original data ended, forming the last block in a buffer */
 				if ( limit )

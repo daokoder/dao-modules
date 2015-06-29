@@ -121,7 +121,8 @@ static void ZIP_Open( DaoProcess *proc, DaoValue *p[], int N )
 				DaoProcess_PutCdata( proc, res, daox_type_zipstream );
 			else {
 				char errbuf[100];
-				snprintf( errbuf, sizeof(errbuf), "Failed to open file descriptor %i", fileno );
+				int fn = p[0]->xInteger.value;
+				snprintf( errbuf, sizeof(errbuf), "Failed to open file descriptor %i", fn );
 				DaoProcess_RaiseError( proc, NULL, errbuf );
 				DaoZipStream_Delete( res );
 			}
@@ -202,7 +203,8 @@ static void ZIP_ReadFile( DaoProcess *proc, DaoValue *p[], int N )
 	else if ( !DaoZipStream_Open( stream, fdopen( p[0]->xInteger.value, "r" ), 1 ) ){
 			if ( !silent ){
 				char errbuf[100];
-				snprintf( errbuf, sizeof(errbuf), "Failed to open file descriptor %i", fileno );
+				int fn = p[0]->xInteger.value;
+				snprintf( errbuf, sizeof(errbuf), "Failed to open file descriptor %i", fn );
 				DaoProcess_RaiseError( proc, NULL, errbuf );
 				DaoZipStream_Delete( stream );
 			}
@@ -244,6 +246,7 @@ static DaoFuncItem zipMeths[]=
 	{ ZIP_Open,			"open(file: string, mode: string) => Stream" },
 	{ ZIP_Open,			"open(fileno: int, mode: string) => Stream" },
 	{ ZIP_ReadFile,		"read(file: string, silent = false) => string" },
+	{ ZIP_ReadFile,		"read(fileno: int, silent = false) => string" },
 	{ NULL, NULL }
 };
 
