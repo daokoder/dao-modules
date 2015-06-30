@@ -11,10 +11,10 @@ class Server
 		sock = net.bind( $tcp, 10000 );
 		sock.listen();
 		for (conn in sock){
-			message = conn.receive();
+			message = conn.read();
 			io.writeln( conn.peerAddr );
 			io.writeln( 'received', message );
-			conn.sendDao( 'TEST', 12.345, [1,2,3] );
+			conn.writeDao( 'TEST', 12.345, [1,2,3] );
 			conn.close();
 			break;
 		}
@@ -27,8 +27,8 @@ class Client
 	{
 		sockfd = net.connect( 'localhost', 10000 );
 		io.writeln( 'sending' );
-		sockfd.send( 'TEST' );
-		message = sockfd.receiveDao();
+		sockfd.write( 'TEST' );
+		message = sockfd.readDao();
 		io.writeln( 'received', message );
 		sockfd.close();
 	}

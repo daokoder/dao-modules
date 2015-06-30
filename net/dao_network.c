@@ -338,7 +338,10 @@ int DaoNetwork_SendTo( int sockfd, struct in_addr *ip, unsigned short port, DStr
 int DaoNetwork_Receive( int sockfd, DString *buf, int max )
 {
 	int numbytes;
-	if( max <=0 || max >= 1E4 ) max = 1E4;
+	if ( max <= 0 )
+		max = 4096;
+	else if ( max > 65536 )
+		max = 65536;
 	DString_Resize( buf, max );
 	numbytes = LoopReceive( sockfd, (char*)DString_GetData( buf ), max, 0 );
 	if( numbytes >=0 ) DString_Resize( buf, numbytes );
@@ -349,7 +352,10 @@ int DaoNetwork_ReceiveFrom( int sockfd, struct sockaddr_in *addr, DString *buf, 
 {
 	daoint numbytes;
 	socklen_t size = sizeof(*addr);
-	if( max <=0 || max >= 1E4 ) max = 1E4;
+	if ( max <= 0 )
+		max = 4096;
+	else if ( max > 65536 )
+		max = 65536;
 	DString_Resize( buf, max );
 	do
 		numbytes = recvfrom( sockfd, buf->chars, size, 0, (struct sockaddr*)addr, &size );
@@ -1458,25 +1464,19 @@ static DaoFuncItem tcpstreamMeths[] =
 	{ DaoSocket_Lib_Connect,		"connect( self: TCPStream, host: string|IPv4Addr, port: int )" },
 
 	/*! Sends \a data */
-	{ DaoSocket_Lib_Send,			"send( self: TCPStream, data: string )" },
-
-	/*! Identical to `send()`; required to satisfy `io::Device` interface */
 	{ DaoSocket_Lib_Send,			"write( self: TCPStream, data: string )" },
 
-	/*! Receives at most \a limit bytes and returnes the received data */
-	{ DaoSocket_Lib_Receive,		"receive( self: TCPStream, limit = 512 ) => string" },
-
-	/*! Identical to `receive()`; required to satisfy `io::Device` interface */
+	/*! Receives at most \a count bytes (64Kb max, 4Kb if \a count <= 0) and returnes the received data */
 	{ DaoSocket_Lib_Receive,		"read( self: TCPStream, count = -1 ) => string" },
 
 	/*! Peer address of the connected socket */
 	{ DaoSocket_Lib_GetPeerName,	".peerAddr( invar self: TCPStream ) => tuple<ip: IPv4Addr, port: int>" },
 
 	/*! Sends data via the internal serialization protocol */
-	{ DaoSocket_Lib_SendDao,		"sendDao( self: TCPStream, ...: int|float|complex|string|array )" },
+	{ DaoSocket_Lib_SendDao,		"writeDao( self: TCPStream, ...: int|float|complex|string|array )" },
 
 	/*! Receives data via the internal serialization protocol */
-	{ DaoSocket_Lib_ReceiveDao,		"receiveDao( self: TCPStream ) => list<int|float|complex|string|array>" },
+	{ DaoSocket_Lib_ReceiveDao,		"readDao( self: TCPStream ) => list<int|float|complex|string|array>" },
 
 	/*! Checks the property specified by \a what; required to satisfy `io::Device` interface  */
 	{ DaoSocket_Lib_Check,			"check(self: TCPStream, what: enum<readable,writable,open,eof>) => bool" },
@@ -1538,7 +1538,7 @@ static DaoFuncItem udpsocketMeths[] =
 	{ DaoSocket_Lib_SendTo,			"send( self: UDPSocket, host: string|IPv4Addr, port: int, data: string )" },
 
 	/*! Receives at most \a limit bytes and returnes the received data and the address of its sender */
-	{ DaoSocket_Lib_ReceiveFrom,	"receive( self: UDPSocket, limit = 512 ) => tuple<ip: IPv4Addr, port: int, data: string>" },
+	{ DaoSocket_Lib_ReceiveFrom,	"receive( self: UDPSocket, limit = 4096 ) => tuple<ip: IPv4Addr, port: int, data: string>" },
 
 	/*! UDP broadcast option (SO_BROADCAST) */
 	{ DaoSocket_Lib_Broadcast,		".broadcast( invar self: UDPSocket ) => bool" },
