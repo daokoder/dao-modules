@@ -33,7 +33,7 @@ modules.AddDirectory( "regex",       "regex" );
 modules.AddDirectory( "statistics",  "statistics" );
 modules.AddDirectory( "image",       "image" );
 modules.AddDirectory( "canvas",      "canvas" );
-
+modules.AddDirectory( "containers",  "containers" );
 
 if( DaoMake::IsDir( "DaoJIT" ) ) modules.AddDirectory( "DaoJIT", "DaoJIT" );
 
