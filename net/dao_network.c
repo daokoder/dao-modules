@@ -1918,9 +1918,7 @@ static void DaoNetLib_GetHost( DaoProcess *proc, DaoValue *par[], int N  )
 	struct in_addr id;
 	size_t size = sizeof( struct sockaddr_in );
 	const char *host = DaoString_GetChars( DaoValue_CastString( par[0] ) );
-	DaoTuple *tup = DaoProcess_PutTuple( proc, 3 );
-	DaoTuple_SetItem( tup, (DaoValue*)DaoProcess_NewList( proc ), 1 );
-	DaoTuple_SetItem( tup, (DaoValue*)DaoProcess_NewList( proc ), 2 );
+	DaoTuple *tup;
 	if( DaoString_Size( DaoValue_CastString( par[0] ) ) ==0 ) return;
 	if( host[0] >= '0' && host[0] <= '9' ){
 #ifdef UNIX
@@ -1936,10 +1934,22 @@ static void DaoNetLib_GetHost( DaoProcess *proc, DaoValue *par[], int N  )
 		NET_TRANS( hent = gethostbyname( host ) );
 	}
 	if( hent == NULL ){
-		GetHostErrorMessage( errbuf, GetHostError() );
-		DaoProcess_RaiseError( proc, neterr, errbuf );
+		int error = GetHostError();
+#ifdef WIN32
+		if ( error == WSAHOST_NOT_FOUND || error == WSANO_DATA )
+#else
+		if ( error == HOST_NOT_FOUND || error == NO_ADDRESS )
+#endif
+			DaoProcess_PutNone( proc );
+		else {
+			GetHostErrorMessage( errbuf, error );
+			DaoProcess_RaiseError( proc, neterr, errbuf );
+		}
 		return;
 	}
+	tup = DaoProcess_PutTuple( proc, 3 );
+	DaoTuple_SetItem( tup, (DaoValue*)DaoProcess_NewList( proc ), 1 );
+	DaoTuple_SetItem( tup, (DaoValue*)DaoProcess_NewList( proc ), 2 );
 	DString_SetChars( tup->values[0]->xString.value, hent->h_name );
 	if( hent->h_addrtype == AF_INET ){
 		char **p = hent->h_aliases;
@@ -2071,8 +2081,9 @@ static DaoFuncItem netMeths[] =
 	/*! Returns client-side TCP connection endpoint connected to address \a addr which may be either a 'host:port' string or \c SockAddr */
 	{  DaoNetLib_Connect,		"connect( addr: string|SocketAddr ) => TCPStream" },
 
-	/*! Returns information for host with the given \a id (which may be either a name or an IPv4 address in dotted form) */
-	{  DaoNetLib_GetHost,		"host( id: string ) => tuple<name: string, aliases: list<string>, addrs: list<IPv4Addr>>" },
+	/*! Returns information for host with the given \a id (which may be either a name or an IPv4 address in dotted form). Returns \c none if the host is not found
+	 * or does not have an IP address */
+	{  DaoNetLib_GetHost,		"host( id: string ) => tuple<name: string, aliases: list<string>, addrs: list<IPv4Addr>>|none" },
 
 	/*! Returns information for service with the given \a id (which may be either a name or a port number) to be used with
 	 * the protocol \a proto */
