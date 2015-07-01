@@ -803,7 +803,7 @@ int ParseAddr( DaoProcess *proc, DString *addr, uchar_t ip[4], unsigned short *p
 		DaoProcess_RaiseError( proc, "Param", "Missing port number" );
 		return 0;
 	}
-	if ( strchr( "0+- ", addr->chars[pos + 1] ) ){
+	if ( strchr( "+-", addr->chars[pos + 1] ) || isspace( addr->chars[pos + 1] ) ){
 		DaoProcess_RaiseError( proc, "Param", "Invalid port number" );
 		return 0;
 	}
