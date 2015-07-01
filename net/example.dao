@@ -25,7 +25,7 @@ class Client
 {
 	routine Start()
 	{
-		sockfd = net.connect( 'localhost', 10000 );
+		sockfd = net.connect( 'localhost:10000' );
 		io.writeln( 'sending' );
 		sockfd.write( 'TEST' );
 		message = sockfd.readDao();
