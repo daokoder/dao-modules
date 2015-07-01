@@ -1832,12 +1832,15 @@ static void DaoSocketAddr_Port( DaoProcess *proc, DaoValue *p[], int N  )
 
 static DaoFuncItem sockaddrMeths[] =
 {
-	//! Creates socket address from 'host:name' \a value or \a ip and \a port
+	//! Creates socket address from 'host:port' \a value or \a ip and \a port
 	{ DaoSocketAddr_Create,		"SocketAddr(value: string)" },
 	{ DaoSocketAddr_Create,		"SocketAddr(ip: IPv4Addr, port: int)" },
 
 	{ DaoSocketAddr_IP,			".ip(self: SocketAddr) => IPv4Addr" },
 	{ DaoSocketAddr_Port,		".port(self: SocketAddr) => int" },
+
+	//! 'ip:port' string
+	{ DaoSocketAddr_ToString,	".value(self: SocketAddr) => string" },
 
 	//! String conversion
 	{ DaoSocketAddr_ToString,	"(string)(self: SocketAddr)" },
