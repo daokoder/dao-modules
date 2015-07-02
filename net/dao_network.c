@@ -904,21 +904,27 @@ int ExtractAddr( DaoProcess *proc, DaoValue *param, uchar_t ip[4], unsigned shor
 	return 1;
 }
 
-static void DaoSocket_Lib_BindTCP( DaoProcess *proc, DaoValue *par[], int N  )
+static void DaoSocket_Lib_Listen( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
 	uchar_t ip[4];
 	unsigned short port;
+	dao_integer backlog = par[1]->xInteger.value;
 	if ( !ExtractAddr( proc, par[1], ip, &port ) )
 		return;
-	if( DaoSocket_Bind( self, Proto_TCP, ip, port, par[2]->xEnum.value ) == -1 ){
+	if ( backlog <= 0 ){
+		DaoProcess_RaiseError( proc, "Param", "Invalid backlog value" );
+		return;
+	}
+	if( DaoSocket_Bind( self, Proto_TCP, ip, port, par[2]->xEnum.value ) == -1 || DaoNetwork_Listen( self->id, backlog ) == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 	}
+	self->state = Socket_Listening;
 }
 
-static void DaoSocket_Lib_BindUDP( DaoProcess *proc, DaoValue *par[], int N  )
+static void DaoSocket_Lib_Bind( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
@@ -930,22 +936,6 @@ static void DaoSocket_Lib_BindUDP( DaoProcess *proc, DaoValue *par[], int N  )
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 	}
-}
-
-static void DaoSocket_Lib_Listen( DaoProcess *proc, DaoValue *par[], int N  )
-{
-	char errbuf[MAX_ERRMSG];
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
-	if( self->state != Socket_Bound ){
-		DaoProcess_RaiseError( proc, neterr, "The socket is not in the bound state" );
-		return;
-	}
-	if( DaoNetwork_Listen( self->id, DaoValue_TryGetInteger( par[1] ) ) == -1 ){
-		GetErrorMessage( errbuf, GetError() );
-		DaoProcess_RaiseError( proc, neterr, errbuf );
-		return;
-	}
-	self->state = Socket_Listening;
 }
 
 static void DaoSocket_Lib_Accept( DaoProcess *proc, DaoValue *par[], int N  )
@@ -1518,13 +1508,10 @@ DaoTypeBase TcpStreamTyper = {
 
 static DaoFuncItem TcpListenerMeths[] =
 {
-	/*! Binds the socket to address \a addr (either a 'host:port' string or \c SocketAddr) using \a addrOpts as address binding options.
-	 * For the description of \a addrOpts, see \c net.bind() */
-	{ DaoSocket_Lib_BindTCP,		"bind( self: TcpListener, addr: string|SocketAddr, addrOpts: enum<shared;exclusive;reused;default> )" },
-
-	/*! Sets the socket into the listening state using \a backLog as the maximum size of the queue of pending connections
+	/*! Binds the socket to address \a addr (either a 'host:port' string or \c SocketAddr) using \a addrOpts as the address binding options (for the description of
+	 * \a addrOpts, see \c net.listen()). Sets the socket into the listening state using \a backLog as the maximum size of the queue of pending connections
 	 * (use \c MAX_BACKLOG constant to assign the maximum queue size) */
-	{ DaoSocket_Lib_Listen,			"listen( self: TcpListener, backLog = 10 )" },
+	{ DaoSocket_Lib_Listen,			"listen( self: TcpListener, addr: string|SocketAddr, backLog = 10, addrOpts: enum<shared;exclusive;reused;default> = $exclusive )" },
 
 	/*! Accepts new connection, returning the corresponding \c TcpStream and peer address */
 	{ DaoSocket_Lib_Accept,			"accept( self: TcpListener ) => tuple<stream: TcpStream, addr: SocketAddr>" },
@@ -1542,9 +1529,9 @@ DaoTypeBase TcpListenerTyper = {
 
 static DaoFuncItem UdpSocketMeths[] =
 {
-	/*! Binds the socket to address \a addr (either a 'host:port' string or \c SocketAddr) using \a addrOpts as address binding options. For the description
-	 * of \a addrOpts, see \c net.bind() */
-	{ DaoSocket_Lib_BindUDP,		"bind( self: UdpSocket, addr: string|SocketAddr, addrOpts: enum<shared;exclusive;reused;default> = $exclusive )" },
+	/*! Binds the socket to address \a addr (either a 'host:port' string or \c SocketAddr) using \a addrOpts as the address binding options. For the description
+	 * of \a addrOpts, see \c net.listen() */
+	{ DaoSocket_Lib_Bind,			"bind( self: UdpSocket, addr: string|SocketAddr, addrOpts: enum<shared;exclusive;reused;default> = $exclusive )" },
 
 	/*! Sends \a data to the receiver specified by address \a addr which is either a 'host:port' string or \c SocketAddr */
 	{ DaoSocket_Lib_SendTo,			"send( self: UdpSocket, addr: string|SocketAddr, data: string )" },
@@ -1869,31 +1856,39 @@ DaoTypeBase sockaddrTyper = {
 	"SocketAddr", NULL, NULL, sockaddrMeths, {0}, {0}, (FuncPtrDel)DaoSocketAddr_Delete, NULL
 };
 
-static void DaoNetLib_BindTCP( DaoProcess *proc, DaoValue *par[], int N  )
+static void DaoNetLib_Listen( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
-	DaoSocket *sock = DaoSocket_New();
+	DaoSocket *sock;
 	uchar_t ip[4];
 	unsigned short port;
-	if ( !ExtractAddr( proc, par[1], ip, &port ) )
+	dao_integer backlog = par[1]->xInteger.value;
+	if ( !ExtractAddr( proc, par[0], ip, &port ) )
 		return;
-	if( DaoSocket_Bind( sock, Proto_TCP, ip, port, par[2]->xEnum.value ) == -1 ){
+	if ( backlog <= 0 ){
+		DaoProcess_RaiseError( proc, "Param", "Invalid backlog value" );
+		return;
+	}
+	sock = DaoSocket_New();
+	if( DaoSocket_Bind( sock, Proto_TCP, ip, port, par[2]->xEnum.value ) == -1 || DaoNetwork_Listen( sock->id, backlog ) == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 		DaoSocket_Delete( sock );
 		return;
 	}
+	sock->state = Socket_Listening;
 	DaoProcess_PutCdata( proc, (void*)sock, daox_type_tcplistener );
 }
-static void DaoNetLib_BindUDP( DaoProcess *proc, DaoValue *par[], int N  )
+static void DaoNetLib_Bind( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
-	DaoSocket *sock = DaoSocket_New();
+	DaoSocket *sock;
 	uchar_t ip[4];
 	unsigned short port;
-	if ( !ExtractAddr( proc, par[1], ip, &port ) )
+	if ( !ExtractAddr( proc, par[0], ip, &port ) )
 		return;
-	if( DaoSocket_Bind( sock, Proto_UDP, ip, port, par[2]->xEnum.value) == -1 ){
+	sock = DaoSocket_New();
+	if( DaoSocket_Bind( sock, Proto_UDP, ip, port, par[1]->xEnum.value) == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 		DaoSocket_Delete( sock );
@@ -2069,8 +2064,9 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 
 static DaoFuncItem netMeths[] =
 {
-	/*! Returns new server-side TCP or UDP socket (depending on \a proto) bound to address \a addr (either a 'host:port' string or \c SocketAddr) using
-	 * \a addrOpts options to regulate address binding.
+	/*! Returns new TCP listener bound to address \a addr (either a 'host:port' string or \c SocketAddr) with \a addrOpts options used to regulate address binding.
+	 * The socket is put in the listening state using \a backLog as the maximum size of the queue of pending connections (use \c MAX_BACKLOG constant to assign
+	 * the maximum queue size).
 	 *
 	 * Meaning of \a addrOpts values:
 	 * -\c shared -- non-exclusive binding of the address and port, other sockets will be able to bind to the same address and port
@@ -2081,10 +2077,13 @@ static DaoFuncItem netMeths[] =
 	 * (SO_REUSEADDR on Windows, ignored on Unix)
 	 * -\c default -- default mode for the current platform (\c exclusive + \c reused on Unix, \c shared on Windows)
 	 *
-	 * If \a address is not specified, \c exclusive address mode is used */
-	{  DaoNetLib_BindTCP,		"bind( proto: enum<tcp>, addr: string|SocketAddr, addrOpts: enum<shared;exclusive;reused;default> = $exclusive )"
+	 * If \a addrOpts is not specified, \c exclusive address mode is used */
+	{  DaoNetLib_Listen,		"listen( addr: string|SocketAddr, backLog = 10, addrOpts: enum<shared;exclusive;reused;default> = $exclusive )"
 								" => TcpListener" },
-	{  DaoNetLib_BindUDP,		"bind( proto: enum<udp>, addr: string|SocketAddr, addrOpts: enum<shared;exclusive;reused;default> = $exclusive )"
+
+	/*! Returns new UDP socket bound to address \a addr (either a 'host:port' string or \c SocketAddr) with \a addrOpts options used to regulate address binding
+	 * (see \c net.listen() for the description of \a addrOpts) */
+	{  DaoNetLib_Bind,			"bind( addr: string|SocketAddr, addrOpts: enum<shared;exclusive;reused;default> = $exclusive )"
 								" => UdpSocket" },
 
 	/*! Returns client-side TCP connection endpoint connected to address \a addr which may be either a 'host:port' string or \c SockAddr */

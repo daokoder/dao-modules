@@ -8,8 +8,7 @@ class Server
 	{
 #		io.writeln( net.host( '127.0.0.1' ) );
 		io.writeln( net.host( 'localhost' ) );
-		sock = net.bind( $tcp, ':10000' );
-		sock.listen();
+		sock = net.listen( ':10000' );
 		for (conn in sock){
 			stream = conn.stream;
 			message = stream.read();
