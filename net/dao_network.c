@@ -912,7 +912,7 @@ static void DaoSocket_Lib_BindTCP( DaoProcess *proc, DaoValue *par[], int N  )
 	unsigned short port;
 	if ( !ExtractAddr( proc, par[1], ip, &port ) )
 		return;
-	if( DaoSocket_Bind( self, Proto_TCP, ip, port, N == 3? par[2]->xEnum.value : Socket_ExclusiveAddress ) == -1 ){
+	if( DaoSocket_Bind( self, Proto_TCP, ip, port, par[2]->xEnum.value ) == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 	}
@@ -926,7 +926,7 @@ static void DaoSocket_Lib_BindUDP( DaoProcess *proc, DaoValue *par[], int N  )
 	unsigned short port;
 	if ( !ExtractAddr( proc, par[1], ip, &port ) )
 		return;
-	if( DaoSocket_Bind( self, Proto_UDP, ip, port, N == 3? par[2]->xEnum.value : Socket_ExclusiveAddress ) == -1 ){
+	if( DaoSocket_Bind( self, Proto_UDP, ip, port, par[2]->xEnum.value ) == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 	}
@@ -1518,9 +1518,8 @@ DaoTypeBase TcpStreamTyper = {
 
 static DaoFuncItem TcpListenerMeths[] =
 {
-	/*! Binds the socket to address \a addr (either a 'host:port' string or \c SocketAddr) using \a addrOpts options if specified.
+	/*! Binds the socket to address \a addr (either a 'host:port' string or \c SocketAddr) using \a addrOpts as address binding options.
 	 * For the description of \a addrOpts, see \c net.bind() */
-	{ DaoSocket_Lib_BindTCP,		"bind( self: TcpListener, addr: string|SocketAddr )" },
 	{ DaoSocket_Lib_BindTCP,		"bind( self: TcpListener, addr: string|SocketAddr, addrOpts: enum<shared;exclusive;reused;default> )" },
 
 	/*! Sets the socket into the listening state using \a backLog as the maximum size of the queue of pending connections
@@ -1543,10 +1542,9 @@ DaoTypeBase TcpListenerTyper = {
 
 static DaoFuncItem UdpSocketMeths[] =
 {
-	/*! Binds the socket to address \a addr (either a 'host:port' string or \c SocketAddr) using \a addrOpts options if specified. For the description of \a addrOpts,
-	 * see \c net.bind() */
-	{ DaoSocket_Lib_BindUDP,		"bind( self: UdpSocket, addr: string|SocketAddr )" },
-	{ DaoSocket_Lib_BindUDP,		"bind( self: UdpSocket, addr: string|SocketAddr, addrOpts: enum<shared;exclusive;reused;default> )" },
+	/*! Binds the socket to address \a addr (either a 'host:port' string or \c SocketAddr) using \a addrOpts as address binding options. For the description
+	 * of \a addrOpts, see \c net.bind() */
+	{ DaoSocket_Lib_BindUDP,		"bind( self: UdpSocket, addr: string|SocketAddr, addrOpts: enum<shared;exclusive;reused;default> = $exclusive )" },
 
 	/*! Sends \a data to the receiver specified by address \a addr which is either a 'host:port' string or \c SocketAddr */
 	{ DaoSocket_Lib_SendTo,			"send( self: UdpSocket, addr: string|SocketAddr, data: string )" },
@@ -1879,7 +1877,7 @@ static void DaoNetLib_BindTCP( DaoProcess *proc, DaoValue *par[], int N  )
 	unsigned short port;
 	if ( !ExtractAddr( proc, par[1], ip, &port ) )
 		return;
-	if( DaoSocket_Bind( sock, Proto_TCP, ip, port, N == 3? par[2]->xEnum.value : Socket_ExclusiveAddress ) == -1 ){
+	if( DaoSocket_Bind( sock, Proto_TCP, ip, port, par[2]->xEnum.value ) == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 		DaoSocket_Delete( sock );
@@ -1895,7 +1893,7 @@ static void DaoNetLib_BindUDP( DaoProcess *proc, DaoValue *par[], int N  )
 	unsigned short port;
 	if ( !ExtractAddr( proc, par[1], ip, &port ) )
 		return;
-	if( DaoSocket_Bind( sock, Proto_UDP, ip, port, N == 3? par[2]->xEnum.value : Socket_ExclusiveAddress ) == -1 ){
+	if( DaoSocket_Bind( sock, Proto_UDP, ip, port, par[2]->xEnum.value) == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 		DaoSocket_Delete( sock );
@@ -1981,10 +1979,9 @@ static void DaoNetLib_GetHost( DaoProcess *proc, DaoValue *par[], int N  )
 static void DaoNetLib_GetService( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	struct servent *srvent;
-	DaoTuple *tup = DaoProcess_PutTuple( proc, 3 );
+	DaoTuple *tup;
 	const char *proto = par[1]->xEnum.value == 0? "tcp" : "udp";
 	char **p;
-	DaoTuple_SetItem( tup, (DaoValue*)DaoProcess_NewList( proc ), 2 );
 	if ( par[0]->type == DAO_STRING ){
 		if ( !par[0]->xString.value->size )
 			return;
@@ -1992,8 +1989,12 @@ static void DaoNetLib_GetService( DaoProcess *proc, DaoValue *par[], int N  )
 	}
 	else
 		srvent = getservbyport( par[0]->xInteger.value, proto );
-	if( srvent == NULL )
+	if( srvent == NULL ){
+		DaoProcess_PutNone( proc );
 		return;
+	}
+	tup = DaoProcess_PutTuple( proc, 3 );
+	DaoTuple_SetItem( tup, (DaoValue*)DaoProcess_NewList( proc ), 2 );
 	DString_SetChars( tup->values[0]->xString.value, srvent->s_name );
 	tup->values[1]->xInteger.value = srvent->s_port;
 	p = srvent->s_aliases;
@@ -2068,10 +2069,10 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 
 static DaoFuncItem netMeths[] =
 {
-	/*! Returns new server-side TCP or UDP socket (depending on \a proto) bound to address \a addr (either a 'host:port' string or \c SocketAddr) using \a addrOpts options
-	 * if specified.
+	/*! Returns new server-side TCP or UDP socket (depending on \a proto) bound to address \a addr (either a 'host:port' string or \c SocketAddr) using
+	 * \a addrOpts options to regulate address binding.
 	 *
-	 * Meaning of \a address values:
+	 * Meaning of \a addrOpts values:
 	 * -\c shared -- non-exclusive binding of the address and port, other sockets will be able to bind to the same address and port
 	 * (SO_REUSEADDR on Unix, ignored on Windows)
 	 * -\c exclusive -- exclusive binding of the address and port, no other sockets are allowed to rebind
@@ -2080,12 +2081,10 @@ static DaoFuncItem netMeths[] =
 	 * (SO_REUSEADDR on Windows, ignored on Unix)
 	 * -\c default -- default mode for the current platform (\c exclusive + \c reused on Unix, \c shared on Windows)
 	 *
-	 * If \a address is not specified, exclusive address mode is used */
-	{  DaoNetLib_BindTCP,		"bind( proto: enum<tcp>, addr: string|SocketAddr ) => TcpListener" },
-	{  DaoNetLib_BindTCP,		"bind( proto: enum<tcp>, addr: string|SocketAddr, addrOpts: enum<shared;exclusive;reused;default> )"
+	 * If \a address is not specified, \c exclusive address mode is used */
+	{  DaoNetLib_BindTCP,		"bind( proto: enum<tcp>, addr: string|SocketAddr, addrOpts: enum<shared;exclusive;reused;default> = $exclusive )"
 								" => TcpListener" },
-	{  DaoNetLib_BindUDP,		"bind( proto: enum<udp>, addr: string|SocketAddr ) => UdpSocket" },
-	{  DaoNetLib_BindUDP,		"bind( proto: enum<udp>, addr: string|SocketAddr, addrOpts: enum<shared;exclusive;reused;default> )"
+	{  DaoNetLib_BindUDP,		"bind( proto: enum<udp>, addr: string|SocketAddr, addrOpts: enum<shared;exclusive;reused;default> = $exclusive )"
 								" => UdpSocket" },
 
 	/*! Returns client-side TCP connection endpoint connected to address \a addr which may be either a 'host:port' string or \c SockAddr */
@@ -2096,9 +2095,9 @@ static DaoFuncItem netMeths[] =
 	{  DaoNetLib_GetHost,		"host( id: string ) => tuple<name: string, aliases: list<string>, addrs: list<Ipv4Addr>>|none" },
 
 	/*! Returns information for service with the given \a id (which may be either a name or a port number) to be used with
-	 * the protocol \a proto */
+	 * the protocol \a proto. Returns \c none if the corresponding service was not found */
 	{  DaoNetLib_GetService,	"service( id: string|int, proto: enum<tcp,udp> )"
-								" => tuple<name: string, port: int, aliases: list<string>>" },
+								" => tuple<name: string, port: int, aliases: list<string>>|none" },
 
 	/*! Waits \a timeout seconds for any \c Socket or file descriptor in \a read or \a write list to become available for
 	 * reading or writing accordingly. Returns sub-lists of \a read and \a write containing available sockets/descriptors.
