@@ -11,11 +11,12 @@ class Server
 		sock = net.bind( $tcp, ':10000' );
 		sock.listen();
 		for (conn in sock){
-			message = conn.read();
-			io.writeln( conn.peerAddr );
+			stream = conn.stream;
+			message = stream.read();
+			io.writeln( conn.addr );
 			io.writeln( 'received', message );
-			conn.writeDao( 'TEST', 12.345, [1,2,3] );
-			conn.close();
+			stream.writeDao( 'TEST', 12.345, [1,2,3] );
+			stream.close();
 			break;
 		}
 	}
