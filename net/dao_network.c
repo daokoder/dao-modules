@@ -247,11 +247,12 @@ int DaoNetwork_Accept( int sockfd, uchar_t ip[4], unsigned short *port )
 {
 	struct sockaddr_in addr;
 	socklen_t size = sizeof(addr);
-	if ( accept( sockfd, (struct sockaddr*)&addr, &size ) == -1 )
+	int fd = accept( sockfd, (struct sockaddr*)&addr, &size );
+	if ( fd == -1 )
 		return -1;
 	*port = ntohs( addr.sin_port );
 	*(int*)ip = addr.sin_addr.s_addr;
-	return 0;
+	return fd;
 }
 int DaoNetwork_Connect( uchar_t ip[4], unsigned short port )
 {
