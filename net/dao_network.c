@@ -910,14 +910,14 @@ static void DaoSocket_Lib_Listen( DaoProcess *proc, DaoValue *par[], int N  )
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
 	uchar_t ip[4];
 	unsigned short port;
-	dao_integer backlog = par[1]->xInteger.value;
+	dao_integer backlog = par[2]->xInteger.value;
 	if ( !ExtractAddr( proc, par[1], ip, &port ) )
 		return;
 	if ( backlog <= 0 ){
 		DaoProcess_RaiseError( proc, "Param", "Invalid backlog value" );
 		return;
 	}
-	if( DaoSocket_Bind( self, Proto_TCP, ip, port, par[2]->xEnum.value ) == -1 || DaoNetwork_Listen( self->id, backlog ) == -1 ){
+	if( DaoSocket_Bind( self, Proto_TCP, ip, port, par[3]->xEnum.value ) == -1 || DaoNetwork_Listen( self->id, backlog ) == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 	}
