@@ -795,10 +795,23 @@ static void DaoSocket_Delete( DaoSocket *self )
 	dao_free( self );
 }
 
+int GetIpAddr( const char *str, uchar_t ip[4] )
+{
+#ifdef WIN32
+		int value = inet_addr( str );
+		if ( value == INADDR_NONE )
+			return 0;
+		*(int*)res->octets = value;
+		return 1;
+#else
+		return inet_pton( AF_INET, str, ip );
+#endif
+}
+
 int ParseAddr( DaoProcess *proc, DString *addr, uchar_t ip[4], unsigned short *port, int hostname )
 {
 	daoint pos = DString_RFindChar( addr, ':', addr->size - 1 );
-	unsigned int num;
+	unsigned long long num;
 	char buf[50] = {0};
 	char *ptr;
 	if ( pos < 0 || pos == addr->size - 1 ){
@@ -809,8 +822,8 @@ int ParseAddr( DaoProcess *proc, DString *addr, uchar_t ip[4], unsigned short *p
 		DaoProcess_RaiseError( proc, "Param", "Invalid port number" );
 		return 0;
 	}
-	num = strtoul( addr->chars + pos + 1, &ptr, 10 );
-	if ( *ptr != '\0' || ( num == ULONG_MAX && errno == ERANGE ) || num > 0xFFFF ){
+	num = strtoull( addr->chars + pos + 1, &ptr, 10 );
+	if ( *ptr != '\0' || ( num == ULLONG_MAX && errno == ERANGE ) || num > 0xFFFF ){
 		DaoProcess_RaiseError( proc, "Param", "Invalid port number" );
 		return 0;
 	}
@@ -1567,19 +1580,6 @@ DaoTypeBase UdpSocketTyper = {
 void DaoIpv4Addr_Delete( DaoIpv4Addr *self )
 {
 	dao_free( self );
-}
-
-int GetIpAddr( const char *str, uchar_t ip[4] )
-{
-#ifdef WIN32
-		int value = inet_addr( str );
-		if ( value == INADDR_NONE )
-			return 0;
-		*(int*)res->octets = value;
-		return 1;
-#else
-		return inet_pton( AF_INET, str, ip );
-#endif
 }
 
 static void DaoIpv4Addr_Create( DaoProcess *proc, DaoValue *p[], int N  )
