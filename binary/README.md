@@ -38,6 +38,12 @@ class [Decoder](#decoder)
 - [f64](#readnum)(_self_: Encoder) => float
 - [bytes](#readbytes)(_self_: Encoder, _count_: int) => string
 
+interface [Encodable](#encodable)
+- [encode](#encode_in)(invar _self_: Encodable, _encoder_: Encoder)
+
+interface [Decodable](#decodable)
+- [decode](#decode_in)(_decoder_: Decoder) => Decodable
+
 Functions:
 - [read](#read)(_source_: io::Stream, _dest_: array&lt;@T&lt;int|float|complex&gt;&gt;, _count_ = 0) => int
 - [unpack](#unpack)(_source_: io::Stream, _dest_: array&lt;int&gt;, _size_: enum&lt;byte,word,dword&gt;, _count_ = 0) => int
@@ -149,6 +155,26 @@ bytes(self: Encoder, bytes: string) => Encoder
 Reads at most *count* bytes from the source
 
 **Errors:** `Value` if the stream was closed
+
+### Interfaces
+#### <a name="encodable">`bin::Encodable`</a>
+A type which can be encoded to binary form. Use it to define conversions to specific serialization formats
+#### Methods
+<a name="encode_in"></a>
+```ruby
+encode(invar self: Encodable, encoder: Encoder)
+```
+Serializes self using the provided *encoder*
+
+------
+#### <a name="decodable">`bin::Decodable`</a>
+A type which can be decoded from binary form. Use it to define conversions from specific serialization formats
+#### Methods
+<a name="decode_in"></a>
+```ruby
+decode(decoder: Decoder) => Decodable
+```
+Deserializes self using the provided *decoder*
 
 ### Functions
 <a name="read"></a>

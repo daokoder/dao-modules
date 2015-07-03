@@ -1074,6 +1074,34 @@ DaoTypeBase decoderTyper = {
 	(FuncPtrDel)DaoXCoder_Delete, NULL
 };
 
+static DaoFuncItem encodableMeths[] =
+{
+	//! Serializes self using the provided \a encoder
+	{ NULL,	"encode(invar self: Encodable, encoder: Encoder)" },
+	{ NULL, NULL }
+};
+
+//! A type which can be encoded to binary form. Use it to define conversions
+//! to specific serialization formats
+DaoTypeBase encodableTyper = {
+	"Encodable", NULL, NULL, encodableMeths, {NULL}, {0},
+	(FuncPtrDel)NULL, NULL
+};
+
+static DaoFuncItem decodableMeths[] =
+{
+	//! Deserializes self using the provided \a decoder
+	{ NULL,	"decode(decoder: Decoder) => Decodable" },
+	{ NULL, NULL }
+};
+
+//! A type which can be decoded from binary form. Use it to define conversions
+//! from specific serialization formats
+DaoTypeBase decodableTyper = {
+	"Decodable", NULL, NULL, decodableMeths, {NULL}, {0},
+	(FuncPtrDel)NULL, NULL
+};
+
 DAO_DLL int DaoBinary_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *binns;
@@ -1086,6 +1114,8 @@ DAO_DLL int DaoBinary_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	binns = DaoNamespace_GetNamespace( ns, "bin" );
 	daox_type_encoder = DaoNamespace_WrapType( binns, &encoderTyper, DAO_CTYPE_OPAQUE );
 	daox_type_decoder = DaoNamespace_WrapType( binns, &decoderTyper, DAO_CTYPE_OPAQUE );
+	DaoNamespace_WrapInterface( binns, &encodableTyper );
+	DaoNamespace_WrapInterface( binns, &decodableTyper );
 	DaoNamespace_WrapFunctions( binns, binMeths );
 	return 0;
 }
