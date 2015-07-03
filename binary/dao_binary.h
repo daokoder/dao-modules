@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2014, Limin Fu
+// Copyright (c) 2014-2015, Limin Fu
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without modification,
@@ -29,6 +29,13 @@
 #define __DAO_BINARY__
 
 #include"dao.h"
+
+typedef struct DaoXCoder DaoXCoder;
+
+struct DaoXCoder {
+	DaoStream *stream;
+	dao_integer counter;
+};
 
 DAO_DLL void DString_EncodeBase64( DString *self, DString *dest );
 DAO_DLL int DString_DecodeBase64( DString *self, DString *dest, daoint *errpos );

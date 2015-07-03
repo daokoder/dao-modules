@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2011-2014, Limin Fu
+// Copyright (c) 2011-2015, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -26,6 +26,8 @@
 */
 
 // 2011-01: Danilov Aleksey, initial implementation.
+
+#include<string.h>
 
 #include"daoValue.h"
 #include"daoStdtype.h"
@@ -622,7 +624,7 @@ static DaoFuncItem binMeths[] =
 	{ DaoBinary_Write,		"write(invar source: array<@T<int|float|complex>>, dest: io::Stream, count = 0) => int" },
 
 	/*! Reads value described by \a what from \a source at the given byte \a offset */
-	{ DaoBinary_GetItem,	"get(invar source: array<int>|string, what: enum<byte,ubyte,word,uword,dword,udword,qword,uqword>,"
+	{ DaoBinary_GetItem,	"get(invar source: array<int>|string, what: enum<i8,u8,i16,u16,i32,u32,i64,u64>,"
 								"offset: int) => int" },
 	{ DaoBinary_GetItem,	"get(invar source: array<int>|string, what: enum<float>, offset: int) => float" },
 
@@ -630,7 +632,7 @@ static DaoFuncItem binMeths[] =
 	{ DaoBinary_GetItem,	"get(invar source: array<int>|string, what: enum<bits>, offset: int, count: int) => int" },
 
 	/*! Writes \a value described by \a what to \a dest at the given byte \a offset */
-	{ DaoBinary_SetItem,	"set(dest: array<int>, what: enum<byte,ubyte,word,uword,dword,udword,qword,uqword>,"
+	{ DaoBinary_SetItem,	"set(dest: array<int>, what: enum<i8,u8,i16,u16,i32,u32,i64,u64>,"
 								"offset: int, value: int)" },
 	{ DaoBinary_SetItem,	"set(dest: array<int>, what: enum<float>, offset: int, value: float)" },
 
@@ -647,10 +649,427 @@ static DaoFuncItem binMeths[] =
 	{ NULL, NULL }
 };
 
+static DaoType *daox_type_encoder;
+static DaoType *daox_type_decoder;
+
+void DaoXCoder_Delete( DaoXCoder *self )
+{
+	DaoGC_DecRC( (DaoValue*)self->stream );
+	dao_free( self );
+}
+
+static void DaoEncoder_Create( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *res = (DaoXCoder*)dao_malloc( sizeof(DaoXCoder) );
+	res->counter = 0;
+	if ( N == 0 ){
+		res->stream = DaoStream_New();
+		res->stream->mode |= DAO_STREAM_STRING;
+		DaoGC_IncRC( (DaoValue*) res->stream );
+	}
+	else {
+		DaoStream *stream = &p[0]->xStream;
+		if ( stream->mode & DAO_STREAM_WRITABLE || stream->mode & DAO_STREAM_STRING ){
+			DaoGC_IncRC( p[0] );
+			res->stream = &p[0]->xStream;
+		}
+		else {
+			DaoProcess_RaiseError( proc, "Param", "Stream not writable" );
+			dao_free( res );
+			return;
+		}
+	}
+	DaoProcess_PutCdata( proc, res, daox_type_encoder );
+}
+
+static void DaoXCoder_Stream( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
+	DaoProcess_PutValue( proc, (DaoValue*)self->stream );
+}
+
+static void DaoXCoder_Counter( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
+	DaoProcess_PutInteger( proc, self->counter );
+}
+
+int CheckStream( DaoProcess *proc, DaoStream *stream )
+{
+	if ( ( stream->mode & DAO_STREAM_FILE ) && !stream->file ){
+		DaoProcess_RaiseError( proc, "Value", "Stream closed" );
+		return 0;
+	}
+	return 1;
+}
+
+void DaoStream_TryResetStringBuffer( DaoStream *self )
+{
+	if( self->offset >= self->streamString->size ){
+		DString_Reset( self->streamString, 0 );
+		self->offset = 0;
+	}
+}
+
+void DaoDecoder_WriteInteger( DaoXCoder *self, unsigned long long value, int size )
+{
+	DaoStream *stream = self->stream;
+	char buf[9] = {0};
+	int i;
+	for ( i = size; i > 0; i-- ){
+		buf[i - 1] = value & 0xFF;
+		value >>= CHAR_BIT;
+	}
+	if ( stream->mode & DAO_STREAM_STRING ){
+		DaoStream_TryResetStringBuffer( stream );
+		DString_AppendBytes( stream->streamString, buf, size );
+		self->counter += size;
+	}
+	else
+		self->counter += fwrite( buf, 1, size, stream->file );
+}
+
+static void DaoEncoder_WriteI8( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
+	if ( !CheckStream( proc, self->stream ) )
+		return;
+	DaoStream_WriteChar( self->stream, (char)p[1]->xInteger.value );
+	DaoProcess_PutValue( proc, p[0] );
+}
+
+static void DaoEncoder_WriteU8( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
+	if ( !CheckStream( proc, self->stream ) )
+		return;
+	DaoStream_WriteChar( self->stream, (uchar_t)p[1]->xInteger.value );
+	DaoProcess_PutValue( proc, p[0] );
+}
+
+static void DaoEncoder_WriteI16( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
+	if ( !CheckStream( proc, self->stream ) )
+		return;
+	DaoDecoder_WriteInteger( self, (short)p[1]->xInteger.value, 2 );
+	DaoProcess_PutValue( proc, p[0] );
+}
+
+static void DaoEncoder_WriteU16( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
+	if ( !CheckStream( proc, self->stream ) )
+		return;
+	DaoDecoder_WriteInteger( self, (unsigned short)p[1]->xInteger.value, 2 );
+	DaoProcess_PutValue( proc, p[0] );
+}
+
+static void DaoEncoder_WriteI32( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
+	if ( !CheckStream( proc, self->stream ) )
+		return;
+	DaoDecoder_WriteInteger( self, (int)p[1]->xInteger.value, 4 );
+	DaoProcess_PutValue( proc, p[0] );
+}
+
+static void DaoEncoder_WriteU32( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
+	if ( !CheckStream( proc, self->stream ) )
+		return;
+	DaoDecoder_WriteInteger( self, (unsigned int)p[1]->xInteger.value, 4 );
+	DaoProcess_PutValue( proc, p[0] );
+}
+
+static void DaoEncoder_WriteI64( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
+	if ( !CheckStream( proc, self->stream ) )
+		return;
+	DaoDecoder_WriteInteger( self, p[1]->xInteger.value, 8 );
+	DaoProcess_PutValue( proc, p[0] );
+}
+
+static void DaoEncoder_WriteBytes( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
+	DString *str = p[1]->xString.value;
+	if ( !CheckStream( proc, self->stream ) )
+		return;
+	DaoStream_WriteString( self->stream, str );
+	self->counter += str->size;
+	DaoProcess_PutValue( proc, p[0] );
+}
+
+static void DaoEncoder_WriteF32( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
+	char buf[sizeof(float)];
+	DString str = DString_WrapBytes( buf, sizeof(buf) );
+	*(float*)buf = p[1]->xFloat.value;
+	if ( !CheckStream( proc, self->stream ) )
+		return;
+	DaoStream_WriteString( self->stream, &str );
+	self->counter += sizeof(float);
+	DaoProcess_PutValue( proc, p[0] );
+}
+
+static void DaoEncoder_WriteF64( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
+	char buf[sizeof(dao_float)];
+	DString str = DString_WrapBytes( buf, sizeof(buf) );
+	*(dao_float*)buf = p[1]->xFloat.value;
+	if ( !CheckStream( proc, self->stream ) )
+		return;
+	DaoStream_WriteString( self->stream, &str );
+	self->counter += sizeof(dao_float);
+	DaoProcess_PutValue( proc, p[0] );
+}
+
+static DaoFuncItem encoderMeths[] =
+{
+	{ DaoEncoder_Create,	"Encoder()" },
+	{ DaoEncoder_Create,	"Encoder(dest: io::Stream)" },
+	{ DaoXCoder_Stream,		".stream(invar self: Encoder) => io::Stream" },
+	{ DaoXCoder_Counter,	".bytesWritten(invar self: Encoder) => int" },
+	{ DaoEncoder_WriteI8,	"i8(self: Encoder, value: int) => Encoder" },
+	{ DaoEncoder_WriteU8,	"u8(self: Encoder, value: int) => Encoder" },
+	{ DaoEncoder_WriteI16,	"i16(self: Encoder, value: int) => Encoder" },
+	{ DaoEncoder_WriteI16,	"u16(self: Encoder, value: int) => Encoder" },
+	{ DaoEncoder_WriteI32,	"i32(self: Encoder, value: int) => Encoder" },
+	{ DaoEncoder_WriteI32,	"u32(self: Encoder, value: int) => Encoder" },
+	{ DaoEncoder_WriteI64,	"i64(self: Encoder, value: int) => Encoder" },
+	{ DaoEncoder_WriteI64,	"u64(self: Encoder, value: int) => Encoder" },
+	{ DaoEncoder_WriteF32,	"f32(self: Encoder, value: float) => Encoder" },
+	{ DaoEncoder_WriteF64,	"f64(self: Encoder, value: float) => Encoder" },
+	{ DaoEncoder_WriteBytes,"bytes(self: Encoder, bytes: string) => Encoder" },
+	{ NULL, NULL }
+};
+
+//! Stateful binary encoder
+DaoTypeBase encoderTyper = {
+	"Encoder", NULL, NULL, encoderMeths, {NULL}, {0},
+	(FuncPtrDel)DaoXCoder_Delete, NULL
+};
+
+static void DaoDecoder_Create( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *res = (DaoXCoder*)dao_malloc( sizeof(DaoXCoder) );
+	res->counter = 0;
+	if ( N == 0 ){
+		res->stream = DaoStream_New();
+		res->stream->mode |= DAO_STREAM_STRING;
+		DaoGC_IncRC( (DaoValue*) res->stream );
+	}
+	else {
+		DaoStream *stream = &p[0]->xStream;
+		if ( stream->mode & DAO_STREAM_READABLE || stream->mode & DAO_STREAM_STRING ){
+			DaoGC_IncRC( p[0] );
+			res->stream = &p[0]->xStream;
+		}
+		else {
+			DaoProcess_RaiseError( proc, "Param", "Stream not readable" );
+			dao_free( res );
+			return;
+		}
+	}
+	DaoProcess_PutCdata( proc, res, daox_type_decoder );
+}
+
+unsigned long long DaoDecoder_ReadInteger( DaoXCoder *self, int size )
+{
+	DaoStream *stream = self->stream;
+	uchar_t buf[9] = {0};
+	unsigned long long value = 0;
+	int i;
+	if ( stream->mode & DAO_STREAM_STRING ) {
+		DString *str = stream->streamString;
+		if ( str->size - stream->offset < size )
+			size = str->size - stream->offset;
+		memcpy( buf, str->chars + stream->offset, size );
+		stream->offset += size;
+		self->counter += size;
+	}
+	else {
+		daoint numbytes = fread( buf, 1, size, stream->file );
+		self->counter += numbytes;
+		if ( numbytes != size )
+			return 0;
+	}
+	for ( i = size; i > 0; i-- ){
+		value <<= CHAR_BIT;
+		value |= buf[size - i];
+	}
+	return value;
+}
+
+dao_float DaoDecoder_ReadFloat( DaoXCoder *self, int size )
+{
+	DaoStream *stream = self->stream;
+	uchar_t buf[9] = {0};
+	if ( stream->mode & DAO_STREAM_STRING ) {
+		DString *str = stream->streamString;
+		if ( str->size - stream->offset < size )
+			size = str->size - stream->offset;
+		memcpy( buf, str->chars + stream->offset, size );
+		stream->offset += size;
+		self->counter += size;
+	}
+	else {
+		daoint numbytes =  fread( buf, 1, size, stream->file );
+		self->counter += numbytes;
+		if ( numbytes != size )
+			return 0;
+	}
+	return size == sizeof(float)? *(float*)buf : *(dao_float*)buf;
+}
+
+static void DaoDecoder_ReadI8( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
+	if ( !CheckStream( proc, self->stream ) )
+		return;
+	char value = DaoDecoder_ReadInteger( self, 1 );
+	DaoProcess_PutInteger( proc, value );
+}
+
+static void DaoDecoder_ReadU8( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
+	if ( !CheckStream( proc, self->stream ) )
+		return;
+	uchar_t value = DaoDecoder_ReadInteger( self, 1 );
+	DaoProcess_PutInteger( proc, value );
+}
+
+static void DaoDecoder_ReadI16( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
+	if ( !CheckStream( proc, self->stream ) )
+		return;
+	short value = DaoDecoder_ReadInteger( self, 2 );
+	DaoProcess_PutInteger( proc, value );
+}
+
+static void DaoDecoder_ReadU16( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
+	if ( !CheckStream( proc, self->stream ) )
+		return;
+	unsigned short value = DaoDecoder_ReadInteger( self, 2 );
+	DaoProcess_PutInteger( proc, value );
+}
+
+static void DaoDecoder_ReadI32( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
+	if ( !CheckStream( proc, self->stream ) )
+		return;
+	int value = DaoDecoder_ReadInteger( self, 4 );
+	DaoProcess_PutInteger( proc, value );
+}
+
+static void DaoDecoder_ReadU32( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
+	if ( !CheckStream( proc, self->stream ) )
+		return;
+	unsigned int value = DaoDecoder_ReadInteger( self, 4 );
+	DaoProcess_PutInteger( proc, value );
+}
+
+static void DaoDecoder_ReadI64( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
+	if ( !CheckStream( proc, self->stream ) )
+		return;
+	dao_integer value = DaoDecoder_ReadInteger( self, 8 );
+	DaoProcess_PutInteger( proc, value );
+}
+
+static void DaoDecoder_ReadBytes( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
+	daoint size = p[1]->xInteger.value;
+	DaoStream *stream = self->stream;
+	DString *buf = DaoProcess_PutChars( proc, "" );
+	if ( !CheckStream( proc, self->stream ) )
+		return;
+	DString_Resize( buf, size );
+	if ( stream->file ){
+		daoint numbytes = fread( buf, 1, size, stream->file );
+		if ( numbytes != size )
+			DString_Resize( buf, numbytes );
+		self->counter += numbytes;
+	}
+	else {
+		DString *str = stream->streamString;
+		if ( str->size - stream->offset < size )
+			size = str->size - stream->offset;
+		DString_AppendBytes( buf, str->chars, size );
+		stream->offset += size;
+		self->counter += size;
+	}
+}
+static void DaoDecoder_ReadF32( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
+	float value = DaoDecoder_ReadFloat( self, sizeof(float) );
+	if ( !CheckStream( proc, self->stream ) )
+		return;
+	DaoProcess_PutFloat( proc, value );
+}
+
+static void DaoDecoder_ReadF64( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
+	dao_float value = DaoDecoder_ReadFloat( self, sizeof(dao_float) );
+	if ( !CheckStream( proc, self->stream ) )
+		return;
+	DaoProcess_PutFloat( proc, value );
+}
+
+static DaoFuncItem decoderMeths[] =
+{
+	{ DaoDecoder_Create,	"Decoder()" },
+	{ DaoDecoder_Create,	"Decoder(dest: io::Stream)" },
+	{ DaoXCoder_Stream,		".stream(invar self: Decoder) => io::Stream" },
+	{ DaoXCoder_Counter,	".bytesRead(invar self: Decoder) => int" },
+	{ DaoDecoder_ReadI8,	"i8(self: Decoder) => int" },
+	{ DaoDecoder_ReadU8,	"u8(self: Decoder) => int" },
+	{ DaoDecoder_ReadI16,	"i16(self: Decoder) => int" },
+	{ DaoDecoder_ReadU16,	"u16(self: Decoder) => int" },
+	{ DaoDecoder_ReadI32,	"i32(self: Decoder) => int" },
+	{ DaoDecoder_ReadU32,	"u32(self: Decoder) => int" },
+	{ DaoDecoder_ReadI64,	"i64(self: Decoder) => int" },
+	{ DaoDecoder_ReadI64,	"u64(self: Decoder) => int" },
+	{ DaoDecoder_ReadF32,	"f32(self: Decoder) => float" },
+	{ DaoDecoder_ReadF64,	"f64(self: Decoder) => float" },
+	{ DaoDecoder_ReadBytes,	"bytes(self: Decoder, count: int) => string" },
+	{ NULL, NULL }
+};
+
+//! Stateful binary decoder
+DaoTypeBase decoderTyper = {
+	"Decoder", NULL, NULL, decoderMeths, {NULL}, {0},
+	(FuncPtrDel)DaoXCoder_Delete, NULL
+};
+
 DAO_DLL int DaoBinary_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *binns;
+	if ( sizeof(dao_integer) != 8 ){
+		DaoStream* stream = DaoVmSpace_ErrorStream( vmSpace );
+		DaoStream_WriteChars( stream,
+				"This module is not compatible with Dao compiled with 32-bit int type!\n" );
+		return 1;
+	}
 	binns = DaoNamespace_GetNamespace( ns, "bin" );
+	daox_type_encoder = DaoNamespace_WrapType( binns, &encoderTyper, DAO_CTYPE_OPAQUE );
+	daox_type_decoder = DaoNamespace_WrapType( binns, &decoderTyper, DAO_CTYPE_OPAQUE );
 	DaoNamespace_WrapFunctions( binns, binMeths );
 	return 0;
 }
