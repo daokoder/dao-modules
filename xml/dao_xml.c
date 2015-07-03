@@ -2760,11 +2760,13 @@ void DaoXMLWriter_Delete( DaoXMLWriter *self )
 static void DaoXMLWriter_Create( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoXMLWriter *res = DaoXMLWriter_New();
-	if ( N == 0 )
+	if ( N == 0 ){
 		res->stream = DaoStream_New();
+		res->stream->mode &= DAO_STREAM_STRING;
+	}
 	else {
 		DaoStream *stream = &p[0]->xStream;
-		if ( stream->mode & DAO_STREAM_WRITABLE ){
+		if ( stream->mode & DAO_STREAM_WRITABLE || stream->mode & DAO_STREAM_STRING ){
 			DaoGC_IncRC( p[0] );
 			res->stream = &p[0]->xStream;
 		}

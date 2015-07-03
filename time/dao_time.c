@@ -597,6 +597,9 @@ static void DaoTime_Diff( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	res->values[0]->xInteger.value = end->jday - start->jday;
 	res->values[1]->xInteger.value = end->value - start->value;
+	if( sizeof(dao_integer) < sizeof(time_t) ){
+		DaoProcess_RaiseWarning( proc, timeerr, "The time value might overflow the int type" );
+	}
 }
 
 static void DaoTime_Days( DaoProcess *proc, DaoValue *p[], int N )
@@ -766,7 +769,7 @@ static DaoFuncItem timeMeths[] =
 	{ DaoTime_LessOrEq,	"<=(a: DateTime, b: DateTime) => bool" },
 
 	/*! Returns datetime copy */
-	{ DaoTime_Clone,		"clone(self: DateTime) => DateTime" },
+	{ DaoTime_Clone,	"clone(self: DateTime) => DateTime" },
 	{ NULL, NULL }
 };
 
@@ -815,7 +818,7 @@ DAO_DLL int DaoTime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace *timens = DaoNamespace_GetNamespace( ns, "time" );
 
 #if 0
-	/* Warning will be raised by time::value(). */
+	/* Warning will be raised by DateTime::value() and time.diff(). */
 	if ( sizeof(dao_integer) != 8 ){
 		DaoStream* stream = DaoVmSpace_ErrorStream( vmSpace );
 		DaoStream_WriteChars( stream,
