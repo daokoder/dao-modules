@@ -443,7 +443,7 @@ static int DaoNetwork_SendNil( int sockfd )
 {
 	return DaoNetwork_SendTag( sockfd, DPP_TRANS_END );
 }
-static int DaoNetwork_SendInteger( int sockfd, int value )
+static int DaoNetwork_SendInteger( int sockfd, dao_integer value )
 {
 	DaoDataPacket packet;
 	int length;
@@ -456,7 +456,7 @@ static int DaoNetwork_SendInteger( int sockfd, int value )
 	packet.size = htons( length );
 	return LoopSend( sockfd, (char*)&packet, length, 0);
 }
-static int DaoNetwork_SendFloat( int sockfd, float value )
+static int DaoNetwork_SendFloat( int sockfd, dao_float value )
 {
 	DaoDataPacket packet;
 	int length;
@@ -1476,10 +1476,10 @@ static DaoFuncItem TcpStreamMeths[] =
 	{ DaoSocket_Lib_GetPeerName,	".peerAddr( invar self: TcpStream ) => SocketAddr" },
 
 	/*! Sends data via the internal serialization protocol */
-	{ DaoSocket_Lib_SendDao,		"writeDao( self: TcpStream, ...: int|float|complex|string|array )" },
+	{ DaoSocket_Lib_SendDao,		"writeDao( self: TcpStream, ...: int|float|complex|string|array<int|float> )" },
 
 	/*! Receives data via the internal serialization protocol */
-	{ DaoSocket_Lib_ReceiveDao,		"readDao( self: TcpStream ) => list<int|float|complex|string|array>" },
+	{ DaoSocket_Lib_ReceiveDao,		"readDao( self: TcpStream ) => list<int|float|complex|string|array<int|float>>" },
 
 	/*! Checks the property specified by \a what; required to satisfy `io::Device` interface  */
 	{ DaoSocket_Lib_Check,			"check(self: TcpStream, what: enum<readable,writable,open,eof>) => bool" },
