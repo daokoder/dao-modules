@@ -278,12 +278,13 @@ int DaoNetwork_Connect( uchar_t ip[4], unsigned short port )
 #define INTERRUPTED EINTR
 #endif
 
-int LoopSend( int sockfd, char *buf, int size, int flags )
+int LoopSend( int sockfd, char *buf, int size, int flags, struct sockaddr_in *addr )
 {
+	socklen_t addrlen = addr? sizeof(*addr) : 0;
 	int left = size;
 	daoint numbytes;
 	do{
-		numbytes = send( sockfd, buf, left, flags );
+		numbytes = sendto( sockfd, buf, left, flags, (struct sockaddr*)addr, addrlen );
 		if(numbytes != -1){
 			left -= numbytes;
 			buf += numbytes;
@@ -294,29 +295,26 @@ int LoopSend( int sockfd, char *buf, int size, int flags )
 	while( left > 0 );
 	return size;
 }
-int LoopReceive( int sockfd, char *buf, int size, int flags )
+int LoopReceive( int sockfd, char *buf, int size, int flags, struct sockaddr_in *addr )
 {
+	socklen_t addrlen = addr? sizeof(*addr) : 0;
 	daoint numbytes;
 	do
-		numbytes = recv( sockfd, buf, size, flags );
+		numbytes = recvfrom( sockfd, buf, size, flags, (struct sockaddr*)addr, &addrlen );
 	while( numbytes == -1 && GetError() == INTERRUPTED );
 	return numbytes;
 }
 int DaoNetwork_Send( int sockfd, DString *buf )
 {
-	return LoopSend( sockfd, DString_GetData( buf ), DString_Size( buf ), 0);
+	return LoopSend( sockfd, DString_GetData( buf ), DString_Size( buf ), 0, NULL );
 }
 int DaoNetwork_SendTo( int sockfd, uchar_t ip[4], unsigned short port, DString *buf )
 {
-	daoint numbytes;
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons( port );
 	addr.sin_addr.s_addr = *(int*)ip;
-	do
-		numbytes = sendto( sockfd, buf->chars, buf->size, 0, (struct sockaddr*)&addr, sizeof(addr) );
-	while( numbytes == -1 && GetError() == INTERRUPTED );
-	return buf->size;
+	return LoopSend( sockfd, buf->chars, buf->size, 0, &addr );
 }
 int DaoNetwork_Receive( int sockfd, DString *buf, int max )
 {
@@ -326,7 +324,7 @@ int DaoNetwork_Receive( int sockfd, DString *buf, int max )
 	else if ( max > 65536 )
 		max = 65536;
 	DString_Resize( buf, max );
-	numbytes = LoopReceive( sockfd, (char*)DString_GetData( buf ), max, 0 );
+	numbytes = LoopReceive( sockfd, buf->chars, max, 0, NULL );
 	if( numbytes >=0 ) DString_Resize( buf, numbytes );
 	/* if( numbytes >=0 ) buf->size = numbytes; */
 	return numbytes;
@@ -334,15 +332,12 @@ int DaoNetwork_Receive( int sockfd, DString *buf, int max )
 int DaoNetwork_ReceiveFrom( int sockfd, struct sockaddr_in *addr, DString *buf, int max )
 {
 	daoint numbytes;
-	socklen_t size = sizeof(*addr);
 	if ( max <= 0 )
 		max = 4096;
 	else if ( max > 65536 )
 		max = 65536;
 	DString_Resize( buf, max );
-	do
-		numbytes = recvfrom( sockfd, buf->chars, size, 0, (struct sockaddr*)addr, &size );
-	while( numbytes == -1 && GetError() == INTERRUPTED );
+	numbytes = LoopReceive( sockfd, buf->chars, max, 0, addr );
 	if( numbytes >=0 ) DString_Resize( buf, numbytes );
 	/* if( numbytes >=0 ) buf->size = numbytes; */
 	return numbytes;
@@ -428,7 +423,7 @@ long double DaoParseNumber( char *buf )
 	return ldexp( frac, expon ) * sign;
 }
 
-static int DaoNetwork_SendTag( int sockfd, char tag )
+static int DaoNetwork_SendTag( int sockfd, struct sockaddr_in *addr, char tag )
 {
 	DaoDataPacket packet;
 	int length;
@@ -437,13 +432,13 @@ static int DaoNetwork_SendTag( int sockfd, char tag )
 	packet.tag = tag;
 	packet.size = htons( length );
 	packet.dataI1 = packet.dataI2 = 0;
-	return LoopSend( sockfd, (char*)&packet, length, 0);
+	return LoopSend( sockfd, (char*)&packet, length, 0, addr );
 }
-static int DaoNetwork_SendNil( int sockfd )
+static int DaoNetwork_SendNil( int sockfd, struct sockaddr_in *addr )
 {
-	return DaoNetwork_SendTag( sockfd, DPP_TRANS_END );
+	return DaoNetwork_SendTag( sockfd, addr, DPP_TRANS_END );
 }
-static int DaoNetwork_SendInteger( int sockfd, dao_integer value )
+static int DaoNetwork_SendInteger( int sockfd, struct sockaddr_in *addr, dao_integer value )
 {
 	DaoDataPacket packet;
 	int length;
@@ -454,9 +449,9 @@ static int DaoNetwork_SendInteger( int sockfd, dao_integer value )
 	/* printf( "send number: %i, %s\n", length, packet.data ); */
 	packet.type = DAO_INTEGER;
 	packet.size = htons( length );
-	return LoopSend( sockfd, (char*)&packet, length, 0);
+	return LoopSend( sockfd, (char*)&packet, length, 0, addr );
 }
-static int DaoNetwork_SendFloat( int sockfd, dao_float value )
+static int DaoNetwork_SendFloat( int sockfd, struct sockaddr_in *addr, dao_float value )
 {
 	DaoDataPacket packet;
 	int length;
@@ -466,16 +461,16 @@ static int DaoNetwork_SendFloat( int sockfd, dao_float value )
 	length = offset + strlen( packet.data ) + 1;
 	packet.type = DAO_FLOAT;
 	packet.size = htons( length );
-	return LoopSend( sockfd, (char*)&packet, length, 0);
+	return LoopSend( sockfd, (char*)&packet, length, 0, addr );
 }
-static int DaoNetwork_SendNumber( int sockfd, DaoValue *data )
+static int DaoNetwork_SendNumber( int sockfd, struct sockaddr_in *addr, DaoValue *data )
 {
 	if( DaoValue_Type( data ) == DAO_INTEGER )
-		return DaoNetwork_SendInteger( sockfd, DaoValue_TryGetInteger( data ) );
+		return DaoNetwork_SendInteger( sockfd, addr, DaoValue_TryGetInteger( data ) );
 	else
-		return DaoNetwork_SendFloat( sockfd, DaoValue_TryGetFloat( data ) );
+		return DaoNetwork_SendFloat( sockfd, addr, DaoValue_TryGetFloat( data ) );
 }
-static int DaoNetwork_SendChars( int sockfd, const char *mbs, int len )
+static int DaoNetwork_SendChars( int sockfd, struct sockaddr_in *addr, const char *mbs, int len )
 {
 	DaoDataPacket packet;
 	int length = 0;
@@ -491,17 +486,17 @@ static int DaoNetwork_SendChars( int sockfd, const char *mbs, int len )
 		strncpy( packet.data, mbs + shift, copy );
 		packet.data[copy] = 0;
 		packet.size = htons( length );
-		if( LoopSend( sockfd, (char*) &packet, length, 0) == -1 )
+		if( LoopSend( sockfd, (char*) &packet, length, 0, addr ) == -1 )
 			return -1;
 		shift += copy;
 	}
 	return 0;
 }
-static int DaoNetwork_SendString( int sockfd, DString *str )
+static int DaoNetwork_SendString( int sockfd, struct sockaddr_in *addr, DString *str )
 {
-	return DaoNetwork_SendChars( sockfd, DString_GetData( str ), DString_Size( str ) );
+	return DaoNetwork_SendChars( sockfd, addr, DString_GetData( str ), DString_Size( str ) );
 }
-static int DaoNetwork_SendComplex( int sockfd, dao_complex data )
+static int DaoNetwork_SendComplex( int sockfd, struct sockaddr_in *addr, dao_complex data )
 {
 	DaoDataPacket packet;
 	int len, length = offset;
@@ -516,9 +511,9 @@ static int DaoNetwork_SendComplex( int sockfd, dao_complex data )
 	DaoPrintNumber( buf2, data.imag );
 	length += strlen( buf2 );
 	packet.size = htons( length );
-	return LoopSend( sockfd, (char*) &packet, length, 0);
+	return LoopSend( sockfd, (char*) &packet, length, 0, addr );
 }
-static int DaoNetwork_SendArray( int sockfd, DaoArray *data )
+static int DaoNetwork_SendArray( int sockfd, struct sockaddr_in *addr, DaoArray *data )
 {
 	DaoDataPacket packet;
 	char *buf2 = packet.data;
@@ -540,7 +535,7 @@ static int DaoNetwork_SendArray( int sockfd, DaoArray *data )
 			buf2 += len;
 			if( length >= MAX_DATA ){
 				packet.size = htons( offset + length );
-				if( LoopSend( sockfd, (char*) &packet, offset + length, 0) == -1 )
+				if( LoopSend( sockfd, (char*) &packet, offset + length, 0, addr ) == -1 )
 					return -1;
 				length = 0;
 				buf2 = packet.data;
@@ -556,7 +551,7 @@ static int DaoNetwork_SendArray( int sockfd, DaoArray *data )
 			buf2 += len;
 			if( length >= MAX_DATA ){
 				packet.size = htons( offset + length );
-				if( LoopSend( sockfd, (char*) &packet, offset + length, 0) == -1 )
+				if( LoopSend( sockfd, (char*) &packet, offset + length, 0, addr ) == -1 )
 					return -1;
 				length = 0;
 				buf2 = packet.data;
@@ -565,9 +560,9 @@ static int DaoNetwork_SendArray( int sockfd, DaoArray *data )
 		}
 	}
 	packet.size = htons( offset + length );
-	return LoopSend( sockfd, (char*) &packet, offset + length, 0);
+	return LoopSend( sockfd, (char*) &packet, offset + length, 0, addr );
 }
-static int DaoNetwork_SendExt( DaoProcess *proc, int sockfd, DaoValue *data[], int size )
+static int DaoNetwork_SendExt( DaoProcess *proc, int sockfd, struct sockaddr_in *addr, DaoValue *data[], int size )
 {
 	int i;
 	for( i=0; i<size; i++ ){
@@ -576,16 +571,16 @@ static int DaoNetwork_SendExt( DaoProcess *proc, int sockfd, DaoValue *data[], i
 		switch( DaoValue_Type( item ) ){
 		case DAO_INTEGER :
 		case DAO_FLOAT :
-			res = DaoNetwork_SendNumber( sockfd, item );
+			res = DaoNetwork_SendNumber( sockfd, addr, item );
 			break;
 		case DAO_STRING :
-			res = DaoNetwork_SendString( sockfd, DaoString_Get( DaoValue_CastString( item ) ) );
+			res = DaoNetwork_SendString( sockfd, addr, DaoString_Get( DaoValue_CastString( item ) ) );
 			break;
 		case DAO_COMPLEX :
-			res = DaoNetwork_SendComplex( sockfd, DaoComplex_Get( DaoValue_CastComplex( item ) ) );
+			res = DaoNetwork_SendComplex( sockfd, addr, DaoComplex_Get( DaoValue_CastComplex( item ) ) );
 			break;
 		case DAO_ARRAY :
-			res = DaoNetwork_SendArray( sockfd, DaoValue_CastArray( item ) );
+			res = DaoNetwork_SendArray( sockfd, addr, DaoValue_CastArray( item ) );
 			break;
 		default : break;
 		}
@@ -594,7 +589,7 @@ static int DaoNetwork_SendExt( DaoProcess *proc, int sockfd, DaoValue *data[], i
 	}
 	return 1;
 }
-int DaoNetwork_ReceiveExt( DaoProcess *proc, int sockfd, DaoList *data )
+int DaoNetwork_ReceiveExt( DaoProcess *proc, int sockfd, struct sockaddr_in *addr, DaoList *data )
 {
 	int i, j, numbytes, start, size, M;
 	char buf[ MAX_DATA + MAX_DATA + 100];
@@ -610,7 +605,7 @@ int DaoNetwork_ReceiveExt( DaoProcess *proc, int sockfd, DaoList *data )
 	char bufin[ MAX_DATA + MAX_DATA + 2 ];
 
 	/* printf( "receive3 : offset = %i\n", offset ); */
-	numbytes = LoopReceive( sockfd, bufin, MAX_DATA, 0 );
+	numbytes = LoopReceive( sockfd, bufin, MAX_DATA, 0, addr );
 	if( numbytes == -1 ){
 		DString_Delete( str );
 		return -1;
@@ -629,7 +624,7 @@ int DaoNetwork_ReceiveExt( DaoProcess *proc, int sockfd, DaoList *data )
 				numbytes = numbytes - start;
 				memmove( bufin, bufin + start, numbytes );
 				/* printf( "1 count = %i\n", count ); */
-				count = LoopReceive( sockfd, bufin + numbytes, MAX_DATA, 0 );
+				count = LoopReceive( sockfd, bufin + numbytes, MAX_DATA, 0, addr );
 				/* printf( "count = %i\n", count ); */
 				if( count < 0 ){
 					DString_Delete( str );
@@ -710,7 +705,7 @@ int DaoNetwork_ReceiveExt( DaoProcess *proc, int sockfd, DaoList *data )
 		if( inpack->type ==0 && inpack->tag == DPP_TRANS_END ) break;
 		if( count <= 0 ) break;
 		/* printf( "before %i %i\n", daoProxyPort, sockfd ); */
-		numbytes = LoopReceive( sockfd, bufin, MAX_DATA, 0 );
+		numbytes = LoopReceive( sockfd, bufin, MAX_DATA, 0, addr );
 		/* printf( "after %i %i\n", daoProxyPort, sockfd ); */
 		if( numbytes == -1 ){
 			DString_Delete( str );
@@ -1017,7 +1012,7 @@ static void DaoSocket_Lib_SendDao( DaoProcess *proc, DaoValue *par[], int N  )
 		DaoProcess_RaiseError( proc, neterr, "The socket is not connected" );
 		return;
 	}
-	n = DaoNetwork_SendExt( proc, self->id, par+1, N-1 );
+	n = DaoNetwork_SendExt( proc, self->id, NULL, par+1, N-1 );
 	if( n == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
@@ -1034,7 +1029,7 @@ static void DaoSocket_Lib_ReceiveDao( DaoProcess *proc, DaoValue *par[], int N  
 		return;
 	}
 	DaoList *res = DaoProcess_PutList( proc );
-	if( DaoNetwork_ReceiveExt( proc, self->id, res ) == -1 ){
+	if( DaoNetwork_ReceiveExt( proc, self->id, NULL, res ) == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 	}
@@ -1476,10 +1471,10 @@ static DaoFuncItem TcpStreamMeths[] =
 	{ DaoSocket_Lib_GetPeerName,	".peerAddr( invar self: TcpStream ) => SocketAddr" },
 
 	/*! Sends data via the internal serialization protocol */
-	{ DaoSocket_Lib_SendDao,		"writeDao( self: TcpStream, ...: int|float|complex|string|array<int|float> )" },
+//	{ DaoSocket_Lib_SendDao,		"writeDao( self: TcpStream, ...: int|float|complex|string|array<int>|array<float> )" },
 
 	/*! Receives data via the internal serialization protocol */
-	{ DaoSocket_Lib_ReceiveDao,		"readDao( self: TcpStream ) => list<int|float|complex|string|array<int|float>>" },
+//	{ DaoSocket_Lib_ReceiveDao,		"readDao( self: TcpStream ) => list<int|float|complex|string|array<int>|array<float>>" },
 
 	/*! Checks the property specified by \a what; required to satisfy `io::Device` interface  */
 	{ DaoSocket_Lib_Check,			"check(self: TcpStream, what: enum<readable,writable,open,eof>) => bool" },

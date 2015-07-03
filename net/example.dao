@@ -14,7 +14,7 @@ class Server
 			message = stream.read();
 			io.writeln( conn.addr );
 			io.writeln( 'received', message );
-			stream.writeDao( 'TEST', 12.345, [1,2,3] );
+			stream.write( 'TEST' );
 			stream.close();
 			break;
 		}
@@ -28,7 +28,7 @@ class Client
 		sockfd = net.connect( 'localhost:10000' );
 		io.writeln( 'sending' );
 		sockfd.write( 'TEST' );
-		message = sockfd.readDao();
+		message = sockfd.read();
 		io.writeln( 'received', message );
 		sockfd.close();
 	}
