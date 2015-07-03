@@ -831,7 +831,7 @@ int ParseAddr( DaoProcess *proc, DString *addr, uchar_t ip[4], unsigned short *p
 			char errbuf[MAX_ERRMSG];
 			GetHostErrorMessage( errbuf, GetHostError() );
 			DaoProcess_RaiseError( proc, neterr, errbuf );
-			return;
+			return 0;
 		}
 		*(int*)ip =  *(int*)he->h_addr;
 	}
