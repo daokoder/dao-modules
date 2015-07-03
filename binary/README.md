@@ -5,6 +5,39 @@ The module contains functions to read and write binary data, encode it in textua
 ### Index
 namespace [bin](#bin)
 
+class [Encoder](#encoder)
+- [Encoder](#encoder_ctor)()
+- [Encoder](#encoder_ctor)(_sink_: io::Stream)
+- [.stream](#encoder_stream)(invar _self_: Encoder) => io::Stream
+- [.bytesWritten](#byteswritten)(invar _self_: Encoder) => int
+- [i8](#writenum)(_self_: Encoder, _value_: int) => Encoder
+- [u8](#writenum)(_self_: Encoder, _value_: int) => Encoder
+- [i16](#writenum)(_self_: Encoder, _value_: int) => Encoder
+- [u16](#writenum)(_self_: Encoder, _value_: int) => Encoder
+- [i32](#writenum)(_self_: Encoder, _value_: int) => Encoder
+- [u32](#writenum)(_self_: Encoder, _value_: int) => Encoder
+- [i64](#writenum)(_self_: Encoder, _value_: int) => Encoder
+- [u64](#writenum)(_self_: Encoder, _value_: int) => Encoder
+- [f32](#writenum)(_self_: Encoder, _value_: float) => Encoder
+- [f64](#writenum)(_self_: Encoder, _value_: float) => Encoder
+- [bytes](#writebytes)(_self_: Encoder, _bytes_: string) => Encoder
+
+class [Decoder](#decoder)
+- [Decoder](#decoder_ctor)(_sink_: io::Stream)
+- [.stream](#decoder_stream)(invar _self_: Encoder) => io::Stream
+- [.bytesWritten](#bytesread)(invar _self_: Encoder) => int
+- [i8](#readnum)(_self_: Encoder) => int
+- [u8](#readnum)(_self_: Encoder) => int
+- [i16](#readnum)(_self_: Encoder) => int
+- [u16](#readnum)(_self_: Encoder) => int
+- [i32](#readnum)(_self_: Encoder) => int
+- [u32](#readnum)(_self_: Encoder) => int
+- [i64](#readnum)(_self_: Encoder) => int
+- [u64](#readnum)(_self_: Encoder) => int
+- [f32](#readnum)(_self_: Encoder) => float
+- [f64](#readnum)(_self_: Encoder) => float
+- [bytes](#readbytes)(_self_: Encoder, _count_: int) => string
+
 Functions:
 - [read](#read)(_source_: io::Stream, _dest_: array&lt;@T&lt;int|float|complex&gt;&gt;, _count_ = 0) => int
 - [unpack](#unpack)(_source_: io::Stream, _dest_: array&lt;int&gt;, _size_: enum&lt;byte,word,dword&gt;, _count_ = 0) => int
@@ -20,6 +53,103 @@ Functions:
 - [decode](#decode)(_str_: string, _codec_: enum&lt;base64,z85,hex&gt;) => string
 
 <a name="bin"></a>
+### Classes
+#### <a name="encoder">`bin::Encoder`</a>
+Stateful binary encoder which uses an `io::Stream` as sink
+#### Methods
+<a name="encoder_ctor"></a>
+```ruby
+Encoder()
+Encoder(sink: io::Stream)
+```
+Creates an encoder writing to *sink* (if omitted, new string stream is created)
+
+**Errors:** `Param` when *sink* is not writable
+<a name="encoder_stream"></a>
+```ruby
+.stream(invar self: Encoder) => io::Stream
+```
+Sink stream
+<a name="byteswritten"></a>
+```ruby
+.bytesWritten(invar self: Encoder) => int
+```
+Number of bytes successfully written to the sink
+<a name="writenum"></a>
+```ruby
+i8(self: Encoder, value: int) => Encoder
+u8(self: Encoder, value: int) => Encoder
+i16(self: Encoder, value: int) => Encoder
+u16(self: Encoder, value: int) => Encoder
+i32(self: Encoder, value: int) => Encoder
+u32(self: Encoder, value: int) => Encoder
+i64(self: Encoder, value: int) => Encoder
+u64(self: Encoder, value: int) => Encoder
+f32(self: Encoder, value: float) => Encoder
+f64(self: Encoder, value: float) => Encoder
+```
+Writes *value* and returns self.
+
+__Note:__ Multibyte integer values are written with big-endian byte order
+__Warning:__ Floating point value representation may vary on different platforms
+
+**Errors:** `Value` if the stream was closed
+<a name="writebytes"></a>
+```ruby
+bytes(self: Encoder, bytes: string) => Encoder
+```
+Writes *bytes* to the sink and returns self
+
+**Errors:** 'Value' if the stream was closed
+
+------
+#### <a name="decoder">`bin::Decoder`</a>
+Stateful binary decoder which uses an `io::Stream` as source
+#### Methods
+<a name="decoder_ctor"></a>
+```ruby
+Decoder(source: io::Stream)
+```
+Creates a decoder readin from *source*
+
+**Errors:** `Param` when *source* is not readable
+<a name="decoder_stream"></a>
+```ruby
+.stream(invar self: Decoder) => io::Stream
+```
+Source stream
+<a name="bytesread"></a>
+```ruby
+.bytesRead(invar self: Decoder) => int
+```
+Number of bytes successfully written to the sink
+<a name="writenum"></a>
+```ruby
+i8(self: Decoder) => int
+u8(self: Decoder) => int
+i16(self: Decoder) => int
+u16(self: Decoder) => int
+i32(self: Decoder) => int
+u32(self: Decoder) => int
+i64(self: Decoder) => int
+u64(self: Decoder) => int
+f32(self: Decoder) => float
+f64(self: Decoder) => float
+```
+Reads a value from the source.
+
+__Note:__ Multibyte integer values are assumed to be in big-endian byte order
+__Warning:__ Floating point value representation may vary on different platforms
+
+**Errors:** `Value` if the stream was closed
+<a name="writebytes"></a>
+```ruby
+bytes(self: Encoder, bytes: string) => Encoder
+```
+Reads at most *count* bytes from the source
+
+**Errors:** `Value` if the stream was closed
+
 ### Functions
 <a name="read"></a>
 ```ruby
