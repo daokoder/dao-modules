@@ -81,11 +81,17 @@ class [Writer](#writer)
 - [header](#header)(_self_: Writer, _version_ = '1.0', _encoding_ = '', _standalone_ = '') => Writer
 - [instruction](#wr_instruction)(_self_: Writer, _name_: string, _data_ = '') => Writer
 - [doctype](#wr_doctype)(_self_: Writer, _dtd_: string) => Writer
-<a name="xml"></a>
+
+interface [Encodable](#encodable)
+- [encode](#encode)(invar _self_: Encodable) => Element
+
+interface [Decodable](#decodable)
+- [decode](#decode)(invar _data_: Element) => Decodable
 
 Functions:
 - [parse](#parse)(_str_: string) => xml::Document
 
+<a name="xml"></a>
 ### Classes
 #### <a name="document">`xml::Document`</a>
 XML document.
@@ -460,6 +466,25 @@ doctype(self: Writer, dtd: string) => Writer
 Writes DTD section and returns *self*; *dtd* should be in form of '<!DOCTYPE ... >'
 
 **Error:** `XML` in case of invalid DTD, or when it was already written, or when it is misplaced, `Param` when the stream is closed
+### Interfaces
+#### <a name="encodable">`xml::Encodable`</a>
+ A type which can be encoded to XML
+#### Methods
+<a name="encode"></a>
+```ruby
+encode(invar self: Encodable) => Element
+```
+Serializes self to an XML element
+
+-----
+#### <a name="decodable">`xml::Decodable`</a>
+A type which can be decoded from XML
+#### Methods
+<a name="decode"></a>
+```ruby
+decode(invar data: Element) => Decodable
+```
+Deserializes self from the provided XML *data*
 ### Functions
 <a name="parse"></a>
 ```ruby

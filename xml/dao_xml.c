@@ -3264,6 +3264,32 @@ static DaoFuncItem xmlMeths[] = {
 	{ NULL, NULL }
 };
 
+static DaoFuncItem encodableMeths[] =
+{
+	//! Serializes self to an XML element
+	{ NULL,	"encode(invar self: Encodable) => Element" },
+	{ NULL, NULL }
+};
+
+//! A type which can be encoded to XML
+DaoTypeBase encodableTyper = {
+	"Encodable", NULL, NULL, encodableMeths, {NULL}, {0},
+	(FuncPtrDel)NULL, NULL
+};
+
+static DaoFuncItem decodableMeths[] =
+{
+	//! Deserializes self from the provided XML \a data
+	{ NULL,	"decode(invar data: Element) => Decodable" },
+	{ NULL, NULL }
+};
+
+//! A type which can be decoded from XML
+DaoTypeBase decodableTyper = {
+	"Decodable", NULL, NULL, decodableMeths, {NULL}, {0},
+	(FuncPtrDel)NULL, NULL
+};
+
 DAO_DLL int DaoXML_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *xmlns;
@@ -3274,6 +3300,8 @@ DAO_DLL int DaoXML_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	daox_type_xmlelem = DaoNamespace_WrapType( xmlns, &xmlElemTyper, 1 );
 	daox_type_xmldoc = DaoNamespace_WrapType( xmlns, &xmlDocTyper, 1 );
 	daox_type_xmlwriter = DaoNamespace_WrapType( xmlns, &xmlWriterTyper, 1 );
+	DaoNamespace_WrapInterface( xmlns, &encodableTyper );
+	DaoNamespace_WrapInterface( xmlns, &decodableTyper );
 	DaoNamespace_WrapFunctions( xmlns, xmlMeths );
 	return 0;
 }

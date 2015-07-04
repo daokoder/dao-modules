@@ -553,10 +553,6 @@ static DaoFuncItem jsonMeths[] =
 	{ NULL, NULL }
 };
 
-#warning REMOVE THIS!!!
-#include "..\..\..\kernel\dao.h"
-#include "..\..\..\kernel\DaoValue.h"
-
 static DaoFuncItem encodableMeths[] =
 {
 	//! Serializes self to JSON data
