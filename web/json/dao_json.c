@@ -531,7 +531,7 @@ static DaoFuncItem jsonMeths[] =
 	 * - none => null
 	 * - bool => bool
 	 */
-	{ JSON_Serialize,	"serialize(invar data: map<string,Data>|list<Data>, style: enum<pretty,compact> = $pretty) => string" },
+	{ JSON_Serialize,	"serialize(invar data: Object|Array, style: enum<pretty,compact> = $pretty) => string" },
 
 	/*! Similar to the above, but accepts arbitrary data as input. Each item of type other then \c int, \c float, \c bool,
 	 * \c none, \c string, \c map<string,@T> or \c list found in \a data is passed to the specified code section, which should implement
@@ -549,8 +549,66 @@ static DaoFuncItem jsonMeths[] =
 	 * - null   => none
 	 * - bool   => bool
 	 */
-	{ JSON_Deserialize,	"parse(str: string) => map<string,Data>|list<Data>" },
+	{ JSON_Deserialize,	"parse(str: string) => Object|Array" },
 	{ NULL, NULL }
+};
+
+#warning REMOVE THIS!!!
+#include "..\..\..\kernel\dao.h"
+#include "..\..\..\kernel\DaoValue.h"
+
+static DaoFuncItem encodableMeths[] =
+{
+	//! Serializes self to JSON data
+	{ NULL,	"encode(invar self: Encodable) => Data" },
+	{ NULL, NULL }
+};
+
+//! A type which can be encoded to JSON data. Use it in conjunction with \c Marshallable
+//! to define serialization of custom data structures to JSON
+DaoTypeBase encodableTyper = {
+	"Encodable", NULL, NULL, encodableMeths, {NULL}, {0},
+	(FuncPtrDel)NULL, NULL
+};
+
+static DaoFuncItem decodableMeths[] =
+{
+	//! Deserializes self from the provided JSON \a data
+	{ NULL,	"decode(invar data: Data) => Decodable" },
+	{ NULL, NULL }
+};
+
+//! A type which can be decoded from JSON data. Use it in conjunction with \c Unmarshallable
+//! to define deserialization of custom data structures from JSON
+DaoTypeBase decodableTyper = {
+	"Decodable", NULL, NULL, decodableMeths, {NULL}, {0},
+	(FuncPtrDel)NULL, NULL
+};
+
+static DaoFuncItem marshallableMeths[] =
+{
+	//! Serializes self to JSON document
+	{ NULL,	"marshal(invar self: Marshallable) => Object|Array" },
+	{ NULL, NULL }
+};
+
+//! A type which can be marshalled to a JSON document
+DaoTypeBase marshallableTyper = {
+	"Marshallable", NULL, NULL, marshallableMeths, {NULL}, {0},
+	(FuncPtrDel)NULL, NULL
+};
+
+static DaoFuncItem unmarshallableMeths[] =
+{
+	//! Deserializes self from the given JSON \a document
+	{ NULL,	"unmarshal(invar document: Object|Array) => Unmarshallable" },
+	{ NULL, NULL }
+};
+
+//! A type which can be unmarshalled from a JSON document
+DaoTypeBase unmarshallableTyper = {
+	"Unmarshallable", NULL, NULL, unmarshallableMeths, {NULL}, {0},
+	(FuncPtrDel)NULL, NULL
 };
 
 DAO_DLL int DaoJson_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
@@ -560,6 +618,10 @@ DAO_DLL int DaoJson_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace_DefineType( jsonns, "none|bool|int|float|string|list<Data>|map<string,Data>", "Data" );
 	json_list_type = DaoNamespace_DefineType( jsonns, "list<Data>", "Array" );
 	json_map_type = DaoNamespace_DefineType( jsonns, "map<string,Data>", "Object" );
+	DaoNamespace_WrapInterface( jsonns, &encodableTyper );
+	DaoNamespace_WrapInterface( jsonns, &decodableTyper );
+	DaoNamespace_WrapInterface( jsonns, &marshallableTyper );
+	DaoNamespace_WrapInterface( jsonns, &unmarshallableTyper );
 	DaoNamespace_WrapFunctions( jsonns, jsonMeths );
 	return 0;
 }
