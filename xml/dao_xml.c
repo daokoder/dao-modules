@@ -2767,7 +2767,7 @@ static void DaoXMLWriter_Create( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	else {
 		DaoStream *stream = &p[0]->xStream;
-		if ( stream->mode & DAO_STREAM_WRITABLE || stream->mode & DAO_STREAM_STRING ){
+		if ( DaoStream_IsWritable( stream ) ){
 			DaoGC_IncRC( p[0] );
 			res->stream = &p[0]->xStream;
 		}

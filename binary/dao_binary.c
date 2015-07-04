@@ -669,7 +669,7 @@ static void DaoEncoder_Create( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	else {
 		DaoStream *stream = &p[0]->xStream;
-		if ( stream->mode & DAO_STREAM_WRITABLE || stream->mode & DAO_STREAM_STRING ){
+		if ( DaoStream_IsWritable( stream ) ){
 			DaoGC_IncRC( p[0] );
 			res->stream = &p[0]->xStream;
 		}
@@ -696,8 +696,8 @@ static void DaoXCoder_Counter( DaoProcess *proc, DaoValue *p[], int N )
 
 int CheckStream( DaoProcess *proc, DaoStream *stream )
 {
-	if ( ( stream->mode & DAO_STREAM_FILE ) && !stream->file ){
-		DaoProcess_RaiseError( proc, "Value", "Stream closed" );
+	if ( !DaoStream_IsOpen( stream ) ){
+		DaoProcess_RaiseError( proc, "Value", "Stream was closed" );
 		return 0;
 	}
 	return 1;
@@ -872,7 +872,7 @@ static void DaoDecoder_Create( DaoProcess *proc, DaoValue *p[], int N )
 	DaoXCoder *res = (DaoXCoder*)dao_malloc( sizeof(DaoXCoder) );
 	DaoStream *stream = &p[0]->xStream;
 	res->counter = 0;
-	if ( stream->mode & DAO_STREAM_READABLE || stream->mode & DAO_STREAM_STRING ){
+	if ( DaoStream_IsReadable( stream ) ){
 		DaoGC_IncRC( p[0] );
 		res->stream = &p[0]->xStream;
 	}
