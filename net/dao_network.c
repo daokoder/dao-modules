@@ -458,7 +458,7 @@ int GetIpAddr( const char *str, uchar_t ip[4] )
 		int value = inet_addr( str );
 		if ( value == INADDR_NONE )
 			return 0;
-		*(int*)res->octets = value;
+		*(int*)ip = value;
 		return 1;
 #else
 		return inet_pton( AF_INET, str, ip );
