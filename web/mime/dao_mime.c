@@ -28,6 +28,8 @@
 
 // 2015-07: Danilov Aleksey, initial implementation.
 
+#include <string.h>
+
 #include"dao_mime.h"
 
 static DMap *mimeHash = NULL;
@@ -690,13 +692,14 @@ const struct mime mimeList[] = {
 void DaoMime_Init()
 {
 	int i;
-	char *prevExt = NULL;
+	char *prevExt = "\0";
 	DaoList *prevNames = NULL;
 	DString *ext = DString_New();
 	mimeHash = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
 	for ( i = 0; mimeList[i].ext ; i++ ){
 		DaoString *name = DaoString_NewChars( mimeList[i].name );
-		if ( mimeList[i].ext == prevExt ) // some extensions have several associated MIME types
+		if ( strcmp( mimeList[i].ext, prevExt ) == 0 )
+			// some extensions have several associated MIME types
 			DaoList_Append( prevNames, (DaoValue*)name );
 		else {
 			DaoList *names = DaoList_New();
