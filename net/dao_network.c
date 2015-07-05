@@ -39,7 +39,6 @@
 
 #ifdef UNIX
 
-
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -47,6 +46,14 @@
 #include <errno.h>
 #include <unistd.h>
 #include <netdb.h>
+
+// for sendfile()
+#ifdef LINUX
+#define _FILE_OFFSET_BITS 64
+#include <sys/sendfile.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#endif
 
 #else
 
@@ -153,8 +160,9 @@ static void GetErrorMessage( char *buffer, int code )
 	case EMSGSIZE:        strcpy( buffer, "Message too large (EMSGSIZE)" ); break;
 	case EPIPE:           strcpy( buffer, "Connection was broken (EPIPE)" ); break;
 	case EINVAL:          strcpy( buffer, "Invalid parameter (EINVAL)" ); break;
-	case ENOMEM:          strcpy( buffer, "Insufficient space (ENOMEM)" ); break;
+	case ENOMEM:          strcpy( buffer, "Insufficient memory (ENOMEM)" ); break;
 	case ENOTCONN:        strcpy( buffer, "Socket not connected (ENOTCONN)" ); break;
+	case EIO:             strcpy( buffer, "Hardware I/O error (EIO)" ); break;
 #endif
 	default: sprintf( buffer, "Unknown system error (%x)", code );
 	}
@@ -670,19 +678,40 @@ static void DaoSocket_Lib_SendFile( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
 	DString *fname = par[1]->xString.value;
+#ifdef LINUX
+	struct stat finfo;
+	int file, res;
+#else
 	FILE *file;
 	char buf[4096];
+#endif
 	if( self->state != Socket_Connected ){
 		DaoProcess_RaiseError( proc, neterr, "The socket is not connected" );
 		return;
 	}
+#ifdef LINUX
+	file = open( fname->chars, O_RDONLY, 0 );
+	if ( file < 0 ){
+#else
 	file = fopen( fname->chars, "rb" );
 	if ( !file ){
+#endif
 		char errbuf[MAX_ERRMSG + MAX_PATH];
 		snprintf( errbuf, sizeof(errbuf), "Failed to open file: %s", fname->chars );
 		DaoProcess_RaiseError( proc, "File", errbuf );
 		return;
 	}
+#ifdef LINUX
+	if ( fstat( file, &finfo ) < 0 ){
+		DaoProcess_RaiseError( proc, "File", "Failed to get file size" );
+		close( file );
+		return;
+	}
+	res = sendfile( self->id, file, NULL, finfo.st_size );
+	close( file );
+	if ( res < 0 )
+		goto Error;
+#else
 	while ( !feof( file ) ){
 		int count = fread( buf, 1, sizeof(buf), file );
 		if ( !count ){
@@ -691,14 +720,20 @@ static void DaoSocket_Lib_SendFile( DaoProcess *proc, DaoValue *par[], int N  )
 			return;
 		}
 		if ( LoopSend( self->id, buf, count, 0, NULL ) < count ){
-			char errbuf[MAX_ERRMSG];
-			GetErrorMessage( errbuf, GetError() );
-			DaoProcess_RaiseError( proc, neterr, errbuf );
 			fclose( file );
-			return;
+			goto Error;
 		}
 	}
 	fclose( file );
+#endif
+	return;
+Error:
+	if ( 1 ){
+		char errbuf[MAX_ERRMSG];
+		GetErrorMessage( errbuf, GetError() );
+		DaoProcess_RaiseError( proc, neterr, errbuf );
+		return;
+	}
 }
 
 static void DaoSocket_Lib_Receive( DaoProcess *proc, DaoValue *par[], int N  )
