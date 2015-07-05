@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2011,2012, Limin Fu
+// Copyright (c) 2011-2015, Limin Fu
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without modification,
@@ -658,6 +658,49 @@ static void DaoSocket_Lib_Send( DaoProcess *proc, DaoValue *par[], int N  )
 	}
 }
 
+#ifndef MAX_PATH
+#ifndef PATH_MAX
+#define MAX_PATH 512
+#else
+#define MAX_PATH PATH_MAX
+#endif
+#endif
+
+static void DaoSocket_Lib_SendFile( DaoProcess *proc, DaoValue *par[], int N  )
+{
+	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	DString *fname = par[1]->xString.value;
+	FILE *file;
+	char buf[4096];
+	if( self->state != Socket_Connected ){
+		DaoProcess_RaiseError( proc, neterr, "The socket is not connected" );
+		return;
+	}
+	file = fopen( fname->chars, "rb" );
+	if ( !file ){
+		char errbuf[MAX_ERRMSG + MAX_PATH];
+		snprintf( errbuf, sizeof(errbuf), "Failed to open file: %s", fname->chars );
+		DaoProcess_RaiseError( proc, "File", errbuf );
+		return;
+	}
+	while ( !feof( file ) ){
+		int count = fread( buf, 1, sizeof(buf), file );
+		if ( !count ){
+			DaoProcess_RaiseError( proc, "File", "File read failure" );
+			fclose( file );
+			return;
+		}
+		if ( LoopSend( self->id, buf, count, 0, NULL ) < count ){
+			char errbuf[MAX_ERRMSG];
+			GetErrorMessage( errbuf, GetError() );
+			DaoProcess_RaiseError( proc, neterr, errbuf );
+			fclose( file );
+			return;
+		}
+	}
+	fclose( file );
+}
+
 static void DaoSocket_Lib_Receive( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
@@ -1101,6 +1144,9 @@ static DaoFuncItem TcpStreamMeths[] =
 
 	/*! Sends \a data */
 	{ DaoSocket_Lib_Send,			"write( self: TcpStream, data: string )" },
+
+	/*! Sends \a file */
+	{ DaoSocket_Lib_SendFile,		"writeFile( self: TcpStream, file: string )" },
 
 	/*! Receives at most \a count bytes (64Kb max, 4Kb if \a count <= 0) and returnes the received data */
 	{ DaoSocket_Lib_Receive,		"read( self: TcpStream, count = -1 ) => string" },

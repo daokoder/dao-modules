@@ -1131,7 +1131,7 @@ static void FSNode_Copy( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	else
 		path = CharsToTChars( p[1]->xString.value->chars );
-	src = fopen( self->path, T("r") );
+	src = fopen( self->path, T("rb") );
 	if ( !src ){
 		char errbuf[MAX_ERRMSG] = "Unable to read file; ";
 		GetErrorMessage( errbuf + strlen( errbuf ), errno, 0 );
@@ -1157,7 +1157,7 @@ static void FSNode_Copy( DaoProcess *proc, DaoValue *p[], int N )
 		}
 		tcscpy( path + len, self->path + i );
 	}
-	dest = fopen( path, T("w") );
+	dest = fopen( path, T("wb") );
 	if ( !dest ){
 		char errbuf[MAX_ERRMSG + MAX_PATH + 3];
 		snprintf( errbuf, sizeof(errbuf), "Unable to write file: %"T_FMT";", path );
@@ -1167,7 +1167,14 @@ static void FSNode_Copy( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	while ( !feof( src ) ){
 		size_t count = fread( buf, sizeof(char), sizeof(buf), src );
-		fwrite( buf, sizeof(char), count, dest );
+		if ( !count ){
+			DaoProcess_RaiseError( proc, fserr, "File read failure" );
+			goto Exit;
+		}
+		if ( !fwrite( buf, sizeof(char), count, dest ) ){
+			DaoProcess_RaiseError( proc, fserr, "File write failure" );
+			goto Exit;
+		}
 	}
 	copy = DInode_New();
 	if ( ( res = DInode_Open( copy, path ) ) != 0 ){
