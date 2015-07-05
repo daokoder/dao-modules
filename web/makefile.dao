@@ -9,6 +9,7 @@ project.AddDirectory( "http", "http" )
 project.AddDirectory( "json", "json" )
 project.AddDirectory( "cgi", "cgi" )
 project.AddDirectory( "html", "html" )
+project.AddDirectory( "mime", "mime" )
 
 project.UseImportLibrary( daovm, "dao" )
 project.SetTargetPath( "../../lib/dao/modules/web" )
