@@ -714,20 +714,22 @@ void DaoMime_Init()
 	DString_Delete( ext );
 }
 
-// TODO: application/x-trash				~ % bak old sik
-void DaoMime_UpdateDB( FILE *source )
+daoint DaoMime_UpdateDB( FILE *source )
 {
 	char buf[1024];
+	daoint count = 0;
 	if ( !mimeHash )
 		DaoMime_Init();
 	while ( fgets( buf, sizeof(buf), source ) ){ // for each line
 		char *pc = buf;
+		if ( *pc == '#' ) // ignore comments
+			continue;
 		for ( ; *pc != '\0' && !isspace( *pc ); pc++ ); // pass the type name
 		if ( pc == buf )
 			continue;
 		if ( *pc == ' ' || *pc == '\t' ){ // ensure it's not the end
 			DString name = DString_WrapBytes( buf, pc - buf );
-			for ( pc++; *pc == ' ' || *pc == '\t'; pc++ ); // pass the whitespace
+			for ( pc++; *pc == ' ' || *pc == '\t' || ispunct( *pc ); pc++ ); // pass the whitespace
 			while ( isalnum( *pc ) ){ // iterate over the extensions
 				DString ext;
 				DNode *node;
@@ -748,6 +750,7 @@ void DaoMime_UpdateDB( FILE *source )
 						DaoString *str = DaoString_New();
 						DaoString_Set ( str, &name );
 						DaoList_Append( list, (DaoValue*)str );
+						count++;
 					}
 				}
 				else { // insert new key-value
@@ -756,6 +759,7 @@ void DaoMime_UpdateDB( FILE *source )
 					DaoString_Set ( str, &name );
 					DaoList_Append( list, (DaoValue*)str );
 					DMap_Insert( mimeHash, &ext, list );
+					count++;
 				}
 				for ( ; *pc == ' ' || *pc == '\t'; pc++ ); // pass whitespace
 			}
@@ -763,6 +767,7 @@ void DaoMime_UpdateDB( FILE *source )
 		else
 			continue;
 	}
+	return count;
 }
 
 void DaoMime_Identify( DString *ext, DaoList *names )
@@ -775,6 +780,10 @@ void DaoMime_Identify( DString *ext, DaoList *names )
 		DaoList_Append( names, (DaoValue*)DaoString_NewChars( "inode/directory" ) );
 		return;
 	}
+	if ( ext->size && ext->chars[ext->size - 1] == '~' ){ // for backupts
+		DaoList_Append( names, (DaoValue*)DaoString_NewChars( "application/x-trash" ) );
+		return;
+	}
 	node = DMap_Find( mimeHash, ext );
 	if ( node ){
 		daoint i;
@@ -782,7 +791,7 @@ void DaoMime_Identify( DString *ext, DaoList *names )
 		for ( i = 0; i < res->value->size; i++ )
 			DaoList_Append( names, DaoList_GetItem( res, i ) );
 	}
-	else
+	else // default type
 		DaoList_Append( names, (DaoValue*)DaoString_NewChars( "application/octet-stream" ) );
 }
 
@@ -809,29 +818,33 @@ static void MIME_UpdateDB( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, "File", "Failed to open file" );
 		return;
 	}
-	DaoMime_UpdateDB( file );
+	DaoProcess_PutInteger( proc, DaoMime_UpdateDB( file ) );
 	fclose( file );
 }
 
 static DaoFuncItem mimeFuncs[] =
 {
 	/*! Returns list of MIME type defined for the given \a target which may be a file name or an extension.
-	 * If no appropriate MIME type was found, returns \c DEFAULT type ("application/octet-stream")
+	 * If no appropriate MIME type was found, returns default "application/octet-stream" type
 	 *
 	 * \note The identification involves extension matching only, file contents are not read. \a target is
-	 * assumed to name a directory if it ends with '/', in which case its MIME type is \c DIR ("inode/directory") */
+	 * assumed to name a directory if it ends with '/', in which case its MIME type is "inode/directory".
+	 * If \a target ends with '~', it is considered to be a backup file with "application/x-trash" type */
 	{ MIME_Identify,	"identify(target: string) => list<string>" },
+
+	/*! Updates the MIME types database from the specified \a file, which should have format compatible with
+	 * '/etc/mime.types' found on typical Unix systems. Returns the number of inserted/updated entries.
+	 *
+	 * \warning Not reentrant: while \c updateDb() is running, no other calls to this routine or \c identify()
+	 * should occur */
+	{ MIME_UpdateDB,	"updateDb(file: string) => int" },
 	{ NULL, NULL }
 };
 
 DAO_DLL int DaoMime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *mimens = DaoNamespace_GetNamespace( ns, "mime" );
-	DString def = DString_WrapChars( "DEFAULT" );
-	DString dir = DString_WrapChars( "DIR" );
 	DaoMime_Init();
 	DaoNamespace_WrapFunctions( mimens, mimeFuncs );
-	DaoNamespace_AddConst( mimens, &def, (DaoValue*)DaoString_NewChars("application/octet-stream"), DAO_PERM_PUBLIC );
-	DaoNamespace_AddConst( mimens, &dir, (DaoValue*)DaoString_NewChars("inode/directory"), DAO_PERM_PUBLIC );
 	return 0;
 }
