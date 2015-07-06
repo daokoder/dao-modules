@@ -28,6 +28,7 @@
 // 2011-01: Danilov Aleksey, initial implementation.
 
 #include<string.h>
+#include<stdint.h>
 
 #include"daoValue.h"
 #include"daoStdtype.h"
@@ -42,7 +43,7 @@ void DString_EncodeBase64( DString *self, DString *dest )
 	daoint i, j = 0;
 	DString_Resize( dest, ( self->size/3 )*4 + ( self->size%3? 4 : 0 ) );
 	for ( i = 0; i < self->size/3; i++ ){
-		uchar_t high = self->chars[i*3], mid = self->chars[i*3 + 1], low = self->chars[i*3 + 2];
+		uint8_t high = self->chars[i*3], mid = self->chars[i*3 + 1], low = self->chars[i*3 + 2];
 		uint_t triplet = ( (uint_t)high << 16 ) | ( (uint_t)mid << 8 ) | low;
 		dest->chars[j++] = base64_chars[( triplet & ( 63 << 18 ) ) >> 18];
 		dest->chars[j++] = base64_chars[( triplet & ( 63 << 12 ) ) >> 12];
@@ -67,7 +68,7 @@ void DString_EncodeBase64( DString *self, DString *dest )
 
 int DString_DecodeBase64( DString *self, DString *dest, daoint *errpos )
 {
-	const uchar_t base64_nums[] = {
+	const uint8_t base64_nums[] = {
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 63, 0, 0, 0, 64,
@@ -99,8 +100,8 @@ int DString_DecodeBase64( DString *self, DString *dest, daoint *errpos )
 	}
 	DString_Resize( dest, size - padding );
 	for ( i = 0; i < self->size/4 - ( padding? 1 : 0 ); i++ ){
-		uchar_t highest = base64_nums[self->chars[i*4]], higher = base64_nums[self->chars[i*4 + 1]];
-		uchar_t lower = base64_nums[self->chars[i*4 + 2]], lowest = base64_nums[self->chars[i*4 + 3]];
+		uint8_t highest = base64_nums[self->chars[i*4]], higher = base64_nums[self->chars[i*4 + 1]];
+		uint8_t lower = base64_nums[self->chars[i*4 + 2]], lowest = base64_nums[self->chars[i*4 + 3]];
 		uint_t triplet;
 		if ( !highest-- ){
 			*errpos = i*4;
@@ -124,8 +125,8 @@ int DString_DecodeBase64( DString *self, DString *dest, daoint *errpos )
 		dest->chars[j++] = triplet & 0xFF;
 	}
 	if ( padding ){
-		uchar_t highest = base64_nums[self->chars[self->size - 4]], higher = base64_nums[self->chars[self->size - 3]];
-		uchar_t lower = 0;
+		uint8_t highest = base64_nums[self->chars[self->size - 4]], higher = base64_nums[self->chars[self->size - 3]];
+		uint8_t lower = 0;
 		uint_t triplet;
 		if ( !highest-- ){
 			*errpos = self->size - 4;
@@ -154,7 +155,7 @@ int DString_EncodeZ85( DString *self, DString *dest )
 {
 	const char *z85_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#";
 	daoint i, j;
-	uchar_t *chs = self->chars;
+	uint8_t *chs = self->chars;
 	if ( self->size%4 )
 		return 0;
 	DString_Resize( dest, self->size/4*5 );
@@ -171,7 +172,7 @@ int DString_EncodeZ85( DString *self, DString *dest )
 
 int DString_DecodeZ85( DString *self, DString *dest, daoint *errpos )
 {
-	const uchar_t z85_nums[] = {
+	const uint8_t z85_nums[] = {
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 69, 0, 85, 84, 83, 73, 0, 76, 77, 71, 66, 0, 64, 63, 70,
@@ -190,7 +191,7 @@ int DString_DecodeZ85( DString *self, DString *dest, daoint *errpos )
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	};
 	daoint i, j;
-	uchar_t *chs;
+	uint8_t *chs;
 	*errpos = -1;
 	if ( self->size%5 )
 		return 0;
@@ -221,7 +222,7 @@ void DString_EncodeHex( DString *self, DString *dest )
 	daoint i;
 	DString_Resize( dest, self->size*2 );
 	for ( i = 0; i < self->size; i++ ){
-		uchar_t ch = self->chars[i];
+		uint8_t ch = self->chars[i];
 		dest->chars[2*i] = hex_chars[ch >> 4];
 		dest->chars[2*i + 1] = hex_chars[ch & 0x0F];
 	}
@@ -229,7 +230,7 @@ void DString_EncodeHex( DString *self, DString *dest )
 
 int DString_DecodeHex( DString *self, DString *dest, daoint *errpos )
 {
-	const uchar_t hex_nums[] = {
+	const uint8_t hex_nums[] = {
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -253,7 +254,7 @@ int DString_DecodeHex( DString *self, DString *dest, daoint *errpos )
 		return 0;
 	DString_Resize( dest, self->size/2 );
 	for ( i = 0; i < dest->size; i++ ){
-		uchar_t high = hex_nums[self->chars[2*i]], low = hex_nums[self->chars[2*i + 1]];
+		uint8_t high = hex_nums[self->chars[2*i]], low = hex_nums[self->chars[2*i + 1]];
 		if ( !high-- ){
 			*errpos = 2*i;
 			return 0;
@@ -404,21 +405,21 @@ static void DaoBinary_Pack( DaoProcess *proc, DaoValue *p[], int N )
 		switch( size ){
 		case 1:
 			if( 1 ){
-				char *bytes = (char*)data;
+				int8_t *bytes = (int8_t*)data;
 				for( i = 0; i < count; i++ )
 					bytes[i] = arr->data.i[i];
 			}
 			break;
 		case 2:
 			if( 1 ){
-				short *words = (short*)data;
+				int16_t *words = (int16_t*)data;
 				for( i = 0; i < count; i++ )
 					words[i] = arr->data.i[i];
 			}
 			break;
 		case 4:
 			if( 1 ){
-				int *dwords = (int*)data;
+				int32_t *dwords = (int32_t*)data;
 				for( i = 0; i < count; i++ )
 					dwords[i] = arr->data.i[i];
 			}
@@ -515,8 +516,8 @@ static void DaoBinary_GetItem( DaoProcess *proc, DaoValue *p[], int N )
 		}
 		for ( i = 0; i < count; i++ ){
 			int index = offset%CHAR_BIT + i;
-			uchar_t *ptr = data + offset/CHAR_BIT + index/CHAR_BIT;
-			val |= (uchar_t)( *ptr << ( index%CHAR_BIT ) ) >> ( CHAR_BIT - 1 ) << ( count - i - 1 );
+			uint8_t *ptr = data + offset/CHAR_BIT + index/CHAR_BIT;
+			val |= (uint8_t)( *ptr << ( index%CHAR_BIT ) ) >> ( CHAR_BIT - 1 ) << ( count - i - 1 );
 		}
 		DaoProcess_PutInteger( proc, val );
 	}
@@ -528,12 +529,12 @@ static void DaoBinary_GetItem( DaoProcess *proc, DaoValue *p[], int N )
 			return;
 		}
 		switch( type ){
-		case Binary_UByte:	num = *(uchar_t*)data; break;
-		case Binary_Byte:	num = *(char*)data; break;
-		case Binary_UWord:  num = *(ushort_t*)data; break;
-		case Binary_Word:	num = *(short*)data; break;
-		case Binary_UDWord: num = *(uint_t*)data; break;
-		case Binary_DWord:	num = *(int*)data; break;
+		case Binary_UByte:	num = *(uint8_t*)data; break;
+		case Binary_Byte:	num = *(int8_t*)data; break;
+		case Binary_UWord:  num = *(uint16_t*)data; break;
+		case Binary_Word:	num = *(int16_t*)data; break;
+		case Binary_UDWord: num = *(uint32_t*)data; break;
+		case Binary_DWord:	num = *(int32_t*)data; break;
 		case Binary_UQWord: num = *(dao_integer*)data; break;
 		case Binary_QWord:	num = *(dao_integer*)data; break;
 		}
@@ -576,10 +577,10 @@ static void DaoBinary_SetItem( DaoProcess *proc, DaoValue *p[], int N )
 		}
 		for ( i = 0; i < count; i++ ){
 			int index = offset%CHAR_BIT + i;
-			uchar_t *ptr = data + offset/CHAR_BIT + index/CHAR_BIT;
+			uint8_t *ptr = data + offset/CHAR_BIT + index/CHAR_BIT;
 			int pos = CHAR_BIT - index%CHAR_BIT - 1;
-			uchar_t byteval = (uint_t)( value << ( 4*CHAR_BIT - count + i ) ) >> ( 4*CHAR_BIT - 1 ) << pos;
-			*ptr = ( *ptr & ~( (uchar_t)1 << pos ) ) | byteval;
+			uint8_t byteval = (uint_t)( value << ( 4*CHAR_BIT - count + i ) ) >> ( 4*CHAR_BIT - 1 ) << pos;
+			*ptr = ( *ptr & ~( (uint8_t)1 << pos ) ) | byteval;
 		}
 	}
 	else {
@@ -591,12 +592,12 @@ static void DaoBinary_SetItem( DaoProcess *proc, DaoValue *p[], int N )
 			return;
 		}
 		switch( type ){
-		case Binary_UByte:	*(uchar_t*)data = num; break;
-		case Binary_Byte:	*(char*)data = num; break;
-		case Binary_UWord:  *(ushort_t*)data = num; break;
-		case Binary_Word:	*(short*)data = num; break;
-		case Binary_UDWord: *(uint_t*)data = num; break;
-		case Binary_DWord:	*(int*)data = num; break;
+		case Binary_UByte:	*(uint8_t*)data = num; break;
+		case Binary_Byte:	*(int8_t*)data = num; break;
+		case Binary_UWord:  *(uint16_t*)data = num; break;
+		case Binary_Word:	*(int16_t*)data = num; break;
+		case Binary_UDWord: *(uint32_t*)data = num; break;
+		case Binary_DWord:	*(int32_t*)data = num; break;
 		case Binary_UQWord: *(dao_integer*)data = num; break;
 		case Binary_QWord:	*(dao_integer*)data = num; break;
 		}
@@ -711,7 +712,7 @@ void DaoStream_TryResetStringBuffer( DaoStream *self )
 	}
 }
 
-void DaoEncoder_WriteInteger( DaoXCoder *self, unsigned long long value, int size )
+void DaoEncoder_WriteInteger( DaoXCoder *self, uint64_t value, int size )
 {
 	DaoStream *stream = self->stream;
 	char buf[9] = {0};
@@ -734,7 +735,7 @@ static void DaoEncoder_WriteI8( DaoProcess *proc, DaoValue *p[], int N )
 	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
 	if ( !CheckStream( proc, self->stream ) )
 		return;
-	DaoStream_WriteChar( self->stream, (char)p[1]->xInteger.value );
+	DaoStream_WriteChar( self->stream, (int8_t)p[1]->xInteger.value );
 	DaoProcess_PutValue( proc, p[0] );
 }
 
@@ -743,7 +744,7 @@ static void DaoEncoder_WriteU8( DaoProcess *proc, DaoValue *p[], int N )
 	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
 	if ( !CheckStream( proc, self->stream ) )
 		return;
-	DaoStream_WriteChar( self->stream, (uchar_t)p[1]->xInteger.value );
+	DaoStream_WriteChar( self->stream, (uint8_t)p[1]->xInteger.value );
 	DaoProcess_PutValue( proc, p[0] );
 }
 
@@ -752,7 +753,7 @@ static void DaoEncoder_WriteI16( DaoProcess *proc, DaoValue *p[], int N )
 	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
 	if ( !CheckStream( proc, self->stream ) )
 		return;
-	DaoEncoder_WriteInteger( self, (short)p[1]->xInteger.value, 2 );
+	DaoEncoder_WriteInteger( self, (int16_t)p[1]->xInteger.value, 2 );
 	DaoProcess_PutValue( proc, p[0] );
 }
 
@@ -761,7 +762,7 @@ static void DaoEncoder_WriteU16( DaoProcess *proc, DaoValue *p[], int N )
 	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
 	if ( !CheckStream( proc, self->stream ) )
 		return;
-	DaoEncoder_WriteInteger( self, (unsigned short)p[1]->xInteger.value, 2 );
+	DaoEncoder_WriteInteger( self, (uint16_t)p[1]->xInteger.value, 2 );
 	DaoProcess_PutValue( proc, p[0] );
 }
 
@@ -770,7 +771,7 @@ static void DaoEncoder_WriteI32( DaoProcess *proc, DaoValue *p[], int N )
 	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
 	if ( !CheckStream( proc, self->stream ) )
 		return;
-	DaoEncoder_WriteInteger( self, (int)p[1]->xInteger.value, 4 );
+	DaoEncoder_WriteInteger( self, (int32_t)p[1]->xInteger.value, 4 );
 	DaoProcess_PutValue( proc, p[0] );
 }
 
@@ -779,7 +780,7 @@ static void DaoEncoder_WriteU32( DaoProcess *proc, DaoValue *p[], int N )
 	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
 	if ( !CheckStream( proc, self->stream ) )
 		return;
-	DaoEncoder_WriteInteger( self, (unsigned int)p[1]->xInteger.value, 4 );
+	DaoEncoder_WriteInteger( self, (uint32_t)p[1]->xInteger.value, 4 );
 	DaoProcess_PutValue( proc, p[0] );
 }
 
@@ -884,11 +885,11 @@ static void DaoDecoder_Create( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutCdata( proc, res, daox_type_decoder );
 }
 
-unsigned long long DaoDecoder_ReadInteger( DaoXCoder *self, int size )
+uint64_t DaoDecoder_ReadInteger( DaoXCoder *self, int size )
 {
 	DaoStream *stream = self->stream;
-	uchar_t buf[9] = {0};
-	unsigned long long value = 0;
+	uint8_t buf[9] = {0};
+	uint64_t value = 0;
 	int i;
 	if ( stream->mode & DAO_STREAM_STRING ) {
 		DString *str = stream->streamString;
@@ -914,7 +915,7 @@ unsigned long long DaoDecoder_ReadInteger( DaoXCoder *self, int size )
 dao_float DaoDecoder_ReadFloat( DaoXCoder *self, int size )
 {
 	DaoStream *stream = self->stream;
-	uchar_t buf[9] = {0};
+	uint8_t buf[9] = {0};
 	if ( stream->mode & DAO_STREAM_STRING ) {
 		DString *str = stream->streamString;
 		if ( str->size - stream->offset < size )
@@ -937,7 +938,7 @@ static void DaoDecoder_ReadI8( DaoProcess *proc, DaoValue *p[], int N )
 	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
 	if ( !CheckStream( proc, self->stream ) )
 		return;
-	char value = DaoDecoder_ReadInteger( self, 1 );
+	int8_t value = DaoDecoder_ReadInteger( self, 1 );
 	DaoProcess_PutInteger( proc, value );
 }
 
@@ -946,7 +947,7 @@ static void DaoDecoder_ReadU8( DaoProcess *proc, DaoValue *p[], int N )
 	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
 	if ( !CheckStream( proc, self->stream ) )
 		return;
-	uchar_t value = DaoDecoder_ReadInteger( self, 1 );
+	uint8_t value = DaoDecoder_ReadInteger( self, 1 );
 	DaoProcess_PutInteger( proc, value );
 }
 
@@ -955,7 +956,7 @@ static void DaoDecoder_ReadI16( DaoProcess *proc, DaoValue *p[], int N )
 	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
 	if ( !CheckStream( proc, self->stream ) )
 		return;
-	short value = DaoDecoder_ReadInteger( self, 2 );
+	int16_t value = DaoDecoder_ReadInteger( self, 2 );
 	DaoProcess_PutInteger( proc, value );
 }
 
@@ -964,7 +965,7 @@ static void DaoDecoder_ReadU16( DaoProcess *proc, DaoValue *p[], int N )
 	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
 	if ( !CheckStream( proc, self->stream ) )
 		return;
-	unsigned short value = DaoDecoder_ReadInteger( self, 2 );
+	uint16_t value = DaoDecoder_ReadInteger( self, 2 );
 	DaoProcess_PutInteger( proc, value );
 }
 
@@ -973,7 +974,7 @@ static void DaoDecoder_ReadI32( DaoProcess *proc, DaoValue *p[], int N )
 	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
 	if ( !CheckStream( proc, self->stream ) )
 		return;
-	int value = DaoDecoder_ReadInteger( self, 4 );
+	int32_t value = DaoDecoder_ReadInteger( self, 4 );
 	DaoProcess_PutInteger( proc, value );
 }
 
@@ -982,7 +983,7 @@ static void DaoDecoder_ReadU32( DaoProcess *proc, DaoValue *p[], int N )
 	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
 	if ( !CheckStream( proc, self->stream ) )
 		return;
-	unsigned int value = DaoDecoder_ReadInteger( self, 4 );
+	uint32_t value = DaoDecoder_ReadInteger( self, 4 );
 	DaoProcess_PutInteger( proc, value );
 }
 
@@ -991,7 +992,7 @@ static void DaoDecoder_ReadI64( DaoProcess *proc, DaoValue *p[], int N )
 	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
 	if ( !CheckStream( proc, self->stream ) )
 		return;
-	dao_integer value = DaoDecoder_ReadInteger( self, 8 );
+	int64_t value = DaoDecoder_ReadInteger( self, 8 );
 	DaoProcess_PutInteger( proc, value );
 }
 
