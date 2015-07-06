@@ -28,6 +28,7 @@
 // 2014-08: Danilov Aleksey, initial implementation.
 
 #include <string.h>
+#include <ctype.h>
 #include "dao.h"
 #include "daoString.h"
 #include "daoGC.h"
