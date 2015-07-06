@@ -29,6 +29,7 @@
 // 2015-07: Danilov Aleksey, initial implementation.
 
 #include <string.h>
+#include <ctype.h>
 
 #include"dao_mime.h"
 
@@ -713,6 +714,57 @@ void DaoMime_Init()
 	DString_Delete( ext );
 }
 
+// TODO: application/x-trash				~ % bak old sik
+void DaoMime_UpdateDB( FILE *source )
+{
+	char buf[1024];
+	if ( !mimeHash )
+		DaoMime_Init();
+	while ( fgets( buf, sizeof(buf), source ) ){ // for each line
+		char *pc = buf;
+		for ( ; *pc != '\0' && !isspace( *pc ); pc++ ); // pass the type name
+		if ( pc == buf )
+			continue;
+		if ( *pc == ' ' || *pc == '\t' ){ // ensure it's not the end
+			DString name = DString_WrapBytes( buf, pc - buf );
+			for ( pc++; *pc == ' ' || *pc == '\t'; pc++ ); // pass the whitespace
+			while ( isalnum( *pc ) ){ // iterate over the extensions
+				DString ext;
+				DNode *node;
+				char *start = pc;
+				for ( pc++; *pc != '\0' && !isspace( *pc ); pc++ ); // pass an extension
+				ext = DString_WrapBytes( start, pc - start );
+				node = DMap_Find( mimeHash, &ext );
+				if ( node ){ // push the type to the list
+					DaoList *list = &node->value.pValue->xList;
+					daoint i;
+					int found = 0;
+					for ( i = 0; i < list->value->size; i++ ) // check if not present already
+						if ( memcmp( DaoList_GetItem( list, i )->xString.value->chars, name.chars, pc - start ) == 0 ){
+							found = 1;
+							break;
+						}
+					if ( !found ){
+						DaoString *str = DaoString_New();
+						DaoString_Set ( str, &name );
+						DaoList_Append( list, (DaoValue*)str );
+					}
+				}
+				else { // insert new key-value
+					DaoList *list = DaoList_New();
+					DaoString *str = DaoString_New();
+					DaoString_Set ( str, &name );
+					DaoList_Append( list, (DaoValue*)str );
+					DMap_Insert( mimeHash, &ext, list );
+				}
+				for ( ; *pc == ' ' || *pc == '\t'; pc++ ); // pass whitespace
+			}
+		}
+		else
+			continue;
+	}
+}
+
 void DaoMime_Identify( DString *ext, DaoList *names )
 {
 	DNode *node;
@@ -747,6 +799,18 @@ static void MIME_Identify( DaoProcess *proc, DaoValue *p[], int N )
 	DString_ToLower( ext );
 	DaoMime_Identify( ext, res );
 	DString_Delete( ext );
+}
+
+static void MIME_UpdateDB( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DString *fname = p[0]->xString.value;
+	FILE *file = fopen( fname->chars, "r" );
+	if ( !file ){
+		DaoProcess_RaiseError( proc, "File", "Failed to open file" );
+		return;
+	}
+	DaoMime_UpdateDB( file );
+	fclose( file );
 }
 
 static DaoFuncItem mimeFuncs[] =
