@@ -29,7 +29,6 @@
 // 2015-07: Danilov Aleksey, initial implementation.
 
 #include <string.h>
-#include <ctype.h>
 
 #include"dao_mime.h"
 
@@ -690,10 +689,6 @@ const struct mime mimeList[] = {
 	{NULL, NULL}
 };
 
-#warning REMOVE THIS!!!
-#include "../../../kernel/dao.h"
-#include "../../../kernel/daoValue.h"
-
 void DaoMime_Init()
 {
 	int i;
@@ -716,44 +711,6 @@ void DaoMime_Init()
 		}
 	}
 	DString_Delete( ext );
-}
-
-#warning TODO: application/x-trash				~ % bak old sik
-int DaoMime_UpdateDB( DString *fname )
-{
-	char buf[1024];
-	FILE *file;
-	if ( !mimeHash )
-		DaoMime_Init();
-	file = fopen( fname->chars, "r" );
-	if ( !file )
-		return 0;
-	while ( fgets( buf, sizeof(buf), file ) ){ // for each line
-		char *pc = buf;
-		for ( ; *pc != '\0' && !isspace( *pc ); pc++ ); // pass the type name
-		if ( *pc == ' ' || *pc == '\t' ){ // ensure it's not the end
-			DString *name = DString_WrapBytes( buf, pc - buf );
-			for ( pc++; *pc == ' ' || *pc == '\t'; pc++ ); // pass the whitespace
-			while ( isalnum( *pc ) ){ // iterate over the extensions
-				DString ext;
-				DNode *node;
-				char *start = pc;
-				for ( pc++; *pc != '\0' && !isspace( *pc ); pc++ ); // pass an extension
-				ext = DString_WrapBytes( start, pc - start );
-				node = DMap_Find( mimeHash, ext );
-				if ( node ){
-					// ...
-				}
-				else {
-					// ...
-				}
-				for ( ; *pc == ' ' || *pc == '\t'; pc++ ); // pass whitespace
-			}
-		}
-		else
-			continue;
-	}
-	return 1;
 }
 
 void DaoMime_Identify( DString *ext, DaoList *names )
