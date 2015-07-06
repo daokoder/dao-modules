@@ -35,5 +35,6 @@
 #include"daoValue.h"
 
 DAO_DLL void DaoMime_Identify( DString *ext, DaoList *names );
+DAO_DLL int DaoMime_UpdateDB( DString *filename );
 
 #endif

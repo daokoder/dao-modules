@@ -812,6 +812,8 @@ static void DaoEncoder_WriteF32( DaoProcess *proc, DaoValue *p[], int N )
 	*(float*)buf = p[1]->xFloat.value;
 	if ( !CheckStream( proc, self->stream ) )
 		return;
+	if ( sizeof(float) != 4 )
+		DaoProcess_RaiseWarning( proc, NULL, "The size of C float type is not 4 on this platform" );
 	DaoStream_WriteString( self->stream, &str );
 	self->counter += sizeof(float);
 	DaoProcess_PutValue( proc, p[0] );
@@ -825,6 +827,8 @@ static void DaoEncoder_WriteF64( DaoProcess *proc, DaoValue *p[], int N )
 	*(dao_float*)buf = p[1]->xFloat.value;
 	if ( !CheckStream( proc, self->stream ) )
 		return;
+	if ( sizeof(dao_float) != 8 )
+		DaoProcess_RaiseWarning( proc, NULL, "The size of C double type is not 8 on this platform" );
 	DaoStream_WriteString( self->stream, &str );
 	self->counter += sizeof(dao_float);
 	DaoProcess_PutValue( proc, p[0] );
@@ -1023,18 +1027,22 @@ static void DaoDecoder_ReadBytes( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoDecoder_ReadF32( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
-	float value = DaoDecoder_ReadFloat( self, sizeof(float) );
 	if ( !CheckStream( proc, self->stream ) )
 		return;
+	float value = DaoDecoder_ReadFloat( self, sizeof(float) );
+	if ( sizeof(float) != 4 )
+		DaoProcess_RaiseWarning( proc, NULL, "The size of C float type is not 4 on this platform" );
 	DaoProcess_PutFloat( proc, value );
 }
 
 static void DaoDecoder_ReadF64( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoXCoder *self = (DaoXCoder*)DaoValue_TryGetCdata( p[0] );
-	dao_float value = DaoDecoder_ReadFloat( self, sizeof(dao_float) );
 	if ( !CheckStream( proc, self->stream ) )
 		return;
+	dao_float value = DaoDecoder_ReadFloat( self, sizeof(dao_float) );
+	if ( sizeof(dao_float) != 8 )
+		DaoProcess_RaiseWarning( proc, NULL, "The size of C double type is not 8 on this platform" );
 	DaoProcess_PutFloat( proc, value );
 }
 
