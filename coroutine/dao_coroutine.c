@@ -105,6 +105,7 @@ static void COROUT_New( DaoProcess *proc, DaoValue *p[], int N )
 static void COROUT_Start( DaoProcess *proc, DaoValue *par[], int N )
 {
 	DaoxCoroutine *self = (DaoxCoroutine*) par[0];
+	DaoValue *params[DAO_MAX_PARAM];
 	DaoValue *val = par[1];
 	DaoProcess *vmProc;
 	DaoRoutine *rout;
@@ -113,8 +114,10 @@ static void COROUT_Start( DaoProcess *proc, DaoValue *par[], int N )
 		DaoProcess_RaiseError( proc, "Type", NULL );
 		return;
 	}
-	rout = DaoRoutine_Resolve( (DaoRoutine*)val, par[0], NULL, par+2, NULL, N-2, DVM_CALL );
-	if( rout ) rout = DaoProcess_PassParams( proc, rout, self->ctype, par[0], par+2, NULL, N-2, DVM_CALL );
+	params[0] = par[0];
+	memcpy( params + 1, par + 2, (N-2)*sizeof(DaoValue*) );
+	rout = DaoRoutine_Resolve( (DaoRoutine*)val, NULL, NULL, params, NULL, N-1, DVM_CALL );
+	if( rout ) rout = DaoProcess_PassParams( proc, rout, NULL, NULL, params, NULL, N-1, DVM_CALL );
 	if( rout == NULL || rout->body == NULL ){
 		DaoProcess_RaiseError( proc, "Param", "not matched" );
 		return;
