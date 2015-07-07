@@ -33,7 +33,12 @@
 
 #include"dao_mime.h"
 
+#ifndef DAO_WITH_THREAD
+#define DMutex_TryLock( mtx ) 1
+#endif
+
 static DMap *mimeHash = NULL;
+static DMutex mimeMtx;
 
 struct mime {
 	char *ext, *name;
@@ -718,6 +723,8 @@ daoint DaoMime_UpdateDB( FILE *source )
 {
 	char buf[1024];
 	daoint count = 0;
+	if ( !DMutex_TryLock( &mimeMtx ) )
+		return 0;
 	if ( !mimeHash )
 		DaoMime_Init();
 	while ( fgets( buf, sizeof(buf), source ) ){ // for each line
@@ -767,32 +774,31 @@ daoint DaoMime_UpdateDB( FILE *source )
 		else
 			continue;
 	}
+	DMutex_Unlock( &mimeMtx );
 	return count;
 }
 
 void DaoMime_Identify( DString *ext, DaoList *names )
 {
-	DNode *node;
+	if ( !DMutex_TryLock( &mimeMtx ) )
+		return;
 	if ( !mimeHash )
 		DaoMime_Init();
 	DaoList_Clear( names );
-	if ( ext->size && ext->chars[ext->size - 1] == '/' ){ // for directory names
+	if ( ext->size && ext->chars[ext->size - 1] == '/' ) // for directory names
 		DaoList_Append( names, (DaoValue*)DaoString_NewChars( "inode/directory" ) );
-		return;
-	}
-	if ( ext->size && ext->chars[ext->size - 1] == '~' ){ // for backupts
+	else if ( ext->size && ext->chars[ext->size - 1] == '~' ) // for backupts
 		DaoList_Append( names, (DaoValue*)DaoString_NewChars( "application/x-trash" ) );
-		return;
+	else {
+		DNode *node = DMap_Find( mimeHash, ext );
+		if ( node ){
+			daoint i;
+			DaoList *res = &node->value.pValue->xList;
+			for ( i = 0; i < res->value->size; i++ )
+				DaoList_Append( names, DaoList_GetItem( res, i ) );
+		}
 	}
-	node = DMap_Find( mimeHash, ext );
-	if ( node ){
-		daoint i;
-		DaoList *res = &node->value.pValue->xList;
-		for ( i = 0; i < res->value->size; i++ )
-			DaoList_Append( names, DaoList_GetItem( res, i ) );
-	}
-	else // default type
-		DaoList_Append( names, (DaoValue*)DaoString_NewChars( "application/octet-stream" ) );
+	DMutex_Unlock( &mimeMtx );
 }
 
 static void MIME_Identify( DaoProcess *proc, DaoValue *p[], int N )
@@ -825,18 +831,20 @@ static void MIME_UpdateDB( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem mimeFuncs[] =
 {
 	/*! Returns list of MIME type defined for the given \a target which may be a file name or an extension.
-	 * If no appropriate MIME type was found, returns default "application/octet-stream" type
+	 * If no appropriate MIME type was found, empty list is returned
 	 *
 	 * \note The identification involves extension matching only, file contents are not read. \a target is
 	 * assumed to name a directory if it ends with '/', in which case its MIME type is "inode/directory".
-	 * If \a target ends with '~', it is considered to be a backup file with "application/x-trash" type */
+	 * If \a target ends with '~', it is considered to be a backup file with "application/x-trash" type
+	 *
+	 * \warning If other \c mime::* function is running concurrently, this routine will fail and return
+	 * empty list */
 	{ MIME_Identify,	"identify(target: string) => list<string>" },
 
 	/*! Updates the MIME types database from the specified \a file, which should have format compatible with
 	 * '/etc/mime.types' found on typical Unix systems. Returns the number of inserted/updated entries.
 	 *
-	 * \warning Not reentrant: while \c updateDb() is running, no other calls to this routine or \c identify()
-	 * should occur */
+	 * \warning If other \c mime::* function is running concurrently, this routine will fail and return 0 */
 	{ MIME_UpdateDB,	"updateDb(file: string) => int" },
 	{ NULL, NULL }
 };
@@ -848,6 +856,7 @@ DAO_DLL int DaoMime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoValue *dirmime = (DaoValue*)DaoString_NewChars("inode/directory");
 	DString def = DString_WrapChars( "DEFAULT" );
 	DString dir = DString_WrapChars( "DIR" );
+	DMutex_Init( &mimeMtx );
 	DaoMime_Init();
 	DaoNamespace_WrapFunctions( mimens, mimeFuncs );
 	DaoNamespace_AddConst( mimens, &def, defmime, DAO_PERM_PUBLIC );
