@@ -10135,16 +10135,8 @@ void mg_stop(struct mg_context *ctx)
 
 void mg_quit(struct mg_context *ctx)
 {
-	if (!ctx) {
-		return;
-	}
+	if( ctx == NULL ) return;
 
-	ctx->stop_flag = 1;
-
-	/* Wait until mg_fini() stops */
-	while (ctx->stop_flag != 2) {
-		(void)mg_sleep(10);
-	}
 	mg_join_thread(ctx->masterthreadid);
 	free_context(ctx);
 

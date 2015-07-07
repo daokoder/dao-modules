@@ -529,6 +529,8 @@ struct DaoxServer
 {
 	DAO_CSTRUCT_COMMON;
 
+	mg_context  *context;
+
 	DaoVmSpace *vmspace;
 	DaoProcess *process;
 	DaoVmCode  *sectCode;
@@ -641,6 +643,11 @@ DaoProcess* DaoxServer_AcquireProcess( DaoxServer *self )
 void DaoxServer_ReleaseProcess( DaoxServer *self, DaoProcess *proc )
 {
 	DMutex_Lock( & self->mutex2 );
+	if( proc->factory ) DList_Clear( proc->factory );
+	GC_DecRC( proc->future );
+	proc->future = NULL;
+	DaoProcess_PopFrames( proc, proc->firstFrame );
+	DList_Clear( proc->exceptions );
 	DList_Append( self->processes, proc );
 	DMutex_Unlock( & self->mutex2 );
 }
@@ -1292,15 +1299,6 @@ static void SERVER_SetDocRoot( DaoProcess *proc, DaoValue *p[], int N )
 	DString_Assign( self->docroot, docroot );
 }
 
-static int stop_handler(mg_connection *conn, void *cbdata)
-{
-	const mg_request_info *ri = mg_get_request_info( conn );
-	mg_printf(conn, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n");
-	mg_printf(conn, "Bye!\n");
-	printf( ">>>> %s\n", ri->remote_addr );
-	mg_stop( mg_get_context( conn ) );
-	return 1;
-}
 
 static void SERVER_Start( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1337,9 +1335,15 @@ static void SERVER_Start( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, NULL, "failed to start the server" );
 		return;
 	}
-    //mg_set_request_handler(ctx, "/stop_server", stop_handler, 0);
+	self->context = ctx;
 	mg_wait( ctx );
+	self->context = NULL;
 	mg_quit( ctx );
+}
+static void SERVER_Stop( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxServer *self = (DaoxServer*) p[0];
+	if( self->context ) mg_stop( self->context );
 }
 
 static DaoFuncItem ServerMeths[] =
@@ -1351,6 +1355,7 @@ static DaoFuncItem ServerMeths[] =
 		"Start( self: Server, port = 80, numthread = 8 )"
 			"[request: Request, response: Response, session: Session, cache: Cache]"
 	},
+	{ SERVER_Stop, "Stop( self: Server )" },
 	{ NULL, NULL }
 };
 
