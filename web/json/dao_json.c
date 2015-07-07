@@ -111,17 +111,17 @@ int JSON_SerializeValue( DaoProcess *proc, DaoVmCode *sect, int entry, DaoValue 
 		DString_AppendChars( text, "]");
 		break;
 	case DAO_MAP:
+		map = DaoValue_CastMap( value );
+		if ( sect )
+			for ( node = DaoMap_First( map ); node; node = DaoMap_Next( map, node ) )
+				if ( DaoValue_Type( DNode_Key( node ) ) != DAO_STRING )
+					goto CallSection;
 		if( indent >= 0 ){
 			DString_AppendChars( text, "{\n" );
 			indent++;
 		}
 		else
 			DString_AppendChars( text, "{" );
-		map = DaoValue_CastMap( value );
-		if ( sect )
-			for ( node = DaoMap_First( map ); node; node = DaoMap_Next( map, node ) )
-				if ( DaoValue_Type( DNode_Key( node ) ) != DAO_STRING )
-					goto CallSection;
 		node = DaoMap_First( map );
 		while( node != NULL ){
 			JSON_Indent( text, indent );
