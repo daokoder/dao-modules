@@ -1291,6 +1291,17 @@ static void SERVER_SetDocRoot( DaoProcess *proc, DaoValue *p[], int N )
 	DString *docroot = DaoValue_TryGetString( p[1] );
 	DString_Assign( self->docroot, docroot );
 }
+
+static int stop_handler(mg_connection *conn, void *cbdata)
+{
+	const mg_request_info *ri = mg_get_request_info( conn );
+	mg_printf(conn, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n");
+	mg_printf(conn, "Bye!\n");
+	printf( ">>>> %s\n", ri->remote_addr );
+	mg_stop( mg_get_context( conn ) );
+	return 1;
+}
+
 static void SERVER_Start( DaoProcess *proc, DaoValue *p[], int N )
 {
 	mg_context *ctx;
@@ -1326,10 +1337,9 @@ static void SERVER_Start( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, NULL, "failed to start the server" );
 		return;
 	}
-	while(1){
-		sleep( 1 );
-	}
-	mg_stop( ctx );
+    //mg_set_request_handler(ctx, "/stop_server", stop_handler, 0);
+	mg_wait( ctx );
+	mg_quit( ctx );
 }
 
 static DaoFuncItem ServerMeths[] =
@@ -1455,6 +1465,6 @@ DAO_DLL int DaoHttp_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	daox_type_namestream = DaoNamespace_DefineType( httpns, "tuple<file:string,size:int,data:io::Stream>", "HttpUpload" );
 	daox_type_filemap = DaoNamespace_ParseType( httpns, "map<string,HttpUpload>" );
 	daox_type_stringlist = DaoNamespace_ParseType( httpns, "list<string>" );
-	//mg_init();
+	mg_init();
 	return 0;
 }

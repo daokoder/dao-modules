@@ -20,6 +20,15 @@
  * THE SOFTWARE.
  */
 
+/*
+// Adapted for Dao module web.http, 2015-7-7;
+// Based on:
+// commit 59beb63fe118a749ee48cef9d7b6208f9f6df9a6
+// Author: bel <bel2125@gmail.com>
+// Date:   Sat Jul 4 00:24:55 2015 +0200
+//    Update RELEASE NOTES for V1.7 release
+*/
+
 #if defined(_WIN32)
 #if !defined(_CRT_SECURE_NO_WARNINGS)
 #define _CRT_SECURE_NO_WARNINGS /* Disable deprecation warning in VS2005 */
@@ -8524,7 +8533,16 @@ static int set_ports_option(struct mg_context *ctx)
 #else
 		if (setsockopt(so.sock,
 		               SOL_SOCKET,
+#ifdef DEBUG
+					   /* To prevent: "Program received signal SIGPIPE, Broken pipe" in GDB mode; */
+  #ifdef MACOSX
+					   SO_NOSIGPIPE,
+  #else
+					   SO_REUSEADDR|MSG_NOSIGNAL,
+  #endif
+#else
 		               SO_REUSEADDR,
+#endif
 		               (SOCK_OPT_TYPE)&on,
 		               sizeof(on)) != 0) {
 
@@ -10094,7 +10112,28 @@ static void free_context(struct mg_context *ctx)
 	mg_free(ctx);
 }
 
+void mg_wait(struct mg_context *ctx)
+{
+	if( ctx == NULL ) return;
+	while (ctx->stop_flag != 1 && ctx->stop_flag != 2) {
+#ifdef _WIN32
+		Sleep(1000);
+#else
+		sleep(1);
+#endif
+#ifdef USE_WEBSOCKET
+		InformWebsockets(ctx);
+#endif
+	}
+}
+
 void mg_stop(struct mg_context *ctx)
+{
+	if( ctx == NULL ) return;
+	ctx->stop_flag = 1;
+}
+
+void mg_quit(struct mg_context *ctx)
 {
 	if (!ctx) {
 		return;
@@ -10155,16 +10194,8 @@ static void get_system_name(char **sysName)
 #endif
 }
 
-struct mg_context *mg_start(const struct mg_callbacks *callbacks,
-                            void *user_data,
-                            const char **options)
+void mg_init()
 {
-	struct mg_context *ctx;
-	const char *name, *value, *default_value;
-	int idx, ok, workerthreadcount;
-	unsigned int i;
-	void (*exit_callback)(const struct mg_context *ctx) = 0;
-
 #if defined(_WIN32) && !defined(__SYMBIAN32__)
 	WSADATA data;
 	WSAStartup(MAKEWORD(2, 2), &data);
@@ -10175,6 +10206,18 @@ struct mg_context *mg_start(const struct mg_callbacks *callbacks,
 		InitializeCriticalSection(&global_log_file_lock);
 	}
 #endif /* _WIN32 && !__SYMBIAN32__ */
+}
+
+struct mg_context *mg_start(const struct mg_callbacks *callbacks,
+                            void *user_data,
+                            const char **options)
+{
+	struct mg_context *ctx;
+	const char *name, *value, *default_value;
+	int idx, ok, workerthreadcount;
+	unsigned int i;
+	void (*exit_callback)(const struct mg_context *ctx) = 0;
+
 
 	/* Allocate context and initialize reasonable general case defaults. */
 	if ((ctx = (struct mg_context *)mg_calloc(1, sizeof(*ctx))) == NULL) {

@@ -197,6 +197,8 @@ struct mg_callbacks {
 	void (*exit_context)(const struct mg_context *ctx);
 };
 
+CIVETWEB_API void mg_init();
+
 /* Start web server.
 
    Parameters:
@@ -226,12 +228,15 @@ CIVETWEB_API struct mg_context *mg_start(const struct mg_callbacks *callbacks,
                                          void *user_data,
                                          const char **configuration_options);
 
+CIVETWEB_API void mg_wait(struct mg_context *ctx);
+CIVETWEB_API void mg_stop(struct mg_context *ctx);
+
 /* Stop the web server.
 
    Must be called last, when an application wants to stop the web server and
    release all associated resources. This function blocks until all Civetweb
    threads are stopped. Context pointer becomes invalid. */
-CIVETWEB_API void mg_stop(struct mg_context *);
+CIVETWEB_API void mg_quit(struct mg_context *);
 
 /* mg_request_handler
 
