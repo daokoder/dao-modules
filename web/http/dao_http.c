@@ -36,7 +36,7 @@
 #include "daoThread.h"
 #include "daoGC.h"
 
-#include "Marten/marten.h"
+#include "civetweb.h"
 
 #ifndef DAO_WITH_THREAD
 #define DMutex_Init(x)
@@ -1326,7 +1326,10 @@ static void SERVER_Start( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, NULL, "failed to start the server" );
 		return;
 	}
-	mg_wait( ctx );
+	while(1){
+		sleep( 1 );
+	}
+	mg_stop( ctx );
 }
 
 static DaoFuncItem ServerMeths[] =
@@ -1452,6 +1455,6 @@ DAO_DLL int DaoHttp_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	daox_type_namestream = DaoNamespace_DefineType( httpns, "tuple<file:string,size:int,data:io::Stream>", "HttpUpload" );
 	daox_type_filemap = DaoNamespace_ParseType( httpns, "map<string,HttpUpload>" );
 	daox_type_stringlist = DaoNamespace_ParseType( httpns, "list<string>" );
-	mg_init();
+	//mg_init();
 	return 0;
 }
