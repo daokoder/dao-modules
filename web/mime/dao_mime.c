@@ -716,12 +716,25 @@ void DaoMime_Init()
 	DString_Delete( ext );
 }
 
-daoint DaoMime_UpdateDB( FILE *source )
+daoint DaoMime_UpdateDB( DaoStream *source )
 {
-	char buf[1024];
+	DString *line = DString_New();
+	char buffer[1024];
 	daoint count = 0;
-	while ( fgets( buf, sizeof(buf), source ) ){ // for each line
-		char *pc = buf;
+	while ( 1 ){ // for each line
+		char *buf, *pc;
+		int res;
+		if ( source->file ){ // custom handling if file for performance boost
+			res = fgets( buffer, sizeof(buffer), source->file ) != NULL;
+			buf = buffer;
+		}
+		else {
+			res = DaoStream_ReadLine( source, line );
+			buf = line->chars;
+		}
+		if ( !res )
+			break;
+		pc = buf;
 		if ( *pc == '#' ) // ignore comments
 			continue;
 		for ( ; *pc != '\0' && !isspace( *pc ); pc++ ); // pass the type name
@@ -769,6 +782,7 @@ daoint DaoMime_UpdateDB( FILE *source )
 		else
 			continue;
 	}
+	DString_Delete(line);
 	return count;
 }
 
@@ -810,14 +824,12 @@ static void MIME_Identify( DaoProcess *proc, DaoValue *p[], int N )
 
 static void MIME_UpdateDB( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DString *fname = p[0]->xString.value;
-	FILE *file = fopen( fname->chars, "r" );
-	if ( !file ){
-		DaoProcess_RaiseError( proc, "File", "Failed to open file" );
+	DaoStream *stream = &p[0]->xStream;
+	if ( !DaoStream_IsReadable( stream ) ){
+		DaoProcess_RaiseError( proc, "Param", "Source stream not readable" );
 		return;
 	}
-	DaoProcess_PutInteger( proc, DaoMime_UpdateDB( file ) );
-	fclose( file );
+	DaoProcess_PutInteger( proc, DaoMime_UpdateDB( stream ) );
 }
 
 static DaoFuncItem mimeFuncs[] =
@@ -830,9 +842,9 @@ static DaoFuncItem mimeFuncs[] =
 	 * If \a target ends with '~', it is considered to be a backup file with "application/x-trash" type */
 	{ MIME_Identify,	"identify(target: string) => list<string>" },
 
-	/*! Updates the MIME types database from the specified \a file, which should have format compatible with
+	/*! Updates the MIME types database from the specified \a source, which should have format compatible with
 	 * '/etc/mime.types' found on typical Unix systems. Returns the number of inserted/updated entries */
-	{ MIME_UpdateDB,	"updateDb(file: string) => int" },
+	{ MIME_UpdateDB,	"updateDb(source: io::Stream) => int" },
 	{ NULL, NULL }
 };
 
