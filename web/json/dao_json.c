@@ -42,6 +42,12 @@ static DaoType *booltype;
 static DaoType *json_list_type;
 static DaoType *json_map_type;
 
+typedef enum {
+	InvalidKeyType = -1,
+	CodeSectionFailed = -2,
+	RecursionTooDeep = -3
+} json_error_t;
+
 void JSON_Indent( DString *text, int indent )
 {
 	int i;
@@ -49,7 +55,7 @@ void JSON_Indent( DString *text, int indent )
 		DString_AppendChar( text, '\t' );
 }
 
-int JSON_SerializeValue( DaoProcess *proc, DaoVmCode *sect, int entry, DaoValue *value, DString *text, int indent )
+int JSON_SerializeValue( DaoProcess *proc, DaoVmCode *sect, int entry, DaoValue *value, DString *text, int indent, int level )
 {
 	daoint i, res;
 	char buf[100];
@@ -58,6 +64,8 @@ int JSON_SerializeValue( DaoProcess *proc, DaoVmCode *sect, int entry, DaoValue 
 	DaoMap *map;
 	DNode *node;
 	DString *str;
+	if (level >= 100)
+		return RecursionTooDeep;
 	switch( value->type ){
 	case DAO_INTEGER:
 		snprintf( buf, sizeof(buf), "%lli", DaoValue_TryGetInteger( value ) );
@@ -98,7 +106,7 @@ int JSON_SerializeValue( DaoProcess *proc, DaoVmCode *sect, int entry, DaoValue 
 		list = DaoValue_CastList( value );
 		for( i = 0; i < DaoList_Size( list ); i++ ){
 			JSON_Indent( text, indent );
-			if( ( res = JSON_SerializeValue( proc, sect, entry, DaoList_GetItem( list, i ) , text, indent ) ) != 0 )
+			if( ( res = JSON_SerializeValue( proc, sect, entry, DaoList_GetItem( list, i ) , text, indent, level + 1 ) ) != 0 )
 				return res;
 			if( i != DaoList_Size( list ) - 1 )
 				DString_AppendChars( text, sep );
@@ -126,11 +134,11 @@ int JSON_SerializeValue( DaoProcess *proc, DaoVmCode *sect, int entry, DaoValue 
 		while( node != NULL ){
 			JSON_Indent( text, indent );
 			if( DaoValue_Type( DNode_Key( node ) ) != DAO_STRING )
-				return -1;
-			if( ( res = JSON_SerializeValue( proc, sect, entry, DNode_Key( node ), text, indent ) ) != 0 )
+				return InvalidKeyType; // should be unreachable unless the type system malfunctions
+			if( ( res = JSON_SerializeValue( proc, sect, entry, DNode_Key( node ), text, indent, level + 1 ) ) != 0 )
 				return res;
 			DString_AppendChars( text, ": " );
-			if( ( res = JSON_SerializeValue( proc, sect, entry, DNode_Value( node ), text, indent ) ) != 0 )
+			if( ( res = JSON_SerializeValue( proc, sect, entry, DNode_Value( node ), text, indent, level + 1 ) ) != 0 )
 				return res;
 			node = DaoMap_Next( map, node );
 			if( node != NULL )
@@ -153,8 +161,8 @@ int JSON_SerializeValue( DaoProcess *proc, DaoVmCode *sect, int entry, DaoValue 
 				DaoProcess_SetValue( proc, sect->a, value );
 			proc->topFrame->entry = entry;
 			if ( !DaoProcess_Execute( proc ) )
-				return -2;
-			res = JSON_SerializeValue( proc, sect, entry, proc->stackValues[0], text, indent );
+				return CodeSectionFailed;
+			res = JSON_SerializeValue( proc, sect, entry, proc->stackValues[0], text, indent, level + 1 );
 			if ( res != 0 )
 				return res;
 		}
@@ -169,12 +177,14 @@ void JSON_SerializeData( DaoProcess *proc, DaoValue *p[], int custom )
 	char buf[100];
 	int res = DaoValue_TryGetEnum( p[1] );
 	DaoVmCode *sect = custom? DaoProcess_InitCodeSection( proc, 0 ) : NULL;
-	res = JSON_SerializeValue( sect? proc : NULL, sect, proc->topFrame->entry, p[0], DaoProcess_PutChars( proc, "" ), res? -1 : 0 );
+	res = JSON_SerializeValue( sect? proc : NULL, sect, proc->topFrame->entry, p[0], DaoProcess_PutChars( proc, "" ), res? -1 : 0, 0 );
 	if ( sect )
 		DaoProcess_PopFrame( proc );
-	if( res != 0 && res != -2 ){
-		if( res == -1 )
+	if( res != 0 && res != CodeSectionFailed ){
+		if( res == InvalidKeyType )
 			strcpy( buf, "Non-string key in map/object" );
+		else if ( res == RecursionTooDeep )
+			strcpy( buf, "Recursion level too high" );
 		else{
 			strcpy( buf, "Unsupported value type: " );
 			switch( res ){
