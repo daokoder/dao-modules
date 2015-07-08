@@ -120,10 +120,6 @@ int JSON_SerializeValue( DaoProcess *proc, DaoVmCode *sect, int entry, DaoValue 
 		break;
 	case DAO_MAP:
 		map = DaoValue_CastMap( value );
-		if ( sect )
-			for ( node = DaoMap_First( map ); node; node = DaoMap_Next( map, node ) )
-				if ( DaoValue_Type( DNode_Key( node ) ) != DAO_STRING )
-					goto CallSection;
 		if( indent >= 0 ){
 			DString_AppendChars( text, "{\n" );
 			indent++;
@@ -132,10 +128,23 @@ int JSON_SerializeValue( DaoProcess *proc, DaoVmCode *sect, int entry, DaoValue 
 			DString_AppendChars( text, "{" );
 		node = DaoMap_First( map );
 		while( node != NULL ){
+			DaoValue *key = DNode_Key( node );
 			JSON_Indent( text, indent );
-			if( DaoValue_Type( DNode_Key( node ) ) != DAO_STRING )
-				return InvalidKeyType; // should be unreachable unless the type system malfunctions
-			if( ( res = JSON_SerializeValue( proc, sect, entry, DNode_Key( node ), text, indent, level + 1 ) ) != 0 )
+			if( DaoValue_Type( key ) != DAO_STRING ){
+				if ( sect ){
+					if ( sect->b > 0 )
+						DaoProcess_SetValue( proc, sect->a, key );
+					proc->topFrame->entry = entry;
+					if ( !DaoProcess_Execute( proc ) )
+						return CodeSectionFailed;
+					key = proc->stackValues[0];
+					if( DaoValue_Type( key ) != DAO_STRING )
+						return InvalidKeyType;
+				}
+				else
+					return InvalidKeyType;
+			}
+			if( ( res = JSON_SerializeValue( proc, sect, entry, key, text, indent, level + 1 ) ) != 0 )
 				return res;
 			DString_AppendChars( text, ": " );
 			if( ( res = JSON_SerializeValue( proc, sect, entry, DNode_Value( node ), text, indent, level + 1 ) ) != 0 )
