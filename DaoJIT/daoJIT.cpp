@@ -2134,6 +2134,7 @@ Function* DaoJitHandle::Compile( int start, int end )
 		vmc = vmcs[i];
 		code = vmc->code;
 		switch( code ){
+		case DVM_CASE :
 		case DVM_GOTO : case DVM_TEST_B : case DVM_TEST_I : case DVM_TEST_F :
 			branchings[i] = NULL;
 			labels[i+1] = NULL;

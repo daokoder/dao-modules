@@ -581,7 +581,7 @@ static DaoFuncItem encodableMeths[] =
 
 //! A type which can be encoded to JSON data. Use it in conjunction with \c Marshallable
 //! to define serialization of custom data structures to JSON
-DaoTypeBase encodableTyper = {
+static DaoTypeBase encodableTyper = {
 	"Encodable", NULL, NULL, encodableMeths, {NULL}, {0},
 	(FuncPtrDel)NULL, NULL
 };
@@ -595,7 +595,7 @@ static DaoFuncItem decodableMeths[] =
 
 //! A type which can be decoded from JSON data. Use it in conjunction with \c Unmarshallable
 //! to define deserialization of custom data structures from JSON
-DaoTypeBase decodableTyper = {
+static DaoTypeBase decodableTyper = {
 	"Decodable", NULL, NULL, decodableMeths, {NULL}, {0},
 	(FuncPtrDel)NULL, NULL
 };

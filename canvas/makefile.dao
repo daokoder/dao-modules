@@ -29,7 +29,7 @@ daoim  = DaoMake::FindPackage( "DaoImage", $REQUIRED )
 
 if( daovm == none or daoim == none ) return
 
-project = DaoMake::Project( "Canvas" ) 
+project = DaoMake::Project( "DaoCanvas" ) 
 
 
 project_objs = project.AddObjects( project_sources, project_headers )

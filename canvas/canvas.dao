@@ -3,4 +3,5 @@
 # because the linker may not be able to find the dll file for the image module.
 
 load image
-load canvas
+load dao_canvas
+

@@ -256,7 +256,7 @@ void DaoxRequest_ParsePostData( DaoxRequest *self, mg_connection *conn )
 	DString_SetSharing( buffer, 0 );
 	if( content_type == NULL || strstr( content_type, "multipart/form-data" ) == NULL ){
 		postlen = mg_read( conn, postbuf, sizeof(postbuf) );
-		while( postlen ){
+		while( postlen > 0 ){
 			DString_AppendBytes( buffer, postbuf, postlen );
 			postlen = mg_read( conn, postbuf, sizeof(postbuf) );
 		}
@@ -271,12 +271,12 @@ void DaoxRequest_ParsePostData( DaoxRequest *self, mg_connection *conn )
 	buffer->size = 0;
 	for(;;){
 		postlen = mg_read( conn, postbuf, sizeof(postbuf) );
-		if( postlen == 0 && buffer->size < boundarylen ) break;
+		if( postlen <= 0 && buffer->size < boundarylen ) break;
 
 		DString_AppendBytes( buffer, postbuf, postlen );
-		while( strstr( buffer->chars, "\r\n\r\n" ) == 0 && postlen != 0 ){
+		while( strstr( buffer->chars, "\r\n\r\n" ) == 0 && postlen > 0 ){
 			postlen = mg_read( conn, postbuf, sizeof(postbuf) );
-			DString_AppendBytes( buffer, postbuf, postlen );
+			if( postlen > 0 ) DString_AppendBytes( buffer, postbuf, postlen );
 		}
 		//printf( "###############\n%s\n", buffer->chars );
 
@@ -301,7 +301,7 @@ void DaoxRequest_ParsePostData( DaoxRequest *self, mg_connection *conn )
 				offset = buffer->size - boundarylen;
 				if( offset < 0 ) offset = 0;
 				postlen = mg_read( conn, postbuf, sizeof(postbuf) );
-				DString_AppendBytes( buffer, postbuf, postlen );
+				if( postlen > 0 ) DString_AppendBytes( buffer, postbuf, postlen );
 			}
 			DString_SubString( buffer, value, 0, pos2 - 4 ); /* \r\n-- */
 			DaoMap_Insert( self->http_post, (DaoValue*) self->key, (DaoValue*) self->value );
@@ -330,7 +330,7 @@ void DaoxRequest_ParsePostData( DaoxRequest *self, mg_connection *conn )
 					memmove( buffer->chars, buffer->chars + offset, buffer->size );
 				}
 				postlen = mg_read( conn, postbuf, sizeof(postbuf) );
-				DString_AppendBytes( buffer, postbuf, postlen );
+				if( postlen > 0 ) DString_AppendBytes( buffer, postbuf, postlen );
 			}
 			isize.value += pos2 - 4;
 			fwrite( buffer->chars, 1, pos2 - 4, file );  /* \r\n-- */
@@ -1427,7 +1427,7 @@ static void CLIENT_Get( DaoProcess *proc, DaoValue *p[], int N )
 	entry = proc->topFrame->entry;
 	while(1){
 		postlen = mg_read( conn, postbuf, sizeof(postbuf)-1 );
-		if( postlen == 0 ) break;
+		if( postlen <= 0 ) break; /* TODO: handle for postlen < 0? */
 		if( sect != NULL ){
 			if( sect->b > 0 ){
 				DString_SetBytes( data->value, postbuf, postlen );

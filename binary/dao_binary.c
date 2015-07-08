@@ -704,7 +704,7 @@ int CheckStream( DaoProcess *proc, DaoStream *stream )
 	return 1;
 }
 
-void DaoStream_TryResetStringBuffer( DaoStream *self )
+static void DaoStream_TryResetStringBuffer( DaoStream *self )
 {
 	if( self->offset >= self->streamString->size ){
 		DString_Reset( self->streamString, 0 );
@@ -1092,7 +1092,7 @@ static DaoFuncItem encodableMeths[] =
 
 //! A type which can be encoded to binary form. Use it to define conversions
 //! to specific serialization formats
-DaoTypeBase encodableTyper = {
+static DaoTypeBase encodableTyper = {
 	"Encodable", NULL, NULL, encodableMeths, {NULL}, {0},
 	(FuncPtrDel)NULL, NULL
 };
@@ -1106,7 +1106,7 @@ static DaoFuncItem decodableMeths[] =
 
 //! A type which can be decoded from binary form. Use it to define conversions
 //! from specific serialization formats
-DaoTypeBase decodableTyper = {
+static DaoTypeBase decodableTyper = {
 	"Decodable", NULL, NULL, decodableMeths, {NULL}, {0},
 	(FuncPtrDel)NULL, NULL
 };
