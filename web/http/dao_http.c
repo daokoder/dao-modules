@@ -28,6 +28,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include <limits.h>
+#include <errno.h>
 
 #include "dao.h"
 #include "daoStdtype.h"
@@ -1307,10 +1309,11 @@ static void SERVER_Start( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxServer *self = (DaoxServer*) p[0];
 	DaoVmCode *sect = DaoProcess_InitCodeSection( proc, 4 );
 	char port[16], numthd[16];
-	const char *options[7] = {
+	const char *options[] = {
 		"document_root", ".",
 		"listening_ports", "8080",
-		"num_threads", "8", NULL
+		"num_threads", "8",
+		"enable_keep_alive", "yes", NULL
 	};
 
 	sprintf( port, "%i", (int) p[1]->xInteger.value );
@@ -1366,7 +1369,7 @@ static DaoTypeBase ServerTyper =
 };
 
 
-static void CLIENT_Get( DaoProcess *proc, DaoValue *p[], int N )
+static void CLIENT_SendRequest( DaoProcess *proc, DaoValue *p[], DString *content, DString *contType )
 {
 	DaoString *data;
 	DaoVmCode *sect = NULL;
@@ -1376,15 +1379,15 @@ static void CLIENT_Get( DaoProcess *proc, DaoValue *p[], int N )
 	DString *host = DString_Copy( url );
 	DString *uri = DString_NewChars( "/" );
 	DString *ports = DString_NewChars( "80" );
-	const char *method = p[1]->xEnum.value ? "POST" : "GET";
-	int port, use_ssl = 0;
-	int entry;
+	long port;
+	int entry, use_ssl = 0;
 
 	struct mg_connection *conn;
 	char postbuf[4*1024];
 	char ebuf[1000];
 	int postlen;
 	int pos;
+	char *end;
 
 	if( DString_FindChars( host, "http://", 0 ) == 0 ){
 		DString_Erase( host, 0, 7 );
@@ -1402,10 +1405,19 @@ static void CLIENT_Get( DaoProcess *proc, DaoValue *p[], int N )
 		DString_SubString( host, ports, pos + 1, -1 );
 		DString_Erase( host, pos, -1 );
 	}
-	port = strtol( ports->chars, NULL, 0 );
+	port = strtol( ports->chars, &end, 10 );
+	if ( *end != '\0' || port < 0 || port > 0xFFFF ){
+		DaoProcess_RaiseError( proc, "Param", "Invalid port number" );
+		return;
+	}
 
-	conn = mg_download( host->chars, port, use_ssl, ebuf, sizeof(ebuf),
-			"%s %s HTTP/1.1\r\nHost: %s\r\n\r\n", method, uri->chars, host->chars );
+	if ( content )
+		conn = mg_download( host->chars, port, use_ssl, ebuf, sizeof(ebuf),
+							"POST %s HTTP/1.1\r\nHost: %s\r\nContent-type:%s\r\nContent-length: %"DAO_INT"\r\n\r\n%s",
+							uri->chars, host->chars, contType->chars, (ptrdiff_t)content->size, content->chars );
+	else
+		conn = mg_download( host->chars, port, use_ssl, ebuf, sizeof(ebuf),
+							"GET %s HTTP/1.1\r\nHost: %s\r\n\r\n", uri->chars, host->chars );
 
 	DString_Delete( host );
 	DString_Delete( uri );
@@ -1443,10 +1455,22 @@ static void CLIENT_Get( DaoProcess *proc, DaoValue *p[], int N )
 	mg_close_connection( conn );
 }
 
+static void CLIENT_Get( DaoProcess *proc, DaoValue *p[], int N )
+{
+	CLIENT_SendRequest( proc, p, NULL, NULL );
+}
+
+static void CLIENT_Post( DaoProcess *proc, DaoValue *p[], int N )
+{
+	CLIENT_SendRequest( proc, p, p[1]->xString.value, p[2]->xString.value );
+}
+
 static DaoFuncItem ClientMeths[] =
 {
-	{ CLIENT_Get, "Get( url: string, method: enum<GET,POST> = $GET ) => string" },
-	{ CLIENT_Get, "Get( url: string, method: enum<GET,POST> = $GET )[data: string]" },
+	{ CLIENT_Get,	"Get( url: string ) => string" },
+	{ CLIENT_Get,	"Get( url: string )[data: string]" },
+	{ CLIENT_Post,	"Post( url: string, content: string, contentType: string ) => string" },
+	{ CLIENT_Post,	"Post( url: string, content: string, contentType: string )[data: string]" },
 	{ NULL, NULL }
 };
 
