@@ -90,6 +90,13 @@ static DMutex net_mtx;
 
 #endif
 
+// avoid SIGPIPE on broken connection
+#ifdef MSG_NOSIGNAL
+#define SEND_FLAGS MSG_NOSIGNAL
+#else
+#define SEND_FLAGS 0
+#endif
+
 #define MAX_DATA 512 /*  max number of bytes we can get at once */
 
 typedef uint32_t ipaddr_t;
@@ -289,13 +296,13 @@ int DaoNetwork_Connect( ipaddr_t ip, unsigned short port )
 #define INTERRUPTED EINTR
 #endif
 
-int LoopSend( int sockfd, char *buf, int size, int flags, struct sockaddr_in *addr )
+int LoopSend( int sockfd, char *buf, int size, struct sockaddr_in *addr )
 {
 	socklen_t addrlen = addr? sizeof(*addr) : 0;
 	int left = size;
 	daoint numbytes;
 	do{
-		numbytes = sendto( sockfd, buf, left, flags, (struct sockaddr*)addr, addrlen );
+		numbytes = sendto( sockfd, buf, left, SEND_FLAGS, (struct sockaddr*)addr, addrlen );
 		if(numbytes != -1){
 			left -= numbytes;
 			buf += numbytes;
@@ -317,7 +324,7 @@ int LoopReceive( int sockfd, char *buf, int size, int flags, struct sockaddr_in 
 }
 int DaoNetwork_Send( int sockfd, DString *buf )
 {
-	return LoopSend( sockfd, DString_GetData( buf ), DString_Size( buf ), 0, NULL );
+	return LoopSend( sockfd, DString_GetData( buf ), DString_Size( buf ), NULL );
 }
 int DaoNetwork_SendTo( int sockfd, ipaddr_t ip, unsigned short port, DString *buf )
 {
@@ -325,7 +332,7 @@ int DaoNetwork_SendTo( int sockfd, ipaddr_t ip, unsigned short port, DString *bu
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons( port );
 	addr.sin_addr.s_addr = ip;
-	return LoopSend( sockfd, buf->chars, buf->size, 0, &addr );
+	return LoopSend( sockfd, buf->chars, buf->size, &addr );
 }
 int DaoNetwork_Receive( int sockfd, DString *buf, int max )
 {
@@ -722,7 +729,7 @@ static void DaoSocket_Lib_SendFile( DaoProcess *proc, DaoValue *par[], int N  )
 			fclose( file );
 			return;
 		}
-		if ( LoopSend( self->id, buf, count, 0, NULL ) < count ){
+		if ( LoopSend( self->id, buf, count, NULL ) < count ){
 			fclose( file );
 			goto Error;
 		}
