@@ -1309,11 +1309,10 @@ static void SERVER_Start( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxServer *self = (DaoxServer*) p[0];
 	DaoVmCode *sect = DaoProcess_InitCodeSection( proc, 4 );
 	char port[16], numthd[16];
-	const char *options[] = {
+	const char *options[7] = {
 		"document_root", ".",
 		"listening_ports", "8080",
-		"num_threads", "8",
-		"enable_keep_alive", "yes", NULL
+		"num_threads", "8", NULL
 	};
 
 	sprintf( port, "%i", (int) p[1]->xInteger.value );
