@@ -405,12 +405,12 @@ DaoNumItem sysConsts[] =
 
 DAO_DLL int DaoOS_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	ns = DaoNamespace_GetNamespace( ns, "os" );
-
+	DaoNamespace *osns = DaoVmSpace_GetNamespace( vmSpace, "os" );
+	DaoNamespace_AddConstValue( ns, "os", (DaoValue*)osns );
 //	pipeTyper.supers[0] = dao_type_stream->typer;
-//	daox_type_pipestream = DaoNamespace_WrapType( ns, & pipeTyper, 0 );
+//	daox_type_pipestream = DaoNamespace_WrapType( osns, & pipeTyper, 0 );
 
-	DaoNamespace_WrapFunctions( ns, sysMeths );
-	DaoNamespace_AddConstNumbers( ns, sysConsts );
+	DaoNamespace_WrapFunctions( osns, sysMeths );
+	DaoNamespace_AddConstNumbers( osns, sysConsts );
 	return 0;
 }
