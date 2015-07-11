@@ -34,22 +34,22 @@ struct mg_connection;  // Handle for the individual connection
 
 // This structure contains information about the HTTP request.
 struct mg_request_info {
-  const char *request_method; // "GET", "POST", etc
-  const char *uri;            // URL-decoded URI
-  const char *http_version;   // E.g. "1.0", "1.1"
-  const char *query_string;   // URL part after '?', not including '?', or NULL
-  const char *remote_user;    // Authenticated user, or NULL if no auth used
-  long remote_ip;             // Client's IP address
-  int remote_port;            // Client's port
-  int is_ssl;                 // 1 if SSL-ed, 0 if not
-  void *user_data;            // User data pointer passed to mg_start()
-  void *conn_data;            // Connection-specific user data
+	const char *request_method; // "GET", "POST", etc
+	const char *uri;            // URL-decoded URI
+	const char *http_version;   // E.g. "1.0", "1.1"
+	const char *query_string;   // URL part after '?', not including '?', or NULL
+	const char *remote_user;    // Authenticated user, or NULL if no auth used
+	long remote_ip;             // Client's IP address
+	int remote_port;            // Client's port
+	int is_ssl;                 // 1 if SSL-ed, 0 if not
+	void *user_data;            // User data pointer passed to mg_start()
+	void *conn_data;            // Connection-specific user data
 
-  int num_headers;            // Number of HTTP headers
-  struct mg_header {
-    const char *name;         // HTTP header name
-    const char *value;        // HTTP header value
-  } http_headers[64];         // Maximum 64 headers
+	int num_headers;            // Number of HTTP headers
+	struct mg_header {
+		const char *name;         // HTTP header name
+		const char *value;        // HTTP header value
+	} http_headers[64];         // Maximum 64 headers
 };
 
 
@@ -57,73 +57,73 @@ struct mg_request_info {
 // which callbacks to invoke. For detailed description, see
 // https://github.com/valenok/mongoose/blob/master/UserManual.md
 struct mg_callbacks {
-  // Called when mongoose has received new HTTP request.
-  // If callback returns non-zero,
-  // callback must process the request by sending valid HTTP headers and body,
-  // and mongoose will not do any further processing.
-  // If callback returns 0, mongoose processes the request itself. In this case,
-  // callback must not send any data to the client.
-  int  (*begin_request)(struct mg_connection *);
+	// Called when mongoose has received new HTTP request.
+	// If callback returns non-zero,
+	// callback must process the request by sending valid HTTP headers and body,
+	// and mongoose will not do any further processing.
+	// If callback returns 0, mongoose processes the request itself. In this case,
+	// callback must not send any data to the client.
+	int  (*begin_request)(struct mg_connection *);
 
-  // Called when mongoose has finished processing request.
-  void (*end_request)(const struct mg_connection *, int reply_status_code);
+	// Called when mongoose has finished processing request.
+	void (*end_request)(const struct mg_connection *, int reply_status_code);
 
-  // Called when mongoose is about to log a message. If callback returns
-  // non-zero, mongoose does not log anything.
-  int  (*log_message)(const struct mg_connection *, const char *message);
+	// Called when mongoose is about to log a message. If callback returns
+	// non-zero, mongoose does not log anything.
+	int  (*log_message)(const struct mg_connection *, const char *message);
 
-  // Called when mongoose initializes SSL library.
-  int  (*init_ssl)(void *ssl_context, void *user_data);
+	// Called when mongoose initializes SSL library.
+	int  (*init_ssl)(void *ssl_context, void *user_data);
 
-  // Called when websocket request is received, before websocket handshake.
-  // If callback returns 0, mongoose proceeds with handshake, otherwise
-  // cinnection is closed immediately.
-  int (*websocket_connect)(const struct mg_connection *);
+	// Called when websocket request is received, before websocket handshake.
+	// If callback returns 0, mongoose proceeds with handshake, otherwise
+	// cinnection is closed immediately.
+	int (*websocket_connect)(const struct mg_connection *);
 
-  // Called when websocket handshake is successfully completed, and
-  // connection is ready for data exchange.
-  void (*websocket_ready)(struct mg_connection *);
+	// Called when websocket handshake is successfully completed, and
+	// connection is ready for data exchange.
+	void (*websocket_ready)(struct mg_connection *);
 
-  // Called when data frame has been received from the client.
-  // Parameters:
-  //    bits: first byte of the websocket frame, see websocket RFC at
-  //          http://tools.ietf.org/html/rfc6455, section 5.2
-  //    data, data_len: payload, with mask (if any) already applied.
-  // Return value:
-  //    non-0: keep this websocket connection opened.
-  //    0:     close this websocket connection.
-  int  (*websocket_data)(struct mg_connection *, int bits,
-                         char *data, size_t data_len);
+	// Called when data frame has been received from the client.
+	// Parameters:
+	//    bits: first byte of the websocket frame, see websocket RFC at
+	//          http://tools.ietf.org/html/rfc6455, section 5.2
+	//    data, data_len: payload, with mask (if any) already applied.
+	// Return value:
+	//    non-0: keep this websocket connection opened.
+	//    0:     close this websocket connection.
+	int  (*websocket_data)(struct mg_connection *, int bits,
+			char *data, size_t data_len);
 
-  // Called when mongoose tries to open a file. Used to intercept file open
-  // calls, and serve file data from memory instead.
-  // Parameters:
-  //    path:     Full path to the file to open.
-  //    data_len: Placeholder for the file size, if file is served from memory.
-  // Return value:
-  //    NULL: do not serve file from memory, proceed with normal file open.
-  //    non-NULL: pointer to the file contents in memory. data_len must be
-  //              initilized with the size of the memory block.
-  const char * (*open_file)(const struct mg_connection *,
-                             const char *path, size_t *data_len);
+	// Called when mongoose tries to open a file. Used to intercept file open
+	// calls, and serve file data from memory instead.
+	// Parameters:
+	//    path:     Full path to the file to open.
+	//    data_len: Placeholder for the file size, if file is served from memory.
+	// Return value:
+	//    NULL: do not serve file from memory, proceed with normal file open.
+	//    non-NULL: pointer to the file contents in memory. data_len must be
+	//              initilized with the size of the memory block.
+	const char * (*open_file)(const struct mg_connection *,
+			const char *path, size_t *data_len);
 
-  // Called when mongoose is about to serve Lua server page (.lp file), if
-  // Lua support is enabled.
-  // Parameters:
-  //   lua_context: "lua_State *" pointer.
-  void (*init_lua)(struct mg_connection *, void *lua_context);
+	// Called when mongoose is about to serve Lua server page (.lp file), if
+	// Lua support is enabled.
+	// Parameters:
+	//   lua_context: "lua_State *" pointer.
+	void (*init_lua)(struct mg_connection *, void *lua_context);
 
-  // Called when mongoose has uploaded a file to a temporary directory as a
-  // result of mg_upload() call.
-  // Parameters:
-  //    file_file: full path name to the uploaded file.
-  void (*upload)(struct mg_connection *, const char *file_name);
+	// Called when mongoose has uploaded a file to a temporary directory as a
+	// result of mg_upload() call.
+	// Parameters:
+	//    file_file: full path name to the uploaded file.
+	void (*upload)(struct mg_connection *, const char *file_name);
 
-  // Called when mongoose is about to send HTTP error to the client.
-  // Implementing this callback allows to create custom error pages.
-  // Parameters:
-  //   status: HTTP error status code.
-  int  (*http_error)(struct mg_connection *, int status);
+	// Called when mongoose is about to send HTTP error to the client.
+	// Implementing this callback allows to create custom error pages.
+	// Parameters:
+	//   status: HTTP error status code.
+	int  (*http_error)(struct mg_connection *, int status);
 };
 
 
@@ -229,12 +229,12 @@ int mg_websocket_write(struct mg_connection* conn, int opcode,
 
 // Opcodes, from http://tools.ietf.org/html/rfc6455
 enum {
-  WEBSOCKET_OPCODE_CONTINUATION = 0x0,
-  WEBSOCKET_OPCODE_TEXT = 0x1,
-  WEBSOCKET_OPCODE_BINARY = 0x2,
-  WEBSOCKET_OPCODE_CONNECTION_CLOSE = 0x8,
-  WEBSOCKET_OPCODE_PING = 0x9,
-  WEBSOCKET_OPCODE_PONG = 0xa
+	WEBSOCKET_OPCODE_CONTINUATION = 0x0,
+	WEBSOCKET_OPCODE_TEXT = 0x1,
+	WEBSOCKET_OPCODE_BINARY = 0x2,
+	WEBSOCKET_OPCODE_CONNECTION_CLOSE = 0x8,
+	WEBSOCKET_OPCODE_PING = 0x9,
+	WEBSOCKET_OPCODE_PONG = 0xa
 };
 
 
