@@ -8,19 +8,7 @@ if( daovm == none ) return
 project.UseImportLibrary( daovm, "dao" )
 project.SetTargetPath( "../../../lib/dao/modules/web" )
 
-project.AddIncludePath( "civetweb/include" )
-
-#dao_http_objs = project.AddObjects( {"dao_http.c", "Marten/marten.c"}, {"Marten/marten.h"} )
-dao_http_objs = project.AddObjects( {"dao_http.c", "civetweb/src/civetweb.c"}, {"civetweb/include/civetweb.h"} )
-
-cflags  = "-Wshadow -Wformat-security -Winit-self ";
-cflags += "-DUSE_STACK_SIZE=102400 ";
-
-if( DaoMake::BuildMode() == $DEBUG ) cflags += "-DWITH_DEBUG ";
-
-cflags += "-DWITH_WEBSOCKET -DWITH_IPV6 ";
-
-dao_http_objs.AddCompilingFlag( cflags );
+dao_http_objs = project.AddObjects( {"dao_http.c", "Marten/marten.c"}, {"Marten/marten.h"} )
 
 dao_http_dll = project.AddSharedLibrary( "dao_http", dao_http_objs )
 dao_http_lib = project.AddStaticLibrary( "dao_http", dao_http_objs )

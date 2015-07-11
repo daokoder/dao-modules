@@ -38,7 +38,7 @@
 #include "daoThread.h"
 #include "daoGC.h"
 
-#include "civetweb.h"
+#include "Marten/marten.h"
 
 #ifndef DAO_WITH_THREAD
 #define DMutex_Init(x)
@@ -107,10 +107,10 @@ DaoxRequest* DaoxRequest_New()
 	self->uri = DString_New();
 	self->key = DaoString_New(1);
 	self->value = DaoString_New(1);
-	self->http_get    = DaoMap_New( 1 + rand() );  /* Random hash seed; */
-	self->http_post   = DaoMap_New( 1 + rand() );  /* To prevent hash DoS attacks; */
-	self->http_cookie = DaoMap_New( 1 + rand() );
-	self->http_file   = DaoMap_New( 1 + rand() );
+	self->http_get    = DaoMap_New( 1 + (size_t)rand() );  /* Random hash seed; */
+	self->http_post   = DaoMap_New( 1 + (size_t)rand() );  /* To prevent hash DoS attacks; */
+	self->http_cookie = DaoMap_New( 1 + (size_t)rand() );
+	self->http_file   = DaoMap_New( 1 + (size_t)rand() );
 	self->http_uri    = DaoList_New();
 	DString_SetSharing( self->key->value, 0 );
 	DString_SetSharing( self->value->value, 0 );
@@ -145,10 +145,10 @@ static void DaoxRequest_Delete( DaoxRequest *self )
 
 static void DaoxRequest_Reset( DaoxRequest *self )
 {
-	DaoMap_Reset( self->http_get, 1 );
-	DaoMap_Reset( self->http_post, 1 );
-	DaoMap_Reset( self->http_cookie, 1 );
-	DaoMap_Reset( self->http_file, 1 );
+	DaoMap_Reset( self->http_get, 1 + (size_t)rand() );
+	DaoMap_Reset( self->http_post, 1 + (size_t)rand() );
+	DaoMap_Reset( self->http_cookie, 1 + (size_t)rand() );
+	DaoMap_Reset( self->http_file, 1 + (size_t)rand() );
 	DaoList_Clear( self->http_uri );
 }
 
@@ -363,7 +363,7 @@ DaoxResponse* DaoxResponse_New()
 {
 	DaoxResponse *self = (DaoxResponse*) dao_calloc( 1, sizeof(DaoxResponse) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_response );
-	self->cookies = DMap_New( DAO_DATA_STRING, DAO_DATA_STRING );
+	self->cookies = DHash_New( DAO_DATA_STRING, DAO_DATA_STRING );
 	return self;
 }
 
@@ -376,7 +376,8 @@ static void DaoxResponse_Delete( DaoxResponse *self )
 
 static void DaoxResponse_Reset( DaoxResponse *self )
 {
-	DMap_Clear( self->cookies );
+	self->cookies->hashing = 1 + (size_t) rand();
+	DMap_Reset( self->cookies );
 }
 
 

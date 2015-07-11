@@ -5354,20 +5354,29 @@ static void free_context(struct mg_context *ctx) {
   free(ctx);
 }
 
-void mg_wait(struct mg_context *ctx) {
-  // Wait until mg_fini() stops
-  while (ctx->stop_flag != 2) {
-    (void) mg_sleep(10);
-  }
+void mg_wait(struct mg_context *ctx)
+{
+	if( ctx == NULL ) return;
+	while (ctx->stop_flag != 1 && ctx->stop_flag != 2) {
+#ifdef _WIN32
+		Sleep(1000);
+#else
+		sleep(1);
+#endif
+#ifdef USE_WEBSOCKET
+		InformWebsockets(ctx);
+#endif
+	}
 }
 
-void mg_stop(struct mg_context *ctx) {
-  ctx->stop_flag = 1;
+void mg_stop(struct mg_context *ctx)
+{
+	if( ctx == NULL ) return;
+	ctx->stop_flag = 1;
+}
 
-  // Wait until mg_fini() stops
-  while (ctx->stop_flag != 2) {
-    (void) mg_sleep(10);
-  }
+void mg_quit(struct mg_context *ctx)
+{
   free_context(ctx);
 
 #if defined(_WIN32) && !defined(__SYMBIAN32__)

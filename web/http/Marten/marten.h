@@ -167,6 +167,8 @@ void mg_wait(struct mg_context *ctx);
 // threads are stopped. Context pointer becomes invalid.
 void mg_stop(struct mg_context *);
 
+void mg_quit(struct mg_context *ctx);
+
 
 // Get the value of particular configuration parameter.
 // The value returned is read-only. Mongoose does not allow changing
