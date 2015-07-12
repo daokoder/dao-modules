@@ -766,6 +766,7 @@ static void DaoSocket_Lib_ReceiveAll( DaoProcess *proc, DaoValue *par[], int N  
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
 	daoint count = par[1]->xInteger.value;
+	DString *prep = par[2]->xString.value;
 	DString *res;
 	char *start;
 	if( self->state != Socket_Connected ){
@@ -781,8 +782,16 @@ static void DaoSocket_Lib_ReceiveAll( DaoProcess *proc, DaoValue *par[], int N  
 		return;
 	}
 	res = DaoProcess_PutChars( proc, "" );
+	if ( prep->size ){
+		DString_Append( res, prep );
+		count += prep->size;
+		if ( count < 0 ){
+			DaoProcess_RaiseError( proc, "Param", "Resulting string length too large" );
+			return;
+		}
+	}
 	DString_Resize( res, count );
-	start = res->chars;
+	start = res->chars + prep->size;
 	while ( 1 ){
 		int numbytes = LoopReceive( self->id, start, count, 0, NULL );
 		if ( numbytes == -1 ){
@@ -1237,8 +1246,14 @@ static DaoFuncItem TcpStreamMeths[] =
 	{ DaoSocket_Lib_Receive,		"read( self: TcpStream, count = -1 ) => string" },
 
 	/*! Attempts to receive exactly \a count bytes of data and return it. Will return less data only if
-	 * the connection was closed */
-	{ DaoSocket_Lib_ReceiveAll,		"readAll( self: TcpStream, count: int ) => string" },
+	 * the connection was closed.
+	 *
+	 * If \a prepend is given, it will be prepended to the resulting string. Use case: receiving a message
+	 * with a header and a large body (e.g., HTTP response). First, the header is read, by which the body
+	 * size is determined. While doing this, part of the message body might be read along with the header.
+	 * Concatenating it with the rest of the body after receiving the latter would nullify the performance
+	 * advantage of using \c readAll(), so that chunk should be passed as \a prepend parameter */
+	{ DaoSocket_Lib_ReceiveAll,		"readAll( self: TcpStream, count: int, prepend = '' ) => string" },
 
 	/*! Peer address of the connected socket */
 	{ DaoSocket_Lib_GetPeerName,	".peerAddr( invar self: TcpStream ) => SocketAddr" },
