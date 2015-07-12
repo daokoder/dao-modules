@@ -761,6 +761,46 @@ static void DaoSocket_Lib_Receive( DaoProcess *proc, DaoValue *par[], int N  )
 	}
 }
 
+static void DaoSocket_Lib_ReceiveAll( DaoProcess *proc, DaoValue *par[], int N  )
+{
+	char errbuf[MAX_ERRMSG];
+	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	daoint count = par[1]->xInteger.value;
+	DString *res;
+	char *start;
+	if( self->state != Socket_Connected ){
+		DaoProcess_RaiseError( proc, neterr, "The socket is not connected" );
+		return;
+	}
+	if ( count < 0 ){
+		DaoProcess_RaiseError( proc, "Param", "Invalid byte count" );
+		return;
+	}
+	if ( count > 1048576 ){
+		DaoProcess_RaiseError( proc, "Param", "Byte count too large (limited to 1048576)" );
+		return;
+	}
+	res = DaoProcess_PutChars( proc, "" );
+	DString_Resize( res, count );
+	start = res->chars;
+	while ( 1 ){
+		int numbytes = LoopReceive( self->id, start, count, 0, NULL );
+		if ( numbytes == -1 ){
+			GetErrorMessage( errbuf, GetError() );
+			DaoProcess_RaiseError( proc, neterr, errbuf );
+			return;
+		}
+		if ( !numbytes ){
+			DString_Resize( res, res->size - count );
+			break;
+		}
+		start += numbytes;
+		count -= numbytes;
+		if ( !count )
+			break;
+	}
+}
+
 static void DaoSocket_Lib_Id( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
@@ -1195,6 +1235,10 @@ static DaoFuncItem TcpStreamMeths[] =
 
 	/*! Receives at most \a count bytes (64Kb max, 4Kb if \a count <= 0) and returnes the received data */
 	{ DaoSocket_Lib_Receive,		"read( self: TcpStream, count = -1 ) => string" },
+
+	/*! Attempts to receive exactly \a count bytes of data and return it. Will return less data only if
+	 * the connection was closed */
+	{ DaoSocket_Lib_ReceiveAll,		"readAll( self: TcpStream, count: int ) => string" },
 
 	/*! Peer address of the connected socket */
 	{ DaoSocket_Lib_GetPeerName,	".peerAddr( invar self: TcpStream ) => SocketAddr" },
