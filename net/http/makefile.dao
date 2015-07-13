@@ -1,0 +1,23 @@
+
+project = DaoMake::Project( "DaoHttp" )
+
+daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
+
+if( daovm == none ) return
+
+project.UseImportLibrary( daovm, "dao" )
+
+dao_http_objs  = project.AddObjects( { "dao_http.c" } )
+
+dao_http_dll  = project.AddSharedLibrary( "dao_http", dao_http_objs )
+dao_http_lib  = project.AddStaticLibrary( "dao_http", dao_http_objs )
+
+project.SetTargetPath( "../../../lib/dao/modules/net" )
+
+path = DaoMake::MakePath( DaoMake::Variables[ "INSTALL_MOD" ], "net" )
+
+project.Install( path, dao_http_dll );
+project.Install( path, dao_http_lib );
+
+findpkg = project.GenerateFinder( $TRUE );
+project.Install( DaoMake::Variables[ "INSTALL_FINDER" ], findpkg );

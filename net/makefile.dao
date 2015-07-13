@@ -1,9 +1,11 @@
 
-project = DaoMake::Project( "DaoNetwork" ) 
+project = DaoMake::Project( "DaoNetwork" )
 
 daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
 
 if( daovm == none ) return
+
+project.AddDirectory( "http", "http" )
 
 project.UseImportLibrary( daovm )
 project.SetTargetPath( "../../lib/dao/modules" )
