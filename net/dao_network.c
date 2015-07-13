@@ -99,7 +99,8 @@ static DMutex net_mtx;
 
 #define MAX_DATA 512 /*  max number of bytes we can get at once */
 
-typedef uint32_t ipaddr_t;
+typedef uint32_t ipv4_t;
+typedef uint16_t port_t;
 
 /* types */
 enum DaoProxyProtocol
@@ -239,7 +240,7 @@ int DaoNetwork_SetSocketOptions( int sock, socket_opts opts )
 }
 
 void DaoNetwork_Close( int sockfd );
-int DaoNetwork_Bind( int type, ipaddr_t ip, unsigned short port, socket_opts opts )
+int DaoNetwork_Bind( int type, ipv4_t ip, port_t port, socket_opts opts )
 {
 	struct sockaddr_in myaddr;    /*  my address information */
 	int sockfd = socket( AF_INET, type, 0);
@@ -261,7 +262,7 @@ int DaoNetwork_Listen( int sockfd, int backlog )
 {
 	return listen( sockfd, backlog );
 }
-int DaoNetwork_Accept( int sockfd, ipaddr_t *ip, unsigned short *port )
+int DaoNetwork_Accept( int sockfd, ipv4_t *ip, port_t *port )
 {
 	struct sockaddr_in addr;
 	socklen_t size = sizeof(addr);
@@ -272,7 +273,7 @@ int DaoNetwork_Accept( int sockfd, ipaddr_t *ip, unsigned short *port )
 	*ip = addr.sin_addr.s_addr;
 	return fd;
 }
-int DaoNetwork_Connect( ipaddr_t ip, unsigned short port )
+int DaoNetwork_Connect( ipv4_t ip, port_t port )
 {
 	int sockfd;
 	struct sockaddr_in addr;
@@ -326,7 +327,7 @@ int DaoNetwork_Send( int sockfd, DString *buf )
 {
 	return LoopSend( sockfd, DString_GetData( buf ), DString_Size( buf ), NULL );
 }
-int DaoNetwork_SendTo( int sockfd, ipaddr_t ip, unsigned short port, DString *buf )
+int DaoNetwork_SendTo( int sockfd, ipv4_t ip, port_t port, DString *buf )
 {
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
@@ -424,7 +425,7 @@ struct DaoIpv4Addr {
 
 struct DaoSocketAddr {
 	uint8_t ip[4];
-	unsigned short port;
+	port_t port;
 };
 
 extern DaoTypeBase socketTyper;
@@ -470,7 +471,7 @@ static void DaoSocket_Delete( DaoSocket *self )
 	dao_free( self );
 }
 
-int GetIpAddr( const char *str, ipaddr_t *ip )
+int GetIpAddr( const char *str, ipv4_t *ip )
 {
 #ifdef WIN32
 		int value = inet_addr( str );
@@ -483,7 +484,7 @@ int GetIpAddr( const char *str, ipaddr_t *ip )
 #endif
 }
 
-int ParseAddr( DaoProcess *proc, DString *addr, ipaddr_t *ip, unsigned short *port, int hostname )
+int ParseAddr( DaoProcess *proc, DString *addr, ipv4_t *ip, port_t *port, int hostname )
 {
 	daoint pos = DString_RFindChar( addr, ':', addr->size - 1 );
 	unsigned long long num;
@@ -521,7 +522,7 @@ int ParseAddr( DaoProcess *proc, DString *addr, ipaddr_t *ip, unsigned short *po
 			DaoProcess_RaiseError( proc, neterr, errbuf );
 			return 0;
 		}
-		*ip =  *(ipaddr_t*)he->h_addr;
+		*ip =  *(ipv4_t*)he->h_addr;
 	}
 	else if ( !GetIpAddr( buf, ip ) ){
 		DaoProcess_RaiseError( proc, "Param", "Invalid IP address" );
@@ -530,7 +531,7 @@ int ParseAddr( DaoProcess *proc, DString *addr, ipaddr_t *ip, unsigned short *po
 	return 1;
 }
 
-static int DaoSocket_Bind( DaoSocket *self, socket_proto proto, ipaddr_t ip, int port, socket_opts opts )
+static int DaoSocket_Bind( DaoSocket *self, socket_proto proto, ipv4_t ip, int port, socket_opts opts )
 {
 	DaoSocket_Close( self );
 	self->id = DaoNetwork_Bind( proto, ip, port, opts );
@@ -539,7 +540,7 @@ static int DaoSocket_Bind( DaoSocket *self, socket_proto proto, ipaddr_t ip, int
 	return self->id;
 }
 
-static int DaoSocket_Connect( DaoSocket *self, ipaddr_t ip, unsigned short port )
+static int DaoSocket_Connect( DaoSocket *self, ipv4_t ip, port_t port )
 {
 	DaoSocket_Close( self );
 	self->id = DaoNetwork_Connect( ip, port );
@@ -574,7 +575,7 @@ int CheckPort( DaoProcess *proc, dao_integer port )
 	return 1;
 }
 
-int ExtractAddr( DaoProcess *proc, DaoValue *param, ipaddr_t *ip, unsigned short *port )
+int ExtractAddr( DaoProcess *proc, DaoValue *param, ipv4_t *ip, port_t *port )
 {
 	if ( param->type == DAO_STRING ){
 		if ( !ParseAddr( proc, param->xString.value, ip, port, 1 ) )
@@ -582,7 +583,7 @@ int ExtractAddr( DaoProcess *proc, DaoValue *param, ipaddr_t *ip, unsigned short
 	}
 	else {
 		DaoSocketAddr *addr = (DaoSocketAddr*)DaoValue_TryGetCdata( param );
-		*ip = *(ipaddr_t*)addr->ip;
+		*ip = *(ipv4_t*)addr->ip;
 		*port = addr->port;
 	}
 	return 1;
@@ -592,8 +593,8 @@ static void DaoSocket_Lib_Listen( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
-	ipaddr_t ip;
-	unsigned short port;
+	ipv4_t ip;
+	port_t port;
 	dao_integer backlog = par[2]->xInteger.value;
 	if ( !ExtractAddr( proc, par[1], &ip, &port ) )
 		return;
@@ -612,8 +613,8 @@ static void DaoSocket_Lib_Bind( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
-	ipaddr_t ip;
-	unsigned short port;
+	ipv4_t ip;
+	port_t port;
 	if ( !ExtractAddr( proc, par[1], &ip, &port ) )
 		return;
 	if( DaoSocket_Bind( self, Proto_UDP, ip, port, par[2]->xEnum.value ) == -1 ){
@@ -637,7 +638,7 @@ static void DaoSocket_Lib_Accept( DaoProcess *proc, DaoValue *par[], int N  )
 	addr = (DaoSocketAddr*)dao_malloc( sizeof(DaoSocketAddr) );
 	DaoTuple_SetItem( tup, (DaoValue*)DaoProcess_NewCdata( proc, daox_type_tcpstream, sock, 1 ), 0 );
 	DaoTuple_SetItem( tup, (DaoValue*)DaoProcess_NewCdata( proc, daox_type_sockaddr, addr, 1 ), 1 );
-	sock->id = DaoNetwork_Accept( self->id, (ipaddr_t*)addr->ip, &addr->port );
+	sock->id = DaoNetwork_Accept( self->id, (ipv4_t*)addr->ip, &addr->port );
 	if( sock->id == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
@@ -650,8 +651,8 @@ static void DaoSocket_Lib_Connect( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
-	ipaddr_t ip;
-	unsigned short port;
+	ipv4_t ip;
+	port_t port;
 	if ( !ExtractAddr( proc, par[1], &ip, &port ) )
 		return;
 	if ( DaoSocket_Connect( self, ip, port ) == -1 ){
@@ -846,7 +847,7 @@ static void DaoSocket_Lib_GetPeerName( DaoProcess *proc, DaoValue *par[], int N 
 		return;
 	}
 	saddr = (DaoSocketAddr*)dao_malloc( sizeof(DaoSocketAddr) );
-	*(ipaddr_t*)saddr->ip = addr.sin_addr.s_addr;
+	*(ipv4_t*)saddr->ip = addr.sin_addr.s_addr;
 	saddr->port = ntohs( addr.sin_port );
 	DaoProcess_PutCdata( proc, saddr, daox_type_sockaddr );
 }
@@ -864,7 +865,7 @@ static void DaoSocket_Lib_GetSockName( DaoProcess *proc, DaoValue *par[], int N 
 		return;
 	}
 	saddr = (DaoSocketAddr*)dao_malloc( sizeof(DaoSocketAddr) );
-	*(ipaddr_t*)saddr->ip = addr.sin_addr.s_addr;
+	*(ipv4_t*)saddr->ip = addr.sin_addr.s_addr;
 	saddr->port = ntohs( addr.sin_port );
 	DaoProcess_PutCdata( proc, saddr, daox_type_sockaddr );
 }
@@ -952,8 +953,8 @@ struct in_addr* GetAddr( DaoProcess *proc, DaoValue *param, struct hostent **he 
 static void DaoSocket_Lib_SendTo( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
-	ipaddr_t ip;
-	unsigned short port;
+	ipv4_t ip;
+	port_t port;
 	if ( !ExtractAddr( proc, p[1], &ip, &port ) )
 		return;
 	if ( DaoNetwork_SendTo( self->id, ip, port, p[2]->xString.value ) == -1 ){
@@ -980,7 +981,7 @@ static void DaoSocket_Lib_ReceiveFrom( DaoProcess *proc, DaoValue *p[], int N )
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 	}
-	*(ipaddr_t*)saddr->ip = addr.sin_addr.s_addr;
+	*(ipv4_t*)saddr->ip = addr.sin_addr.s_addr;
 	saddr->port = ntohs( addr.sin_port );
 }
 
@@ -1361,7 +1362,7 @@ static void DaoIpv4Addr_Create( DaoProcess *proc, DaoValue *p[], int N  )
 			dao_free( res );
 			return;
 		}
-		if ( !GetIpAddr( str->chars, (ipaddr_t*)res->octets ) ){
+		if ( !GetIpAddr( str->chars, (ipv4_t*)res->octets ) ){
 			DaoProcess_RaiseError( proc, "Value", "Invalid IPv4 address string" );
 			dao_free( res );
 			return;
@@ -1407,7 +1408,7 @@ static void DaoIpv4Addr_Check( DaoProcess *proc, DaoValue *p[], int N  )
 	uint8_t *octets = self->octets;
 	switch ( p[1]->xEnum.value ){
 	case IPv4Unspecified: // 0.0.0.0
-		res = *(ipaddr_t*)self->octets == 0;
+		res = *(ipv4_t*)self->octets == 0;
 		break;
 	case IPv4Multicast: // RFC 5771
 		res = ( octets[0] == 224 && ( octets[1] <= 5 || octets[1] >= 252 ) ) ||
@@ -1427,7 +1428,7 @@ static void DaoIpv4Addr_Check( DaoProcess *proc, DaoValue *p[], int N  )
 		res = octets[0] == 169 && octets[1] == 254;
 		break;
 	case IPv4Broadcast: // RFC 919
-		res = *(ipaddr_t*)self->octets == 0xFFFFFFFF;
+		res = *(ipv4_t*)self->octets == 0xFFFFFFFF;
 		break;
 	}
 	DaoProcess_PutBoolean( proc, res );
@@ -1461,11 +1462,12 @@ static void DaoIpv4Addr_Neq( DaoProcess *proc, DaoValue *p[], int N  )
 	DaoProcess_PutBoolean( proc, memcmp( a->octets, b->octets, 4 ) != 0 );
 }
 
-void IPv4_Add( DaoIpv4Addr *self, int value, DaoIpv4Addr *res )
+void IPv4_Add( DaoIpv4Addr *self, int32_t value, DaoIpv4Addr *res )
 {
-	int i, bin = 0;
+	int i;
+	ipv4_t bin = 0;
 	for ( i = 0; i < 4; i++ )
-		bin |= (unsigned int)self->octets[i] << ( 3 - i )*CHAR_BIT;
+		bin |= (ipv4_t)self->octets[i] << ( 3 - i )*CHAR_BIT;
 	bin += value;
 	for ( i = 0; i < 4; i++ )
 		res->octets[i] = ( bin >> ( 3 - i )*CHAR_BIT ) & 0xFF;
@@ -1540,7 +1542,7 @@ static void DaoSocketAddr_Create( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoSocketAddr *addr = (DaoSocketAddr*)dao_malloc( sizeof(DaoSocketAddr) );
 	if ( p[0]->type == DAO_STRING ){
-		if ( !ParseAddr( proc, p[0]->xString.value, (ipaddr_t*)addr->ip, &addr->port, 1 ) ){
+		if ( !ParseAddr( proc, p[0]->xString.value, (ipv4_t*)addr->ip, &addr->port, 1 ) ){
 			dao_free( addr );
 			return;
 		}
@@ -1552,7 +1554,7 @@ static void DaoSocketAddr_Create( DaoProcess *proc, DaoValue *p[], int N )
 			dao_free( addr );
 			return;
 		}
-		*(ipaddr_t*)addr->ip = *(ipaddr_t*)ip->octets;
+		*(ipv4_t*)addr->ip = *(ipv4_t*)ip->octets;
 		addr->port = port;
 	}
 	DaoProcess_PutCdata( proc, addr, daox_type_sockaddr );
@@ -1584,7 +1586,7 @@ static void DaoSocketAddr_IP( DaoProcess *proc, DaoValue *p[], int N  )
 {
 	DaoSocketAddr *self = (DaoSocketAddr*)DaoValue_TryGetCdata( p[0] );
 	DaoIpv4Addr *ip = (DaoIpv4Addr*)dao_malloc( sizeof(DaoIpv4Addr) );
-	*(ipaddr_t*)ip->octets = *(ipaddr_t*)self->ip;
+	*(ipv4_t*)ip->octets = *(ipv4_t*)self->ip;
 	DaoProcess_PutCdata( proc, ip, daox_type_ipv4addr );
 }
 
@@ -1625,8 +1627,8 @@ static void DaoNetLib_Listen( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *sock;
-	ipaddr_t ip;
-	unsigned short port;
+	ipv4_t ip;
+	port_t port;
 	dao_integer backlog = par[1]->xInteger.value;
 	if ( !ExtractAddr( proc, par[0], &ip, &port ) )
 		return;
@@ -1648,8 +1650,8 @@ static void DaoNetLib_Bind( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *sock;
-	ipaddr_t ip;
-	unsigned short port;
+	ipv4_t ip;
+	port_t port;
 	if ( !ExtractAddr( proc, par[0], &ip, &port ) )
 		return;
 	sock = DaoSocket_New();
@@ -1664,8 +1666,8 @@ static void DaoNetLib_Bind( DaoProcess *proc, DaoValue *par[], int N  )
 static void DaoNetLib_Connect( DaoProcess *proc, DaoValue *p[], int N  )
 {
 	DaoSocket *sock = DaoSocket_New(  );
-	ipaddr_t ip;
-	unsigned short port;
+	ipv4_t ip;
+	port_t port;
 	if ( !ExtractAddr( proc, p[0], &ip, &port ) )
 		return;
 	if ( DaoSocket_Connect( sock, ip, port ) == -1 ){
@@ -1727,7 +1729,7 @@ static void DaoNetLib_GetHost( DaoProcess *proc, DaoValue *par[], int N  )
 		}
 		while ( *q ){
 			DaoIpv4Addr *ip = (DaoIpv4Addr*)dao_malloc( sizeof(DaoIpv4Addr) );
-			*(ipaddr_t*)ip->octets = ( (struct in_addr*)(*q) )->s_addr;
+			*(ipv4_t*)ip->octets = ( (struct in_addr*)(*q) )->s_addr;
 			DaoValue *value = (DaoValue*)DaoProcess_NewCdata( proc, daox_type_ipv4addr, ip, 1 );
 			DaoList_Append( &tup->values[2]->xList, value );
 			q ++;
