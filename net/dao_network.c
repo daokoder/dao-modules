@@ -122,6 +122,7 @@ typedef struct DaoDataPacket
 
 static int offset = (char*) ( & ((DaoDataPacket*)0)->data ) - (char*) ( & ((DaoDataPacket*)0)->type );
 static const char neterr[] = "Network";
+static const char hosterr[] = "Network::Host";
 
 static void GetErrorMessage( char *buffer, int code )
 {
@@ -519,7 +520,7 @@ int ParseAddr( DaoProcess *proc, DString *addr, ipv4_t *ip, port_t *port, int ho
 		if ( he == NULL){
 			char errbuf[MAX_ERRMSG];
 			GetHostErrorMessage( errbuf, GetHostError() );
-			DaoProcess_RaiseError( proc, neterr, errbuf );
+			DaoProcess_RaiseError( proc, hosterr, errbuf );
 			return 0;
 		}
 		*ip =  *(ipv4_t*)he->h_addr;
@@ -531,7 +532,7 @@ int ParseAddr( DaoProcess *proc, DString *addr, ipv4_t *ip, port_t *port, int ho
 	return 1;
 }
 
-static int DaoSocket_Bind( DaoSocket *self, socket_proto proto, ipv4_t ip, int port, socket_opts opts )
+static int DaoSocket_Bind( DaoSocket *self, socket_proto proto, ipv4_t ip, port_t port, socket_opts opts )
 {
 	DaoSocket_Close( self );
 	self->id = DaoNetwork_Bind( proto, ip, port, opts );
@@ -665,13 +666,11 @@ static void DaoSocket_Lib_Send( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
-	int n;
 	if( self->state != Socket_Connected ){
 		DaoProcess_RaiseError( proc, neterr, "The socket is not connected" );
 		return;
 	}
-	n = DaoNetwork_Send( self->id, DaoString_Get( DaoValue_CastString( par[1] ) ) );
-	if( n == -1 ){
+	if( DaoNetwork_Send( self->id, DaoString_Get( DaoValue_CastString( par[1] ) ) ) == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 	}
@@ -939,7 +938,7 @@ struct in_addr* GetAddr( DaoProcess *proc, DaoValue *param, struct hostent **he 
 		if ( *he == NULL){
 			char errbuf[MAX_ERRMSG];
 			GetHostErrorMessage( errbuf, GetHostError() );
-			DaoProcess_RaiseError( proc, neterr, errbuf );
+			DaoProcess_RaiseError( proc, hosterr, errbuf );
 			return NULL;
 		}
 		return (struct in_addr *)(*he)->h_addr;
@@ -1712,7 +1711,7 @@ static void DaoNetLib_GetHost( DaoProcess *proc, DaoValue *par[], int N  )
 			DaoProcess_PutNone( proc );
 		else {
 			GetHostErrorMessage( errbuf, error );
-			DaoProcess_RaiseError( proc, neterr, errbuf );
+			DaoProcess_RaiseError( proc, hosterr, errbuf );
 		}
 		return;
 	}
