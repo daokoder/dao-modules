@@ -25,6 +25,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include <ctype.h>
 #include "dao_regex.h"
 
 static DaoType *daox_type_regex = NULL;

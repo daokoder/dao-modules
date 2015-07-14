@@ -28,6 +28,7 @@
 // 2014-05: Danilov Aleksey, initial implementation
 
 #include<string.h>
+#include<ctype.h>
 #include"dao_xml.h"
 
 typedef int xml_error;

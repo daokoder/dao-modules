@@ -37,6 +37,7 @@
 #include"errno.h"
 #include"limits.h"
 #include"stdint.h"
+#include"ctype.h"
 
 #ifdef UNIX
 

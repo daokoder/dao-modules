@@ -31,6 +31,7 @@
 #include"string.h"
 #include"unistd.h"
 #include"time.h"
+#include"ctype.h"
 
 // must be larger than the size of boundary string for multipart/form-data:
 #define LOCAL_BUF_SIZE 1000
