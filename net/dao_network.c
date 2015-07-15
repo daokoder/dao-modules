@@ -2301,7 +2301,7 @@ void DaoNetwork_Init( DaoVmSpace *vms, DaoNamespace *ns )
 
 #define SimpleTypes     "none|bool|int|float|complex|string"
 #define ArrayTypes      "array<bool>|array<int>|array<float>|array<complex>"
-#define ContainerTypes  "list<Object>|map<Object,Object>|tuple<...|Object>"
+#define ContainerTypes  "list<Object>|map<Object,Object>|tuple<...:Object>"
 
 DAO_DLL int DaoNet_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
