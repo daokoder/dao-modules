@@ -35,6 +35,7 @@
 static DaoType *daox_type_header = NULL;
 static DaoType *daox_type_request = NULL;
 static DaoType *daox_type_response = NULL;
+static DaoType *daox_type_chunkDecoder = NULL;
 
 DaoHttpRequest* DaoHttpRequest_New()
 {
@@ -998,6 +999,191 @@ static void HTTP_InitResponse( DaoProcess *proc, DaoValue *p[], int N )
 	DString_AppendChars( resp, "\r\n" );
 }
 
+static void DaoChunkDecoder_Create( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoChunkDecoder *res = (DaoChunkDecoder*)dao_malloc(sizeof(DaoChunkDecoder));
+	res->status = Status_Idle;
+	res->pending = 0;
+	res->part = DString_New();
+	res->last = 0;
+	DaoProcess_PutCdata( proc, res, daox_type_chunkDecoder );
+}
+
+void DaoChunkDecoder_Delete( DaoChunkDecoder *self )
+{
+	DString_Delete( self->part );
+	dao_free( self );
+}
+
+static void DaoChunkDecoder_Status( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoChunkDecoder *self = (DaoChunkDecoder*)DaoValue_TryGetCdata( p[0] );
+	const char *symbol = "";
+	switch ( self->status ){
+	case Status_Idle:				symbol = "idle"; break;
+	case Status_IncompleteBody:		symbol = "body"; break;
+	case Status_TrailExpected:		symbol = "trail"; break;
+	case Status_IncompleteHeader:	symbol = "header"; break;
+	case Status_Finished:			symbol = "finished"; break;
+	}
+	DaoProcess_PutEnum( proc, symbol );
+}
+
+static void DaoChunkDecoder_Count( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoChunkDecoder *self = (DaoChunkDecoder*)DaoValue_TryGetCdata( p[0] );
+	DaoProcess_PutInteger( proc, self->pending );
+}
+
+int CheckTrail( const char *str, int expected )
+{
+	if ( !*str )
+		return expected;
+	if ( expected == 1 )
+		return *str == '\n'? 0 : -1;
+	if ( *str != '\r' )
+		return -1;
+	return CheckTrail( str + 1, 1 );
+}
+
+static void DaoChunkDecoder_Decode( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoChunkDecoder *self = (DaoChunkDecoder*)DaoValue_TryGetCdata( p[0] );
+	DString *msg = p[1]->xString.value;
+	daoint start = p[2]->xInteger.value;
+	DString *data = DaoProcess_PutChars( proc, "" );
+	daoint pos;
+	char *end;
+	const char *cp;
+	dao_integer size;
+	int count;
+	if ( start >= msg->size )
+		return;
+	// continue from the previous iteration
+	switch ( self->status ){
+	case Status_Idle: // clean state
+		break;
+	case Status_IncompleteBody: // continue reading chunk body
+		size = self->pending;
+		goto ReadBody;
+	case Status_TrailExpected: // pass trailing '\r\n'
+		count = self->pending;
+		self->pending = CheckTrail( msg->chars + start, count );
+		if ( self->pending < 0 ){
+			DaoProcess_RaiseError( proc, "Http", "No trailing '\\r\\n' after chunk body" );
+			return;
+		}
+		if ( self->pending )
+			return;
+		start += count;
+		self->pending = 0;
+		self->status = self->last? Status_Finished : Status_Idle;
+		if ( self->last || start == msg->size )
+			return;
+		break;
+	case Status_IncompleteHeader: // prepend the earlier header part to the data
+		DString_Append( self->part, msg );
+		DString_Assign( msg, self->part );
+		DString_Clear( self->part );
+		break;
+	case Status_Finished: // nothing to do
+		return;
+	}
+	// fresh start
+	while ( 1 ){
+		pos = DString_FindChars( msg, "\r\n", start );
+		if ( pos == DAO_NULLPOS ){ // incomplete chunk header
+			self->status = Status_IncompleteHeader;
+			if ( msg->size - start > 50 ){
+				DaoProcess_RaiseError( proc, "Http", "Chunk header not found" );
+				return;
+			}
+			DString_SetBytes( self->part, msg->chars + start, msg->size - start );
+			self->pending = -1;
+			break;
+		}
+		cp = msg->chars + start;
+		size = strtoull( cp, &end, 16 ); // chunk size
+		if ( cp == end || end - cp != pos - start || size < 0 ){
+			DaoProcess_RaiseError( proc, "Http", "Invalid chunk size" );
+			return;
+		}
+		if ( size == 0 )
+			self->last = 1;
+		start = pos + 2;
+	ReadBody:
+		if ( start + size > msg->size ){ // incomplete chunk body
+			DString_AppendBytes( data, msg->chars + start, msg->size - start );
+			self->status = Status_IncompleteBody;
+			self->pending = size - ( msg->size - start );
+			break;
+		}
+		DString_AppendBytes( data, msg->chars + start, size ); // full body is available
+		start += size;
+		count = CheckTrail( msg->chars + start, 2 ); // should end with '\r\n'
+		if ( count < 0 ){
+			DaoProcess_RaiseError( proc, "Http", "No trailing '\\r\\n' after chunk body" );
+			return;
+		}
+		if ( count ){ // trailing bytes are not available
+			self->status = Status_TrailExpected;
+			self->pending = count;
+			break;
+		}
+		start += 2;
+		if ( self->last ){ // it was the last chunk
+			self->status = Status_Finished;
+			self->pending = 0;
+			break;
+		}
+		if ( start == msg->size ){ // data ends on chunk end
+			self->status = Status_Idle;
+			self->pending = 0;
+			break;
+		}
+	}
+}
+
+static void DaoChunkDecoder_Reset( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoChunkDecoder *self = (DaoChunkDecoder*)DaoValue_TryGetCdata( p[0] );
+	DString_Clear( self->part );
+	self->pending = 0;
+	self->status = Status_Idle;
+	self->last = 0;
+}
+
+static DaoFuncItem chunkDecoderMeths[] =
+{
+	//! Creates idle-state decoder
+	{ DaoChunkDecoder_Create,	"ChunkDecoder()" },
+
+	/*! Decoding status:
+	 *  - idle -- after creation or upon reading a complete chunk
+	 *  - body -- stopped on reading chunk body
+	 *  - trail -- stopped on reading trailing '\r\n' after chunk body
+	 *  - header -- stopped on reading chunk header
+	 *  - finished -- the last chunk was read */
+	{ DaoChunkDecoder_Status,	".status(invar self: ChunkDecoder) => enum<idle,body,trail,header,finished>" },
+
+	//! Bytes left to read in case of incomplete chunk (will be -1 for an incomplete header)
+	{ DaoChunkDecoder_Count,	".bytesPending(invar self: ChunkDecoder) => int" },
+
+	//! Feeds \a data to the decoder starting with the given \a offset. Returns message body or its part
+	//! extracted from \a data
+	{ DaoChunkDecoder_Decode,	"decode(self: ChunkDecoder, data: string, offset = 0) => string" },
+
+	//! Sets the decoder into the idle state
+	{ DaoChunkDecoder_Reset,	"reset(self: ChunkDecoder)" },
+	{ NULL, NULL }
+};
+
+//! Statefule decoder for chunked encoding
+DaoTypeBase chunkDecoderTyper = {
+	"ChunkDecoder", NULL, NULL, chunkDecoderMeths, {NULL}, {0},
+	(FuncPtrDel)DaoChunkDecoder_Delete, NULL
+};
+
 static DaoFuncItem httpMeths[] =
 {
 	//! Returns HTTP request or response header read from \a message. If \a message does not
@@ -1025,6 +1211,7 @@ DAO_DLL int DaoHttp_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	daox_type_header = DaoNamespace_WrapType( httptns, &headerTyper, DAO_CTYPE_OPAQUE | DAO_CTYPE_INVAR );
 	daox_type_request = DaoNamespace_WrapType( httptns, &requestTyper, DAO_CTYPE_OPAQUE | DAO_CTYPE_INVAR );
 	daox_type_response = DaoNamespace_WrapType( httptns, &responseTyper, DAO_CTYPE_OPAQUE | DAO_CTYPE_INVAR );
+	daox_type_chunkDecoder = DaoNamespace_WrapType( httptns, &chunkDecoderTyper, DAO_CTYPE_OPAQUE );
 	DaoNamespace_WrapFunctions( httptns, httpMeths );
 	return 0;
 }

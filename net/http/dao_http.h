@@ -36,6 +36,7 @@
 typedef struct DaoHttpHeader DaoHttpHeader;
 typedef struct DaoHttpRequest DaoHttpRequest;
 typedef struct DaoHttpResponse DaoHttpResponse;
+typedef struct DaoChunkDecoder DaoChunkDecoder;
 
 #define DAO_HTTP_HEADER_COMMON DString *version; DMap *headers; daoint size
 
@@ -78,5 +79,20 @@ typedef enum {
 	Http_InvalidFieldName,
 	Http_InvalidFieldValue
 } http_err_t;
+
+typedef enum {
+	Status_Idle = 0,
+	Status_IncompleteBody,
+	Status_TrailExpected,
+	Status_IncompleteHeader,
+	Status_Finished
+} chunk_status_t;
+
+struct DaoChunkDecoder {
+	chunk_status_t status;
+	daoint pending;
+	DString *part;
+	uchar_t last;
+};
 
 #endif
