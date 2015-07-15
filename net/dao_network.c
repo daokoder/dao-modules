@@ -77,8 +77,10 @@ typedef int socklen_t;
 
 #endif
 
+
 #include"dao.h"
 #include"daoValue.h"
+#include"daoStdtype.h"
 #include"daoStream.h"
 #include"daoThread.h"
 
@@ -98,30 +100,37 @@ static DMutex net_mtx;
 #define SEND_FLAGS 0
 #endif
 
-#define MAX_DATA 512 /*  max number of bytes we can get at once */
+#define DAOX_PACKET_MAX 0x7fff
+
+#define DAO_INT32      (END_SUB_TYPES+1)
+#define DAO_INT64      (END_SUB_TYPES+2)
+#define DAO_FLOAT32    (END_SUB_TYPES+3)
+#define DAO_FLOAT64    (END_SUB_TYPES+4)
+#define DAO_COMPLEX32  (END_SUB_TYPES+5)
+#define DAO_COMPLEX64  (END_SUB_TYPES+6)
+
 
 typedef uint32_t ipv4_t;
 typedef uint16_t port_t;
 
-/* types */
-enum DaoProxyProtocol
+typedef struct sockaddr_in  sockaddr_in;
+
+typedef struct DaoDataPacket  DaoDataPacket;
+
+struct DaoDataPacket
 {
-	DPP_TRANS_DATA = 0,
-	DPP_TRANS_END  = 1,
-	DPP_NULL
+	uint8_t   type;     /* Value type; */
+	uint8_t   subtype;  /* Value subtype; */
+	uint8_t   count[2]; /* Byte count in ::data; */
+	uint8_t   aux1[8];  /* Aux information for the value; */
+	uint8_t   aux2[8];  /* Aux information for the value; */
+	uint8_t   data[ DAOX_PACKET_MAX + 128 ];
 };
 
-typedef struct DaoDataPacket
-{
-	char  type;
-	char  tag; /* for string and numarray */
-	short size;
-	int   dataI1; /* for string and numarray */
-	int   dataI2; /* for numarray */
-	char  data[ MAX_DATA + 100 ];
-} DaoDataPacket;
+#define null_packet  ((DaoDataPacket*)NULL)
+static int packet_core_size = (char*) &null_packet->data - (char*) &null_packet->type;
 
-static int offset = (char*) ( & ((DaoDataPacket*)0)->data ) - (char*) ( & ((DaoDataPacket*)0)->type );
+
 static const char neterr[] = "Network";
 static const char hosterr[] = "Network::Host";
 
@@ -299,7 +308,7 @@ int DaoNetwork_Connect( ipv4_t ip, port_t port )
 #define INTERRUPTED EINTR
 #endif
 
-int LoopSend( int sockfd, char *buf, int size, struct sockaddr_in *addr )
+int LoopSend( int sockfd, char *buf, int size, sockaddr_in *addr )
 {
 	socklen_t addrlen = addr? sizeof(*addr) : 0;
 	int left = size;
@@ -312,17 +321,16 @@ int LoopSend( int sockfd, char *buf, int size, struct sockaddr_in *addr )
 		}
 		else if( GetError() != INTERRUPTED )
 			return -1;
-	}
-	while( left > 0 );
+	} while( left > 0 );
 	return size;
 }
-int LoopReceive( int sockfd, char *buf, int size, int flags, struct sockaddr_in *addr )
+int LoopReceive( int sockfd, char *buf, int size, int flags, sockaddr_in *addr )
 {
 	socklen_t addrlen = addr? sizeof(*addr) : 0;
 	daoint numbytes;
-	do
+	do{
 		numbytes = recvfrom( sockfd, buf, size, flags, (struct sockaddr*)addr, &addrlen );
-	while( numbytes == -1 && GetError() == INTERRUPTED );
+	} while( numbytes == -1 && GetError() == INTERRUPTED );
 	return numbytes;
 }
 int DaoNetwork_Send( int sockfd, DString *buf )
@@ -331,7 +339,7 @@ int DaoNetwork_Send( int sockfd, DString *buf )
 }
 int DaoNetwork_SendTo( int sockfd, ipv4_t ip, port_t port, DString *buf )
 {
-	struct sockaddr_in addr;
+	sockaddr_in addr;
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons( port );
 	addr.sin_addr.s_addr = ip;
@@ -350,7 +358,7 @@ int DaoNetwork_Receive( int sockfd, DString *buf, int max )
 	/* if( numbytes >=0 ) buf->size = numbytes; */
 	return numbytes;
 }
-int DaoNetwork_ReceiveFrom( int sockfd, struct sockaddr_in *addr, DString *buf, int max )
+int DaoNetwork_ReceiveFrom( int sockfd, sockaddr_in *addr, DString *buf, int max )
 {
 	daoint numbytes;
 	if ( max <= 0 )
@@ -363,6 +371,395 @@ int DaoNetwork_ReceiveFrom( int sockfd, struct sockaddr_in *addr, DString *buf, 
 	/* if( numbytes >=0 ) buf->size = numbytes; */
 	return numbytes;
 }
+
+static void DaoNetwork_EncodeUInt16( uint8_t data[], uint16_t value )
+{
+	uint8_t i, w = sizeof(uint16_t);
+	for(i=0; i<w; ++i) data[i] = (value >> 8*(w-1-i)) & 0xFF;
+}
+static void DaoNetwork_EncodeInt32( uint8_t data[], int32_t value )
+{
+	uint8_t i, w = sizeof(int32_t);
+	for(i=0; i<w; ++i) data[i] = (value >> 8*(w-1-i)) & 0xFF;
+}
+static void DaoNetwork_EncodeInt64( uint8_t data[], int64_t value )
+{
+	uint8_t i, w = sizeof(int64_t);
+	for(i=0; i<w; ++i) data[i] = (value >> 8*(w-1-i)) & 0xFF;
+}
+static int DaoNetwork_BigEndianFloat()
+{
+	double inf = INFINITY;
+	uint8_t *bytes = (uint8_t*) & inf;
+	return bytes[0] != 0;
+}
+static void DaoNetwork_EncodeFloat32( uint8_t *data, float value )
+{
+	uint8_t i, w = sizeof(float);
+	uint8_t *bytes = (uint8_t*) & value;
+	if( DaoNetwork_BigEndianFloat() ){
+		for(i=0; i<w; ++i) data[i] = bytes[i];
+	}else{
+		for(i=0; i<w; ++i) data[i] = bytes[w-1-i];
+	}
+}
+static void DaoNetwork_EncodeFloat64( uint8_t *data, double value )
+{
+	uint8_t i, w = sizeof(double);
+	uint8_t *bytes = (uint8_t*) & value;
+	if( DaoNetwork_BigEndianFloat() ){
+		for(i=0; i<w; ++i) data[i] = bytes[i];
+	}else{
+		for(i=0; i<w; ++i) data[i] = bytes[w-1-i];
+	}
+}
+static void DaoNetwork_EncodeDaoInteger( uint8_t *data, dao_integer value )
+{
+	if( sizeof(dao_integer) == sizeof(int64_t) ){
+		DaoNetwork_EncodeInt64( data, value );
+	}else{
+		DaoNetwork_EncodeInt32( data, value );
+	}
+}
+static void DaoNetwork_EncodeDaoFloat( uint8_t *data, dao_float value )
+{
+	if( sizeof(dao_float) == sizeof(double) ){
+		DaoNetwork_EncodeFloat64( data, value );
+	}else{
+		DaoNetwork_EncodeFloat32( data, value );
+	}
+}
+static uint16_t DaoNetwork_DecodeUInt16( uint8_t *data )
+{
+	uint8_t i, w = sizeof(int16_t);
+	uint16_t value = 0;
+	for(i=0; i<w; ++i) value |= ((uint16_t)data[i]) << 8*(w-1-i);
+	return (int16_t)value;
+}
+static int32_t DaoNetwork_DecodeInt32( uint8_t *data )
+{
+	uint8_t i, w = sizeof(int32_t);
+	uint32_t value = 0;
+	for(i=0; i<w; ++i) value |= ((uint32_t)data[i]) << 8*(w-1-i);
+	return (int32_t)value;
+}
+static int64_t DaoNetwork_DecodeInt64( uint8_t *data )
+{
+	uint8_t i, w = sizeof(int64_t);
+	uint64_t value = 0;
+	for(i=0; i<w; ++i) value |= ((uint64_t)data[i]) << 8*(w-1-i);
+	return (int64_t)value;
+}
+static dao_integer DaoNetwork_DecodeDaoInt( uint8_t *data, int width )
+{
+	if( width == sizeof(int64_t) ) return DaoNetwork_DecodeInt64( data );
+	return DaoNetwork_DecodeInt32( data );
+}
+float DaoNetwork_DecodeFloat32( uint8_t *data )
+{
+	uint8_t i, w = sizeof(float);
+	uint8_t bytes[sizeof(float)];
+	if( DaoNetwork_BigEndianFloat() ) return *(float*) data;
+	for(i=0; i<w; ++i) bytes[i] = data[w-1-i];
+	return *(float*) bytes;
+}
+double DaoNetwork_DecodeFloat64( uint8_t *data )
+{
+	uint8_t i, w = sizeof(double);
+	uint8_t bytes[sizeof(double)];
+	if( DaoNetwork_BigEndianFloat() ) return *(double*) data;
+	for(i=0; i<w; ++i) bytes[i] = data[w-1-i];
+	return *(double*) bytes;
+}
+static dao_float DaoNetwork_DecodeDaoFloat( uint8_t *data, int width )
+{
+	if( width == sizeof(double) ) return DaoNetwork_DecodeFloat64( data );
+	return DaoNetwork_DecodeFloat32( data );
+}
+static dao_complex DaoNetwork_DecodeComplex( uint8_t *data, int width )
+{
+	dao_complex res;
+	if( width == sizeof(double) ){
+		res.real = DaoNetwork_DecodeFloat64( data );
+		res.imag = DaoNetwork_DecodeFloat64( data + width );
+	}else{
+		res.real = DaoNetwork_DecodeFloat32( data );
+		res.imag = DaoNetwork_DecodeFloat32( data + width );
+	}
+	return res;
+}
+static int DaoNetwork_SendEnd( int sockfd, sockaddr_in *addr, dao_boolean value )
+{
+	DaoDataPacket packet = {0};
+	packet.type = 0xff;
+	DaoNetwork_EncodeUInt16( packet.count, 0 );
+	return LoopSend( sockfd, (char*)&packet, packet_core_size, addr );
+}
+static int DaoNetwork_SendNone( int sockfd, sockaddr_in *addr, dao_boolean value )
+{
+	DaoDataPacket packet = {0};
+	packet.type = DAO_NONE;
+	DaoNetwork_EncodeUInt16( packet.count, 0 );
+	return LoopSend( sockfd, (char*)&packet, packet_core_size, addr );
+}
+static int DaoNetwork_SendBoolean( int sockfd, sockaddr_in *addr, dao_boolean value )
+{
+	DaoDataPacket packet = {0};
+
+	packet.type = DAO_INTEGER;
+	packet.data[0] = value;
+	DaoNetwork_EncodeUInt16( packet.count, 1 );
+	return LoopSend( sockfd, (char*)&packet, packet_core_size + 1, addr );
+}
+static int DaoNetwork_SendInteger( int sockfd, sockaddr_in *addr, dao_integer value )
+{
+	DaoDataPacket packet = {0};
+
+	packet.type = DAO_INTEGER;
+	packet.subtype = sizeof(dao_integer);
+	DaoNetwork_EncodeUInt16( packet.count, packet.subtype );
+	DaoNetwork_EncodeDaoInteger( packet.data, value );
+	return LoopSend( sockfd, (char*)&packet, packet_core_size + packet.subtype, addr );
+}
+static int DaoNetwork_SendFloat( int sockfd, sockaddr_in *addr, dao_float value )
+{
+	DaoDataPacket packet = {0};
+
+	packet.type = DAO_FLOAT;
+	packet.subtype = sizeof(dao_float);
+	DaoNetwork_EncodeUInt16( packet.count, packet.subtype );
+	DaoNetwork_EncodeDaoFloat( packet.data, value );
+	return LoopSend( sockfd, (char*)&packet, packet_core_size + packet.subtype, addr );
+}
+static int DaoNetwork_SendComplex( int sockfd, sockaddr_in *addr, dao_complex value )
+{
+	DaoDataPacket packet = {0};
+
+	packet.type = DAO_COMPLEX;
+	packet.subtype = sizeof(dao_float);
+	DaoNetwork_EncodeDaoFloat( packet.data, value.real );
+	DaoNetwork_EncodeDaoFloat( packet.data + packet.subtype, value.imag );
+	DaoNetwork_EncodeUInt16( packet.count, 2*packet.subtype );
+	return LoopSend( sockfd, (char*)&packet, packet_core_size + 2*packet.subtype, addr );
+}
+static int DaoNetwork_SendString( int sockfd, sockaddr_in *addr, DString *value )
+{
+	DaoDataPacket packet = {0};
+	uint32_t length = 0;
+	daoint shift = 0;
+
+	packet.type = DAO_STRING;
+	while( shift < value->size ){
+		int copy = (value->size - shift);
+		if( copy >= DAOX_PACKET_MAX ) copy = DAOX_PACKET_MAX;
+		length = packet_core_size + copy;
+		DaoNetwork_EncodeUInt16( packet.count, copy );
+		DaoNetwork_EncodeInt64( packet.aux1, value->size );
+		DaoNetwork_EncodeInt64( packet.aux2, shift );
+		memcpy( packet.data, value->chars + shift, copy );
+		if( LoopSend( sockfd, (char*) &packet, length, addr ) == -1 ) return -1;
+		shift += copy;
+	}
+	return 0;
+}
+/* TODO: encode shape; */
+static int DaoNetwork_SendArray( int sockfd, sockaddr_in *addr, DaoArray *array )
+{
+	DaoDataPacket packet = {0};
+	uint8_t *buffer = packet.data;
+	uint8_t numtype = array->etype;
+	uint32_t length = 0;
+	daoint j, M = array->size;
+
+	packet.type = DAO_ARRAY;
+	packet.subtype = numtype;
+	DaoNetwork_EncodeInt64( packet.aux1, M );
+	DaoNetwork_EncodeInt64( packet.aux2, 0 );
+	if( numtype == DAO_BOOLEAN ){
+		dao_boolean *vec = array->data.b;
+		for(j=0; j<M; j++){
+			buffer[0] = vec[j];
+			length += sizeof(dao_boolean);
+			buffer += sizeof(dao_boolean);
+			if( length >= DAOX_PACKET_MAX ){
+				int count = packet_core_size + length;
+				DaoNetwork_EncodeUInt16( packet.count, length );
+				if( LoopSend( sockfd, (char*) &packet, count, addr ) == -1 ) return -1;
+				length = 0;
+				buffer = packet.data;
+				DaoNetwork_EncodeInt64( packet.aux2, j+1 );
+			}
+		}
+	}else if( numtype == DAO_INTEGER ){
+		dao_integer *vec = array->data.i;
+		packet.subtype = sizeof(dao_integer) == 4 ? DAO_INT32 : DAO_INT64;
+		for(j=0; j<M; j++){
+			DaoNetwork_EncodeDaoInteger( buffer, vec[j] );
+			length += sizeof(dao_integer);
+			buffer += sizeof(dao_integer);
+			if( length >= DAOX_PACKET_MAX ){
+				int count = packet_core_size + length;
+				DaoNetwork_EncodeUInt16( packet.count, length );
+				if( LoopSend( sockfd, (char*) &packet, count, addr ) == -1 ) return -1;
+				length = 0;
+				buffer = packet.data;
+				DaoNetwork_EncodeInt64( packet.aux2, j+1 );
+			}
+		}
+	}else if( numtype == DAO_FLOAT ){
+		dao_float *vec = array->data.f;
+		packet.subtype = sizeof(dao_float) == 4 ? DAO_FLOAT32 : DAO_FLOAT64;
+		for(j=0; j<M; j++){
+			DaoNetwork_EncodeDaoFloat( buffer, vec[j] );
+			length += sizeof(dao_float);
+			buffer += sizeof(dao_float);
+			if( length >= DAOX_PACKET_MAX ){
+				int count = packet_core_size + length;
+				DaoNetwork_EncodeUInt16( packet.count, length );
+				if( LoopSend( sockfd, (char*) &packet, count, addr ) == -1 ) return -1;
+				length = 0;
+				buffer = packet.data;
+				DaoNetwork_EncodeInt64( packet.aux2, j+1 );
+			}
+		}
+	}else if( numtype == DAO_COMPLEX ){
+		dao_complex *vec = array->data.c;
+		packet.subtype = sizeof(dao_complex) == 8 ? DAO_COMPLEX32 : DAO_COMPLEX64;
+		for(j=0; j<M; j++){
+			DaoNetwork_EncodeDaoFloat( buffer, vec[j].real );
+			DaoNetwork_EncodeDaoFloat( buffer+sizeof(dao_float), vec[j].imag );
+			length += sizeof(dao_complex);
+			buffer += sizeof(dao_complex);
+			if( length >= DAOX_PACKET_MAX ){
+				int count = packet_core_size + length;
+				DaoNetwork_EncodeUInt16( packet.count, length );
+				if( LoopSend( sockfd, (char*) &packet, count, addr ) == -1 ) return -1;
+				length = 0;
+				buffer = packet.data;
+				DaoNetwork_EncodeInt64( packet.aux2, j+1 );
+			}
+		}
+	}
+	DaoNetwork_EncodeUInt16( packet.count, length );
+	return LoopSend( sockfd, (char*) &packet, packet_core_size + length, addr );
+}
+// TODO: tuple, list, map;
+static int DaoNetwork_SendDao( int sockfd, sockaddr_in *addr, DaoValue *value )
+{
+	switch( DaoValue_Type( value ) ){
+	case DAO_NONE    : return DaoNetwork_SendNone( sockfd, addr, value->xBoolean.value );
+	case DAO_BOOLEAN : return DaoNetwork_SendBoolean( sockfd, addr, value->xBoolean.value );
+	case DAO_INTEGER : return DaoNetwork_SendInteger( sockfd, addr, value->xInteger.value );
+	case DAO_FLOAT   : return DaoNetwork_SendFloat( sockfd, addr, value->xFloat.value );
+	case DAO_COMPLEX : return DaoNetwork_SendComplex( sockfd, addr, value->xComplex.value );
+	case DAO_STRING  : return DaoNetwork_SendString( sockfd, addr, value->xString.value );
+	case DAO_ARRAY   : return DaoNetwork_SendArray( sockfd, addr, (DaoArray*) value );
+	default : break;
+	}
+	return 0;
+}
+static int DaoNetwork_ReceivePacket( int sockfd, sockaddr_in *addr, DaoDataPacket *packet )
+{
+	int numbytes = LoopReceive( sockfd, (char*) packet, packet_core_size, 0, addr );
+
+	if( numbytes == -1 ) return 0;
+	if( packet->type == 0xff ) return 1;
+
+	numbytes = DaoNetwork_DecodeUInt16( packet->count );
+	numbytes = LoopReceive( sockfd, (char*) packet->data, numbytes, 0, addr );
+	if( numbytes == -1 ) return 0;
+	return 1;
+}
+static DaoValue* DaoNetwork_ReceiveDao( int sockfd, sockaddr_in *addr, DaoProcess *proc )
+{
+	DaoDataPacket packet = {0};
+	DaoArray *array;
+	DaoString *string;
+	dao_complex cvalue;
+	dao_integer ivalue;
+	dao_float   fvalue;
+	daoint size, offset;
+	int i, count, subtype;
+	int width;
+
+	if( DaoNetwork_ReceivePacket( sockfd, addr, & packet ) == 0 ) return NULL;
+
+	switch( packet.type ){
+	case DAO_BOOLEAN :
+		return (DaoValue*) DaoProcess_NewBoolean( proc, packet.data[0] );
+	case DAO_INTEGER :
+		ivalue = DaoNetwork_DecodeDaoInt( packet.data, packet.subtype );
+		return (DaoValue*) DaoProcess_NewInteger( proc, ivalue );
+	case DAO_FLOAT :
+		fvalue = DaoNetwork_DecodeDaoFloat( packet.data, packet.subtype );
+		return (DaoValue*) DaoProcess_NewFloat( proc, ivalue );
+	case DAO_COMPLEX :
+		cvalue = DaoNetwork_DecodeComplex( packet.data, packet.subtype );
+		return (DaoValue*) DaoProcess_NewComplex( proc, cvalue );
+	case DAO_STRING :
+		string = DaoProcess_NewString( proc, NULL, 0 );
+		size = DaoNetwork_DecodeInt64( packet.aux1 );
+		count = DaoNetwork_DecodeUInt16( packet.count );
+		DString_AppendBytes( string->value, (char*)packet.data, count );
+		while( string->value->size < size ){
+			if( DaoNetwork_ReceivePacket( sockfd, addr, & packet ) == 0 ) return NULL;
+			count = DaoNetwork_DecodeUInt16( packet.count );
+			DString_AppendBytes( string->value, (char*)packet.data, count );
+		}
+		break;
+	case DAO_ARRAY :
+		array = DaoProcess_NewArray( proc, DAO_INTEGER );
+		subtype = packet.subtype;
+		switch( subtype ){
+		case DAO_INT32     :
+		case DAO_INT64     : subtype = DAO_INTEGER; break;
+		case DAO_FLOAT32   :
+		case DAO_FLOAT64   : subtype = DAO_FLOAT; break;
+		case DAO_COMPLEX32 :
+		case DAO_COMPLEX64 : subtype = DAO_COMPLEX; break;
+		}
+		width = 1;
+		switch( subtype ){
+		case DAO_INT32     :
+		case DAO_FLOAT32   :
+		case DAO_COMPLEX32 : width = 4; break;
+		case DAO_INT64     :
+		case DAO_FLOAT64   :
+		case DAO_COMPLEX64 : width = 8; break;
+		}
+		size   = DaoNetwork_DecodeInt64( packet.aux1 );
+		DaoArray_SetNumType( array, subtype );
+		DaoArray_ResizeVector( array, size );
+		while( packet.type == DAO_ARRAY ){
+			count = DaoNetwork_DecodeUInt16( packet.count );
+			offset = DaoNetwork_DecodeInt64( packet.aux2 );
+			for(i=0; i<count; i+=width, offset+=1){
+				switch( subtype ){
+				case DAO_BOOLEAN :
+					array->data.b[offset] = packet.data[i];
+					break;
+				case DAO_INTEGER :
+					array->data.i[offset] = DaoNetwork_DecodeDaoInt( packet.data+i, width );
+					break;
+				case DAO_FLOAT :
+					array->data.f[offset] = DaoNetwork_DecodeDaoFloat( packet.data+i, width );
+					break;
+				case DAO_COMPLEX :
+					array->data.c[offset] = DaoNetwork_DecodeComplex( packet.data+i, width );
+					i += width;
+					break;
+				}
+			}
+			if( DaoNetwork_ReceivePacket( sockfd, addr, & packet ) == 0 ) return NULL;
+		}
+		break;
+	case DAO_NONE : return dao_none_value;
+	}
+	return NULL;
+}
+
+
+
 
 enum {
 	Shutdown_None = 0,
@@ -1902,9 +2299,14 @@ void DaoNetwork_Init( DaoVmSpace *vms, DaoNamespace *ns )
 	NET_INIT();
 }
 
+#define SimpleTypes     "none|bool|int|float|complex|string"
+#define ArrayTypes      "array<bool>|array<int>|array<float>|array<complex>"
+#define ContainerTypes  "list<Object>|map<Object,Object>|tuple<...|Object>"
+
 DAO_DLL int DaoNet_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *netns = DaoNamespace_GetNamespace( ns, "net" );
+	DaoNamespace_DefineType( netns, SimpleTypes"|"ArrayTypes"|"ContainerTypes, "Object" );
 	DaoNamespace_AddConstNumbers( netns, netConsts );
 	daox_type_ipv4addr = DaoNamespace_WrapType( netns, & Ipv4AddrTyper, DAO_CTYPE_INVAR | DAO_CTYPE_OPAQUE );
 	daox_type_sockaddr = DaoNamespace_WrapType( netns, & sockaddrTyper, DAO_CTYPE_INVAR | DAO_CTYPE_OPAQUE );

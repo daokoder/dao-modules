@@ -355,10 +355,10 @@ static DaoFuncItem sysMeths[]=
 	/*! Spawns sub-process which executes the given shell \a command with redirected standard input or output depending on \a mode.
 	 * If \a mode is 'r', returns readable stream of the process output; if \a mode is 'w', returns writable stream of the process
 	 * input */
-//	{ PIPE_New,     "popen( command: string, mode: string ) => os::PipeStream" },
+	{ PIPE_New,     "popen( command: string, mode: string ) => os::PipeStream" },
 
 	/*! Closes \a pipe created by `popen()`, waits for the sub-process to finish and returns its exit code */
-//	{ PIPE_Close,    "pclose( pipe: os::PipeStream ) => int" },
+	{ PIPE_Close,    "pclose( pipe: os::PipeStream ) => int" },
 
 	/*! Suspends execution of the current thread for the specified amount of \a seconds */
 	{ OS_Sleep,     "sleep( seconds: float )" },
@@ -407,8 +407,8 @@ DAO_DLL int DaoOS_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *osns = DaoVmSpace_GetNamespace( vmSpace, "os" );
 	DaoNamespace_AddConstValue( ns, "os", (DaoValue*)osns );
-//	pipeTyper.supers[0] = dao_type_stream->typer;
-//	daox_type_pipestream = DaoNamespace_WrapType( osns, & pipeTyper, 0 );
+	pipeTyper.supers[0] = DaoType_GetTyper( dao_type_stream );
+	daox_type_pipestream = DaoNamespace_WrapType( osns, & pipeTyper, 0 );
 
 	DaoNamespace_WrapFunctions( osns, sysMeths );
 	DaoNamespace_AddConstNumbers( osns, sysConsts );
