@@ -1104,7 +1104,7 @@ static void DaoChunkDecoder_Decode( DaoProcess *proc, DaoValue *p[], int N )
 		}
 		cp = msg->chars + start;
 		size = strtoull( cp, &end, 16 ); // chunk size
-		if ( cp == end || end - cp != pos - start || size < 0 ){
+		if ( cp == end || ( end - cp != pos - start && *end != ';' ) || size < 0 ){
 			DaoProcess_RaiseError( proc, "Http", "Invalid chunk size" );
 			return;
 		}
