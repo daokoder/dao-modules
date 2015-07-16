@@ -14,8 +14,11 @@ class Server
 			message = stream.read();
 			io.writeln( conn.addr );
 			io.writeln( 'received', message );
-			stream.serialize( [1,2,3,4,5] )
-			stream.serialize( [1.5C,2,3,4,5] )
+			stream.serialize( [1,2;4,5] )
+			stream.serialize( (name = "test", index = 123, [10C, 20]) )
+			stream.serialize( { (name = "test", index = 123, [10C, 20]) } )
+			stream.serialize( { "AA"-> 11, "BB"->22 } )
+			stream.serialize( { {1}, {2}, {3} } )
 			stream.write( 'TEST' );
 			stream.close();
 			break;
@@ -32,8 +35,12 @@ class Client
 		sockfd.write( 'TEST' );
 		object1 = sockfd.deserialize()
 		object2 = sockfd.deserialize()
+		object2 = sockfd.deserialize()
+		object3 = sockfd.deserialize()
+		object4 = sockfd.deserialize()
 		message = sockfd.read();
-		io.writeln( 'received', object1, object2, message );
+		io.writeln( 'received', object1, object2, std.about(object2), message );
+		io.writeln( 'received', object3, object4, std.about(object4), message );
 		sockfd.close();
 	}
 }

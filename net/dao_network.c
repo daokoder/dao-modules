@@ -83,6 +83,7 @@ typedef int socklen_t;
 #include"daoStdtype.h"
 #include"daoStream.h"
 #include"daoThread.h"
+#include"daoParser.h"
 
 #ifdef UNIX
 
@@ -100,7 +101,7 @@ static DMutex net_mtx;
 #define SEND_FLAGS 0
 #endif
 
-#define DAOX_PACKET_MAX 0x7fff
+#define DAOX_PACKET_MAX 0xfff
 
 #define DAO_INT32      (END_SUB_TYPES+1)
 #define DAO_INT64      (END_SUB_TYPES+2)
@@ -562,22 +563,35 @@ static int DaoNetwork_SendString( int sockfd, sockaddr_in *addr, DString *value 
 	}
 	return 0;
 }
-/* TODO: encode shape; */
 static int DaoNetwork_SendArray( int sockfd, sockaddr_in *addr, DaoArray *array )
 {
 	DaoDataPacket packet = {0};
 	uint8_t *buffer = packet.data;
 	uint8_t numtype = array->etype;
 	uint32_t length = 0;
-	daoint j, M = array->size;
+	daoint j;
 
 	packet.type = DAO_ARRAY;
 	packet.subtype = numtype;
-	DaoNetwork_EncodeInt64( packet.aux1, M );
+	DaoNetwork_EncodeInt64( packet.aux1, array->ndim );
+	DaoNetwork_EncodeInt64( packet.aux2, sizeof(dao_integer) );
+
+	length = array->ndim * sizeof(dao_integer);
+	if( length >= DAOX_PACKET_MAX ) return -1; // TODO: error, too many dimensions;
+
+	for(j=0; j<array->ndim; j++){
+		DaoNetwork_EncodeDaoInteger( packet.data + j*sizeof(dao_integer), array->dims[j] );
+	}
+	DaoNetwork_EncodeUInt16( packet.count, length );
+	if( LoopSend( sockfd, (char*) &packet, packet_core_size+length, addr ) == -1 ) return -1;
+
+	length = 0;
+	buffer = packet.data;
+	DaoNetwork_EncodeInt64( packet.aux1, array->size );
 	DaoNetwork_EncodeInt64( packet.aux2, 0 );
 	if( numtype == DAO_BOOLEAN ){
 		dao_boolean *vec = array->data.b;
-		for(j=0; j<M; j++){
+		for(j=0; j<array->size; j++){
 			buffer[0] = vec[j];
 			length += sizeof(dao_boolean);
 			buffer += sizeof(dao_boolean);
@@ -593,7 +607,7 @@ static int DaoNetwork_SendArray( int sockfd, sockaddr_in *addr, DaoArray *array 
 	}else if( numtype == DAO_INTEGER ){
 		dao_integer *vec = array->data.i;
 		packet.subtype = sizeof(dao_integer) == 4 ? DAO_INT32 : DAO_INT64;
-		for(j=0; j<M; j++){
+		for(j=0; j<array->size; j++){
 			DaoNetwork_EncodeDaoInteger( buffer, vec[j] );
 			length += sizeof(dao_integer);
 			buffer += sizeof(dao_integer);
@@ -609,7 +623,7 @@ static int DaoNetwork_SendArray( int sockfd, sockaddr_in *addr, DaoArray *array 
 	}else if( numtype == DAO_FLOAT ){
 		dao_float *vec = array->data.f;
 		packet.subtype = sizeof(dao_float) == 4 ? DAO_FLOAT32 : DAO_FLOAT64;
-		for(j=0; j<M; j++){
+		for(j=0; j<array->size; j++){
 			DaoNetwork_EncodeDaoFloat( buffer, vec[j] );
 			length += sizeof(dao_float);
 			buffer += sizeof(dao_float);
@@ -625,7 +639,7 @@ static int DaoNetwork_SendArray( int sockfd, sockaddr_in *addr, DaoArray *array 
 	}else if( numtype == DAO_COMPLEX ){
 		dao_complex *vec = array->data.c;
 		packet.subtype = sizeof(dao_complex) == 8 ? DAO_COMPLEX32 : DAO_COMPLEX64;
-		for(j=0; j<M; j++){
+		for(j=0; j<array->size; j++){
 			DaoNetwork_EncodeDaoFloat( buffer, vec[j].real );
 			DaoNetwork_EncodeDaoFloat( buffer+sizeof(dao_float), vec[j].imag );
 			length += sizeof(dao_complex);
@@ -643,8 +657,99 @@ static int DaoNetwork_SendArray( int sockfd, sockaddr_in *addr, DaoArray *array 
 	DaoNetwork_EncodeUInt16( packet.count, length );
 	return LoopSend( sockfd, (char*) &packet, packet_core_size + length, addr );
 }
-// TODO: tuple, list, map;
-static int DaoNetwork_SendDao( int sockfd, sockaddr_in *addr, DaoValue *value )
+
+static int DaoNetwork_SendDao( int sockfd, sockaddr_in *addr, DaoValue *value, DaoType *type );
+
+static DaoType* DaoType_GetFieldType( DaoType *self, int i )
+{
+	DaoType *itype = NULL;
+	if( i < self->nested->size ){
+		itype = self->nested->items.pType[i];
+		if( itype->tid >= DAO_PAR_NAMED && itype->tid < DAO_PAR_VALIST ){
+			itype = (DaoType*) itype->aux;
+		}
+	}else if( self->variadic ){
+		itype = (DaoType*) self->nested->items.pType[self->nested->size-1]->aux;
+	}
+	return itype;
+}
+
+static int DaoNetwork_SendTuple( int sockfd, sockaddr_in *addr, DaoTuple *tuple, DaoType *type )
+{
+	DaoDataPacket packet = {0};
+	int i;
+
+	packet.type = DAO_TUPLE;
+	packet.subtype = tuple->ctype != type;
+	DaoNetwork_EncodeInt64( packet.aux1, tuple->size );
+	DaoNetwork_EncodeUInt16( packet.count, 0 );
+
+	if( LoopSend( sockfd, (char*) &packet, packet_core_size, addr ) == -1 ) return -1;
+
+	/*
+	// If this tuple is an element of a container, the "type" will be the proper
+	// nominative type for this tuple. If the exact type of this tuple is the same
+	// as the nominative type, we can skip serializing this type name, since it
+	// is already serialized.
+	*/
+	if( packet.subtype ){
+		if( DaoNetwork_SendString( sockfd, addr, tuple->ctype->name ) == -1 ) return -1;
+	}
+	for(i=0; i<tuple->size; ++i){
+		DaoType *itype = DaoType_GetFieldType( tuple->ctype, i );
+		if( DaoNetwork_SendDao( sockfd, addr, tuple->values[i], itype ) == -1 ) return -1;
+	}
+	return 0;
+}
+static int DaoNetwork_SendList( int sockfd, sockaddr_in *addr, DaoList *list, DaoType *type )
+{
+	DaoDataPacket packet = {0};
+	DaoType *itype;
+	int i;
+
+	packet.type = DAO_LIST;
+	packet.subtype = list->ctype != type;
+	DaoNetwork_EncodeInt64( packet.aux1, list->value->size );
+	DaoNetwork_EncodeUInt16( packet.count, 0 );
+
+	if( LoopSend( sockfd, (char*) &packet, packet_core_size, addr ) == -1 ) return -1;
+	if( packet.subtype ){
+		if( DaoNetwork_SendString( sockfd, addr, list->ctype->name ) == -1 ) return -1;
+	}
+	itype = list->ctype->nested->items.pType[0];
+	for(i=0; i<list->value->size; ++i){
+		if( DaoNetwork_SendDao( sockfd, addr, list->value->items.pValue[i], itype ) == -1 ){
+			return -1;
+		}
+	}
+	return 0;
+}
+static int DaoNetwork_SendMap( int sockfd, sockaddr_in *addr, DaoMap *map, DaoType *type )
+{
+	DaoDataPacket packet = {0};
+	DaoType *keytype;
+	DaoType *valtype;
+	DNode *it;
+
+	packet.type = DAO_MAP;
+	packet.subtype = map->ctype != type;
+	DaoNetwork_EncodeInt64( packet.aux1, map->value->size );
+	DaoNetwork_EncodeInt64( packet.aux2, map->value->hashing );
+	DaoNetwork_EncodeUInt16( packet.count, 0 );
+
+	if( LoopSend( sockfd, (char*) &packet, packet_core_size, addr ) == -1 ) return -1;
+	if( packet.subtype ){
+		if( DaoNetwork_SendString( sockfd, addr, map->ctype->name ) == -1 ) return -1;
+	}
+	keytype = map->ctype->nested->items.pType[0];
+	valtype = map->ctype->nested->items.pType[1];
+	for(it=DMap_First(map->value); it; it=DMap_Next(map->value,it)){
+		if( DaoNetwork_SendDao( sockfd, addr, it->key.pValue, keytype ) == -1 ) return -1;
+		if( DaoNetwork_SendDao( sockfd, addr, it->value.pValue, valtype ) == -1 ) return -1;
+	}
+	return 0;
+}
+static int DaoNetwork_SendDao( int sockfd, sockaddr_in *addr, DaoValue *value, DaoType *type )
 {
 	switch( DaoValue_Type( value ) ){
 	case DAO_NONE    : return DaoNetwork_SendNone( sockfd, addr );
@@ -654,6 +759,9 @@ static int DaoNetwork_SendDao( int sockfd, sockaddr_in *addr, DaoValue *value )
 	case DAO_COMPLEX : return DaoNetwork_SendComplex( sockfd, addr, value->xComplex.value );
 	case DAO_STRING  : return DaoNetwork_SendString( sockfd, addr, value->xString.value );
 	case DAO_ARRAY   : return DaoNetwork_SendArray( sockfd, addr, (DaoArray*) value );
+	case DAO_TUPLE   : return DaoNetwork_SendTuple( sockfd, addr, (DaoTuple*) value, type );
+	case DAO_LIST    : return DaoNetwork_SendList( sockfd, addr, (DaoList*) value, type );
+	case DAO_MAP     : return DaoNetwork_SendMap( sockfd, addr, (DaoMap*) value, type );
 	default : break;
 	}
 	return -1;
@@ -670,32 +778,68 @@ static int DaoNetwork_ReceivePacket( int sockfd, sockaddr_in *addr, DaoDataPacke
 	if( numbytes == -1 ) return 0;
 	return 1;
 }
-static DaoValue* DaoNetwork_ReceiveDao( int sockfd, sockaddr_in *addr, DaoProcess *proc )
+
+typedef struct DaoNetObjBuffer DaoNetObjBuffer;
+struct DaoNetObjBuffer
 {
+	DaoProcess    *process;
+	DaoNamespace  *nameSpace;
+	DaoType       *type;
+	DaoBoolean    *bnumber;
+	DaoInteger    *inumber;
+	DaoFloat      *fnumber;
+	DaoComplex    *cnumber;
+	DaoString     *string;
+};
+
+static DaoValue* DaoNetwork_ReceiveDao( int sockfd, sockaddr_in *addr,  DaoNetObjBuffer *obuffer )
+{
+	DaoProcess *proc = obuffer->process;
+	DaoNamespace *ns = obuffer->nameSpace;
 	DaoDataPacket packet = {0};
-	DaoArray *array;
+	DaoValue *value;
 	DaoString *string;
+	DaoArray *array;
+	DaoTuple *tuple;
+	DaoList *list;
+	DaoMap *map;
+	DaoType *type;
+	DaoType *itype;
+	DaoType *keytype;
+	DaoType *valtype;
 	dao_complex cvalue;
-	dao_integer ivalue;
-	dao_float   fvalue;
 	daoint size, offset;
 	int i, count, subtype;
-	int width;
+	int width, hashing;
 
 	if( DaoNetwork_ReceivePacket( sockfd, addr, & packet ) == 0 ) return NULL;
 
 	switch( packet.type ){
 	case DAO_BOOLEAN :
-		return (DaoValue*) DaoProcess_NewBoolean( proc, packet.data[0] );
+		/*
+		// Since primitive values get copied when assigned or moved,
+		// so reusing a single primitive value for deserialization
+		// may save a lot of memory allocations.
+		*/
+		if( obuffer->bnumber == NULL ) obuffer->bnumber = DaoProcess_NewBoolean( proc, 0 );
+		obuffer->bnumber->value = packet.data[0];
+		return (DaoValue*) obuffer->bnumber;
 	case DAO_INTEGER :
-		ivalue = DaoNetwork_DecodeDaoInt( packet.data, packet.subtype );
-		return (DaoValue*) DaoProcess_NewInteger( proc, ivalue );
+		if( obuffer->inumber == NULL ) obuffer->inumber = DaoProcess_NewInteger( proc, 0 );
+		obuffer->inumber->value = DaoNetwork_DecodeDaoInt( packet.data, packet.subtype );
+		return (DaoValue*) obuffer->inumber;
 	case DAO_FLOAT :
-		fvalue = DaoNetwork_DecodeDaoFloat( packet.data, packet.subtype );
-		return (DaoValue*) DaoProcess_NewFloat( proc, fvalue );
+		if( obuffer->fnumber == NULL ) obuffer->fnumber = DaoProcess_NewFloat( proc, 0.0 );
+		obuffer->fnumber->value = DaoNetwork_DecodeDaoFloat( packet.data, packet.subtype );
+		return (DaoValue*) obuffer->fnumber;
 	case DAO_COMPLEX :
 		cvalue = DaoNetwork_DecodeComplex( packet.data, packet.subtype );
-		return (DaoValue*) DaoProcess_NewComplex( proc, cvalue );
+		if( obuffer->cnumber == NULL ){
+			obuffer->cnumber = DaoProcess_NewComplex( proc, cvalue );
+		}else{
+			obuffer->cnumber->value = cvalue;
+		}
+		return (DaoValue*) obuffer->cnumber;
 	case DAO_STRING :
 		string = DaoProcess_NewString( proc, NULL, 0 );
 		size = DaoNetwork_DecodeInt64( packet.aux1 );
@@ -708,10 +852,19 @@ static DaoValue* DaoNetwork_ReceiveDao( int sockfd, sockaddr_in *addr, DaoProces
 		if( string->value->size != size ) return NULL; // TODO;
 		return (DaoValue*) string;
 	case DAO_ARRAY :
-		array = DaoProcess_NewArray( proc, DAO_INTEGER );
-		subtype = packet.subtype;
+		count = DaoNetwork_DecodeInt64( packet.aux1 );
+		size  = DaoNetwork_DecodeInt64( packet.aux2 );
+		array = DaoProcess_NewArray( proc, packet.subtype );
+		DaoArray_SetDimCount( array, count );
+		for(i=0; i<count; ++i){
+			array->dims[i] = DaoNetwork_DecodeDaoInt( packet.data + i*size, size );
+		}
+		DaoArray_ResizeArray( array, array->dims, count );
+
+		if( DaoNetwork_ReceivePacket( sockfd, addr, & packet ) == 0 ) return NULL;
+		offset = 0;
 		width = 1;
-		switch( subtype ){
+		switch( packet.subtype ){
 		case DAO_INT32     :
 		case DAO_FLOAT32   :
 		case DAO_COMPLEX32 : width = 4; break;
@@ -719,23 +872,12 @@ static DaoValue* DaoNetwork_ReceiveDao( int sockfd, sockaddr_in *addr, DaoProces
 		case DAO_FLOAT64   :
 		case DAO_COMPLEX64 : width = 8; break;
 		}
-		switch( subtype ){
-		case DAO_INT32     :
-		case DAO_INT64     : subtype = DAO_INTEGER; break;
-		case DAO_FLOAT32   :
-		case DAO_FLOAT64   : subtype = DAO_FLOAT; break;
-		case DAO_COMPLEX32 :
-		case DAO_COMPLEX64 : subtype = DAO_COMPLEX; break;
-		}
-		size   = DaoNetwork_DecodeInt64( packet.aux1 );
-		DaoArray_SetNumType( array, subtype );
-		DaoArray_ResizeVector( array, size );
-		offset = 0;
+		size = DaoNetwork_DecodeInt64( packet.aux1 );
 		while( packet.type == DAO_ARRAY && offset < size ){
 			count = DaoNetwork_DecodeUInt16( packet.count );
 			offset = DaoNetwork_DecodeInt64( packet.aux2 );
 			for(i=0; i<count; i+=width, offset+=1){
-				switch( subtype ){
+				switch( array->etype ){
 				case DAO_BOOLEAN :
 					array->data.b[offset] = packet.data[i];
 					break;
@@ -756,6 +898,62 @@ static DaoValue* DaoNetwork_ReceiveDao( int sockfd, sockaddr_in *addr, DaoProces
 		}
 		if( offset != size ) return NULL; // TODO;
 		return (DaoValue*) array;
+	case DAO_TUPLE :
+		size = DaoNetwork_DecodeInt64( packet.aux1 );
+		type = obuffer->type; /* Possible nominative type from parent container; */
+		if( packet.subtype ){ /* Serialized type name is present, use it: */
+			string = (DaoString*) DaoNetwork_ReceiveDao( sockfd, addr, obuffer );
+			if( string == NULL || string->type != DAO_STRING ) return NULL; // TODO;
+			type = DaoParser_ParseTypeName( string->value->chars, ns, NULL );
+		}
+		tuple = DaoTuple_Create( type, size, 0 );
+		DaoProcess_CacheValue( proc, (DaoValue*) tuple );
+		for(i=0; i<size; ++i){
+			obuffer->type = DaoType_GetFieldType( tuple->ctype, i );
+			value = DaoNetwork_ReceiveDao( sockfd, addr, obuffer );
+			if( value == NULL ) return NULL; // TODO;
+			DaoTuple_SetItem( tuple, value, i );
+		}
+		return (DaoValue*) tuple;
+	case DAO_LIST :
+		size = DaoNetwork_DecodeInt64( packet.aux1 );
+		type = obuffer->type;
+		if( packet.subtype ){
+			string = (DaoString*) DaoNetwork_ReceiveDao( sockfd, addr, obuffer );
+			if( string == NULL || string->type != DAO_STRING ) return NULL; // TODO;
+			type = DaoParser_ParseTypeName( string->value->chars, ns, NULL );
+		}
+		list = DaoProcess_NewList( proc );
+		DaoList_SetType( list, type );
+		for(i=0; i<size; ++i){
+			obuffer->type = type->nested->items.pType[0];
+			value = DaoNetwork_ReceiveDao( sockfd, addr, obuffer );
+			if( value == NULL ) return NULL; // TODO;
+			DList_Append( list->value, value );
+		}
+		return (DaoValue*) list;
+	case DAO_MAP :
+		size    = DaoNetwork_DecodeInt64( packet.aux1 );
+		hashing = DaoNetwork_DecodeInt64( packet.aux2 );
+		type = obuffer->type;
+		if( packet.subtype ){
+			string = (DaoString*) DaoNetwork_ReceiveDao( sockfd, addr, obuffer );
+			if( string == NULL || string->type != DAO_STRING ) return NULL; // TODO;
+			type = DaoParser_ParseTypeName( string->value->chars, ns, NULL );
+		}
+		map = DaoProcess_NewMap( proc, hashing );
+		DaoMap_SetType( map, type );
+		for(i=0; i<size; ++i){
+			DaoValue *key, *value;
+			obuffer->type = type->nested->items.pType[0];
+			key = DaoNetwork_ReceiveDao( sockfd, addr, obuffer );
+			if( key == NULL ) return NULL; // TODO;
+			obuffer->type = type->nested->items.pType[1];
+			value = DaoNetwork_ReceiveDao( sockfd, addr, obuffer );
+			if( value == NULL ) return NULL; // TODO;
+			DMap_Insert( map->value, key, value );
+		}
+		return (DaoValue*) map;
 	case DAO_NONE : return dao_none_value;
 	}
 	return NULL;
@@ -1220,7 +1418,7 @@ static void DaoSocket_Lib_Serialize( DaoProcess *proc, DaoValue *par[], int N  )
 		DaoProcess_RaiseError( proc, neterr, "The socket is not connected" );
 		return;
 	}
-	n = DaoNetwork_SendDao( self->id, NULL, par[1] );
+	n = DaoNetwork_SendDao( self->id, NULL, par[1], NULL );
 	if( n == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
@@ -1232,12 +1430,15 @@ static void DaoSocket_Lib_Deserialize( DaoProcess *proc, DaoValue *par[], int N 
 {
 	char errbuf[MAX_ERRMSG];
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	DaoNetObjBuffer obuffer = {NULL};
 	DaoValue *value;
 	if( self->state != Socket_Connected ){
 		DaoProcess_RaiseError( proc, neterr, "The socket is not connected" );
 		return;
 	}
-	value = DaoNetwork_ReceiveDao( self->id, NULL, proc );
+	obuffer.process = proc;
+	obuffer.nameSpace = proc->topFrame->routine->nameSpace;
+	value = DaoNetwork_ReceiveDao( self->id, NULL, & obuffer );
 	if( value == NULL ){ // TODO:
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
@@ -1683,7 +1884,7 @@ static DaoFuncItem TcpStreamMeths[] =
 
 	/* TODO: move to different wrapper: */
 	/*! Sends data via the internal serialization protocol */
-	{ DaoSocket_Lib_Serialize,		"serialize( self: TcpStream, object: Object )" },
+	{ DaoSocket_Lib_Serialize,		"serialize( self: TcpStream, invar object: Object )" },
 
 	/*! Receives data via the internal serialization protocol */
 	{ DaoSocket_Lib_Deserialize,	"deserialize( self: TcpStream ) => Object" },
@@ -2348,7 +2549,15 @@ void DaoNetwork_Init( DaoVmSpace *vms, DaoNamespace *ns )
 
 #define SimpleTypes     "none|bool|int|float|complex|string"
 #define ArrayTypes      "array<bool>|array<int>|array<float>|array<complex>"
-#define ContainerTypes  "list<Object>|map<Object,Object>|tuple<...:Object>"
+#define ContainerTypes  "list<Object>|map<Object,Object>|tuple<...:Object>|invar<Object>"
+/*
+// It is necessary to include invar<Object>, because the input parameter
+// for serialize() is an invariable type, which allows covariant subtyping,
+// so values that can match to invar<Object> but not to Object can get
+// serialized and deserialized. If invar<Object> is not present in the
+// return type of deserialize(), the deserialized values cannot be returned
+// successfully!
+*/
 
 DAO_DLL int DaoNet_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
