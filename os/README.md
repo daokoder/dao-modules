@@ -42,6 +42,8 @@ Stream bound to a pipe opened with [popen()](#popen)
 pclose(self: PipeStream) => int
 ```
 Waits for the sub-process to finish and returns its exit code
+
+**Errors:** `Param` when the stream is closed
 ### Functions
 <a name="system"></a>
 ```ruby
@@ -78,7 +80,7 @@ setlocale(category: enum<all,collate,ctype,monetary,numeric,time> = $all, locale
 ```
 Sets *locale* for the given *category* and returns previous locale
 
-**Errors:** `Sys` when *locale* is invalid
+**Errors:** `System` when *locale* is invalid
 <a name="environ"></a>
 ```ruby
 environ() => map<string,string>
@@ -95,25 +97,25 @@ putenv(name: string, value = "")
 ```
 Sets environment variable *name* to the given *value*
 
-**Errors:** `Sys` if failed to set environment variable
+**Errors:** `System` if failed to set environment variable
 <a name="user"></a>
 ```ruby
 user(name: string, value = "")
 ```
 Name of the user associated with the current process
 
-**Errors:** `Sys` if failed to get information about the user
+**Errors:** `System` if failed to get information about the user
 <a name="uname"></a>
 ```ruby
 uname() => tuple<system: string, version: string, release: string, host: string>
 ```
 Generic system information: operating system name, version and release, computer host name
 
-**Errors:** `Sys` if failed to get information about the system
+**Errors:** `System` if failed to get information about the system
 <a name="null"></a>
 ```ruby
 null() => io::Stream
 ```
 Returns write-only stream corresponding to system null device
 
-**Errors:** `Sys` if failed to open the null device
+**Errors:** `System` if failed to open the null device
