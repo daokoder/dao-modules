@@ -1958,10 +1958,10 @@ static DaoFuncItem UdpSocketMeths[] =
 	{ DaoSocket_Lib_Bind,			"bind( self: UdpSocket, addr: string|SocketAddr, addrOpts: enum<shared;exclusive;reused;default> = $exclusive )" },
 
 	/*! Sends \a data to the receiver specified by address \a addr which is either a 'host:port' string or \c SocketAddr */
-	{ DaoSocket_Lib_SendTo,			"send( self: UdpSocket, addr: string|SocketAddr, data: string )" },
+	{ DaoSocket_Lib_SendTo,			"write( self: UdpSocket, addr: string|SocketAddr, data: string )" },
 
 	/*! Receives at most \a limit bytes and returnes the received data and the address of its sender */
-	{ DaoSocket_Lib_ReceiveFrom,	"receive( self: UdpSocket, limit = 4096 ) => tuple<addr: SocketAddr, data: string>" },
+	{ DaoSocket_Lib_ReceiveFrom,	"read( self: UdpSocket, limit = 4096 ) => tuple<addr: SocketAddr, data: string>" },
 
 	/*! UDP broadcast option (SO_BROADCAST) */
 	{ DaoSocket_Lib_Broadcast,		".broadcast( invar self: UdpSocket ) => bool" },
