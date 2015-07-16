@@ -83,7 +83,7 @@ static void PIPE_New( DaoProcess *proc, DaoValue *p[], int N )
 	mode = DString_GetData( p[1]->xString.value );
 	stream->file = popen( DString_GetData( fname ), mode );
 	if( stream->file == NULL ){
-		DaoProcess_RaiseError( proc, "Sys", "error opening pipe" );
+		DaoProcess_RaiseError( proc, "System", "error opening pipe" );
 		return;
 	}
 	if( strstr( mode, "+" ) ){
@@ -108,7 +108,7 @@ static void PIPE_Close( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem pipeMeths[] =
 {
 	{ PIPE_New,      "PipeStream( file: string, mode: string ) => PipeStream" },
-	{ PIPE_Close,    "close( self: PipeStream ) => int" },
+	{ PIPE_Close,    "pclose( self: PipeStream ) => int" },
 	{ NULL, NULL }
 };
 
@@ -121,7 +121,6 @@ void DaoxPipe_GetGCFields( void *p, DList *values, DList *arrays, DList *maps, i
 	}
 }
 
-// TODO: merge with the process pipe in os/process/dao_process.c?
 DaoTypeBase pipeTyper =
 {
 	"PipeStream", NULL, NULL, (DaoFuncItem*) pipeMeths, {0}, {0},
@@ -180,7 +179,7 @@ static void OS_SetLocale( DaoProcess *proc, DaoValue *p[], int N )
 	if ( old )
 		DaoProcess_PutChars( proc, old );
 	else
-		DaoProcess_RaiseError( proc, "Sys", "invalid locale" );
+		DaoProcess_RaiseError( proc, "System", "invalid locale" );
 }
 static void OS_Clock( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -197,12 +196,12 @@ static void OS_PutEnv( DaoProcess *proc, DaoValue *p[], int N )
 	char *value = DString_GetData( p[1]->xString.value );
 	char *buf = malloc( strlen( name ) + strlen( value ) + 2 );
 	if( !buf ){
-		DaoProcess_RaiseError( proc, "Sys", "memory allocation failed" );
+		DaoProcess_RaiseError( proc, "System", "memory allocation failed" );
 		return;
 	}
 	sprintf( buf, "%s=%s", name, value );
 	if( putenv( buf ) ){
-		DaoProcess_RaiseError( proc, "Sys", "error putting environment variable" );
+		DaoProcess_RaiseError( proc, "System", "error putting environment variable" );
 		free( buf );
 	}
 }
@@ -275,7 +274,7 @@ static void OS_User( DaoProcess *proc, DaoValue *p[], int N )
 		DString_SetChars( user, pwd.pw_name );
 #endif
 	if ( !res )
-		DaoProcess_RaiseError( proc, "Sys", "Failed to get user information" );
+		DaoProcess_RaiseError( proc, "System", "Failed to get user information" );
 }
 
 static void OS_Uname( DaoProcess *proc, DaoValue *p[], int N )
@@ -326,7 +325,7 @@ static void OS_Uname( DaoProcess *proc, DaoValue *p[], int N )
 	}
 #endif
 	if ( !res )
-		DaoProcess_RaiseError( proc, "Sys", "Failed to get system information" );
+		DaoProcess_RaiseError( proc, "System", "Failed to get system information" );
 }
 
 static void OS_Null( DaoProcess *proc, DaoValue *p[], int N )
@@ -338,7 +337,7 @@ static void OS_Null( DaoProcess *proc, DaoValue *p[], int N )
 #endif
 	FILE *file = fopen( npath, "w" );
 	if ( !file )
-		DaoProcess_RaiseError( proc, "Sys", "Failed to open system null device" );
+		DaoProcess_RaiseError( proc, "System", "Failed to open system null device" );
 	else {
 		DaoStream *stream = DaoStream_New();
 		stream->file = file;
@@ -356,9 +355,6 @@ static DaoFuncItem sysMeths[]=
 	 * If \a mode is 'r', returns readable stream of the process output; if \a mode is 'w', returns writable stream of the process
 	 * input */
 	{ PIPE_New,     "popen( command: string, mode: string ) => os::PipeStream" },
-
-	/*! Closes \a pipe created by `popen()`, waits for the sub-process to finish and returns its exit code */
-	{ PIPE_Close,    "pclose( pipe: os::PipeStream ) => int" },
 
 	/*! Suspends execution of the current thread for the specified amount of \a seconds */
 	{ OS_Sleep,     "sleep( seconds: float )" },
