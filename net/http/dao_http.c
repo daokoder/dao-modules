@@ -44,6 +44,7 @@ DaoHttpRequest* DaoHttpRequest_New()
 	res->uri = DString_New();
 	res->version = DString_New();
 	res->headers = DMap_New( DAO_DATA_STRING, DAO_DATA_STRING );
+	res->cookies = DList_New( DAO_DATA_STRING );
 	res->size = 0;
 }
 
@@ -53,6 +54,7 @@ void DaoHttpRequest_Delete( DaoHttpRequest *self )
 	DString_Delete( self->uri );
 	DString_Delete( self->version );
 	DMap_Delete( self->headers );
+	DList_Delete( self->cookies );
 	dao_free( self );
 }
 
@@ -191,7 +193,7 @@ const char* ParseFieldValue( const char *context, DString *value )
 	return NULL;
 }
 
-http_err_t ParseHeader( const char *context, DMap *headers, DList *cookies, daoint *offset )
+http_err_t ParseHeader( const char *context, DMap *headers, DList *cookies, int request, daoint *offset )
 {
 	DString *name = DString_New();
 	DString *value;
@@ -222,7 +224,7 @@ http_err_t ParseHeader( const char *context, DMap *headers, DList *cookies, daoi
 		return Http_InvalidHeader;
 	}
 	DString_ToLower( name );
-	if ( cookies && strcmp( name->chars, "set-cookie" ) == 0 )
+	if ( cookies && strcmp( name->chars, request? "cookie" : "set-cookie" ) == 0 )
 		DList_PushBack( cookies, value ); // put cookies separately
 	else {
 		DNode *node = DMap_Find( headers, name );
@@ -257,7 +259,7 @@ http_err_t DaoHttpRequest_Parse( DaoHttpRequest *self, DString *text, daoint end
 	if ( err )
 		return err;
 	for ( cp += offset; cp < text->chars + end; cp += offset ){
-		err = ParseHeader( cp, self->headers, NULL, &offset );
+		err = ParseHeader( cp, self->headers, self->cookies, 1, &offset );
 		if ( err )
 			return err;
 	}
@@ -279,7 +281,7 @@ http_err_t DaoHttpResponse_Parse( DaoHttpResponse *self, DString *text, daoint e
 	if ( err )
 		return err;
 	for ( cp += offset; cp < text->chars + end; cp += offset ){
-		err = ParseHeader( cp, self->headers, self->cookies, &offset );
+		err = ParseHeader( cp, self->headers, self->cookies, 0, &offset );
 		if ( err )
 			return err;
 	}
@@ -496,6 +498,18 @@ static void DaoHttpHeader_Date( DaoProcess *proc, DaoValue *p[], int N )
 	PutStringValue( proc, self->headers, "date" );
 }
 
+static void DaoHttpHeader_Cookies( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
+	DaoList *res = DaoProcess_PutList( proc );
+	daoint i;
+	for ( i = 0; i < self->cookies->size; ++i ){
+		DaoString *str = DaoString_New();
+		DaoString_Set( str, self->cookies->items.pString[i] );
+		DaoList_Append( res, (DaoValue*)str );
+	}
+}
+
 static DaoFuncItem headerMeths[] =
 {
 	//! HTTP version number
@@ -503,6 +517,9 @@ static DaoFuncItem headerMeths[] =
 
 	//! Header size including the terminating '\r\n'
 	{ DaoHttpHeader_Size,		".size(self: Header) => int" },
+
+	//! Cookies set by 'Cookie' or 'Set-Cookie' fields (for requests and responses accordingly)
+	{ DaoHttpHeader_Cookies,	".cookies(self: Header) => list<string>" },
 
 	//! Specific field (header) value
 	//!
@@ -659,18 +676,6 @@ static void DaoHttpResponse_Reason( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutString( proc, self->reason );
 }
 
-static void DaoHttpResponse_Cookies( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoHttpResponse *self = (DaoHttpResponse*)DaoValue_TryGetCdata( p[0] );
-	DaoList *res = DaoProcess_PutList( proc );
-	daoint i;
-	for ( i = 0; i < self->cookies->size; ++i ){
-		DaoString *str = DaoString_New();
-		DaoString_Set( str, self->cookies->items.pString[i] );
-		DaoList_Append( res, (DaoValue*)str );
-	}
-}
-
 static void DaoHttpResponse_Location( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoHttpResponse *self = (DaoHttpResponse*)DaoValue_TryGetCdata( p[0] );
@@ -742,9 +747,6 @@ static DaoFuncItem responseMeths[] =
 
 	//! Textual description of response status
 	{ DaoHttpResponse_Reason,		".reason(self: ResponseHeader) => string" },
-
-	//! Cookies set by 'Set-Cookie' fields
-	{ DaoHttpResponse_Cookies,		".cookies(self: ResponseHeader) => list<string>" },
 
 	//! Some of the standard fields (also see \c Header)
 	{ DaoHttpResponse_Location,		".location(self: Header) => string|none" },

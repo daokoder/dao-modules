@@ -38,7 +38,7 @@ typedef struct DaoHttpRequest DaoHttpRequest;
 typedef struct DaoHttpResponse DaoHttpResponse;
 typedef struct DaoChunkDecoder DaoChunkDecoder;
 
-#define DAO_HTTP_HEADER_COMMON DString *version; DMap *headers; daoint size
+#define DAO_HTTP_HEADER_COMMON DString *version; DMap *headers; DList *cookies; daoint size
 
 typedef enum {
 	Http_Get = 0,
@@ -65,7 +65,6 @@ struct DaoHttpResponse {
 	DAO_HTTP_HEADER_COMMON;
 	DString *reason;
 	daoint code;
-	DList *cookies;
 };
 
 typedef enum {
