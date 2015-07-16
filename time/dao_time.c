@@ -127,7 +127,7 @@ static void DaoTime_Value2( DaoProcess *proc, DaoValue *p[], int N )
 		return;
 	}
 	if( sizeof(dao_integer) < sizeof(time_t) ){
-		DaoProcess_RaiseWarning( proc, timeerr, "The time value might overflow the int type" );
+		DaoProcess_RaiseWarning( proc, "Value", "The time value might overflow the int type" );
 	}
 	DaoProcess_PutInteger( proc, tm );
 }
@@ -598,7 +598,7 @@ static void DaoTime_Diff( DaoProcess *proc, DaoValue *p[], int N )
 	res->values[0]->xInteger.value = end->jday - start->jday;
 	res->values[1]->xInteger.value = end->value - start->value;
 	if( sizeof(dao_integer) < sizeof(time_t) ){
-		DaoProcess_RaiseWarning( proc, timeerr, "The time value might overflow the int type" );
+		DaoProcess_RaiseWarning( proc, "Value", "The time value might overflow the int type" );
 	}
 }
 

@@ -29,6 +29,7 @@
 
 #include <ctype.h>
 #include <string.h>
+#include <time.h>
 
 #include"dao_http.h"
 
@@ -326,6 +327,62 @@ void SplitValue( DString *value, DaoList *list )
 	}
 }
 
+time_t ParseDate(DString *date)
+{
+	const time_t inv_date = (time_t)-1;
+	const char *dnames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+	const char *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+	const char *cp = date->chars;
+	struct tm time = {0};
+	int i, found = 0;
+	time.tm_isdst = -1;
+	for ( i = 0; i < 7; ++i )
+		if ( strncmp( dnames[i], cp, 3 ) == 0 ){
+			found = 1;
+			break;
+		}
+	if ( !found )
+		return inv_date;
+	cp += 3;
+	if ( *( cp++ ) != ',' || *( cp++ ) != ' ' )
+		return inv_date;
+	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || cp[2] != ' ' )
+		return inv_date;
+	time.tm_mday = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	cp += 3;
+	found = 0;
+	for ( i = 0; i < 12; ++i )
+		if ( strncmp( months[i], cp, 3 ) == 0 ){
+			time.tm_mon = i;
+			found = 1;
+			break;
+		}
+	if ( !found )
+		return inv_date;
+	cp += 3;
+	if ( *( cp++ ) != ' ' )
+		return inv_date;
+	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || !isdigit( cp[2] ) || !isdigit( cp[3] ) || cp[4] != ' ' )
+		return inv_date;
+	time.tm_year = ( cp[0] - '0' )*1000 + ( cp[1] - '0' )*100 + ( cp[2] - '0' )*10 + ( cp[3] - '0' ) - 1900;
+	cp += 5;
+	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || cp[2] != ':' )
+		return inv_date;
+	time.tm_hour = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	cp += 3;
+	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || cp[2] != ':' )
+		return inv_date;
+	time.tm_min = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	cp += 3;
+	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || cp[2] != ' ' )
+		return inv_date;
+	time.tm_sec = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	cp += 3;
+	if ( strcmp( cp, "GMT" ) != 0 )
+		return inv_date;
+	return mktime( &time );
+}
+
 static void DaoHttpHeader_Version( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
@@ -486,6 +543,22 @@ void PutStringValue( DaoProcess *proc, DMap *headers, const char *field )
 		DaoProcess_PutNone( proc );
 }
 
+void PutDateValue( DaoProcess *proc, DMap *headers, const char *field )
+{
+	DString name = DString_WrapChars( field );
+	DNode *node = DMap_Find( headers, &name );
+	if ( sizeof(dao_integer) < sizeof(time_t) )
+		DaoProcess_RaiseWarning( proc, "Value", "The time value might overflow the int type" );
+	if ( node ){
+		time_t date = ParseDate( node->value.pString );
+		if ( date != (time_t)-1 )
+			date -= timezone;
+		DaoProcess_PutInteger( proc, (dao_integer)date );
+	}
+	else
+		DaoProcess_PutNone( proc );
+}
+
 static void DaoHttpHeader_ContLoc( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
@@ -495,7 +568,7 @@ static void DaoHttpHeader_ContLoc( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoHttpHeader_Date( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
-	PutStringValue( proc, self->headers, "date" );
+	PutDateValue( proc, self->headers, "date" );
 }
 
 static void DaoHttpHeader_Cookies( DaoProcess *proc, DaoValue *p[], int N )
@@ -528,6 +601,8 @@ static DaoFuncItem headerMeths[] =
 
 	//! Some of the standard fields. \c none indicate field absence; empty values (or \c contentLength
 	//! value equal to -1) indicate a parsing error
+	//!
+	//! \note \c .date() returns \c time_t value (-1 or parsing error); use \c time module to interpret it
 	{ DaoHttpHeader_TransEnc,	".transferEncoding(self: Header) => list<string>|none" },
 	{ DaoHttpHeader_ContLen,	".contentLength(self: Header) => int|none" },
 	{ DaoHttpHeader_Via,		".via(self: Header) => list<string>|none" },
@@ -539,7 +614,7 @@ static DaoFuncItem headerMeths[] =
 	{ DaoHttpHeader_ContEnc,	".contentEncoding(self: Header) => list<string>|none" },
 	{ DaoHttpHeader_ContLang,	".contentLanguage(self: Header) => list<string>|none" },
 	{ DaoHttpHeader_ContLoc,	".contentLocation(self: Header) => string|none" },
-	{ DaoHttpHeader_Date,		".date(self: Header) => string|none" },
+	{ DaoHttpHeader_Date,		".date(self: Header) => int|none" },
 	{ DaoHttpHeader_CacheCtrl,	".cacheControl(self: Header) => list<string>|none" },
 	{ NULL, NULL }
 };
@@ -697,7 +772,7 @@ static void DaoHttpResponse_Server( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoHttpResponse_Expires( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoHttpResponse *self = (DaoHttpResponse*)DaoValue_TryGetCdata( p[0] );
-	PutStringValue( proc, self->headers, "expires" );
+	PutDateValue( proc, self->headers, "expires" );
 }
 
 static void DaoHttpResponse_Vary( DaoProcess *proc, DaoValue *p[], int N )
@@ -749,10 +824,12 @@ static DaoFuncItem responseMeths[] =
 	{ DaoHttpResponse_Reason,		".reason(self: ResponseHeader) => string" },
 
 	//! Some of the standard fields (also see \c Header)
+	//!
+	//! \note \c .expires() returns \c time_t value (-1 on parsing error); use \c time module to interpret it
 	{ DaoHttpResponse_Location,		".location(self: Header) => string|none" },
 	{ DaoHttpResponse_RetryAfter,	".retryAfter(self: Header) => string|none" },
 	{ DaoHttpResponse_Server,		".server(self: Header) => string|none" },
-	{ DaoHttpResponse_Expires,		".expires(self: Header) => string|none" },
+	{ DaoHttpResponse_Expires,		".expires(self: Header) => int|none" },
 	{ DaoHttpResponse_Vary,			".vary(self: Header) => list<string>|string|none" },
 	{ DaoHttpResponse_Allow,		".allow(self: Header) => list<string>|none" },
 	{ DaoHttpResponse_WwwAuth,		".wwwAuthenticate(self: Header) => list<string>|none" },
