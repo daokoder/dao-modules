@@ -1922,18 +1922,18 @@ static void DaoXMLElement_Attributes( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoXMLElement *self = (DaoXMLElement*)DaoValue_TryGetCdata( p[0] );
 	DaoMap *map = DaoProcess_PutMap( proc, 0 );
+	DaoString *key = DaoString_New();
+	DaoString *val = DaoString_New();
 	if ( self->attribs ){
 		DNode *node = DMap_First( self->attribs );
 		for ( ; node; node = DMap_Next( self->attribs, node ) ){
-			DaoString *key = DaoString_New();
-			DaoString *val = DaoString_New();
 			DaoString_Set( key, node->key.pString );
 			DaoString_Set( val, node->value.pString );
 			DaoMap_Insert( map, (DaoValue*)key, (DaoValue*)val );
-			DaoString_Delete( key );
-			DaoString_Delete( val );
 		}
 	}
+	DaoString_Delete( key );
+	DaoString_Delete( val );
 }
 
 void RaiseAttrConvError( DaoProcess *proc, DString *attr, uchar_t type )

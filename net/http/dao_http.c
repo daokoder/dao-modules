@@ -1406,9 +1406,9 @@ void DecodePercentageEncoding( const char *cp, daoint count, DString *str )
 
 void ParseForm( DString *form, DaoMap *fields )
 {
-	DString *name = DString_New();
-	DString *value = DString_New();
-	DString *str = name;
+	DaoString *key = DaoString_New();
+	DaoString *val = DaoString_New();
+	DString *str = key->value;
 	char delim = '=';
 	const char *start, *cp = form->chars;
 	start = cp;
@@ -1417,32 +1417,152 @@ void ParseForm( DString *form, DaoMap *fields )
 			DecodePercentageEncoding( start, cp - start, str );
 			start = cp + 1;
 			if ( delim == '&' ){
-				DaoString *key = DaoString_New();
-				DaoString *val = DaoString_New();
-				DaoString_Set( key, name );
-				DaoString_Set( val, value );
 				DaoMap_Insert( fields, (DaoValue*)key, (DaoValue*)val );
-				DaoString_Delete( key );
-				DaoString_Delete( val );
 				if ( !*cp )
 					break;
 				delim = '=';
-				str = name;
+				str = key->value;
 			}
 			else {
 				delim = '&';
-				str = value;
+				str = val->value;
 			}
 		}
 		++cp;
 	}
-	DString_Delete( name );
-	DString_Delete( value );
+	DaoString_Delete( key );
+	DaoString_Delete( val );
+}
+
+http_err_t ParseMultipartForm( DString *form, DString *boundary, DaoMap *parts )
+{
+	DaoString *key;
+	DaoString *val;
+	DString *name;
+	DString *value;
+	const char *cp, *start = form->chars;
+	http_err_t error = 0;
+	DString_InsertChars( boundary, "\r\n--", 0, 0, 4 );
+	DString_AppendChars( boundary, "\r\n" );
+	cp = strstr( start, boundary->chars );
+	if ( !cp )
+		return;
+	key = DaoString_New();
+	val = DaoString_New();
+	name = key->value;
+	value = val->value;
+	cp += boundary->size;
+	while ( *cp ){
+		DaoType *type = parts->ctype->nested->items.pType[1];
+		DaoTuple *tup = DaoTuple_Create( type, type->nested->size, 1 );
+		// parse headers
+		while ( strncmp( cp, "\r\n", 2 ) != 0 ){
+			DString_Clear( name );
+			cp = ParseToken( cp, name );
+			if ( !name->size ){
+				error = Http_InvalidFieldName;
+				DaoTuple_Delete( tup );
+				goto End;
+			}
+			if ( *( cp++ ) != ':' ){
+				error = Http_InvalidHeader;
+				DaoTuple_Delete( tup );
+				goto End;
+			}
+			for ( ; IS_OWS( cp ); ++cp );
+			if ( !*cp ){
+				error = Http_InvalidHeader;
+				DaoTuple_Delete( tup );
+				goto End;
+			}
+			DString_Clear( value );
+			cp = ParseFieldValue( cp, value );
+			if ( !value->size ){
+				error = Http_InvalidFieldValue;
+				DaoTuple_Delete( tup );
+				goto End;
+			}
+			if ( !cp ){
+				error = Http_InvalidHeader;
+				DaoTuple_Delete( tup );
+				goto End;
+			}
+			DString_ToLower( name );
+			if ( strcmp( name->chars, "content-disposition" ) ){
+				const char *cpt;
+				DString_Assign( tup->values[1]->xString.value, value );
+				// extract name and filename params
+				cpt = strchr( value->chars, ';' );
+				if ( cpt ){
+					int quoted = 0;
+					for ( ++cpt; *cpt; ++cpt )
+						if ( *cpt == '\\' ){ // jump over escapes
+							++cpt;
+							if ( !*cpt )
+								break;
+						}
+						else if ( *cpt == '"' ) // ignore quoted literals
+							quoted = !quoted;
+						else if ( !quoted ){ // search for the params
+							if ( strncmp( cpt, "name", 4 ) == 0 || strncmp( cpt, "filename", 8 ) == 0 ){
+								int nparam = *cpt == 'n'; // to distinguish between the two
+								for ( cpt += nparam? 4 : 8; IS_OWS( cpt ); ++cpt );
+								if ( *cpt == '=' ){
+									// extract param value
+									for ( ++cpt; IS_OWS( cpt ); ++cpt );
+									if ( *cpt ){
+										const char *pstart = cpt, *pend;
+										for ( ++cpt; *cpt && *cpt != ';'; ++cpt ); // detect value end
+										for ( pend = cpt; pend > pstart && IS_OWS( pend - 1 ); --pend ); // backtrack on trailing whitespace
+										if ( *pstart == '"' ) // skip opening quote
+											++pstart;
+										if ( pend > pstart && *( pend - 1 ) == '"' ) // skip closing quote
+											--pend;
+										DString_SetBytes( nparam? name : tup->values[3]->xString.value, pstart, pend - pstart );
+										if ( !*cpt )
+											break;
+									}
+								}
+							}
+						}
+				}
+			}
+			else if ( strcmp( name->chars, "content-type" ) )
+				DString_Assign( tup->values[2]->xString.value, value );
+			else if ( strcmp( name->chars, "content-transfer-encoding" ) )
+				DString_Assign( tup->values[4]->xString.value, value );
+		}
+		cp += 2;
+		cp = strstr( cp, boundary->chars );
+		if ( cp ){
+			DString_SetBytes( tup->values[0]->xString.value, start, cp - start );
+			DaoMap_Insert( parts, (DaoValue*)key, (DaoValue*)value );
+			DaoTuple_Delete( tup );
+			cp += boundary->size;
+		}
+		else
+			break;
+	}
+End:
+	DaoString_Delete( key );
+	DaoString_Delete( val );
+	return error;
 }
 
 static void HTTP_ParseForm( DaoProcess *proc, DaoValue *p[], int N )
 {
 	ParseForm( p[0]->xString.value, DaoProcess_PutMap( proc, 0 ) );
+}
+
+static void HTTP_ParseMultiForm( DaoProcess *proc, DaoValue *p[], int N )
+{
+	http_err_t err = ParseMultipartForm( p[0]->xString.value, p[1]->xString.value, DaoProcess_PutMap( proc, 0 ) );
+	if ( err ){
+		char errbuf[512];
+		int len = snprintf( errbuf, sizeof(errbuf), "Failed to parse multipart form: " );
+		GetParsingErrorMsg( err, errbuf + len, sizeof(errbuf) - len );
+		DaoProcess_RaiseError( proc, "Http", errbuf );
+	}
 }
 
 static DaoFuncItem httpMeths[] =
@@ -1469,6 +1589,9 @@ static DaoFuncItem httpMeths[] =
 
 	//! Decodes \a form with 'application/x-www-form-urlencoded' MIME type
 	{ HTTP_ParseForm,		"decodeForm(form: string) => map<string,string>" },
+
+//	{ HTTP_ParseMultiForm,	"decodeMultipartForm(form: string, boundary: string)"
+//							" => map<string,tuple<value: string, disposition: string, mime: string, fileName: string, encoding: string>>" },
 	{ NULL, NULL }
 };
 
