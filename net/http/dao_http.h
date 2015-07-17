@@ -76,7 +76,9 @@ typedef enum {
 	Http_InvalidStatusCode,
 	Http_InvalidHeader,
 	Http_InvalidFieldName,
-	Http_InvalidFieldValue
+	Http_InvalidFieldValue,
+	Http_MissingFormItemName,
+	Http_MissingFormEnd
 } http_err_t;
 
 typedef enum {

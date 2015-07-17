@@ -957,9 +957,11 @@ void GetParsingErrorMsg( http_err_t error, char *buffer, size_t size )
 	case Http_InvalidHttpVersion:	snprintf( buffer, size, "invalid HTTP version string" ); break;
 	case Http_InvalidUrl:			snprintf( buffer, size, "invalid URL" ); break;
 	case Http_InvalidStatusCode:	snprintf( buffer, size, "invalid status code" ); break;
-	case Http_InvalidHeader:		snprintf( buffer, size, "malformed header line (field-value)" ); break;
-	case Http_InvalidFieldName:		snprintf( buffer, size, "invalid header (field) name" ); break;
-	case Http_InvalidFieldValue:	snprintf( buffer, size, "invalid header (field) value" ); break;
+	case Http_InvalidHeader:		snprintf( buffer, size, "malformed header line" ); break;
+	case Http_InvalidFieldName:		snprintf( buffer, size, "invalid header name" ); break;
+	case Http_InvalidFieldValue:	snprintf( buffer, size, "invalid header value" ); break;
+	case Http_MissingFormItemName:	snprintf( buffer, size, "no content-disposition header found or it contains no control name" ); break;
+	case Http_MissingFormEnd:		snprintf( buffer, size, "no closing form boundary found" ); break;
 	default:						snprintf( buffer, size, "unexpected error" ); break;
 	}
 }
@@ -1440,26 +1442,37 @@ http_err_t ParseMultipartForm( DString *form, DString *boundary, DaoMap *parts )
 	DaoString *val;
 	DString *name;
 	DString *value;
+	DString *fname;
 	const char *cp, *start = form->chars;
 	http_err_t error = 0;
 	DString_InsertChars( boundary, "\r\n--", 0, 0, 4 );
-	DString_AppendChars( boundary, "\r\n" );
-	cp = strstr( start, boundary->chars );
+	cp = start - 1;
+	do // find the first boundary
+		cp = strstr( cp + 1, boundary->chars );
+	while ( cp && strncmp( cp + boundary->size, "\r\n", 2 ) != 0 && strncmp( cp + boundary->size, "--", 2 ) != 0 );
 	if ( !cp )
-		return;
+		return Http_MissingFormEnd;
+	cp += boundary->size;
+	if ( *cp == '-' ) // end boundary
+		return 0;
+	cp += 2;
+	if ( !*cp )
+		return Http_MissingFormEnd;
 	key = DaoString_New();
 	val = DaoString_New();
 	name = key->value;
 	value = val->value;
-	cp += boundary->size;
-	while ( *cp ){
+	fname = DString_New();
+	while ( 1 ){
 		DaoType *type = parts->ctype->nested->items.pType[1];
 		DaoTuple *tup = DaoTuple_Create( type, type->nested->size, 1 );
+		DString_Clear( name );
+		DString_Clear( fname );
 		// parse headers
 		while ( strncmp( cp, "\r\n", 2 ) != 0 ){
-			DString_Clear( name );
-			cp = ParseToken( cp, name );
-			if ( !name->size ){
+			// extract header name and value
+			cp = ParseToken( cp, fname );
+			if ( !fname->size ){
 				error = Http_InvalidFieldName;
 				DaoTuple_Delete( tup );
 				goto End;
@@ -1487,8 +1500,8 @@ http_err_t ParseMultipartForm( DString *form, DString *boundary, DaoMap *parts )
 				DaoTuple_Delete( tup );
 				goto End;
 			}
-			DString_ToLower( name );
-			if ( strcmp( name->chars, "content-disposition" ) ){
+			DString_ToLower( fname );
+			if ( strcmp( fname->chars, "content-disposition" ) == 0 ){
 				const char *cpt;
 				DString_Assign( tup->values[1]->xString.value, value );
 				// extract name and filename params
@@ -1518,6 +1531,7 @@ http_err_t ParseMultipartForm( DString *form, DString *boundary, DaoMap *parts )
 											++pstart;
 										if ( pend > pstart && *( pend - 1 ) == '"' ) // skip closing quote
 											--pend;
+										// store the value
 										DString_SetBytes( nparam? name : tup->values[3]->xString.value, pstart, pend - pstart );
 										if ( !*cpt )
 											break;
@@ -1527,23 +1541,39 @@ http_err_t ParseMultipartForm( DString *form, DString *boundary, DaoMap *parts )
 						}
 				}
 			}
-			else if ( strcmp( name->chars, "content-type" ) )
+			else if ( strcmp( fname->chars, "content-type" ) == 0 )
 				DString_Assign( tup->values[2]->xString.value, value );
-			else if ( strcmp( name->chars, "content-transfer-encoding" ) )
+			else if ( strcmp( fname->chars, "content-transfer-encoding" ) == 0 ){
+				DString_ToLower( value ); // case-insensitive
 				DString_Assign( tup->values[4]->xString.value, value );
+			}
 		}
-		cp += 2;
-		cp = strstr( cp, boundary->chars );
+		if ( !name->size ){ // missing element name
+			error = Http_MissingFormItemName;
+			goto End;
+		}
+		start = cp + 2;
+		cp += 1;
+		do // loop until the next boundary is found
+			cp = strstr( cp + 1, boundary->chars );
+		while ( cp && strncmp( cp + boundary->size, "\r\n", 2 ) != 0 && strncmp( cp + boundary->size, "--", 2 ) != 0 );
 		if ( cp ){
+			// parsed through all the part
 			DString_SetBytes( tup->values[0]->xString.value, start, cp - start );
-			DaoMap_Insert( parts, (DaoValue*)key, (DaoValue*)value );
-			DaoTuple_Delete( tup );
+			DaoMap_Insert( parts, (DaoValue*)key, (DaoValue*)tup );
 			cp += boundary->size;
+			if ( *cp == '-' ) // end boundary
+				break;
+			cp += 2;
+			if ( *cp )
+				continue;
 		}
-		else
-			break;
+		// no end boundary
+		error = Http_MissingFormEnd;
+		break;
 	}
 End:
+	DString_Delete( fname );
 	DaoString_Delete( key );
 	DaoString_Delete( val );
 	return error;
@@ -1590,8 +1620,17 @@ static DaoFuncItem httpMeths[] =
 	//! Decodes \a form with 'application/x-www-form-urlencoded' MIME type
 	{ HTTP_ParseForm,		"decodeForm(form: string) => map<string,string>" },
 
-//	{ HTTP_ParseMultiForm,	"decodeMultipartForm(form: string, boundary: string)"
-//							" => map<string,tuple<value: string, disposition: string, mime: string, fileName: string, encoding: string>>" },
+	//! Decodes \a form with `multipart/form-date` MIME type using the given part \a boundary; resulting map values contain:
+	//! - \c value -- content of the associated form control
+	//! - \c disposition -- complete 'content-disposition' header value
+	//! - \c mimeType -- 'content-type' header value
+	//! - \c fileName -- name of the file the content originates from
+	//! - \c encoding -- 'content-transfer-encoding' value converted to lower case
+	//!
+	//! \note if the content type of a form control appears to be 'multipart/mixed', use this routine with the
+	//! \a boundary parameter extracted from the relevant \c mimeType to decode that content
+	{ HTTP_ParseMultiForm,	"decodeMultipartForm(form: string, boundary: string) => map<string,"
+							"tuple<value: string, disposition: string, mimeType: string, fileName: string, encoding: string>>" },
 	{ NULL, NULL }
 };
 
