@@ -154,7 +154,7 @@ static void DaoTime_Time( DaoProcess *proc, DaoValue *p[], int N )
 	DaoTime *self = DaoTime_New();
 	self->value = p[0]->xInteger.value;
 	self->local = ( p[1]->xEnum.value == 0 );
-	if ( !DaoTime_GetTime( self ) ){
+	if ( self->value == (time_t)-1 || !DaoTime_GetTime( self ) ){
 		DaoProcess_RaiseError( proc, timeerr, "Invalid datetime" );
 		DaoTime_Delete( self );
 		return;

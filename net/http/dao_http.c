@@ -327,15 +327,51 @@ void SplitValue( DString *value, DaoList *list )
 	}
 }
 
-time_t ParseDate(DString *date)
+const char* ParseTimeOfDay( const char *cp, struct tm *ts )
+{
+	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || cp[2] != ':' )
+		return NULL;
+	ts->tm_hour = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	cp += 3;
+	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || cp[2] != ':' )
+		return NULL;
+	ts->tm_min = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	cp += 3;
+	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || cp[2] != ' ' )
+		return NULL;
+	ts->tm_sec = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	cp += 3;
+	return cp;
+}
+
+const char* ParseMonth( const char *cp, struct tm *ts )
+{
+	int i;
+	const char *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+	for ( i = 0; i < 12; ++i )
+		if ( strncmp( months[i], cp, 3 ) == 0 ){
+			ts->tm_mon = i;
+			return cp + 3;
+		}
+	return NULL;
+}
+
+time_t MakeUtc( struct tm *ts )
+{
+	time_t value = mktime( ts );
+	if ( value != (time_t)-1 )
+		value -= timezone;
+	return value;
+}
+
+time_t ParseImfDate( DString *date )
 {
 	const time_t inv_date = (time_t)-1;
 	const char *dnames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
-	const char *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 	const char *cp = date->chars;
-	struct tm time = {0};
+	struct tm ts = {0};
 	int i, found = 0;
-	time.tm_isdst = -1;
+	ts.tm_isdst = -1;
 	for ( i = 0; i < 7; ++i )
 		if ( strncmp( dnames[i], cp, 3 ) == 0 ){
 			found = 1;
@@ -348,12 +384,68 @@ time_t ParseDate(DString *date)
 		return inv_date;
 	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || cp[2] != ' ' )
 		return inv_date;
-	time.tm_mday = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
-	cp += 3;
-	found = 0;
-	for ( i = 0; i < 12; ++i )
-		if ( strncmp( months[i], cp, 3 ) == 0 ){
-			time.tm_mon = i;
+	ts.tm_mday = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	cp = ParseMonth( cp + 3, &ts );
+	if ( !cp )
+		return inv_date;
+	if ( *( cp++ ) != ' ' )
+		return inv_date;
+	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || !isdigit( cp[2] ) || !isdigit( cp[3] ) || cp[4] != ' ' )
+		return inv_date;
+	ts.tm_year = ( cp[0] - '0' )*1000 + ( cp[1] - '0' )*100 + ( cp[2] - '0' )*10 + ( cp[3] - '0' ) - 1900;
+	cp = ParseTimeOfDay( cp + 5, &ts );
+	if ( !cp || strcmp( cp, "GMT" ) != 0 )
+		return inv_date;
+	return MakeUtc( &ts );
+}
+
+time_t ParseRfc850Date(DString *date)
+{
+	const time_t inv_date = (time_t)-1;
+	const char *dnames[] = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
+	const char *cp = date->chars;
+	struct tm ts = {0};
+	int i, found = 0;
+	ts.tm_isdst = -1;
+	for ( i = 0; i < 7; ++i ){
+		int len = strlen(dnames[i]);
+		if ( strncmp( dnames[i], cp, len ) == 0 ){
+			found = 1;
+			cp += len;
+			break;
+		}
+	}
+	if ( !found || *( cp++ ) != ',' || *( cp++ ) != ' ' )
+		return inv_date;
+	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || cp[2] != '-' )
+		return inv_date;
+	ts.tm_mday = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	cp = ParseMonth( cp + 3, &ts );
+	if ( !cp )
+		return inv_date;
+	if ( *( cp++ ) != '-' )
+		return inv_date;
+	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || cp[2] != ' ' )
+		return inv_date;
+	ts.tm_year = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	if ( ts.tm_year < 70 )
+		ts.tm_year += 100;
+	cp = ParseTimeOfDay( cp + 3, &ts );
+	if ( !cp || strcmp( cp, "GMT" ) != 0 )
+		return inv_date;
+	return MakeUtc( &ts );
+}
+
+time_t ParseAsctimeDate(DString *date)
+{
+	const time_t inv_date = (time_t)-1;
+	const char *dnames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+	const char *cp = date->chars;
+	struct tm ts = {0};
+	int i, found = 0;
+	ts.tm_isdst = -1;
+	for ( i = 0; i < 7; ++i )
+		if ( strncmp( dnames[i], cp, 3 ) == 0 ){
 			found = 1;
 			break;
 		}
@@ -362,25 +454,42 @@ time_t ParseDate(DString *date)
 	cp += 3;
 	if ( *( cp++ ) != ' ' )
 		return inv_date;
-	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || !isdigit( cp[2] ) || !isdigit( cp[3] ) || cp[4] != ' ' )
+	cp = ParseMonth( cp, &ts );
+	if ( !cp )
 		return inv_date;
-	time.tm_year = ( cp[0] - '0' )*1000 + ( cp[1] - '0' )*100 + ( cp[2] - '0' )*10 + ( cp[3] - '0' ) - 1900;
-	cp += 5;
-	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || cp[2] != ':' )
+	if ( *( cp++ ) != ' ' )
 		return inv_date;
-	time.tm_hour = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
-	cp += 3;
-	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || cp[2] != ':' )
+	if ( isdigit( cp[0] ) && isdigit( cp[1] ) )
+		ts.tm_mday = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	else if ( cp[0] == ' ' && isdigit( cp[1] ) )
+		ts.tm_mday = cp[1] - '0';
+	else
 		return inv_date;
-	time.tm_min = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
-	cp += 3;
-	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || cp[2] != ' ' )
+	cp += 2;
+	if ( *( cp++ ) != ' ' )
 		return inv_date;
-	time.tm_sec = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
-	cp += 3;
-	if ( strcmp( cp, "GMT" ) != 0 )
+	cp = ParseTimeOfDay( cp, &ts );
+	if ( !cp )
 		return inv_date;
-	return mktime( &time );
+	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || !isdigit( cp[2] ) || !isdigit( cp[3] ) )
+		return inv_date;
+	ts.tm_year = ( cp[0] - '0' )*1000 + ( cp[1] - '0' )*100 + ( cp[2] - '0' )*10 + ( cp[3] - '0' ) - 1900;
+	cp += 4;
+	if ( *cp )
+		return inv_date;
+	return MakeUtc( &ts );
+}
+
+time_t ParseHttpDate( DString *date )
+{
+	time_t inv_date = (time_t)-1;
+	time_t value = ParseImfDate( date );
+	if ( value == inv_date ){
+		value = ParseRfc850Date( date );
+		if ( value == inv_date )
+			value = ParseAsctimeDate( date );
+	}
+	return value;
 }
 
 static void DaoHttpHeader_Version( DaoProcess *proc, DaoValue *p[], int N )
@@ -549,12 +658,8 @@ void PutDateValue( DaoProcess *proc, DMap *headers, const char *field )
 	DNode *node = DMap_Find( headers, &name );
 	if ( sizeof(dao_integer) < sizeof(time_t) )
 		DaoProcess_RaiseWarning( proc, "Value", "The time value might overflow the int type" );
-	if ( node ){
-		time_t date = ParseDate( node->value.pString );
-		if ( date != (time_t)-1 )
-			date -= timezone;
-		DaoProcess_PutInteger( proc, (dao_integer)date );
-	}
+	if ( node )
+		DaoProcess_PutInteger( proc, (dao_integer)ParseHttpDate( node->value.pString ) );
 	else
 		DaoProcess_PutNone( proc );
 }
@@ -1263,6 +1368,11 @@ DaoTypeBase chunkDecoderTyper = {
 	(FuncPtrDel)DaoChunkDecoder_Delete, NULL
 };
 
+static void HTTP_ParseDate( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoProcess_PutInteger( proc, (dao_integer)ParseHttpDate( p[0]->xString.value ) );
+}
+
 static DaoFuncItem httpMeths[] =
 {
 	//! Returns HTTP request or response header read from \a message. If \a message does not
@@ -1280,6 +1390,11 @@ static DaoFuncItem httpMeths[] =
 	//! is deduced. Field name-values (headers) may be provided the same way as with \c initRequest. Returns
 	//! the resulting header along with the terminating '\r\n'
 	{ HTTP_InitResponse,	"initResponse(code: int, ...: tuple<enum,int|string|list<string>>) => string" },
+
+
+	//! Parses \a date as HTTP date according to RFC 7231 and returns the resulting \c time_t value (-1 on parsing error);
+	//! use \c time module to interpret it
+	{ HTTP_ParseDate,		"parseDate(date: string) => int" },
 	{ NULL, NULL }
 };
 
