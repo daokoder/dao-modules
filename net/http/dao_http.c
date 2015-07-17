@@ -1373,6 +1373,78 @@ static void HTTP_ParseDate( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutInteger( proc, (dao_integer)ParseHttpDate( p[0]->xString.value ) );
 }
 
+int HexToInt( char ch )
+{
+	if ( ch >= '0' && ch <= '9' )
+		return ch - '0';
+	if ( ch >= 'A' && ch <= 'F' )
+		return ch - 'A' + 10;
+}
+
+void DecodePercentageEncoding( const char *cp, daoint count, DString *str )
+{
+	daoint i;
+	DString_Clear( str );
+	for ( i = 0; i < count; ++i, ++cp )
+		if ( *cp == '%' ){
+			if ( i > count - 2 || !isxdigit( cp[1] ) || !isxdigit( cp[2] ) )
+				return;
+			DString_AppendChar( str, HexToInt( cp[1] )*16 + HexToInt( cp[2] ) );
+			i += 2;
+			cp += 2;
+		}
+		else if ( *cp == '+' )
+			DString_AppendChar( str, ' ' );
+		else if ( *cp == '\r' && cp[1] == '\n' ){
+			DString_AppendChar( str, '\n' );
+			++i;
+			++cp;
+		}
+		else
+			DString_AppendChar( str, *cp );
+}
+
+void ParseForm( DString *form, DaoMap *fields )
+{
+	DString *name = DString_New();
+	DString *value = DString_New();
+	DString *str = name;
+	char delim = '=';
+	const char *start, *cp = form->chars;
+	start = cp;
+	while ( 1 ){
+		if ( !*cp || *cp == delim ){
+			DecodePercentageEncoding( start, cp - start, str );
+			start = cp + 1;
+			if ( delim == '&' ){
+				DaoString *key = DaoString_New();
+				DaoString *val = DaoString_New();
+				DaoString_Set( key, name );
+				DaoString_Set( val, value );
+				DaoMap_Insert( fields, (DaoValue*)key, (DaoValue*)val );
+				DaoString_Delete( key );
+				DaoString_Delete( val );
+				if ( !*cp )
+					break;
+				delim = '=';
+				str = name;
+			}
+			else {
+				delim = '&';
+				str = value;
+			}
+		}
+		++cp;
+	}
+	DString_Delete( name );
+	DString_Delete( value );
+}
+
+static void HTTP_ParseForm( DaoProcess *proc, DaoValue *p[], int N )
+{
+	ParseForm( p[0]->xString.value, DaoProcess_PutMap( proc, 0 ) );
+}
+
 static DaoFuncItem httpMeths[] =
 {
 	//! Returns HTTP request or response header read from \a message. If \a message does not
@@ -1391,10 +1463,12 @@ static DaoFuncItem httpMeths[] =
 	//! the resulting header along with the terminating '\r\n'
 	{ HTTP_InitResponse,	"initResponse(code: int, ...: tuple<enum,int|string|list<string>>) => string" },
 
-
 	//! Parses \a date as HTTP date according to RFC 7231 and returns the resulting \c time_t value (-1 on parsing error);
 	//! use \c time module to interpret it
 	{ HTTP_ParseDate,		"parseDate(date: string) => int" },
+
+	//! Decodes \a form with 'application/x-www-form-urlencoded' MIME type
+	{ HTTP_ParseForm,		"decodeForm(form: string) => map<string,string>" },
 	{ NULL, NULL }
 };
 

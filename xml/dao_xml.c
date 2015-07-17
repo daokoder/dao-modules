@@ -1930,6 +1930,8 @@ static void DaoXMLElement_Attributes( DaoProcess *proc, DaoValue *p[], int N )
 			DaoString_Set( key, node->key.pString );
 			DaoString_Set( val, node->value.pString );
 			DaoMap_Insert( map, (DaoValue*)key, (DaoValue*)val );
+			DaoString_Delete( key );
+			DaoString_Delete( val );
 		}
 	}
 }
