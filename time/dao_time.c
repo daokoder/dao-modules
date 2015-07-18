@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2013,2014, Limin Fu
+// Copyright (c) 2013-2015, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -151,11 +151,17 @@ static void DaoTime_Get( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoTime_Time( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoTime *self = DaoTime_New();
-	self->value = p[0]->xInteger.value;
-	self->local = ( p[1]->xEnum.value == 0 );
-	if ( self->value == (time_t)-1 || !DaoTime_GetTime( self ) ){
+	DaoTime *self;
+	time_t value = p[0]->xInteger.value;
+	if ( value == (time_t)-1 ){
 		DaoProcess_RaiseError( proc, timeerr, "Invalid datetime" );
+		return;
+	}
+	self = DaoTime_New();
+	self->value = value;
+	self->local = ( p[1]->xEnum.value == 0 );
+	if ( !DaoTime_GetTime( self ) ){
+		DaoProcess_RaiseError( proc, timeerr, "Unknown system error" );
 		DaoTime_Delete( self );
 		return;
 	}
@@ -303,10 +309,6 @@ static void DaoTime_Set( DaoProcess *proc, DaoValue *p[], int N )
 	daoint i;
 	*res = *self;
 	DaoProcess_PutCdata( proc, res, daox_type_time );
-	if ( !res->local ){
-		DaoProcess_RaiseError( proc, timeerr, "Only changing the parts of a local datetime is supported" );
-		return;
-	}
 	for ( i = 1; i < N; i++ ){
 		dao_integer val = p[i]->xTuple.values[1]->xInteger.value;
 		switch ( p[i]->xTuple.values[0]->xEnum.value ){
@@ -323,6 +325,13 @@ static void DaoTime_Set( DaoProcess *proc, DaoValue *p[], int N )
 	if ( res->value == (time_t)-1){
 		DaoProcess_RaiseError( proc, timeerr, "Invalid datetime" );
 		return;
+	}
+	if ( !res->local ){
+		res->value -= timezone;
+		if ( !DaoTime_GetTime( res ) ){
+			DaoProcess_RaiseError( proc, timeerr, "Unknown system error" );
+			return;
+		}
 	}
 	DaoTime_CalcJulianDay( res );
 }
@@ -410,7 +419,7 @@ static void DaoTime_Zone( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTuple *res = DaoProcess_PutTuple( proc, 4 );
 	tzset();
-	res->values[0]->xInteger.value = daylight;
+	res->values[0]->xBoolean.value = daylight > 0;
 	res->values[1]->xInteger.value = timezone;
 	DaoString_SetChars( &res->values[2]->xString, tzname[0] );
 	DaoString_SetChars( &res->values[3]->xString, tzname[1] );
@@ -660,10 +669,6 @@ static void DaoTime_Add( DaoProcess *proc, DaoValue *p[], int N )
 			DaoTime_CalcJulianDay( res );
 		return;
 	}
-	if ( !res->local ){
-		DaoProcess_RaiseError( proc, timeerr, "Adding years, months and days is only supported for a local datetime" );
-		return;
-	}
 	for ( i = 1; i < N; i++ ){
 		dao_integer count = p[i]->xTuple.values[1]->xInteger.value;
 		switch ( p[i]->xTuple.values[0]->xEnum.value ){
@@ -701,13 +706,18 @@ static void DaoTime_Add( DaoProcess *proc, DaoValue *p[], int N )
 	res->value = mktime( &res->parts );
 	if ( res->value == (time_t)-1 )
 		DaoProcess_RaiseError( proc, timeerr, "Invalid resulting datetime" );
+	if ( !res->local ){
+		res->value -= timezone;
+		if ( !DaoTime_GetTime( res ) )
+			DaoProcess_RaiseError( proc, timeerr, "Unknown system error" );
+		else
+			DaoTime_CalcJulianDay( res );
+	}
 }
 
 static DaoFuncItem timeMeths[] =
 {
-	/*! Sets one or more datetime parts using named values and returns new datetime object representing the result.
-	 *
-	 * \note Only setting parts of a local datetime is supported */
+	/*! Sets one or more datetime parts using named values and returns new datetime object representing the result */
 	{ DaoTime_Set,		"with(self: DateTime, ...: tuple<enum<year,month,day,hour,min,sec>,int>) => DateTime" },
 
 	/*! \c time_t value representing date and time information (number of seconds elapsed since the Epoch,
@@ -750,16 +760,12 @@ static DaoFuncItem timeMeths[] =
 	{ DaoTime_Format2,	"format(self: DateTime, invar names: map<string,list<string>>, format = '%Y-%M-%D, %H:%I:%S' ) => string" },
 
 	/*! Returns the number of day in the month or year of the given datetime depending on the \a period parameter */
-	{ DaoTime_Days,		"days(self: DateTime, period: enum<month,year>) => int" },
+	{ DaoTime_Days,		"daysIn(self: DateTime, period: enum<month,year>) => int" },
 
-	/*! Adds the specified number of years, months or days (provided as named values) to the given datetime and returns new datetime
-	 *  object representing the result.
-	 *
-	 * \note Adding years, months and days is only supported for a local datetime*/
+	/*! Returns new datetime obtained by adding the specified number of years, months or days (provided as named values) */
 	{ DaoTime_Add,		"add(self: DateTime, ...: tuple<enum<years,months,days>,int>) => DateTime" },
 
-	/*! Adds the specified number of \a seconds to the given datetime (may be used for both local and global datetime)
-	 * And returns new datetime object representing the result	*/
+	/*! Returns new datetime obtained by adding the specified number of \a seconds to this datetime */
 	{ DaoTime_Add,		"add(self: DateTime, seconds: int) => DateTime" },
 
 	/*! Datetime comparison */
@@ -781,7 +787,7 @@ DaoTypeBase timeTyper = {
 
 static DaoFuncItem timeFuncs[] =
 {
-	/*! Returns current \c time_t value -- the number of seconds passed since the epoch time (1970-1-1, 00:00:00 UTC) */
+	/*! Returns the current \c time_t value -- the number of seconds passed since the epoch time (1970-1-1, 00:00:00 UTC) */
 	{ DaoTime_Value2,	"value() => int" },
 
 	/*! Returns current datetime of the given \a kind */
@@ -804,29 +810,35 @@ static DaoFuncItem timeFuncs[] =
 
 	/*! Returns local time zone information (environment variable *TZ*):
 	 * -\c dst -- is Daylight Saving Time (DST) used
-	 * -\c shift -- shift in seconds from GMT;
+	 * -\c shift -- shift in seconds from UTC
 	 * -\c name -- zone name
-	 * -\c dstName -- DST zone name
-	 *
-	 * \note You can set *TZ* using `sys.putenv()` in order to work with datetime from a different time zone */
-	{ DaoTime_Zone,		"zone() => tuple<dst: int, shift: int, name: string, dstName: string>" },
+	 * -\c dstZone -- DST zone name */
+	{ DaoTime_Zone,		"zone() => tuple<dst: bool, shift: int, name: string, dstZone: string>" },
 	{ NULL, NULL }
 };
+
+DaoTime* DaoProcess_PutTime( DaoProcess *proc, time_t value, int local )
+{
+	DaoTime *self;
+	if ( value == (time_t)-1 ){
+		DaoProcess_RaiseError( proc, timeerr, "Invalid datetime" );
+		return NULL;
+	}
+	self = DaoTime_New();
+	self->value = value;
+	self->local = local;
+	if ( !DaoTime_GetTime( self ) ){
+		DaoProcess_RaiseError( proc, timeerr, "Unknown system error" );
+		return NULL;
+	}
+	DaoTime_CalcJulianDay( self );
+	DaoProcess_PutCdata( proc, self, daox_type_time );
+	return self;
+}
 
 DAO_DLL int DaoTime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *timens = DaoNamespace_GetNamespace( ns, "time" );
-
-#if 0
-	/* Warning will be raised by DateTime::value() and time.diff(). */
-	if ( sizeof(dao_integer) != 8 ){
-		DaoStream* stream = DaoVmSpace_ErrorStream( vmSpace );
-		DaoStream_WriteChars( stream,
-				"This module is not compatible with Dao compiled with 32-bit int type!\n" );
-		return 1;
-	}
-#endif
-
 	daox_type_time = DaoNamespace_WrapType( timens, &timeTyper, DAO_CTYPE_INVAR|DAO_CTYPE_OPAQUE );
 	DaoNamespace_WrapFunctions( timens, timeFuncs );
 	return 0;
