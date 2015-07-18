@@ -1820,7 +1820,7 @@ static DaoFuncItem socketMeths[] =
 	{  DaoSocket_Lib_GetSockName,   ".localAddr( invar self: Socket ) => SocketAddr" },
 
 	/*! Socket file descriptor */
-	{  DaoSocket_Lib_Id,            ".id( invar self: Socket ) => int" },
+	{  DaoSocket_Lib_Id,            ".fd( invar self: Socket ) => int" },
 
 	/*! Current socket state */
 	{  DaoSocket_Lib_State,         ".state( invar self: Socket ) => enum<closed,bound,listening,connected>" },

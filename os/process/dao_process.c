@@ -552,7 +552,7 @@ static void DaoPipe_GetClose( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem pipeMeths[] =
 {
 	/*! ID of the read and write ends of the pipe (file descriptors on Unix, handles on Windows) */
-	{ DaoPipe_Id,		".id(invar self: Pipe) => tuple<read: int, write: int>" },
+	{ DaoPipe_Id,		".fd(invar self: Pipe) => tuple<read: int, write: int>" },
 
 	/*! Determines if synchronous (blocking) mode is used for reading (`true` by default) */
 	{ DaoPipe_GetRMode,	".syncRead(invar self: Pipe) => bool" },

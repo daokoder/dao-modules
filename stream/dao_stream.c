@@ -40,6 +40,7 @@
 #  ifndef __GNUC__
 #    define popen _popen
 #    define pclose _pclose
+#    define pclose _fdopen
 #  endif
 
 #endif
@@ -395,6 +396,13 @@ static void PIPE_Close( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, "Param", "open pipe stream required" );
 	}
 }
+static void PIPE_FileNO( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoFileStream *self = (DaoPipeStream*) p[0];
+	dao_integer *num = DaoProcess_PutInteger( proc, 0 );
+	if( self->file == NULL ) return;
+	*num = fileno( self->file );
+}
 
 
 static void DaoIOS_Open( DaoProcess *proc, DaoValue *p[], int N )
@@ -424,9 +432,9 @@ static void DaoIOS_Tell( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem dao_io_methods[] =
 {
-	{ DaoIO_Open,      "tmpfile() => FileStream" },
+	{ DaoIO_Open,      "tmpFile() => FileStream" },
 	{ DaoIO_Open,      "open( file: string, mode: string ) => FileStream" },
-	{ DaoIO_Open,      "open( fileno: int, mode: string ) => FileStream" },
+	{ DaoIO_Open,      "open( fd: int, mode: string ) => FileStream" },
 
 	/*! Spawns sub-process which executes the given shell \a command with redirected standard input or output depending on \a mode.
 	 * If \a mode is 'r', returns readable stream of the process output; if \a mode is 'w', returns writable stream of the process
@@ -439,13 +447,13 @@ static DaoFuncItem fileStreamMeths[] =
 {
 	{ DaoIO_Open,      "FileStream() => FileStream" },
 	{ DaoIO_Open,      "FileStream( file: string, mode: string ) => FileStream" },
-	{ DaoIO_Open,      "FileStream( fileno: int, mode: string ) => FileStream" },
+	{ DaoIO_Open,      "FileStream( fd: int, mode: string ) => FileStream" },
 
 	{ DaoIO_Close,     "close( self: FileStream )" },
 
 	{ DaoIO_Seek,      "seek( self: FileStream, pos: int, from: enum<begin,current,end> ) => int" },
 	{ DaoIO_Tell,      "tell( self: FileStream ) => int" },
-	{ DaoIO_FileNO,    "fileno( self: FileStream ) => int" },
+	{ DaoIO_FileNO,    ".fd( invar self: FileStream ) => int" },
 	{ NULL, NULL }
 };
 
@@ -460,6 +468,7 @@ DaoTypeBase DaoFileStream_Typer =
 static DaoFuncItem pipeMeths[] =
 {
 	{ PIPE_New,      "PipeStream( file: string, mode: string ) => PipeStream" },
+	{ PIPE_FileNO,   ".fd( invar self: PipeStream ) => int" },
 	{ PIPE_Close,    "close( self: PipeStream ) => int" },
 	{ NULL, NULL }
 };
