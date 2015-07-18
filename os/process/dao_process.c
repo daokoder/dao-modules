@@ -1669,13 +1669,13 @@ static DaoFuncItem osMeths[] =
 	 * \warning On Windows, environment variable strings are assumed to be in local or ASCII encoding */
 	{ OS_Exec,	"exec(path: string, invar arguments: list<string>, ...: "
 					 "tuple<enum<dir>, string> | tuple<enum<environ>, invar<list<string>>> | "
-					 "tuple<enum<stdin,stdout,stderr>, Pipe|io::FileStream> | tuple<enum<detached>, bool>) => Process" },
+					 "tuple<enum<stdin,stdout,stderr>, Pipe|io::FileStream|io::PipeStream> | tuple<enum<detached>, bool>) => Process" },
 
 	/*! Similar to `exec()`, but calls system shell ('/bin/sh -c' on Unix, 'cmd /C' on Windows) with the given \a command.
 	 * \a command is passed to the shell 'as-is', so you need to ensure that it is properly escaped */
 	{ OS_Shell,	"shell(command: string, ...: "
 					  "tuple<enum<dir>, string> | tuple<enum<environ>, invar<list<string>>> | "
-					  "tuple<enum<stdin,stdout,stderr>, Pipe|io::FileStream> | tuple<enum<detached>, bool>) => Process" },
+					  "tuple<enum<stdin,stdout,stderr>, Pipe|io::FileStream|io::PipeStream> | tuple<enum<detached>, bool>) => Process" },
 
 	/*! Waits for one of child processes in \a children to exit for \a timeout seconds (waits indefinitely if \a timeout is less
 	 * then 0). Returns the first found exited process, or `none` if timeouted or if \a children is empty

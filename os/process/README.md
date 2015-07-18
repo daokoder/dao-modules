@@ -36,10 +36,10 @@ class [Pipe](#pipe)
 Functions:
 - [exec](#exec)(_path_: string, invar _arguments_: list&lt;string&gt;, ...:
     tuple&lt;enum&lt;dir&gt;, string&gt; | tuple&lt;enum&lt;environ&gt;, invar&lt;list&lt;string&gt;&gt;&gt; |
-    tuple&lt;enum&lt;stdin,stdout,stderr&gt;, Pipe|io::Stream&gt; | tuple&lt;enum&lt;detached&gt;, bool&gt;) => Process
+    tuple&lt;enum&lt;stdin,stdout,stderr&gt;, Pipe|io::FileStream|io::PipeStream&gt; | tuple&lt;enum&lt;detached&gt;, bool&gt;) => Process
 - [shell](#shell)(_command_: string, ...:
     tuple&lt;enum&lt;dir&gt;, string&gt; | tuple&lt;enum&lt;environ&gt;, invar&lt;list&lt;string&gt;&gt;&gt; |
-    tuple&lt;enum&lt;stdin,stdout,stderr&gt;, Pipe|io::Stream&gt; | tuple&lt;enum&lt;detached&gt;, bool&gt;) => Process
+    tuple&lt;enum&lt;stdin,stdout,stderr&gt;, Pipe|io::FileStream|io::PipeStream&gt; | tuple&lt;enum&lt;detached&gt;, bool&gt;) => Process
 - [wait](#funwait)(invar _children_: list&lt;Process&gt;, &lt;timeout&gt; = -1.0) => Process|none
 - [pipe](#pipe_ctor)(_autoClose_ = true) => Pipe
 - [pipe](#pipe_ctor2)(_name_: string, _mode_: string, _action_: enum&lt;create&gt;, _autoClose_ = true) => Pipe
@@ -190,7 +190,7 @@ Closes the specified *end* of the pipe, or both ends if *end* is not given
 ```ruby
 exec(path: string, invar arguments: list<string>, ...:
     tuple<enum<dir>, string> | tuple<enum<environ>, invar<list<string>>> |
-    tuple<enum<stdin,stdout,stderr>, Pipe|io::Stream> | tuple<enum<detached>, bool>) => Process
+    tuple<enum<stdin,stdout,stderr>, Pipe|io::FileStream|io::PipeStream> | tuple<enum<detached>, bool>) => Process
 ```
 
 Creates new child process executing the file specified by *path* with the *arguments* (if given). *path* may omit the full path to the file, in that case its resolution is system-dependent. Returns the corresponding [Process](#proces) object.
@@ -208,12 +208,12 @@ __Note:__ The routine will fail with error on Windows if the execution cannot be
 
 __Warning:__ On Windows, environment variable strings are assumed to be in local or ASCII encoding
 
-**Errors:** `Value` in case of invalid environment variable definition, `Value` when `io::Stream` used for redirection is not a file or is not readable/writable (depending on what is redirected), `Process` if failed to start new process
+**Errors:** `Value` in case of invalid environment variable definition, `Value` when `io::FileStream|io::PipeStream` used for redirection is not a file or is not readable/writable (depending on what is redirected), `Process` if failed to start new process
 <a name="shell"></a>
 ```ruby
 shell(command: string, ...:
     tuple<enum<dir>, string> | tuple<enum<environ>, invar<list<string>>> |
-    tuple<enum<stdin,stdout,stderr>, Pipe|io::Stream> | tuple<enum<detached>, bool>) => Process
+    tuple<enum<stdin,stdout,stderr>, Pipe|io::FileStream|io::PipeStream> | tuple<enum<detached>, bool>) => Process
 ```
 Similar to [exec()](#exec), but calls system shell ('/bin/sh -c' on Unix, 'cmd /C' on Windows) with the given *command*. *command* is passed to the shell 'as-is', so you need to ensure that it is properly escaped
 <a name="funwait"></a>

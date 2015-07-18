@@ -33,6 +33,7 @@
 
 #include"dao.h"
 #include"daoValue.h"
+#include"dao_stream.h"
 
 DAO_DLL void DaoMime_Identify( DString *ext, DaoList *names );
 DAO_DLL daoint DaoMime_UpdateDB(DaoStream *source );
