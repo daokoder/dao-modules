@@ -2952,13 +2952,6 @@ static void DaoXMLWriter_Flush( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutValue( proc, p[0] );
 }
 
-static void DaoXMLWriter_Close( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoXMLWriter *self = (DaoXMLWriter*)DaoValue_TryGetCdata( p[0] );
-	DaoStream_Close( self->stream );
-	self->closed = 1;
-}
-
 static void DaoXMLWriter_Tag( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoXMLWriter *self = (DaoXMLWriter*)DaoValue_TryGetCdata( p[0] );
@@ -3216,9 +3209,6 @@ static DaoFuncItem xmlWriterMeths[] =
 
 	/*! Flushes output stream and returns \a self */
 	{ DaoXMLWriter_Flush,	"flush(self: Writer) => Writer" },
-
-	/*! Closes output stream */
-	{ DaoXMLWriter_Close,	"close(self: Writer)" },
 
 	/*! Writes \a data as raw data (without escaping) and returns \a self */
 	{ DaoXMLWriter_RawData,	"raw(self: Writer, data: string) => Writer" },

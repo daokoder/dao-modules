@@ -70,7 +70,6 @@ class [Writer](#writer)
 - [Writer](#writer_ctor2)() => Writer
 - [.stream](#stream)(invar _self_: Writer) => invar&lt;io::Stream&gt;
 - [flush](#flush)(_self_: Writer) => Writer
-- [close](#close)(_self_: Writer)
 - [raw](#raw)(_self_: Writer, _data_: string) => Writer
 - [text](#wr_text)(_self_: Writer, _value_: int|float|enum|string) => Writer
 - [cdata](#cdata)(_self_: Writer, _data_: string) => Writer
@@ -390,11 +389,6 @@ Output stream
 flush(self: Writer) => Writer
 ```
 Flushes output stream and returns *self*
-<a name="close"></a>
-```ruby
-close(self: Writer)
-```
-Closes output stream
 <a name="raw"></a>
 ```ruby
 raw(self: Writer, data: string) => Writer
