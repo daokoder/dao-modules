@@ -4609,7 +4609,11 @@ static int set_ports_option(struct mg_context *ctx) {
 			   // "Program received signal SIGPIPE, Broken pipe" in GDB mode;
                setsockopt(so.sock, SOL_SOCKET,
 #ifdef MACOSX
+#ifdef DEBUG2
 				   SO_NOSIGPIPE,
+#else
+				   SO_REUSEADDR,
+#endif
 #else
 				   SO_REUSEADDR|MSG_NOSIGNAL,
 #endif

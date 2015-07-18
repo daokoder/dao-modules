@@ -44,12 +44,6 @@
 #include<windows.h>
 #include<lmcons.h>
 #define putenv _putenv
-
-#  ifndef __GNUC__
-#    define popen _popen
-#    define pclose _pclose
-#  endif
-
 #endif
 
 #ifdef MAC_OSX
@@ -59,73 +53,13 @@
 extern char ** environ;
 #endif
 
+#include"dao.h"
 #include"daoString.h"
 #include"daoValue.h"
 #include"daoThread.h"
 #include"daoGC.h"
+#include"dao_stream.h"
 
-DaoType *daox_type_pipestream = NULL;
-
-static void PIPE_New( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoStream *stream = NULL;
-	DString *fname = p[0]->xString.value;
-	char *mode;
-
-	stream = DaoStream_New();
-	stream->mode |= DAO_STREAM_FILE; 
-	GC_Assign( & stream->ctype, daox_type_pipestream );
-	DaoProcess_PutValue( proc, (DaoValue*)stream );
-	if( DString_Size( fname ) == 0 ){
-		DaoProcess_RaiseError( proc, "Param", "empty command line" );
-		return;
-	}
-	mode = DString_GetData( p[1]->xString.value );
-	stream->file = popen( DString_GetData( fname ), mode );
-	if( stream->file == NULL ){
-		DaoProcess_RaiseError( proc, "System", "error opening pipe" );
-		return;
-	}
-	if( strstr( mode, "+" ) ){
-		stream->mode |= DAO_STREAM_WRITABLE | DAO_STREAM_READABLE;
-	}else{
-		if( strstr( mode, "r" ) ) stream->mode |= DAO_STREAM_READABLE;
-		if( strstr( mode, "w" ) || strstr( mode, "a" ) ) stream->mode |= DAO_STREAM_WRITABLE;
-	}
-}
-static void PIPE_Close( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoStream *stream = &p[0]->xStream;
-	if ( stream->file ){
-		DaoProcess_PutInteger( proc, pclose( stream->file ) );
-		stream->file = NULL;
-		stream->mode &= ~(DAO_STREAM_WRITABLE | DAO_STREAM_READABLE);
-	} else {
-		DaoProcess_RaiseError( proc, "Param", "open pipe stream required" );
-	}
-}
-
-static DaoFuncItem pipeMeths[] =
-{
-	{ PIPE_New,      "PipeStream( file: string, mode: string ) => PipeStream" },
-	{ PIPE_Close,    "pclose( self: PipeStream ) => int" },
-	{ NULL, NULL }
-};
-
-void DaoxPipe_GetGCFields( void *p, DList *values, DList *arrays, DList *maps, int remove )
-{
-	DaoStream *self = (DaoStream*) p;
-	if( remove ){
-		/* So that the standard Stream type need not to handle the pipe subtype; */
-		if( self->file ) pclose( self->file );
-	}
-}
-
-DaoTypeBase pipeTyper =
-{
-	"PipeStream", NULL, NULL, (DaoFuncItem*) pipeMeths, {0}, {0},
-	(FuncPtrDel) DaoStream_Delete, DaoxPipe_GetGCFields
-};
 
 
 static void OS_Sleep( DaoProcess *proc, DaoValue *p[], int N )
@@ -339,9 +273,10 @@ static void OS_Null( DaoProcess *proc, DaoValue *p[], int N )
 	if ( !file )
 		DaoProcess_RaiseError( proc, "System", "Failed to open system null device" );
 	else {
-		DaoStream *stream = DaoStream_New();
+		DaoFileStream *stream = DaoFileStream_New();
 		stream->file = file;
-		stream->mode |= DAO_STREAM_WRITABLE;
+		stream->base.mode |= DAO_STREAM_WRITABLE;
+		DaoFileStream_InitCallbacks( stream );
 		DaoProcess_PutValue( proc, (DaoValue*)stream );
 	}
 }
@@ -350,11 +285,6 @@ static DaoFuncItem sysMeths[]=
 {
 	/*! Executes the given \a command via system shell and returns the resulting exit code */
 	{ OS_Shell,     "system( command: string ) => int" },
-
-	/*! Spawns sub-process which executes the given shell \a command with redirected standard input or output depending on \a mode.
-	 * If \a mode is 'r', returns readable stream of the process output; if \a mode is 'w', returns writable stream of the process
-	 * input */
-	{ PIPE_New,     "popen( command: string, mode: string ) => os::PipeStream" },
 
 	/*! Suspends execution of the current thread for the specified amount of \a seconds */
 	{ OS_Sleep,     "sleep( seconds: float )" },
@@ -384,7 +314,7 @@ static DaoFuncItem sysMeths[]=
 	{ OS_Uname,     "uname() => tuple<system: string, version: string, release: string, host: string>"},
 	
 	/*! Returns write-only stream corresponding to system null device */
-	{ OS_Null,      "null() => io::Stream" },
+	{ OS_Null,      "null() => io::FileStream" },
 	{ NULL, NULL }
 };
 
@@ -401,10 +331,9 @@ DaoNumItem sysConsts[] =
 
 DAO_DLL int DaoOS_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
+	DaoNamespace *streamns = DaoVmSpace_LinkModule( vmSpace, ns, "stream" );
 	DaoNamespace *osns = DaoVmSpace_GetNamespace( vmSpace, "os" );
 	DaoNamespace_AddConstValue( ns, "os", (DaoValue*)osns );
-	pipeTyper.supers[0] = DaoType_GetTyper( dao_type_stream );
-	daox_type_pipestream = DaoNamespace_WrapType( osns, & pipeTyper, 0 );
 
 	DaoNamespace_WrapFunctions( osns, sysMeths );
 	DaoNamespace_AddConstNumbers( osns, sysConsts );

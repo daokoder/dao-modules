@@ -171,9 +171,12 @@ static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 			break;
 		case DAO_CSTRUCT :
 			args[i] = & p[i];
+#warning"TODO: stream type support!"
+#if 0
 			if( DaoValue_CastCstruct( p[i], daox_ffi_stream_type ) ){
 				args[i] = & p[i]->xStream.file;
 			}
+#endif
 			break;
 		case DAO_CDATA :
 			args[i] = & p[i]->xCdata.data;
@@ -317,8 +320,8 @@ static void DaoCLoader_Load( DaoProcess *proc, DaoValue *p[], int N )
 	pos = DString_FindChars( file, DAO_DLL_SUFFIX, 0 );
 	if( pos != (file->size - strlen(DAO_DLL_SUFFIX)) ) DString_AppendChars( file, DAO_DLL_SUFFIX );
 	DString_Assign( lib, file );
-	Dao_MakePath( path, lib );
-	Dao_MakePath( proc->activeNamespace->path, lib );
+	DString_MakePath( path, lib );
+	DString_MakePath( proc->activeNamespace->path, lib );
 
 	handle = Dao_OpenDLL( lib->chars );
 	if( handle == NULL ){

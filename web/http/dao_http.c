@@ -38,6 +38,7 @@
 #include "daoVmspace.h"
 #include "daoThread.h"
 #include "daoGC.h"
+#include "dao_stream.h"
 
 #include "Marten/marten.h"
 
@@ -312,12 +313,14 @@ void DaoxRequest_ParsePostData( DaoxRequest *self, mg_connection *conn )
 			memmove( buffer->chars, buffer->chars + pos2 + boundarylen, buffer->size );
 		}else{
 			DaoInteger isize = {DAO_INTEGER,0,0,0,0,0};
-			DaoStream *stream = DaoStream_New();
+			DaoFileStream *stream = DaoFileStream_New();
 			DaoTuple *tuple = DaoTuple_New(3);
 			FILE *file = tmpfile();
 
 			DaoString_Set( self->value, fname );
-			DaoStream_SetFile( stream, file );
+			stream->file = file;
+			stream->base.mode |= DAO_STREAM_READABLE|DAO_STREAM_WRITABLE;
+			DaoFileStream_InitCallbacks( stream );
 			DaoTuple_SetType( tuple, daox_type_namestream );
 			DaoTuple_SetItem( tuple, (DaoValue*) self->value, 0 );
 			DaoTuple_SetItem( tuple, (DaoValue*) stream, 2 );
@@ -1162,7 +1165,7 @@ static int DaoxHttp_TrySendFile( mg_connection *conn )
 	DNode *it;
 
 	DString_SetChars( path, ri->uri + 1 );
-	Dao_MakePath( server->docroot, path );
+	DString_MakePath( server->docroot, path );
 	if( Dao_IsFile( path->chars ) ){
 		daoint pos = DString_RFindChar( path, '.', -1 );
 		if( pos != DAO_NULLPOS ){
@@ -1183,7 +1186,7 @@ static int DaoxHttp_TrySendFile( mg_connection *conn )
 		daoint i;
 		for(i=0; i<server->indexFiles->size; i+=2){
 			DString_Assign( path2, server->indexFiles->items.pString[i] );
-			Dao_MakePath( path, path2 );
+			DString_MakePath( path, path2 );
 			if( Dao_IsFile( path2->chars ) ){
 				DString_Assign( path, path2 );
 				DString_Assign( mime, server->indexFiles->items.pString[i+1] );
@@ -1483,6 +1486,7 @@ static DaoTypeBase ClientTyper =
 
 DAO_DLL int DaoHttp_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
+	DaoNamespace *streamns = DaoVmSpace_LinkModule( vmSpace, ns, "stream" );
 	DaoNamespace *httpns = DaoNamespace_GetNamespace( ns, "http" );
 
 	daox_type_request = DaoNamespace_WrapType( httpns, & RequestTyper, 0 );
@@ -1492,7 +1496,8 @@ DAO_DLL int DaoHttp_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	daox_type_server = DaoNamespace_WrapType( httpns, & ServerTyper, 0 );
 	daox_type_client = DaoNamespace_WrapType( httpns, & ClientTyper, 0 );
 	daox_type_keyvalue = DaoNamespace_ParseType( httpns, "map<string,string>" );
-	daox_type_namestream = DaoNamespace_DefineType( httpns, "tuple<file:string,size:int,data:io::Stream>", "HttpUpload" );
+	daox_type_namestream = DaoNamespace_DefineType( httpns,
+			"tuple<file:string,size:int,data:io::FileStream>", "HttpUpload" );
 	daox_type_filemap = DaoNamespace_ParseType( httpns, "map<string,HttpUpload>" );
 	daox_type_stringlist = DaoNamespace_ParseType( httpns, "list<string>" );
 	mg_init();

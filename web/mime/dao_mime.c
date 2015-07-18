@@ -724,11 +724,14 @@ daoint DaoMime_UpdateDB( DaoStream *source )
 	while ( 1 ){ // for each line
 		char *buf, *pc;
 		int res;
+		// commented to avoid dependency on module/stream;
+#if 0
 		if ( source->file ){ // custom handling if file for performance boost
 			res = fgets( buffer, sizeof(buffer), source->file ) != NULL;
 			buf = buffer;
-		}
-		else {
+		} else 
+#endif
+		{
 			res = DaoStream_ReadLine( source, line );
 			buf = line->chars;
 		}

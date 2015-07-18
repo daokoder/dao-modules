@@ -1506,6 +1506,7 @@ static void DaoSocket_Lib_GetSockName( DaoProcess *proc, DaoValue *par[], int N 
 	DaoProcess_PutCdata( proc, saddr, daox_type_sockaddr );
 }
 
+#if 0
 static void DaoSocket_Lib_GetStream( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
@@ -1536,6 +1537,12 @@ static void DaoSocket_Lib_GetStream( DaoProcess *proc, DaoValue *par[], int N  )
 		if( strstr( mode, "w" ) || strstr( mode, "a" ) ) stream->mode |= DAO_STREAM_WRITABLE;
 	}
 	DaoProcess_PutValue( proc, (DaoValue*)stream );
+}
+#endif
+static void DaoSocket_Lib_GetDescriptor( DaoProcess *proc, DaoValue *par[], int N  )
+{
+	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	DaoProcess_PutInteger( proc, self->id );
 }
 
 static void DaoSocket_Lib_Check( DaoProcess *proc, DaoValue *par[], int N  )
@@ -1913,7 +1920,10 @@ static DaoFuncItem TcpStreamMeths[] =
 	/*! Returns \c io::Stream opened with the given \a mode bound to the socket
 	 *
 	 * \warning Not supported on Windows */
-	{ DaoSocket_Lib_GetStream,		"open( invar self: TcpStream, mode: string ) => io::Stream" },
+	//{ DaoSocket_Lib_GetStream,		"open( invar self: TcpStream, mode: string ) => io::Stream" },
+	// Removed to avoid dependency on module/stream;
+
+	{ DaoSocket_Lib_GetDescriptor,	".descriptor( invar self: TcpStream ) => int" },
 
 	/*! TCP keep-alive option (SO_KEEPALIVE) */
 	{ DaoSocket_Lib_KeepAlive,		".keepAlive( invar self: TcpStream ) => bool" },

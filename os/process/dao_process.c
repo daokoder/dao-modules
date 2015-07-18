@@ -31,6 +31,7 @@
 #include"daoValue.h"
 #include"daoThread.h"
 #include"daoTasklet.h"
+#include"dao_stream.h"
 
 #ifdef WIN32
 #include<io.h>
@@ -745,7 +746,7 @@ void DaoOSProcess_Kill( DaoOSProcess *self, int force )
 	DMutex_Unlock( &proc_mtx );
 }
 
-int GetFile( DaoStream *stream, fd_t *fd )
+int GetFile( DaoFileStream *stream, fd_t *fd )
 {
 #ifdef WIN32
 	*fd = INVALID_HANDLE_VALUE;
@@ -765,7 +766,7 @@ int GetStdStream( DaoProcess *proc, DaoValue *value, DaoValue **dest, DaoPipe **
 		if ( value->xCdata.ctype == daox_type_pipe )
 			DaoValue_Copy( value, dest );
 		else
-			return GetFile( &value->xStream, fd );
+			return GetFile( (DaoFileStream*) value, fd );
 	}
 	else
 		DaoGC_Assign( dest, (DaoValue*) DaoProcess_NewCdata( proc, daox_type_pipe, DaoPipe_New(), 1 ) );
@@ -1058,16 +1059,16 @@ int CheckEnv( DaoList *env, DaoProcess *proc )
 int CheckStream( DaoProcess *proc, DaoValue *value, int read )
 {
 	if ( value->xCdata.ctype != daox_type_pipe ){
-		DaoStream *stream = &value->xStream;
+		DaoFileStream *stream = (DaoFileStream*) value;
 		if ( !stream->file ){
-			DaoProcess_RaiseError( proc, "Value", "Not a file stream" );
+			DaoProcess_RaiseError( proc, "Value", "Not an open file stream" );
 			return 0;
 		}
-		if ( read && !( stream->mode & DAO_STREAM_READABLE ) ){
+		if ( read && ! DaoStream_IsReadable( (DaoStream*) stream ) ){
 			DaoProcess_RaiseError( proc, "Value", "Stream not readable" );
 			return 0;
 		}
-		if ( !read && !( stream->mode & DAO_STREAM_WRITABLE ) ){
+		if ( !read && ! DaoStream_IsWritable( (DaoStream*) stream ) ){
 			DaoProcess_RaiseError( proc, "Value", "Stream not writable" );
 			return 0;
 		}
@@ -1668,13 +1669,13 @@ static DaoFuncItem osMeths[] =
 	 * \warning On Windows, environment variable strings are assumed to be in local or ASCII encoding */
 	{ OS_Exec,	"exec(path: string, invar arguments: list<string>, ...: "
 					 "tuple<enum<dir>, string> | tuple<enum<environ>, invar<list<string>>> | "
-					 "tuple<enum<stdin,stdout,stderr>, Pipe|io::Stream> | tuple<enum<detached>, bool>) => Process" },
+					 "tuple<enum<stdin,stdout,stderr>, Pipe|io::FileStream> | tuple<enum<detached>, bool>) => Process" },
 
 	/*! Similar to `exec()`, but calls system shell ('/bin/sh -c' on Unix, 'cmd /C' on Windows) with the given \a command.
 	 * \a command is passed to the shell 'as-is', so you need to ensure that it is properly escaped */
 	{ OS_Shell,	"shell(command: string, ...: "
 					  "tuple<enum<dir>, string> | tuple<enum<environ>, invar<list<string>>> | "
-					  "tuple<enum<stdin,stdout,stderr>, Pipe|io::Stream> | tuple<enum<detached>, bool>) => Process" },
+					  "tuple<enum<stdin,stdout,stderr>, Pipe|io::FileStream> | tuple<enum<detached>, bool>) => Process" },
 
 	/*! Waits for one of child processes in \a children to exit for \a timeout seconds (waits indefinitely if \a timeout is less
 	 * then 0). Returns the first found exited process, or `none` if timeouted or if \a children is empty
@@ -1724,6 +1725,7 @@ static DaoFuncItem osMeths[] =
 
 DAO_DLL int DaoProcess_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
+	DaoNamespace *streamns = DaoVmSpace_LinkModule( vmSpace, ns, "stream" );
 	DaoNamespace *osns = DaoVmSpace_GetNamespace( vmSpace, "os" );
 	DaoNamespace_AddConstValue( ns, "os", (DaoValue*)osns );
 	daox_type_pipe = DaoNamespace_WrapType( osns, &pipeTyper, 1 );

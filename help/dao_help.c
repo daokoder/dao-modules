@@ -1073,19 +1073,17 @@ static void DaoxStream_WriteTable( DaoxStream *self, DString *text, int offset, 
 typedef struct DaoxTestStream DaoxTestStream;
 struct DaoxTestStream
 {
-	DaoStream *stream;
-	void (*StdioRead)( DaoxTestStream *self, DString *input, int count );
-	void (*StdioWrite)( DaoxTestStream *self, DString *output );
-	void (*StdioFlush)( DaoxTestStream *self );
-	void (*SetColor)( DaoxTestStream *self, const char *fg, const char *bg );
+	DaoStream base;
 
 	DString  *output;
 	DString  *output2;
 };
-void DaoxTestStream_StdioWrite( DaoxTestStream *self, DString *output )
+int DaoxTestStream_Write( DaoStream *stream, const void *data, int count )
 {
-	DString_Append( self->output, output );
-	DString_Append( self->output2, output );
+	DaoxTestStream *self = (DaoxTestStream*) stream;
+	DString_AppendBytes( self->output, (char*)data, count );
+	DString_AppendBytes( self->output2, (char*)data, count );
+	return count;
 }
 static int DaoxStream_DoTest( DaoxStream *self, DString *code )
 {
@@ -1093,25 +1091,26 @@ static int DaoxStream_DoTest( DaoxStream *self, DString *code )
 	DaoValue *result, *answer, *output, *error;
 	DaoVmSpace *vmspace = self->process->vmSpace;
 	DaoNamespace *nspace = DaoNamespace_New( vmspace, "test" );
-	DaoxTestStream stdoutStream = { NULL, NULL, NULL, NULL, NULL };
-	DaoxTestStream stderrStream = { NULL, NULL, NULL, NULL, NULL };
-	DaoUserStream *prevStdout, *prevStderr;
+	const DaoStream streamBase = {DAO_CSTRUCT,0,0,0,1,1, NULL,NULL, NULL,NULL,NULL,NULL,NULL, 0, NULL};
+	DaoxTestStream stdoutStream = { streamBase };
+	DaoxTestStream stderrStream = { streamBase };
+	DaoStream *prevStdout, *prevStderr;
 	DString *output2 = DString_New();
 
-	stdoutStream.StdioWrite = DaoxTestStream_StdioWrite;
-	stderrStream.StdioWrite = DaoxTestStream_StdioWrite;
+	stdoutStream.base.Write = DaoxTestStream_Write;
+	stderrStream.base.Write = DaoxTestStream_Write;
 
 	stdoutStream.output = DString_New();
 	stderrStream.output = DString_New();
 	stdoutStream.output2 = stderrStream.output2 = output2;
 
-	prevStdout = DaoVmSpace_SetUserStdio( vmspace, (DaoUserStream*) & stdoutStream );
-	prevStderr = DaoVmSpace_SetUserStdError( vmspace, (DaoUserStream*) & stderrStream  );
+	prevStdout = DaoVmSpace_SetStdio( vmspace, & stdoutStream.base );
+	prevStderr = DaoVmSpace_SetStdError( vmspace, & stderrStream.base  );
 
 	DaoProcess_Eval( self->process, nspace, code->chars );
 
-	DaoVmSpace_SetUserStdio( vmspace, prevStdout );
-	DaoVmSpace_SetUserStdError( vmspace, prevStderr  );
+	DaoVmSpace_SetStdio( vmspace, prevStdout );
+	DaoVmSpace_SetStdError( vmspace, prevStderr  );
 
 	DaoxStream_WriteNewLine( self, "Test output:" );
 	DaoxStream_SetColor( self, NULL, dao_colors[DAOX_YELLOW] );

@@ -326,15 +326,10 @@ static void DaoBinary_Decode( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoBinary_Read( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoStream *stream = &p[0]->xStream;
-	FILE* file = stream->file;
 	DaoArray *arr = &p[1]->xArray;
 	dao_integer count =  p[2]->xInteger.value;
 	size_t size = 0;
 	DaoArray_Sliced( arr );
-	if( !file ){
-		DaoProcess_RaiseError( proc, "Param", "The stream is not a file" );
-		return;
-	}
 	if( ( stream->mode & DAO_STREAM_READABLE ) == 0 ){
 		DaoProcess_RaiseError( proc, "Param", "The stream is not readable" );
 		return;
@@ -346,29 +341,24 @@ static void DaoBinary_Read( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	if( count == 0 || count > arr->size )
 		count = arr->size;
-	DaoProcess_PutInteger( proc, fread( arr->data.p, size, count, file ) );
+	DaoProcess_PutInteger( proc, DaoStream_ReadBytes( stream, arr->data.p, size*count ) );
 }
 
 static void DaoBinary_Unpack( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoStream *stream = &p[0]->xStream;
-	FILE* file = stream->file;
 	DaoArray *arr = &p[1]->xArray;
 	size_t sizes[] = {1, 2, 4};
 	size_t size =  sizes[p[2]->xEnum.value];
 	dao_integer count = p[3]->xInteger.value;
 	DaoArray_Sliced( arr );
-	if( !file ){
-		DaoProcess_RaiseError( proc, "Param", "The stream is not a file" );
-		return;
-	}
 	if( ( stream->mode & DAO_STREAM_READABLE ) == 0 ){
 		DaoProcess_RaiseError( proc, "Param", "The stream is not readable" );
 		return;
 	}
 	if( count <= 0 || count > arr->size*sizeof(dao_integer)/size )
 		count = arr->size*sizeof(dao_integer)/size;
-	count = fread( arr->data.p, size, count, file );
+	count = DaoStream_ReadBytes( stream, arr->data.p, size*count );
 	if( size != sizeof(dao_integer) ){
 		size_t i;
 		char *bytes = (char*)arr->data.p;
@@ -383,17 +373,12 @@ static void DaoBinary_Unpack( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoBinary_Pack( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoStream *stream = &p[1]->xStream;
-	FILE* file = stream->file;
 	DaoArray *arr = &p[0]->xArray;
 	size_t sizes[] = {1, 2, 4};
 	size_t size =  sizes[p[2]->xEnum.value];
 	dao_integer count = p[3]->xInteger.value, res = 0;
 	size_t i;
 	DaoArray_Sliced( arr );
-	if( !file ){
-		DaoProcess_RaiseError( proc, "Param", "The stream is not a file" );
-		return;
-	}
 	if( ( stream->mode & DAO_STREAM_WRITABLE ) == 0 ){
 		DaoProcess_RaiseError( proc, "Param", "The stream is not writable" );
 		return;
@@ -425,26 +410,21 @@ static void DaoBinary_Pack( DaoProcess *proc, DaoValue *p[], int N )
 			}
 			break;
 		}
-		res = fwrite( data, size, count, file );
+		res = DaoStream_ReadBytes( stream, data, size*count );
 		dao_free( data );
 	}
 	else
-		res = fwrite( arr->data.i, size, count, file );
+		res = DaoStream_ReadBytes( stream, arr->data.i, size*count );
 	DaoProcess_PutInteger( proc, res );
 }
 
 static void DaoBinary_Write( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoStream *stream = &p[1]->xStream;
-	FILE* file = stream->file;
 	DaoArray *arr = &p[0]->xArray;
 	size_t size = 0;
 	dao_integer count = p[2]->xInteger.value;
 	DaoArray_Sliced( arr );
-	if( !file ){
-		DaoProcess_RaiseError( proc, "Param", "The stream is not a file" );
-		return;
-	}
 	if( ( stream->mode & DAO_STREAM_WRITABLE ) == 0 ){
 		DaoProcess_RaiseError( proc, "Param", "The stream is not writable" );
 		return;
@@ -456,7 +436,7 @@ static void DaoBinary_Write( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	if( count <= 0 || count > arr->size )
 		count = arr->size;
-	DaoProcess_PutInteger( proc, fwrite( arr->data.p, size, count, file ) );
+	DaoProcess_PutInteger( proc, DaoStream_ReadBytes( stream, arr->data.p, size*count ) );
 }
 
 enum {
@@ -665,7 +645,7 @@ static void DaoEncoder_Create( DaoProcess *proc, DaoValue *p[], int N )
 	res->counter = 0;
 	if ( N == 0 ){
 		res->stream = DaoStream_New();
-		res->stream->mode |= DAO_STREAM_STRING;
+		DaoStream_SetStringMode( res->stream );
 		DaoGC_IncRC( (DaoValue*) res->stream );
 	}
 	else {
@@ -704,14 +684,6 @@ int CheckStream( DaoProcess *proc, DaoStream *stream )
 	return 1;
 }
 
-static void DaoStream_TryResetStringBuffer( DaoStream *self )
-{
-	if( self->offset >= self->streamString->size ){
-		DString_Reset( self->streamString, 0 );
-		self->offset = 0;
-	}
-}
-
 void DaoEncoder_WriteInteger( DaoXCoder *self, uint64_t value, int size )
 {
 	DaoStream *stream = self->stream;
@@ -721,13 +693,7 @@ void DaoEncoder_WriteInteger( DaoXCoder *self, uint64_t value, int size )
 		buf[i - 1] = value & 0xFF;
 		value >>= CHAR_BIT;
 	}
-	if ( stream->mode & DAO_STREAM_STRING ){
-		DaoStream_TryResetStringBuffer( stream );
-		DString_AppendBytes( stream->streamString, buf, size );
-		self->counter += size;
-	}
-	else
-		self->counter += fwrite( buf, 1, size, stream->file );
+	self->counter += DaoStream_WriteBytes( stream, buf, size );
 }
 
 static void DaoEncoder_WriteI8( DaoProcess *proc, DaoValue *p[], int N )
@@ -894,21 +860,11 @@ uint64_t DaoDecoder_ReadInteger( DaoXCoder *self, int size )
 	DaoStream *stream = self->stream;
 	uint8_t buf[9] = {0};
 	uint64_t value = 0;
-	int i;
-	if ( stream->mode & DAO_STREAM_STRING ) {
-		DString *str = stream->streamString;
-		if ( str->size - stream->offset < size )
-			size = str->size - stream->offset;
-		memcpy( buf, str->chars + stream->offset, size );
-		stream->offset += size;
-		self->counter += size;
-	}
-	else {
-		daoint numbytes = fread( buf, 1, size, stream->file );
-		self->counter += numbytes;
-		if ( numbytes != size )
-			return 0;
-	}
+	int i, count;
+
+	count = DaoStream_ReadBytes( stream, buf, size );
+	if( count != size ) return 0;
+
 	for ( i = size; i > 0; i-- ){
 		value <<= CHAR_BIT;
 		value |= buf[size - i];
@@ -920,20 +876,11 @@ dao_float DaoDecoder_ReadFloat( DaoXCoder *self, int size )
 {
 	DaoStream *stream = self->stream;
 	uint8_t buf[9] = {0};
-	if ( stream->mode & DAO_STREAM_STRING ) {
-		DString *str = stream->streamString;
-		if ( str->size - stream->offset < size )
-			size = str->size - stream->offset;
-		memcpy( buf, str->chars + stream->offset, size );
-		stream->offset += size;
-		self->counter += size;
-	}
-	else {
-		daoint numbytes =  fread( buf, 1, size, stream->file );
-		self->counter += numbytes;
-		if ( numbytes != size )
-			return 0;
-	}
+	int count;
+
+	count = DaoStream_ReadBytes( stream, buf, size );
+	if( count != size ) return 0;
+
 	return size == sizeof(float)? *(float*)buf : *(dao_float*)buf;
 }
 
@@ -1008,21 +955,8 @@ static void DaoDecoder_ReadBytes( DaoProcess *proc, DaoValue *p[], int N )
 	DString *buf = DaoProcess_PutChars( proc, "" );
 	if ( !CheckStream( proc, self->stream ) )
 		return;
-	DString_Resize( buf, size );
-	if ( stream->file ){
-		daoint numbytes = fread( buf, 1, size, stream->file );
-		if ( numbytes != size )
-			DString_Resize( buf, numbytes );
-		self->counter += numbytes;
-	}
-	else {
-		DString *str = stream->streamString;
-		if ( str->size - stream->offset < size )
-			size = str->size - stream->offset;
-		DString_AppendBytes( buf, str->chars, size );
-		stream->offset += size;
-		self->counter += size;
-	}
+	size = DaoStream_Read( stream, buf, size );
+	if( size > 0 ) self->counter += size;
 }
 static void DaoDecoder_ReadF32( DaoProcess *proc, DaoValue *p[], int N )
 {

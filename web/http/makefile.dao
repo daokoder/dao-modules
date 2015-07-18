@@ -2,8 +2,9 @@
 project = DaoMake::Project( "DaoHttp" )
 
 daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
+daost = DaoMake::FindPackage( "DaoStream", $REQUIRED )
 
-if( daovm == none ) return
+if( daovm == none or daost == none ) return
 
 project.UseImportLibrary( daovm, "dao" )
 project.SetTargetPath( "../../../lib/dao/modules/web" )
@@ -12,6 +13,9 @@ dao_http_objs = project.AddObjects( {"dao_http.c", "Marten/marten.c"}, {"Marten/
 
 dao_http_dll = project.AddSharedLibrary( "dao_http", dao_http_objs )
 dao_http_lib = project.AddStaticLibrary( "dao_http", dao_http_objs )
+
+project.AddIncludePath( "../../stream" )
+dao_http_dll.UseSharedLibrary( daost, "dao_stream" )
 
 if( DaoMake::IsPlatform( "WIN32" ) ){
 	dao_http_dll.AddDefinition( "_WIN32" )

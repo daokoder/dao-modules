@@ -462,6 +462,7 @@ static void DaoSet_ToString( DaoProcess *proc, DaoValue *p[], int N )
 	DaoStream *stream = DaoStream_New();
 	DNode *node;
 	int first = 1;
+	DaoStream_SetStringMode( stream );
 	DaoStream_WriteChars( stream, "{ " );
 	for ( node = DMap_First( self->map ); node; node = DMap_Next( self->map, node ) ){
 		if ( first )
@@ -471,7 +472,7 @@ static void DaoSet_ToString( DaoProcess *proc, DaoValue *p[], int N )
 		DaoValue_Print( node->key.pValue, proc, stream, NULL );
 	}
 	DaoStream_WriteChars( stream, " }" );
-	DaoProcess_PutString( proc, stream->streamString );
+	DaoProcess_PutString( proc, stream->buffer );
 	DaoStream_Delete( stream );
 }
 

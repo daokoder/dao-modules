@@ -1160,8 +1160,8 @@ static void FRAME_PRINT( DaoProcess *proc, DaoValue *p[], int n )
 	char fmt[16];
 	char buf[512];
 
-	sstream->mode |= DAO_STREAM_STRING;
-	sstream2->mode |= DAO_STREAM_STRING;
+	DaoStream_SetStringMode( sstream );
+	DaoStream_SetStringMode( sstream2 );
 	memset( &valueBuffer, 0, sizeof(DaoValue) );
 	if( stream == NULL ) stream = casting ? sstream2 : proc->vmSpace->stdioStream;
 	if( self->original == NULL ){
@@ -1435,10 +1435,10 @@ static void FRAME_PRINT( DaoProcess *proc, DaoValue *p[], int n )
 						}
 						snprintf( buf, width, fmt, com.real, com.imag );
 					}else{
-						DString_Reset( sstream->streamString, 0 );
+						DString_Reset( sstream->buffer, 0 );
 						DaoValue_Print( value, proc, sstream, NULL );
 						DString_Reset( label, 0 );
-						DString_Append( label, sstream->streamString );
+						DString_Append( label, sstream->buffer );
 						if( label->size > width ) DString_Reset( label, width );
 						DString_Change( label, "%t", "\\t", 0 );
 						DString_Change( label, "%n", "\\n", 0 );
@@ -1452,9 +1452,9 @@ static void FRAME_PRINT( DaoProcess *proc, DaoValue *p[], int n )
 			DaoStream_WriteChars( stream, "\n" );
 		}
 	}
-	if( casting ) DaoProcess_PutString( proc, sstream2->streamString );
-	DaoStream_Delete( sstream );
-	DaoStream_Delete( sstream2 );
+	if( casting ) DaoProcess_PutString( proc, sstream2->buffer );
+	DaoGC_TryDelete( (DaoValue*) sstream );
+	DaoGC_TryDelete( (DaoValue*) sstream2 );
 	DArray_Delete( aligns );
 	DArray_Delete( scifmts );
 	DArray_Delete( decimals );

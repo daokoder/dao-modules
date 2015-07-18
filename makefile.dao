@@ -11,6 +11,7 @@ if( modules.SourcePath() != modules.BinaryPath() ){
 	modules.AddCommand( "copypkgtools:", "$(DAOMAKE) copy " + src + " " + dest );
 }
 
+modules.AddDirectory( "stream",      "stream" )
 modules.AddDirectory( "meta",        "meta" )
 modules.AddDirectory( "math",        "math" )
 modules.AddDirectory( "random",      "random" )

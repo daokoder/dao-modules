@@ -2,14 +2,18 @@
 project = DaoMake::Project( "DaoProcess" )
 
 daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
+daost  = DaoMake::FindPackage( "DaoStream", $REQUIRED )
 
-if( daovm == none ) return
+if( daovm == none or daost == none ) return
 
 project.UseImportLibrary( daovm, "dao" )
 
 dao_process_objs = project.AddObjects( { "dao_process.c" } )
 dao_process_dll  = project.AddSharedLibrary( "dao_process", dao_process_objs )
 dao_process_lib  = project.AddStaticLibrary( "dao_process", dao_process_objs )
+
+project.AddIncludePath( "../../stream" )
+dao_process_dll.UseSharedLibrary( daost, "dao_stream" )
 
 project.SetTargetPath( "../../../lib/dao/modules/os" )
 
