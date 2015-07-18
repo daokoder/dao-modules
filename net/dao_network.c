@@ -73,7 +73,6 @@
 
 typedef int socklen_t;
 #define fileno _fileno
-#define fdopen _fdopen
 
 #endif
 
@@ -1506,45 +1505,6 @@ static void DaoSocket_Lib_GetSockName( DaoProcess *proc, DaoValue *par[], int N 
 	DaoProcess_PutCdata( proc, saddr, daox_type_sockaddr );
 }
 
-#if 0
-static void DaoSocket_Lib_GetStream( DaoProcess *proc, DaoValue *par[], int N  )
-{
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
-	const char *mode = DString_GetData( DaoValue_TryGetString( par[1] ) );
-	DaoStream *stream;
-#ifdef WIN32
-	DaoProcess_RaiseError( proc, NULL, "Creating stream from a socket is not supported on the current platform" );
-	return;
-#endif
-	if( self->state != Socket_Connected ){
-		DaoProcess_RaiseError( proc, neterr, "The socket is not connected" );
-		return;
-	}
-	stream = DaoStream_New();
-	stream->mode |= DAO_STREAM_FILE;
-	stream->file = fdopen( self->id, mode );
-	if ( !stream->file ){
-		char errbuf[MAX_ERRMSG];
-		GetErrorMessage( errbuf, GetError() );
-		DaoProcess_RaiseError( proc, neterr, errbuf );
-		DaoStream_Delete( stream );
-		return;
-	}
-	if( strstr( mode, "+" ) ){
-		stream->mode = DAO_STREAM_WRITABLE | DAO_STREAM_READABLE;
-	}else{
-		if( strstr( mode, "r" ) ) stream->mode |= DAO_STREAM_READABLE;
-		if( strstr( mode, "w" ) || strstr( mode, "a" ) ) stream->mode |= DAO_STREAM_WRITABLE;
-	}
-	DaoProcess_PutValue( proc, (DaoValue*)stream );
-}
-#endif
-static void DaoSocket_Lib_GetDescriptor( DaoProcess *proc, DaoValue *par[], int N  )
-{
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
-	DaoProcess_PutInteger( proc, self->id );
-}
-
 static void DaoSocket_Lib_Check( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
@@ -1916,14 +1876,6 @@ static DaoFuncItem TcpStreamMeths[] =
 
 	/*! Shuts down the connection, stopping further operations specified by \a what */
 	{ DaoSocket_Lib_Shutdown,		"shutdown( self: TcpStream, what: enum<send,receive,all> )" },
-
-	/*! Returns \c io::Stream opened with the given \a mode bound to the socket
-	 *
-	 * \warning Not supported on Windows */
-	//{ DaoSocket_Lib_GetStream,		"open( invar self: TcpStream, mode: string ) => io::Stream" },
-	// Removed to avoid dependency on module/stream;
-
-	{ DaoSocket_Lib_GetDescriptor,	".descriptor( invar self: TcpStream ) => int" },
 
 	/*! TCP keep-alive option (SO_KEEPALIVE) */
 	{ DaoSocket_Lib_KeepAlive,		".keepAlive( invar self: TcpStream ) => bool" },

@@ -410,11 +410,11 @@ static void DaoBinary_Pack( DaoProcess *proc, DaoValue *p[], int N )
 			}
 			break;
 		}
-		res = DaoStream_ReadBytes( stream, data, size*count );
+		res = DaoStream_WriteBytes( stream, data, size*count );
 		dao_free( data );
 	}
 	else
-		res = DaoStream_ReadBytes( stream, arr->data.i, size*count );
+		res = DaoStream_WriteBytes( stream, arr->data.i, size*count );
 	DaoProcess_PutInteger( proc, res );
 }
 
@@ -436,7 +436,7 @@ static void DaoBinary_Write( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	if( count <= 0 || count > arr->size )
 		count = arr->size;
-	DaoProcess_PutInteger( proc, DaoStream_ReadBytes( stream, arr->data.p, size*count ) );
+	DaoProcess_PutInteger( proc, DaoStream_WriteBytes( stream, arr->data.p, size*count ) );
 }
 
 enum {
