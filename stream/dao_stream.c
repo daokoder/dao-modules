@@ -38,9 +38,9 @@
 #define putenv _putenv
 
 #  ifndef __GNUC__
-#    define popen _popen
+#    define fdopen _fdopen
+#    define popen  _popen
 #    define pclose _pclose
-#    define pclose _fdopen
 #  endif
 
 #endif
@@ -491,7 +491,7 @@ static DaoFuncItem stringStreamMeths[] =
 
 DaoTypeBase DaoStringStream_Typer =
 {
-	"StringStream", NULL, NULL, (DaoFuncItem*) fileStreamMeths, {0}, {0},
+	"StringStream", NULL, NULL, (DaoFuncItem*) stringStreamMeths, {0}, {0},
 	(FuncPtrDel) DaoStringStream_Delete, NULL
 };
 
@@ -506,6 +506,7 @@ DAO_DLL int DaoStream_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace *ions = DaoVmSpace_GetNamespace( vmSpace, "io" );
 	DaoFileStream_Typer.supers[0] = DaoType_GetTyper( dao_type_stream );
 	DaoPipeStream_Typer.supers[0] = DaoType_GetTyper( dao_type_stream );
+	DaoStringStream_Typer.supers[0] = DaoType_GetTyper( dao_type_stream );
 	dao_type_file_stream = DaoNamespace_WrapType( ions, & DaoFileStream_Typer, 0 );
 	dao_type_pipe_stream = DaoNamespace_WrapType( ions, & DaoPipeStream_Typer, 0 );
 	dao_type_string_stream = DaoNamespace_WrapType( ions, & DaoStringStream_Typer, 0 );
