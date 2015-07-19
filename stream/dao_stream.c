@@ -295,6 +295,7 @@ static void DaoIO_Open( DaoProcess *proc, DaoValue *p[], int N )
 	DaoFileStream *self = NULL;
 	char *mode;
 	self = DaoFileStream_New();
+	DaoProcess_PutValue( proc, (DaoValue*)self );
 	if( N == 0 ){
 		self->file = tmpfile();
 		self->base.Read = DaoFileStream_Read;
@@ -311,7 +312,7 @@ static void DaoIO_Open( DaoProcess *proc, DaoValue *p[], int N )
 		if( p[0]->type == DAO_INTEGER ){
 			self->file = fdopen( p[0]->xInteger.value, mode );
 			if( self->file == NULL ){
-				DaoProcess_RaiseError( proc, NULL, "failed to create the self object" );
+				DaoProcess_RaiseError( proc, NULL, "failed to open file descriptor" );
 				return;
 			}
 		}else{
@@ -329,7 +330,6 @@ static void DaoIO_Open( DaoProcess *proc, DaoValue *p[], int N )
 		}
 		DaoFileStream_InitCallbacks( self );
 	}
-	DaoProcess_PutValue( proc, (DaoValue*)self );
 }
 
 static void DaoIO_Seek( DaoProcess *proc, DaoValue *p[], int N )
