@@ -495,7 +495,18 @@ DaoTypeBase DaoStringStream_Typer =
 	(FuncPtrDel) DaoStringStream_Delete, NULL
 };
 
+static DaoFuncItem ioSeekableMeths[] =
+{
+	{ NULL,		"seek( self: Seekable, pos: int, from: enum<begin,current,end> ) => int" },
+	{ NULL,		"tell( self: Seekable ) => int" },
+	{ NULL, NULL }
+};
 
+DaoTypeBase ioSeekableTyper =
+{
+	"Seekable", NULL, NULL, (DaoFuncItem*) ioSeekableMeths, {0}, {0},
+	(FuncPtrDel) NULL, NULL
+};
 
 DaoType *dao_type_file_stream = NULL;
 DaoType *dao_type_pipe_stream = NULL;
@@ -510,6 +521,7 @@ DAO_DLL int DaoStream_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	dao_type_file_stream = DaoNamespace_WrapType( ions, & DaoFileStream_Typer, 0 );
 	dao_type_pipe_stream = DaoNamespace_WrapType( ions, & DaoPipeStream_Typer, 0 );
 	dao_type_string_stream = DaoNamespace_WrapType( ions, & DaoStringStream_Typer, 0 );
+	DaoNamespace_WrapInterface( ions, &ioSeekableTyper );
 	DaoNamespace_WrapFunctions( ions, dao_io_methods );
 	return 0;
 }
