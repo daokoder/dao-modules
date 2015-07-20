@@ -346,7 +346,7 @@ static void DaoTime_Set( DaoProcess *proc, DaoValue *p[], int N )
 		default:	break;
 		}
 	}
-	DaoTime_Mktime( self );
+	DaoTime_Mktime( res );
 	if ( res->value == (time_t)-1){
 		DaoProcess_RaiseError( proc, timeerr, "Invalid datetime" );
 		return;
@@ -687,6 +687,7 @@ static void DaoTime_Add( DaoProcess *proc, DaoValue *p[], int N )
 	daoint years = 0;
 	daoint months = 0;
 	daoint days = 0;
+	daoint secs = 0;
 	int i;
 	int y, m, d;
 	DaoTime *res = DaoTime_New();
@@ -694,51 +695,53 @@ static void DaoTime_Add( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutCdata( proc, res, daox_type_time );
 	if ( N == 0 )
 		return;
-	if ( p[1]->type == DAO_INTEGER ){
-		res->value += p[1]->xInteger.value;
-		if ( !DaoTime_GetTime( res ) )
-			DaoProcess_RaiseError( proc, timeerr, "Invalid resulting datetime" );
-		else
-			DaoTime_CalcJulianDay( res );
-		return;
-	}
 	for ( i = 1; i < N; i++ ){
 		dao_integer count = p[i]->xTuple.values[1]->xInteger.value;
 		switch ( p[i]->xTuple.values[0]->xEnum.value ){
 		case 0:	years = count; break;
 		case 1:	months = count; break;
 		case 2:	days = count; break;
+		case 3: secs = count; break;
 		}
 	}
-	if ( years || months ){
-		res->parts.tm_year += years;
-		res->parts.tm_year += months/12;
-		res->parts.tm_mon += months%12;
-		if ( res->parts.tm_mon > 11 ){
-			res->parts.tm_year++;
-			res->parts.tm_mon -= 12;
+	if ( years || months || days ){
+		if ( years || months ){
+			res->parts.tm_year += years;
+			res->parts.tm_year += months/12;
+			res->parts.tm_mon += months%12;
+			if ( res->parts.tm_mon > 11 ){
+				res->parts.tm_year++;
+				res->parts.tm_mon -= 12;
+			}
+			else if ( res->parts.tm_mon < 0 ){
+				res->parts.tm_year--;
+				res->parts.tm_mon = 12 - res->parts.tm_mon;
+			}
+			d = DaysInMonth( res->parts.tm_year + 1900, res->parts.tm_mon + 1 );
+			if ( res->parts.tm_mday > d ){
+				days += d - res->parts.tm_mday;
+				res->parts.tm_mday = d;
+			}
+			DaoTime_CalcJulianDay( res );
 		}
-		else if ( res->parts.tm_mon < 0 ){
-			res->parts.tm_year--;
-			res->parts.tm_mon = 12 - res->parts.tm_mon;
-		}
-		d = DaysInMonth( res->parts.tm_year + 1900, res->parts.tm_mon + 1 );
-		if ( res->parts.tm_mday > d ){
-			days += d - res->parts.tm_mday;
+		if ( days ){
+			res->jday += days;
+			FromJulianDay( res->jday, &y, &m, &d );
+			res->parts.tm_year = y - 1900;
+			res->parts.tm_mon = m - 1;
 			res->parts.tm_mday = d;
 		}
-		DaoTime_CalcJulianDay( res );
+		DaoTime_Mktime( res );
+		if ( res->value == (time_t)-1 )
+			DaoProcess_RaiseError( proc, timeerr, "Invalid resulting datetime" );
 	}
-	if ( days ){
-		res->jday += days;
-		FromJulianDay( res->jday, &y, &m, &d );
-		res->parts.tm_year = y - 1900;
-		res->parts.tm_mon = m - 1;
-		res->parts.tm_mday = d;
+	if ( secs ){
+		res->value += secs;
+		if ( !DaoTime_GetTime( res ) )
+			DaoProcess_RaiseError( proc, timeerr, "Invalid resulting datetime" );
+		else
+			DaoTime_CalcJulianDay( res );
 	}
-	DaoTime_Mktime( res );
-	if ( res->value == (time_t)-1 )
-		DaoProcess_RaiseError( proc, timeerr, "Invalid resulting datetime" );
 }
 
 static DaoFuncItem timeMeths[] =
@@ -787,11 +790,8 @@ static DaoFuncItem timeMeths[] =
 	/*! Returns the number of day in the month or year of the given datetime depending on the \a period parameter */
 	{ DaoTime_Days,		"daysIn(self: DateTime, period: enum<month,year>) => int" },
 
-	/*! Returns new datetime obtained by adding the specified number of years, months or days (provided as named values) */
-	{ DaoTime_Add,		"add(self: DateTime, ...: tuple<enum<years,months,days>,int>) => DateTime" },
-
-	/*! Returns new datetime obtained by adding the specified number of \a seconds to this datetime */
-	{ DaoTime_Add,		"add(self: DateTime, seconds: int) => DateTime" },
+	/*! Returns new datetime obtained by adding the specified number of years, months, days or seconds (provided as named values) */
+	{ DaoTime_Add,		"add(self: DateTime, ...: tuple<enum<years,months,days,seconds>,int>) => DateTime" },
 
 	/*! Datetime comparison */
 	{ DaoTime_Equal,	"==(a: DateTime, b: DateTime) => bool" },
