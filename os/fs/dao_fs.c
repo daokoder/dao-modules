@@ -37,6 +37,7 @@
 
 #include"dao.h"
 #include"daoValue.h"
+#include"dao_time.h"
 
 #ifdef WIN32
 
@@ -848,9 +849,12 @@ static void FSNode_Time( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
 	DaoTuple *res = DaoProcess_PutTuple( proc, 3 );
-	res->values[0]->xInteger.value = self->ctime;
-	res->values[1]->xInteger.value = self->mtime;
-	res->values[2]->xInteger.value = self->atime;
+	DaoTuple_SetItem( res, DaoProcess_NewTime( proc, self->ctime, 1 ), 0 );
+	DaoTuple_SetItem( res, DaoProcess_NewTime( proc, self->mtime, 1 ), 1 );
+	DaoTuple_SetItem( res, DaoProcess_NewTime( proc, self->atime, 1 ), 2 );
+//	res->values[0]->xInteger.value = self->ctime;
+//	res->values[1]->xInteger.value = self->mtime;
+//	res->values[2]->xInteger.value = self->atime;
 }
 
 static void FSNode_Access( DaoProcess *proc, DaoValue *p[], int N )
@@ -1536,8 +1540,8 @@ static DaoFuncItem entryMeths[] =
 	/*! Directory which contains this entry */
 	{ FSNode_Parent,	".dirup(invar self: Entry)=> Dir|none" },
 
-	/*! Time of creation, last modification and access (use \c time module to operate it) */
-	{ FSNode_Time,		".time(invar self: Entry) => tuple<created: int, modified: int, accessed: int>" },
+	/*! Time of creation, last modification and access */
+	{ FSNode_Time,		".time(invar self: Entry) => tuple<created: time::DateTime, modified: time::DateTime, accessed: time::DateTime>" },
 
 	/*! Owner name */
 	{ FSNode_Owner,		".owner(invar self: Entry) => string" },
@@ -1689,9 +1693,11 @@ static DaoFuncItem fsMeths[] =
 
 DAO_DLL int DaoFS_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
+	DaoNamespace *timens = DaoVmSpace_LinkModule( vmSpace, ns, "time" );
 	DaoNamespace *fsns;
 	FS_INIT();
 	fsns = DaoNamespace_GetNamespace( ns, "fs" );
+	DaoNamespace_AddParent( fsns, ns );
 	daox_type_entry = DaoNamespace_WrapType( fsns, & entryTyper, 1 );
 	daox_type_file = DaoNamespace_WrapType( fsns, & fileTyper, 1 );
 	daox_type_dir = DaoNamespace_WrapType( fsns, & dirTyper, 1 );

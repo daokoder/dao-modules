@@ -817,7 +817,7 @@ static DaoFuncItem timeFuncs[] =
 	{ NULL, NULL }
 };
 
-DaoTime* DaoProcess_PutTime( DaoProcess *proc, time_t value, int local )
+DaoTime* CreateTime( DaoProcess *proc, time_t value, int local )
 {
 	DaoTime *self;
 	if ( value == (time_t)-1 ){
@@ -829,11 +829,25 @@ DaoTime* DaoProcess_PutTime( DaoProcess *proc, time_t value, int local )
 	self->local = local;
 	if ( !DaoTime_GetTime( self ) ){
 		DaoProcess_RaiseError( proc, timeerr, "Unknown system error" );
+		DaoTime_Delete( self );
 		return NULL;
 	}
 	DaoTime_CalcJulianDay( self );
-	DaoProcess_PutCdata( proc, self, daox_type_time );
 	return self;
+}
+
+DaoTime* DaoProcess_PutTime( DaoProcess *proc, time_t value, int local )
+{
+	DaoTime *res = CreateTime( proc, value, local );
+	if ( res )
+		DaoProcess_PutCdata( proc, res, daox_type_time );
+	return res;
+}
+
+DaoValue* DaoProcess_NewTime( DaoProcess *proc, time_t value, int local )
+{
+	DaoTime *res = CreateTime( proc, value, local );
+	return res? (DaoValue*)DaoProcess_NewCdata( proc, daox_type_time, res, 1 ) : NULL;
 }
 
 DAO_DLL int DaoTime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )

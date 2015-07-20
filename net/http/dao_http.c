@@ -32,6 +32,7 @@
 #include <time.h>
 
 #include"dao_http.h"
+#include"dao_time.h"
 
 static DaoType *daox_type_header = NULL;
 static DaoType *daox_type_request = NULL;
@@ -656,10 +657,8 @@ void PutDateValue( DaoProcess *proc, DMap *headers, const char *field )
 {
 	DString name = DString_WrapChars( field );
 	DNode *node = DMap_Find( headers, &name );
-	if ( sizeof(dao_integer) < sizeof(time_t) )
-		DaoProcess_RaiseWarning( proc, "Value", "The time value might overflow the int type" );
 	if ( node )
-		DaoProcess_PutInteger( proc, (dao_integer)ParseHttpDate( node->value.pString ) );
+		DaoProcess_PutTime( proc, ParseHttpDate( node->value.pString ), 0 );
 	else
 		DaoProcess_PutNone( proc );
 }
@@ -706,8 +705,6 @@ static DaoFuncItem headerMeths[] =
 
 	//! Some of the standard fields. \c none indicate field absence; empty values (or \c contentLength
 	//! value equal to -1) indicate a parsing error
-	//!
-	//! \note \c .date() returns \c time_t value (-1 or parsing error); use \c time module to interpret it
 	{ DaoHttpHeader_TransEnc,	".transferEncoding(self: Header) => list<string>|none" },
 	{ DaoHttpHeader_ContLen,	".contentLength(self: Header) => int|none" },
 	{ DaoHttpHeader_Via,		".via(self: Header) => list<string>|none" },
@@ -719,7 +716,7 @@ static DaoFuncItem headerMeths[] =
 	{ DaoHttpHeader_ContEnc,	".contentEncoding(self: Header) => list<string>|none" },
 	{ DaoHttpHeader_ContLang,	".contentLanguage(self: Header) => list<string>|none" },
 	{ DaoHttpHeader_ContLoc,	".contentLocation(self: Header) => string|none" },
-	{ DaoHttpHeader_Date,		".date(self: Header) => int|none" },
+	{ DaoHttpHeader_Date,		".date(self: Header) => time::DateTime|none" },
 	{ DaoHttpHeader_CacheCtrl,	".cacheControl(self: Header) => list<string>|none" },
 	{ NULL, NULL }
 };
@@ -929,12 +926,10 @@ static DaoFuncItem responseMeths[] =
 	{ DaoHttpResponse_Reason,		".reason(self: ResponseHeader) => string" },
 
 	//! Some of the standard fields (also see \c Header)
-	//!
-	//! \note \c .expires() returns \c time_t value (-1 on parsing error); use \c time module to interpret it
 	{ DaoHttpResponse_Location,		".location(self: Header) => string|none" },
 	{ DaoHttpResponse_RetryAfter,	".retryAfter(self: Header) => string|none" },
 	{ DaoHttpResponse_Server,		".server(self: Header) => string|none" },
-	{ DaoHttpResponse_Expires,		".expires(self: Header) => int|none" },
+	{ DaoHttpResponse_Expires,		".expires(self: Header) => time::DateTime|none" },
 	{ DaoHttpResponse_Vary,			".vary(self: Header) => list<string>|string|none" },
 	{ DaoHttpResponse_Allow,		".allow(self: Header) => list<string>|none" },
 	{ DaoHttpResponse_WwwAuth,		".wwwAuthenticate(self: Header) => list<string>|none" },
@@ -1372,7 +1367,7 @@ DaoTypeBase chunkDecoderTyper = {
 
 static void HTTP_ParseDate( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoProcess_PutInteger( proc, (dao_integer)ParseHttpDate( p[0]->xString.value ) );
+	DaoProcess_PutTime( proc, ParseHttpDate( p[0]->xString.value ), 0 );
 }
 
 int HexToInt( char ch )
@@ -1613,9 +1608,8 @@ static DaoFuncItem httpMeths[] =
 	//! the resulting header along with the terminating '\r\n'
 	{ HTTP_InitResponse,	"initResponse(code: int, ...: tuple<enum,int|string|list<string>>) => string" },
 
-	//! Parses \a date as HTTP date according to RFC 7231 and returns the resulting \c time_t value (-1 on parsing error);
-	//! use \c time module to interpret it
-	{ HTTP_ParseDate,		"parseDate(date: string) => int" },
+	//! Parses \a date as HTTP date according to RFC 7231 and returns the resulting \c time::DateTime
+	{ HTTP_ParseDate,		"parseDate(date: string) => time::DateTime" },
 
 	//! Decodes \a form with 'application/x-www-form-urlencoded' MIME type
 	{ HTTP_ParseForm,		"decodeForm(form: string) => map<string,string>" },
@@ -1636,8 +1630,10 @@ static DaoFuncItem httpMeths[] =
 
 DAO_DLL int DaoHttp_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
+	DaoNamespace *timens = DaoVmSpace_LinkModule( vmSpace, ns, "time" );
 	DaoNamespace *httptns = DaoVmSpace_GetNamespace( vmSpace, "http" );
 	DaoNamespace_AddConstValue( ns, "http", (DaoValue*)httptns );
+	DaoNamespace_AddParent( httptns, ns );
 	daox_type_header = DaoNamespace_WrapType( httptns, &headerTyper, DAO_CTYPE_OPAQUE | DAO_CTYPE_INVAR );
 	daox_type_request = DaoNamespace_WrapType( httptns, &requestTyper, DAO_CTYPE_OPAQUE | DAO_CTYPE_INVAR );
 	daox_type_response = DaoNamespace_WrapType( httptns, &responseTyper, DAO_CTYPE_OPAQUE | DAO_CTYPE_INVAR );

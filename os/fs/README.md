@@ -12,7 +12,7 @@ class [Entry](#entry)
 - [.suffix](#suffix)(invar _self_: Entry) => string
 - [.kind](#kind)(invar _self_: Entry ) => enum&lt;file,dir&gt;
 - [.dirup](#dirup)(invar _self_: Entry) => Dir|none
-- [.time](#time)(invar _self_: Entry) => tuple&lt;_created_: int, _modified_: int, _accessed_: int&gt;
+- [.time](#time)(invar _self_: Entry) => tuple&lt;_created_: time::DateTime, _modified_: time::DateTime, _accessed_: time::DateTime&gt;
 - [.owner](#owner)(invar _self_: Entry) => string
 - [.access](#access)(invar _self_: Entry) => tuple&lt;_user_: string, _group_: string, _other_: string&gt;
 - [.access=](#access)(self: _entry_, _value_: tuple&lt;_user_: string, _group_: string, _other_: string&gt;)
@@ -101,9 +101,9 @@ Directory which contains this entry
 **Errors:** `File` if failed to read upper directory data
 <a name="time"></a>
 ```ruby
-.time(invar self: Entry) => tuple<created: int, modified: int, accessed: int>
+.time(invar self: Entry) => tuple<created: time::DateTime, modified: time::DateTime, accessed: time::DateTime>
 ```
-Time of creation, last modification and access (use `time` module to operate it)
+Time of creation, last modification and access
 <a name="owner"></a>
 ```ruby
 .owner(invar self: Entry) => string

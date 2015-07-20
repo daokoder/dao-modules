@@ -2,14 +2,18 @@
 project = DaoMake::Project( "DaoFS" )
 
 daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
+daotm  = DaoMake::FindPackage( "DaoTime", $REQUIRED )
 
-if( daovm == none ) return
+if( daovm == none or daotm == none ) return
 
 project.UseImportLibrary( daovm, "dao" )
 
 dao_fs_objs = project.AddObjects( { "dao_fs.c" } )
 dao_fs_dll  = project.AddSharedLibrary( "dao_fs", dao_fs_objs )
 dao_fs_lib  = project.AddStaticLibrary( "dao_fs", dao_fs_objs )
+
+project.AddIncludePath( "../../time" )
+dao_fs_dll.UseSharedLibrary( daotm, "dao_time" )
 
 project.SetTargetPath( "../../../lib/dao/modules/os" )
 

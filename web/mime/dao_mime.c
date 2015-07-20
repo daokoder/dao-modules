@@ -851,6 +851,7 @@ static DaoFuncItem mimeFuncs[] =
 
 DAO_DLL int DaoMime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
+	DaoNamespace *streamns = DaoVmSpace_LinkModule( vmSpace, ns, "stream" );
 	DaoNamespace *mimens = DaoNamespace_GetNamespace( ns, "mime" );
 	DaoValue *defmime = (DaoValue*)DaoString_NewChars("application/octet-stream");
 	DaoValue *dirmime = (DaoValue*)DaoString_NewChars("inode/directory");
