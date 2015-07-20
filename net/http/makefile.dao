@@ -14,7 +14,7 @@ dao_http_dll  = project.AddSharedLibrary( "dao_http", dao_http_objs )
 dao_http_lib  = project.AddStaticLibrary( "dao_http", dao_http_objs )
 
 project.AddIncludePath( "../../time" )
-dao_http_lib.UseSharedLibrary( daotm, "dao_time" )
+dao_http_dll.UseSharedLibrary( daotm, "dao_time" )
 
 project.SetTargetPath( "../../../lib/dao/modules/net" )
 

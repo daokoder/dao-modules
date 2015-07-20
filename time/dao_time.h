@@ -50,6 +50,7 @@ struct DaoTime {
 
 typedef struct DaoTime DaoTime;
 
+DAO_DLL time_t DaoMkTimeUtc( struct tm *ts );
 DAO_DLL DaoTime* DaoProcess_PutTime( DaoProcess *proc, time_t value, int local );
 DAO_DLL DaoValue* DaoProcess_NewTime( DaoProcess *proc, time_t value, int local );
 

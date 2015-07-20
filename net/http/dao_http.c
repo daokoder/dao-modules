@@ -357,14 +357,6 @@ const char* ParseMonth( const char *cp, struct tm *ts )
 	return NULL;
 }
 
-time_t MakeUtc( struct tm *ts )
-{
-	time_t value = mktime( ts );
-	if ( value != (time_t)-1 )
-		value -= timezone;
-	return value;
-}
-
 time_t ParseImfDate( DString *date )
 {
 	const time_t inv_date = (time_t)-1;
@@ -397,7 +389,7 @@ time_t ParseImfDate( DString *date )
 	cp = ParseTimeOfDay( cp + 5, &ts );
 	if ( !cp || strcmp( cp, "GMT" ) != 0 )
 		return inv_date;
-	return MakeUtc( &ts );
+	return DaoMkTimeUtc( &ts );
 }
 
 time_t ParseRfc850Date(DString *date)
@@ -434,7 +426,7 @@ time_t ParseRfc850Date(DString *date)
 	cp = ParseTimeOfDay( cp + 3, &ts );
 	if ( !cp || strcmp( cp, "GMT" ) != 0 )
 		return inv_date;
-	return MakeUtc( &ts );
+	return DaoMkTimeUtc( &ts );
 }
 
 time_t ParseAsctimeDate(DString *date)
@@ -478,7 +470,7 @@ time_t ParseAsctimeDate(DString *date)
 	cp += 4;
 	if ( *cp )
 		return inv_date;
-	return MakeUtc( &ts );
+	return DaoMkTimeUtc( &ts );
 }
 
 time_t ParseHttpDate( DString *date )

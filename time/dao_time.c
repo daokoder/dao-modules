@@ -44,6 +44,7 @@
 
 static const char timeerr[] = "Time";
 static DaoType *daox_type_time = NULL;
+static DMutex time_mtx;
 
 int FloorDiv( int a, int b )
 {
@@ -302,6 +303,30 @@ Clean:
 	}
 }
 
+time_t DaoMkTimeUtc( struct tm *ts )
+{
+	int tz, dl;
+	time_t value;
+	DMutex_Lock( &time_mtx );
+	tz = timezone;
+	dl = daylight;
+	timezone = 0;
+	daylight = 0;
+	value = mktime( ts ); // note: mktime may change its argument
+	timezone = tz;
+	daylight = dl;
+	DMutex_Unlock( &time_mtx );
+	return value;
+}
+
+void DaoTime_Mktime( DaoTime *self )
+{
+	if ( self->local )
+		self->value = mktime( &self->parts );
+	else
+		self->value = DaoMkTimeUtc( &self->parts );
+}
+
 static void DaoTime_Set( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*)DaoValue_TryGetCdata( p[0] );
@@ -321,17 +346,10 @@ static void DaoTime_Set( DaoProcess *proc, DaoValue *p[], int N )
 		default:	break;
 		}
 	}
-	res->value = mktime( &res->parts );
+	DaoTime_Mktime( self );
 	if ( res->value == (time_t)-1){
 		DaoProcess_RaiseError( proc, timeerr, "Invalid datetime" );
 		return;
-	}
-	if ( !res->local ){
-		res->value -= timezone;
-		if ( !DaoTime_GetTime( res ) ){
-			DaoProcess_RaiseError( proc, timeerr, "Unknown system error" );
-			return;
-		}
 	}
 	DaoTime_CalcJulianDay( res );
 }
@@ -425,9 +443,24 @@ static void DaoTime_Zone( DaoProcess *proc, DaoValue *p[], int N )
 	DaoString_SetChars( &res->values[3]->xString, tzname[1] );
 }
 
+int GetHM( struct tm *ts )
+{
+	return ts->tm_hour*60 + ts->tm_min;
+}
+
+int DaoTime_GetTzOffset( DaoTime *self )
+{
+	if ( self->local ){
+		struct tm ts = self->parts;
+		time_t value = DaoMkTimeUtc( &ts ); // ts may be shifted in case of DST
+		return self->value - value - ( GetHM( &self->parts ) - GetHM( &ts ) )*60;
+	}
+	return 0;
+}
+
 void DaoTime_GetTimezoneShift( DaoTime *self, char *buf, size_t size )
 {
-	int shift = self->local? -timezone : 0;
+	int shift = -DaoTime_GetTzOffset( self );
 	int hours = shift/3600, minutes = shift - hours*3600;
 
 	if ( minutes < 0 )
@@ -703,16 +736,9 @@ static void DaoTime_Add( DaoProcess *proc, DaoValue *p[], int N )
 		res->parts.tm_mon = m - 1;
 		res->parts.tm_mday = d;
 	}
-	res->value = mktime( &res->parts );
+	DaoTime_Mktime( res );
 	if ( res->value == (time_t)-1 )
 		DaoProcess_RaiseError( proc, timeerr, "Invalid resulting datetime" );
-	if ( !res->local ){
-		res->value -= timezone;
-		if ( !DaoTime_GetTime( res ) )
-			DaoProcess_RaiseError( proc, timeerr, "Unknown system error" );
-		else
-			DaoTime_CalcJulianDay( res );
-	}
 }
 
 static DaoFuncItem timeMeths[] =
@@ -745,8 +771,7 @@ static DaoFuncItem timeMeths[] =
 	/*! Day of year */
 	{ DaoTime_YearDay,	".yday(self: DateTime) => int" },
 
-	/*! Returns datetime formatted to string using \a format, which follows the rules for C \c strftime() with the exception of
-	 * '%t' serving as time zone offset specifier
+	/*! Returns datetime formatted to string using \a format, which follows the rules for C \c strftime()
 	 *
 	 * \warning Available format specifiers are platform-dependent. */
 	{ DaoTime_Format,	"format(self: DateTime, format = '%Y-%m-%d %H:%M:%S %t') => string" },
@@ -855,5 +880,6 @@ DAO_DLL int DaoTime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace *timens = DaoNamespace_GetNamespace( ns, "time" );
 	daox_type_time = DaoNamespace_WrapType( timens, &timeTyper, DAO_CTYPE_INVAR|DAO_CTYPE_OPAQUE );
 	DaoNamespace_WrapFunctions( timens, timeFuncs );
+	DMutex_Init( &time_mtx );
 	return 0;
 }
