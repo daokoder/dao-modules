@@ -1486,10 +1486,31 @@ static void FS_HomeDir( DaoProcess *proc, DaoValue *p[], int N )
 static void FS_Rm( DaoProcess *proc, DaoValue *p[], int N )
 {
 	char_t *path = CharsToTChars( p[0]->xString.value->chars );
-	if ( unlink( path ) != 0 && ( errno != ENOENT || rmdir( path ) != 0 ) ){
+	if ( unlink( path ) != 0 && ( ( errno != ENOENT && errno != EISDIR ) || rmdir( path ) != 0 ) ){
 		char errbuf[MAX_ERRMSG + MAX_PATH + 3];
 		GetErrorMessage( errbuf, errno, 0 );
 		snprintf( errbuf + strlen( errbuf ), MAX_PATH + 3, ": %"T_FMT, path );
+		DaoProcess_RaiseError( proc, fserr, errbuf );
+	}
+	FreeTChars( path );
+}
+
+static void FS_Mkdir( DaoProcess *proc, DaoValue *p[], int N )
+{
+	char_t *path = CharsToTChars( p[0]->xString.value->chars );
+	int res = 0;
+#ifdef WIN32
+	if ( mkdir( path ) != 0 )
+#else
+	if ( mkdir( path, S_IRWXU|S_IRGRP|S_IXGRP|S_IXOTH ) != 0 )
+#endif
+		res = ( errno == EINVAL )? -1 : errno;
+	if( res != 0 ){
+		char errbuf[MAX_ERRMSG];
+		if( res == -1 )
+			strcpy( errbuf, "Invalid directory name (EINVAL)" );
+		else
+			GetErrorMessage( errbuf, res, 0 );
 		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 	FreeTChars( path );
@@ -1562,10 +1583,10 @@ static DaoFuncItem fileMeths[] =
 static DaoFuncItem dirMeths[] =
 {
 	/*! Creates new file given relative \a path and returns its \c File object */
-	{ FSNode_Makefile,	"mkfile(self: Dir, path: string) => File" },
+	{ FSNode_Makefile,	"newFile(self: Dir, path: string) => File" },
 
 	/*! Creates new directory given relative \a path and returns its \c Dir object */
-	{ FSNode_Makedir,	"mkdir(self: Dir, path: string) => Dir" },
+	{ FSNode_Makedir,	"newDir(self: Dir, path: string) => Dir" },
 
 	/*! Returns the list of inner entries with names matching \a filter,
 	 * where \a filter type is defined by \a filtering and can be either a wildcard pattern or Dao string pattern */
@@ -1586,7 +1607,7 @@ static DaoFuncItem dirMeths[] =
 	{ FSNode_Exists,	"exists(invar self: Dir, path: string) => bool" },
 
 	/*! Creates file with unique name prefixed by \a prefix in this directory. Returns the corresponding entry */
-	{ FSNode_Mktemp,	"mktemp(self: Dir, prefix = '') => File" },
+	{ FSNode_Mktemp,	"newTmpFile(self: Dir, prefix = '') => File" },
 	{ NULL, NULL }
 };
 
@@ -1633,6 +1654,9 @@ static DaoFuncItem fsMeths[] =
 	/*! Makes \a dir the current working directory */
 	{ FS_SetCWD,	"cd(invar path: Dir)" },
 	{ FS_SetCWD2,	"cd(path: string)" },
+
+	/*! Creates new directory given its relative \a path */
+	{ FS_Mkdir,		"mkdir(path: string)" },
 
 	/*! Returns list of names of all file objects in the directory specified by \a path */
 	{ FS_ListDir,	"ls(invar path: Dir) => list<string>" },

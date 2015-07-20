@@ -28,14 +28,14 @@ class [File](#file): Entry
 - [copy](#copy2)(_self_: File, _to_: Dir) => File
 
 class [Dir](#dir): Entry
-- [mkfile](#mkfile)(_self_: Dir, _path_: string) => File
-- [mkdir](#mkdir)(_self_: Dir, _path_: string) => Dir
+- [newFile](#mkfile)(_self_: Dir, _path_: string) => File
+- [newDir](#mkdir)(_self_: Dir, _path_: string) => Dir
 - [entries](#entries)(invar _self_: Dir, _filter_ = '*', _filtering_: enum&lt;wildcard,pattern&gt; = $wildcard) => list&lt;Entry&gt;
 - [files](#files)(invar _self_: Dir, _filter_ = '*', _filtering_: enum&lt;wildcard,pattern&gt; = $wildcard) => list&lt;File&gt;
 - [dirs](#dirs)(invar _self_: Dir, _filter_ = '*', _filtering_: enum&lt;wildcard,pattern&lt;= $wildcard) => list&lt;Dir&gt;
 - [<span>[]</span>](#op_index)(invar _self_: Dir, _path_: string) => Entry|none
 - [exists](#exists)(invar _self_: Dir, _path_: string) => bool
-- [mktemp](#mktemp)(_self_: Dir, _prefix_ = '') => File
+- [newTmpFile](#mktemp)(_self_: Dir, _prefix_ = '') => File
 
 Functions:
 - [entry](#entry_ctor)(_path_: string) => Entry
@@ -44,6 +44,7 @@ Functions:
 - [cwd](#cwd)() => Dir
 - [cd](#cd)(invar _path_: Dir)
 - [cd](#cd)(_path_: string)
+- [mkdir](#fs_mkdir)(_path_: string)
 - [ls](#ls)(invar _path_: Dir) => list&lt;string&gt;
 - [ls](#ls)(_path_ = '.') => list&lt;string&gt;
 - [rm](#rm)(_path_: string)
@@ -124,7 +125,7 @@ move(self: Entry, path: string)
 ```
 Moves (renames) entry within the file system so that its full path becomes *path*. *path* may end with directory separator, omitting the entry name, in which case the current name is assumed
 
-**Errors:** `File` if failed to move the entry
+**Errors:** `File` if failed
 <a name="delete"></a>
 ```ruby
 delete(self: Entry)
@@ -132,7 +133,7 @@ delete(self: Entry)
 Deletes file or empty directory
 
 **Note:** Doing this does not invalidate the entry
-**Errors:** `File` if failed to delete the entry
+**Errors:** `File` if failed
 <a name="refresh"></a>
 ```ruby
 refresh(self: Entry)
@@ -177,18 +178,18 @@ Inherits `fs::Entry`. Represents directory.
 #### Methods
 <a name="mkfile"></a>
 ```ruby
-mkfile(self: Dir, path: string) => File
+newFile(self: Dir, path: string) => File
 ```
 Creates new file given relative *path* and returns its `File` object
 
-**Errors:** `File` if failed to create file
+**Errors:** `File` if failed
 <a name="mkdir"></a>
 ```ruby
-mkdir(self: Dir, path: string) => Dir
+newDir(self: Dir, path: string) => Dir
 ```
 Creates new directory given relative *path* and returns its `Dir` object
 
-**Errors:** `File` if failed to create directory
+**Errors:** `File` if failed
 <a name="entries"></a>
 ```ruby
 entries(invar self: Dir, filter = '*', filtering: enum<wildcard,pattern> = $wildcard) => list<Entry>
@@ -220,7 +221,7 @@ exists(invar self: Dir, path: string) => bool
 Returns `true` if sub-entry specified by relative *path* exists
 <a name="mktemp"></a>
 ```ruby
-mktemp(self: Dir, prefix = '') => File
+newTmpFile(self: Dir, prefix = '') => File
 ```
 Creates file with unique name prefixed by *prefix* in this directory. Returns the corresponding `Entry`
 
@@ -263,7 +264,14 @@ cd(path: string)
 ```
 Makes *Dir* the current working directory
 
-**Errors:** `File` if failed to set the current directory
+**Errors:** `File` if failed
+<a name="fs_mkdir"></a>
+```ruby
+mkdir(path: string)
+```
+Creates new directory given its relative *path*
+
+**Errors:** `File` if failed
 <a name="ls"></a>
 ```ruby
 ls(invar path: Dir) => list<string>
@@ -271,14 +279,14 @@ ls(path = '.') => list<string>
 ```
 Returns list of names of all file objects in the directory specified by *path*
 
-**Errors:** `File` if failed to get list of file objects
+**Errors:** `File` if failed
 <a name="rm"></a>
 ```ruby
 rm(path: string)
 ```
 Deletes file object specified by *path*
 
-**Errors:** `File` if failed to delete the file object
+**Errors:** `File` if failed
 <a name="realpath"></a>
 ```ruby
 realpath(path: string) => string
@@ -292,14 +300,14 @@ symlink(path: string, link: string)
 ```
 Creates symbolic *link* to *path* (Unix-specific)
 
-**Errors:** `File` if failed to create symlink
+**Errors:** `File` if failed
 <a name="readlink"></a>
 ```ruby
 readlink(link: string) => string
 ```
 Returns file name to which symbolic *link* is pointed (Unix-specific). If *link* does not specify a symbolic link, returns empty string
 
-**Errors:** `File` if failed to read symlink data
+**Errors:** `File` if failed
 <a name="exists"></a>
 ```ruby
 exists(path: string) => bool
@@ -311,11 +319,11 @@ roots() => list<string>
 ```
 On Windows, returns list of root directories (drives). On other systems returns `{'/'}`
 
-**Errors:** `File` if failed get list of root directories
+**Errors:** `File` if failed
 <a name="home"></a>
 ```ruby
 home() => Dir
 ```
 Returns home directory for the current user (on Windows, 'Documents' directory is assumed)
 
-**Errors:** `File` if failed to get home directory
+**Errors:** `File` if failed
