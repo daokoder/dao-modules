@@ -28,6 +28,7 @@
 
 #include<time.h>
 #include<string.h>
+#include<errno.h>
 #include"dao_stream.h"
 #include"daoValue.h"
 #include"daoVmspace.h"
@@ -126,7 +127,20 @@ static int DaoStringStream_AtEnd( DaoStream *stream )
 	return self->offset >= self->base.buffer->size;
 }
 
-
+void GetErrorMessage( int code, char *buffer, size_t size )
+{
+	switch ( code ){
+	case EAGAIN:
+	case ENOMEM:	snprintf( buffer, size, "Failed to create process (EAGAIN/ENOMEM)" ); break;
+	case EMFILE:
+	case ENFILE:	snprintf( buffer, size, "Too many files open (EMFILE/ENFILE)" ); break;
+	case EACCES:	snprintf( buffer, size, "Access not permitted (EACCES)" ); break;
+	case EEXIST:	snprintf( buffer, size, "Failed to generate uniqe file name (EEXIST)" ); break;
+	case ENOSPC:	snprintf( buffer, size, "Not enough free space in the file system (ENOSPC)" ); break;
+	case EROFS:		snprintf( buffer, size, "Writing to a read-only file system (EROFS)" ); break;
+	default:		snprintf( buffer, size, "Unknown system error (%x)", code );
+	}
+}
 
 DaoFileStream* DaoFileStream_NewByType( DaoType *type )
 {
@@ -303,14 +317,18 @@ static void DaoIO_Open( DaoProcess *proc, DaoValue *p[], int N )
 	self = DaoFileStream_New();
 	DaoProcess_PutValue( proc, (DaoValue*)self );
 	if( N == 0 ){
-		self->file = tmpfile();
+		do
+			self->file = tmpfile();
+		while ( !self->file && errno == EINTR );
 		self->base.Read = DaoFileStream_Read;
 		self->base.Write = DaoFileStream_Write;
 		self->base.AtEnd = DaoFileStream_AtEnd;
 		self->base.Flush = DaoFileStream_Flush;
 		self->base.mode |= DAO_STREAM_WRITABLE | DAO_STREAM_READABLE;
-		if( self->file <= 0 ){
-			DaoProcess_RaiseError( proc, NULL, "failed to create temporary file" );
+		if( !self->file ){
+			char errbuf[512];
+			GetErrorMessage( errno, errbuf, sizeof(errbuf) );
+			DaoProcess_RaiseError( proc, NULL, errbuf );
 			return;
 		}
 	}else{
@@ -371,26 +389,29 @@ static void PIPE_New( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoPipeStream *stream = NULL;
 	DString *fname = p[0]->xString.value;
-	char *mode;
+	char *mode, *cp;
 
 	stream = DaoPipeStream_New();
 	DaoProcess_PutValue( proc, (DaoValue*)stream );
 	if( DString_Size( fname ) == 0 ){
-		DaoProcess_RaiseError( proc, "Param", "empty command line" );
+		DaoProcess_RaiseError( proc, "Param", "Empty command" );
 		return;
 	}
 	mode = DString_GetData( p[1]->xString.value );
+	for ( cp = mode; *cp; ++cp )
+		if ( *cp != 'r' && *cp != 'w' ){
+			DaoProcess_RaiseError( proc, "Param", "Invalid mode" );
+			return;
+		}
 	stream->file = popen( DString_GetData( fname ), mode );
 	if( stream->file == NULL ){
-		DaoProcess_RaiseError( proc, "System", "error opening pipe" );
+		char errbuf[512];
+		GetErrorMessage( errno, errbuf, sizeof(errbuf) );
+		DaoProcess_RaiseError( proc, "System", errbuf );
 		return;
 	}
-	if( strstr( mode, "+" ) ){
-		stream->base.mode |= DAO_STREAM_WRITABLE | DAO_STREAM_READABLE;
-	}else{
-		if( strstr( mode, "r" ) ) stream->base.mode |= DAO_STREAM_READABLE;
-		if( strstr( mode, "w" ) || strstr( mode, "a" ) ) stream->base.mode |= DAO_STREAM_WRITABLE;
-	}
+	if( strstr( mode, "r" ) ) stream->base.mode |= DAO_STREAM_READABLE;
+	if( strstr( mode, "w" ) ) stream->base.mode |= DAO_STREAM_WRITABLE;
 	DaoFileStream_InitCallbacks( stream );
 }
 static void PIPE_Close( DaoProcess *proc, DaoValue *p[], int N )
@@ -399,7 +420,7 @@ static void PIPE_Close( DaoProcess *proc, DaoValue *p[], int N )
 	if ( stream->file ){
 		DaoProcess_PutInteger( proc, DaoPipeStream_Close( stream ) );
 	} else {
-		DaoProcess_RaiseError( proc, "Param", "open pipe stream required" );
+		DaoProcess_RaiseError( proc, "Param", "Stream not open" );
 	}
 }
 static void PIPE_FileNO( DaoProcess *proc, DaoValue *p[], int N )
@@ -445,7 +466,7 @@ static DaoFuncItem dao_io_methods[] =
 	/*! Spawns sub-process which executes the given shell \a command with redirected standard input or output depending on \a mode.
 	 * If \a mode is 'r', returns readable stream of the process output; if \a mode is 'w', returns writable stream of the process
 	 * input */
-	{ PIPE_New,     "popen( command: string, mode: string ) => io::PipeStream" },
+	{ PIPE_New,        "popen( command: string, mode: string ) => PipeStream" },
 	{ NULL, NULL }
 };
 
@@ -454,10 +475,8 @@ static DaoFuncItem fileStreamMeths[] =
 	{ DaoIO_Open,      "FileStream() => FileStream" },
 	{ DaoIO_Open,      "FileStream( file: string, mode: string ) => FileStream" },
 	{ DaoIO_Open,      "FileStream( fd: int, mode: string ) => FileStream" },
-
 	{ DaoIO_Close,     "close( self: FileStream )" },
-
-	{ DaoIO_Seek,      "seek( self: FileStream, pos: int, from: enum<begin,current,end> ) => int" },
+	{ DaoIO_Seek,      "seek( self: FileStream, pos: int, from: enum<start,current,end> ) => int" },
 	{ DaoIO_Tell,      "tell( self: FileStream ) => int" },
 	{ DaoIO_FileNO,    ".fd( invar self: FileStream ) => int" },
 	{ NULL, NULL }
@@ -489,7 +508,7 @@ DaoTypeBase DaoPipeStream_Typer =
 static DaoFuncItem stringStreamMeths[] =
 {
 	{ DaoIOS_Open,    "StringStream() => StringStream" },
-	{ DaoIOS_Seek,    "seek( self: StringStream, pos: int, from: enum<begin,current,end> ) => int" },
+	{ DaoIOS_Seek,    "seek( self: StringStream, pos: int, from: enum<start,current,end> ) => int" },
 	{ DaoIOS_Tell,    "tell( self: StringStream ) => int" },
 	{ NULL, NULL }
 };
@@ -503,7 +522,7 @@ DaoTypeBase DaoStringStream_Typer =
 
 static DaoFuncItem ioSeekableMeths[] =
 {
-	{ NULL,		"seek( self: Seekable, pos: int, from: enum<begin,current,end> ) => int" },
+	{ NULL,		"seek( self: Seekable, pos: int, from: enum<start,current,end> ) => int" },
 	{ NULL,		"tell( self: Seekable ) => int" },
 	{ NULL, NULL }
 };
