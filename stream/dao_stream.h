@@ -26,13 +26,24 @@
 // OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __DAO_STREAM_H__
-#define __DAO_STREAM_H__
+
+#ifndef DAO_STREAM_DLL
+#ifdef DAO_STREAM
+#  define DAO_STREAM_DLL DAO_DLL_EXPORT
+#else
+#  define DAO_STREAM_DLL DAO_DLL_IMPORT
+#endif
+#endif
+
+
+#ifndef __DAO_MOD_STREAM_H__
+#define __DAO_MOD_STREAM_H__
 
 #include<stdlib.h>
 #include<math.h>
 #include"dao.h"
 #include"daoStream.h"
+
 
 typedef struct DaoFileStream    DaoFileStream;
 typedef struct DaoFileStream    DaoPipeStream;
@@ -51,22 +62,22 @@ struct DaoStringStream
 	DaoStream    base;
 	dao_integer  offset;
 };
-
-
-DAO_DLL DaoType *dao_type_file_stream;
-DAO_DLL DaoType *dao_type_pipe_stream;
-DAO_DLL DaoType *dao_type_string_stream;
-
-DAO_DLL DaoFileStream* DaoFileStream_New();
-DAO_DLL void DaoFileStream_Delete( DaoFileStream *self );
-DAO_DLL void DaoFileStream_Close( DaoFileStream *self );
-DAO_DLL void DaoFileStream_InitCallbacks( DaoFileStream *self );
-
-DAO_DLL DaoStringStream* DaoStringStream_New();
-DAO_DLL void DaoStringStream_Delete( DaoStringStream *self );
-
-DAO_DLL FILE* DaoStream_GetFile( DaoStream *self );
-DAO_DLL DaoStream* DaoProcess_PutFile( DaoProcess *self, FILE *file );
-DAO_DLL DaoStream* DaoProcess_NewStream( DaoProcess *self, FILE *file );
-
 #endif
+
+
+DAO_API( DAO_STREAM_DLL, DaoType*, DaoFileStream_Type, () );
+DAO_API( DAO_STREAM_DLL, DaoType*, DaoStringStream_Type, () );
+DAO_API( DAO_STREAM_DLL, DaoType*, DaoPipeStream_Type, () ) ;
+
+DAO_API( DAO_STREAM_DLL, DaoFileStream*, DaoFileStream_New, () );
+DAO_API( DAO_STREAM_DLL, void, DaoFileStream_Delete, (DaoFileStream *self) );
+DAO_API( DAO_STREAM_DLL, void, DaoFileStream_Close, (DaoFileStream *self) );
+DAO_API( DAO_STREAM_DLL, void, DaoFileStream_InitCallbacks, (DaoFileStream *self) );
+
+DAO_API( DAO_STREAM_DLL, DaoStringStream*, DaoStringStream_New, () );
+DAO_API( DAO_STREAM_DLL, void, DaoStringStream_Delete, (DaoStringStream *self) );
+
+DAO_API( DAO_STREAM_DLL, FILE*, DaoStream_GetFile, (DaoStream *self) );
+DAO_API( DAO_STREAM_DLL, DaoStream*, DaoProcess_PutFile, (DaoProcess *self, FILE *file) );
+DAO_API( DAO_STREAM_DLL, DaoStream*, DaoProcess_NewStream, (DaoProcess *self, FILE *file) );
+

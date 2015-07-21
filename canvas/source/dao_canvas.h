@@ -39,9 +39,11 @@
 
 #include "dao_path.h"
 #include "dao_font.h"
-#include "dao_image.h"
 #include "daoStdtype.h"
 #include "daoValue.h"
+
+#define DAO_HAS_IMAGE
+#include"dao_api.h"
 
 #ifdef __cplusplus
 extern "C"{

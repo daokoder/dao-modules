@@ -28,6 +28,19 @@
 
 // 2013-12: Danilov Aleksey, initial implementation.
 
+
+#ifndef DAO_TIME_DLL
+#ifdef DAO_TIME
+#  define DAO_TIME_DLL DAO_DLL_EXPORT
+#else
+#  define DAO_TIME_DLL DAO_DLL_IMPORT
+#endif
+#endif
+
+
+#ifndef __DAO_TIME_H__
+#define __DAO_TIME_H__
+
 #include"dao.h"
 #include"daoValue.h"
 #include<ctype.h>
@@ -38,8 +51,7 @@
 #include<time.h>
 #endif
 
-#ifndef __DAO_TIME_H__
-#define __DAO_TIME_H__
+typedef struct DaoTime DaoTime;
 
 struct DaoTime {
 	time_t value;
@@ -47,12 +59,11 @@ struct DaoTime {
 	struct tm parts;
 	int jday;
 };
-
-typedef struct DaoTime DaoTime;
-
-DAO_DLL time_t DaoMkTimeUtc( struct tm *ts );
-DAO_DLL int DaoTime_GetParts( DaoTime *self );
-DAO_DLL DaoTime* DaoProcess_PutTime( DaoProcess *proc, time_t value, int local );
-DAO_DLL DaoValue* DaoProcess_NewTime( DaoProcess *proc, time_t value, int local );
-
 #endif
+
+
+DAO_API( DAO_TIME_DLL, time_t, DaoMkTimeUtc, (struct tm *ts) );
+DAO_API( DAO_TIME_DLL, int, DaoTime_GetParts, (DaoTime *self) );
+DAO_API( DAO_TIME_DLL, DaoTime*, DaoProcess_PutTime, (DaoProcess *proc, time_t value, int local) );
+DAO_API( DAO_TIME_DLL, DaoValue*, DaoProcess_NewTime, (DaoProcess *proc, time_t value, int local) );
+

@@ -31,7 +31,9 @@
 #include"daoValue.h"
 #include"daoThread.h"
 #include"daoTasklet.h"
-#include"dao_stream.h"
+
+#define DAO_HAS_STREAM
+#include"dao_api.h"
 
 #ifdef WIN32
 #include<io.h>

@@ -2,9 +2,8 @@
 project = DaoMake::Project( "DaoMime" )
 
 daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
-daost = DaoMake::FindPackage( "DaoStream", $REQUIRED )
 
-if( daovm == none or daost == none ) return
+if( daovm == none ) return
 
 project.UseImportLibrary( daovm, "dao" )
 project.SetTargetPath( "../../../lib/dao/modules/web" )
@@ -13,9 +12,6 @@ dao_mime_objs = project.AddObjects( { "dao_mime.c" } )
 
 dao_mime_dll = project.AddSharedLibrary( "dao_mime", dao_mime_objs )
 dao_mime_lib = project.AddStaticLibrary( "dao_mime", dao_mime_objs )
-
-project.AddIncludePath( "../../stream" )
-dao_mime_dll.UseSharedLibrary( daost, "dao_stream" )
 
 path = DaoMake::MakePath( DaoMake::Variables[ "INSTALL_MOD" ], "web" )
 

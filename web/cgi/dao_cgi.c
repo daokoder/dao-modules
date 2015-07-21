@@ -39,7 +39,9 @@
 #include"dao.h"
 #include"daoStdtype.h"
 #include"daoNamespace.h"
-#include"dao_stream.h"
+
+#define DAO_HAS_STREAM
+#include"dao_api.h"
 
 #ifdef MAC_OSX
 #  include <crt_externs.h>
@@ -237,14 +239,14 @@ static void PreparePostData( DaoProcess *proc, DaoMap *httpPOSTS, DaoMap *httpPO
 			memmove( buffer->chars, buffer->chars + pos2 + boundarylen, buffer->size );
 		}else{
 			DaoInteger isize = {DAO_INTEGER,0,0,0,0,0};
-			DaoFileStream *stream = DaoFileStream_New();
+			DaoFileStream *stream = _DaoFileStream_New();
 			DaoTuple *tuple = DaoTuple_New(3);
 			FILE *file = tmpfile();
 
 			DaoString_Set( (DaoString*) vv, fname );
 			stream->file = file;
 			stream->base.mode |= DAO_STREAM_READABLE|DAO_STREAM_WRITABLE;
-			DaoFileStream_InitCallbacks( stream );
+			_DaoFileStream_InitCallbacks( stream );
 			DaoTuple_SetType( tuple, daox_type_namestream );
 			DaoTuple_SetItem( tuple, (DaoValue*) vv, 0 );
 			DaoTuple_SetItem( tuple, (DaoValue*) stream, 2 );

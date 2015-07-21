@@ -2,7 +2,7 @@
 // Dao Graphics Engine
 // http://www.daovm.net
 //
-// Copyright (c) 2012-2014, Limin Fu
+// Copyright (c) 2012-2015, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -26,17 +26,20 @@
 */
 
 
-#ifndef __DAO_IMAGE_H__
-#define __DAO_IMAGE_H__
-
-#include "dao.h"
-#include "daoStdtype.h"
-
+#ifndef DAO_IMAGE_DLL
 #ifdef DAO_IMAGE
 #  define DAO_IMAGE_DLL DAO_DLL_EXPORT
 #else
 #  define DAO_IMAGE_DLL DAO_DLL_IMPORT
 #endif
+#endif
+
+
+#ifndef __DAO_IMAGE_H__
+#define __DAO_IMAGE_H__
+
+#include "dao.h"
+#include "daoStdtype.h"
 
 typedef struct DaoxImage  DaoxImage;
 
@@ -67,25 +70,26 @@ struct DaoxImage
 	uint_t  height;  /* Number of pixels per column in the image; */
 	uint_t  depth;   /* Color depth type; */
 };
-DAO_DLL DaoType *daox_type_image;
-
-
-DAO_DLL DaoxImage* DaoxImage_New();
-DAO_DLL void DaoxImage_Delete( DaoxImage *self );
-
-DAO_DLL void DaoxImage_Resize( DaoxImage *self, int width, int height );
-
-DAO_DLL int DaoxImage_Convert( DaoxImage *self, int dep );
-
-DAO_DLL int DaoxImage_Decode( DaoxImage *self, DString *data );
-DAO_DLL int DaoxImage_Encode( DaoxImage *self, DString *data, int format );
-
-DAO_DLL int DaoxImage_LoadBMP( DaoxImage *self, const char *file );
-DAO_DLL int DaoxImage_SaveBMP( DaoxImage *self, const char *file );
-
-DAO_DLL int DaoxImage_LoadPNG( DaoxImage *self, const char *file );
-DAO_DLL int DaoxImage_SavePNG( DaoxImage *self, const char *file );
-
-DAO_DLL void DaoxImage_Export( DaoxImage *self, DaoArray *matrix, float factor );
-
 #endif
+
+
+DAO_API( DAO_IMAGE_DLL, DaoType*, DaoxImage_Type, () );
+
+DAO_API( DAO_IMAGE_DLL, DaoxImage*, DaoxImage_New, () );
+DAO_API( DAO_IMAGE_DLL, void, DaoxImage_Delete, (DaoxImage *self) );
+
+DAO_API( DAO_IMAGE_DLL, void, DaoxImage_Resize, (DaoxImage *self, int width, int height) );
+
+DAO_API( DAO_IMAGE_DLL, int, DaoxImage_Convert, (DaoxImage *self, int dep) );
+
+DAO_API( DAO_IMAGE_DLL, int, DaoxImage_Decode, (DaoxImage *self, DString *data) );
+DAO_API( DAO_IMAGE_DLL, int, DaoxImage_Encode, (DaoxImage *self, DString *data, int format) );
+
+DAO_API( DAO_IMAGE_DLL, int, DaoxImage_LoadBMP, (DaoxImage *self, const char *file) );
+DAO_API( DAO_IMAGE_DLL, int, DaoxImage_SaveBMP, (DaoxImage *self, const char *file) );
+
+DAO_API( DAO_IMAGE_DLL, int, DaoxImage_LoadPNG, (DaoxImage *self, const char *file) );
+DAO_API( DAO_IMAGE_DLL, int, DaoxImage_SavePNG, (DaoxImage *self, const char *file) );
+
+DAO_API( DAO_IMAGE_DLL, void, DaoxImage_Export, (DaoxImage *self, DaoArray *matrix, float factor) );
+

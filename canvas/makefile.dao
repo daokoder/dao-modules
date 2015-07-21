@@ -25,9 +25,8 @@ project_sources =
 
 
 daovm  = DaoMake::FindPackage( "Dao",      $REQUIRED )
-daoim  = DaoMake::FindPackage( "DaoImage", $REQUIRED )
 
-if( daovm == none or daoim == none ) return
+if( daovm == none ) return
 
 project = DaoMake::Project( "DaoCanvas" ) 
 
@@ -37,9 +36,6 @@ project_dll  = project.AddSharedLibrary( "dao_canvas", project_objs )
 project_lib  = project.AddStaticLibrary( "dao_canvas", project_objs )
 
 project.UseImportLibrary( daovm )
-
-project.AddIncludePath( "../image/source" )
-project_dll.UseSharedLibrary( daoim, "dao_image" )
 
 project.SetTargetPath( "../../lib/dao/modules" )
 

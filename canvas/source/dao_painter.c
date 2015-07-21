@@ -33,7 +33,7 @@ DaoxPainter* DaoxPainter_New()
 	DaoxPainter *self = (DaoxPainter*)dao_calloc(1,sizeof(DaoxPainter));
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_painter );
 	self->gradient = DaoxGradient_New(DAOX_GRADIENT_BASE);
-	self->buffer = DaoxImage_New();
+	self->buffer = _DaoxImage_New();
 	self->renderer = DaoxRenderer_New( self->buffer );
 	self->rasterizer = DaoxRasterizer_New();
 	self->rasterizer->filling_rule = DAOX_FILL_EVEN_ODD;
@@ -46,7 +46,7 @@ void DaoxPainter_Delete( DaoxPainter *self )
 	DaoxGradient_Delete( self->gradient );
 	DaoxRasterizer_Delete( self->rasterizer );
 	DaoxRenderer_Delete( self->renderer );
-	DaoxImage_Delete( self->buffer );
+	_DaoxImage_Delete( self->buffer );
 	dao_free( self );
 }
 
@@ -183,7 +183,7 @@ void DaoxPainter_Paint( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D view
 	float H = viewport.top - viewport.bottom;
 	int i, n = canvas->nodes->size;
 
-	DaoxImage_Resize( self->buffer, W, H );
+	_DaoxImage_Resize( self->buffer, W, H );
 
 	if( bgcolor.alpha >= 1.0/255.0 ) DaoxRenderer_Clear( self->renderer, bgcolor );
 
@@ -217,7 +217,7 @@ void DaoxPainter_PaintCanvasImage( DaoxPainter *self, DaoxCanvas *canvas, DaoxAA
 	DaoxImage *buffer = self->buffer;
 
 	image->depth = DAOX_IMAGE_BIT32;
-	DaoxImage_Resize( image, width, height );
+	_DaoxImage_Resize( image, width, height );
 
 	self->buffer = image;
 	self->renderer = DaoxRenderer_New( image );

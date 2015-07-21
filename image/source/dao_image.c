@@ -38,6 +38,11 @@
 
 DaoType *daox_type_image = NULL;
 
+DaoType* DaoxImage_Type()
+{
+	return daox_type_image;
+}
+
 
 DaoxImage* DaoxImage_New()
 {
@@ -401,9 +406,15 @@ DaoTypeBase DaoxImage_Typer =
 	(FuncPtrDel)DaoxImage_Delete, NULL
 };
 
+#define DAO_HAS_IMAGE
+#include"dao_api.h"
 
 DAO_DLL int DaoImage_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	daox_type_image = DaoNamespace_WrapType( ns, & DaoxImage_Typer, 0 );
+
+#define DAO_API_INIT
+#include"dao_api.h"
+
 	return 0;
 }

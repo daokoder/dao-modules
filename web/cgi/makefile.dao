@@ -2,9 +2,8 @@
 project = DaoMake::Project( "DaoCGI" )
 
 daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
-daost = DaoMake::FindPackage( "DaoStream", $REQUIRED )
 
-if( daovm == none or daost == none ) return
+if( daovm == none ) return
 
 project.UseImportLibrary( daovm, "dao" )
 project.SetTargetPath( "../../../lib/dao/modules/web" )
@@ -13,9 +12,6 @@ dao_cgi_objs = project.AddObjects( { "dao_cgi.c" } )
 
 dao_cgi_dll = project.AddSharedLibrary( "dao_cgi", dao_cgi_objs )
 dao_cgi_lib = project.AddStaticLibrary( "dao_cgi", dao_cgi_objs )
-
-project.AddIncludePath( "../../stream" )
-dao_cgi_dll.UseSharedLibrary( daost, "dao_stream" )
 
 path = DaoMake::MakePath( DaoMake::Variables[ "INSTALL_MOD" ], "web" )
 

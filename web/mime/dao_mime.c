@@ -724,7 +724,7 @@ daoint DaoMime_UpdateDB( DaoStream *source )
 	while ( 1 ){ // for each line
 		char *buf, *pc;
 		int res;
-		FILE *file = DaoStream_GetFile( source );
+		FILE *file = _DaoStream_GetFile( source );
 		if ( file ){ // custom handling if file for performance boost
 			res = fgets( buffer, sizeof(buffer), file ) != NULL;
 			buf = buffer;

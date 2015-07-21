@@ -38,7 +38,9 @@
 #include "daoVmspace.h"
 #include "daoThread.h"
 #include "daoGC.h"
-#include "dao_stream.h"
+
+#define DAO_HAS_STREAM
+#include"dao_api.h"
 
 #include "Marten/marten.h"
 
@@ -313,14 +315,14 @@ void DaoxRequest_ParsePostData( DaoxRequest *self, mg_connection *conn )
 			memmove( buffer->chars, buffer->chars + pos2 + boundarylen, buffer->size );
 		}else{
 			DaoInteger isize = {DAO_INTEGER,0,0,0,0,0};
-			DaoFileStream *stream = DaoFileStream_New();
+			DaoFileStream *stream = _DaoFileStream_New();
 			DaoTuple *tuple = DaoTuple_New(3);
 			FILE *file = tmpfile();
 
 			DaoString_Set( self->value, fname );
 			stream->file = file;
 			stream->base.mode |= DAO_STREAM_READABLE|DAO_STREAM_WRITABLE;
-			DaoFileStream_InitCallbacks( stream );
+			_DaoFileStream_InitCallbacks( stream );
 			DaoTuple_SetType( tuple, daox_type_namestream );
 			DaoTuple_SetItem( tuple, (DaoValue*) self->value, 0 );
 			DaoTuple_SetItem( tuple, (DaoValue*) stream, 2 );

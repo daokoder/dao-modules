@@ -33,7 +33,9 @@
 
 #include"dao.h"
 #include"daoValue.h"
-#include"dao_stream.h"
+
+#define DAO_HAS_STREAM
+#include"dao_api.h"
 
 DAO_DLL void DaoMime_Identify( DString *ext, DaoList *names );
 DAO_DLL daoint DaoMime_UpdateDB(DaoStream *source );

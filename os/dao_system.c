@@ -59,7 +59,9 @@ extern char ** environ;
 #include"daoValue.h"
 #include"daoThread.h"
 #include"daoGC.h"
-#include"dao_stream.h"
+
+#define DAO_HAS_STREAM
+#include"dao_api.h"
 
 
 
@@ -279,10 +281,11 @@ static void OS_Null( DaoProcess *proc, DaoValue *p[], int N )
 	if ( !file )
 		DaoProcess_RaiseError( proc, "System", "Failed to open system null device" );
 	else {
-		DaoFileStream *stream = DaoFileStream_New();
+		printf( "%p\n", & _DaoFileStream_New );
+		DaoFileStream *stream = _DaoFileStream_New();
 		stream->file = file;
 		stream->base.mode |= DAO_STREAM_WRITABLE;
-		DaoFileStream_InitCallbacks( stream );
+		_DaoFileStream_InitCallbacks( stream );
 		DaoProcess_PutValue( proc, (DaoValue*)stream );
 	}
 }

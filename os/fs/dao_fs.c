@@ -37,7 +37,9 @@
 
 #include"dao.h"
 #include"daoValue.h"
-#include"dao_time.h"
+
+#define DAO_HAS_TIME
+#include"dao_api.h"
 
 #ifdef WIN32
 
@@ -849,9 +851,9 @@ static void FSNode_Time( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
 	DaoTuple *res = DaoProcess_PutTuple( proc, 3 );
-	DaoTuple_SetItem( res, DaoProcess_NewTime( proc, self->ctime, 1 ), 0 );
-	DaoTuple_SetItem( res, DaoProcess_NewTime( proc, self->mtime, 1 ), 1 );
-	DaoTuple_SetItem( res, DaoProcess_NewTime( proc, self->atime, 1 ), 2 );
+	DaoTuple_SetItem( res, _DaoProcess_NewTime( proc, self->ctime, 1 ), 0 );
+	DaoTuple_SetItem( res, _DaoProcess_NewTime( proc, self->mtime, 1 ), 1 );
+	DaoTuple_SetItem( res, _DaoProcess_NewTime( proc, self->atime, 1 ), 2 );
 //	res->values[0]->xInteger.value = self->ctime;
 //	res->values[1]->xInteger.value = self->mtime;
 //	res->values[2]->xInteger.value = self->atime;

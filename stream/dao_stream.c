@@ -48,6 +48,25 @@
 #include<sys/wait.h>
 #endif
 
+
+DaoType *dao_type_file_stream = NULL;
+DaoType *dao_type_pipe_stream = NULL;
+DaoType *dao_type_string_stream = NULL;
+
+DaoType* DaoFileStream_Type()
+{
+	return dao_type_file_stream;
+}
+DaoType* DaoStringStream_Type()
+{
+	return dao_type_pipe_stream;
+}
+DaoType* DaoPipeStream_Type()
+{
+	return dao_type_string_stream;
+}
+
+
 static int DaoFileStream_Read( DaoStream *stream, DString *data, int count )
 {
 	DaoFileStream *self = (DaoFileStream*) stream;
@@ -533,9 +552,8 @@ DaoTypeBase ioSeekableTyper =
 	(FuncPtrDel) NULL, NULL
 };
 
-DaoType *dao_type_file_stream = NULL;
-DaoType *dao_type_pipe_stream = NULL;
-DaoType *dao_type_string_stream = NULL;
+#define DAO_HAS_STREAM
+#include"dao_api.h"
 
 DAO_DLL int DaoStream_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
@@ -548,5 +566,8 @@ DAO_DLL int DaoStream_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	dao_type_string_stream = DaoNamespace_WrapType( ions, & DaoStringStream_Typer, 0 );
 	DaoNamespace_WrapInterface( ions, &ioSeekableTyper );
 	DaoNamespace_WrapFunctions( ions, dao_io_methods );
+
+#define DAO_API_INIT
+#include"dao_api.h"
 	return 0;
 }

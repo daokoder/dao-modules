@@ -28,6 +28,8 @@
 
 // 2013-12: Danilov Aleksey, initial implementation.
 
+#define DAO_TIME
+
 #include<string.h>
 #include"dao_time.h"
 
@@ -880,11 +882,17 @@ DaoValue* DaoProcess_NewTime( DaoProcess *proc, time_t value, int local )
 	return res? (DaoValue*)DaoProcess_NewCdata( proc, daox_type_time, res, 1 ) : NULL;
 }
 
+#define DAO_HAS_TIME
+#include"dao_api.h"
+
 DAO_DLL int DaoTime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *timens = DaoNamespace_GetNamespace( ns, "time" );
 	daox_type_time = DaoNamespace_WrapType( timens, &timeTyper, DAO_CTYPE_INVAR|DAO_CTYPE_OPAQUE );
 	DaoNamespace_WrapFunctions( timens, timeFuncs );
 	DMutex_Init( &time_mtx );
+
+#define DAO_API_INIT
+#include"dao_api.h"
 	return 0;
 }
