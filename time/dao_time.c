@@ -46,7 +46,6 @@
 
 static const char timeerr[] = "Time";
 static DaoType *daox_type_time = NULL;
-static DMutex time_mtx;
 
 int FloorDiv( int a, int b )
 {
@@ -308,19 +307,7 @@ Clean:
 time_t DaoMkTimeUtc( struct tm *ts )
 {
 #ifdef WIN32
-	// non-portable!
-	int tz, dl;
-	time_t value;
-	DMutex_Lock( &time_mtx );
-	tz = timezone;
-	dl = daylight;
-	timezone = 0;
-	daylight = 0;
-	value = mktime( ts ); // note: mktime may change its argument
-	timezone = tz;
-	daylight = dl;
-	DMutex_Unlock( &time_mtx );
-	return value;
+	return _mkgmtime( ts );
 #else
 	return timegm( ts );
 #endif
@@ -890,7 +877,6 @@ DAO_DLL int DaoTime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace *timens = DaoNamespace_GetNamespace( ns, "time" );
 	daox_type_time = DaoNamespace_WrapType( timens, &timeTyper, DAO_CTYPE_INVAR|DAO_CTYPE_OPAQUE );
 	DaoNamespace_WrapFunctions( timens, timeFuncs );
-	DMutex_Init( &time_mtx );
 
 #define DAO_API_INIT
 #include"dao_api.h"
