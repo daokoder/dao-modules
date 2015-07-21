@@ -100,7 +100,7 @@ void DaoTime_Delete( DaoTime *self )
 	dao_free( self );
 }
 
-int DaoTime_GetTime( DaoTime *self )
+int DaoTime_GetParts( DaoTime *self )
 {
 #ifdef WIN32
 	struct tm *tp = self->local? localtime( &self->value ) : gmtime( &self->value );
@@ -141,7 +141,7 @@ static void DaoTime_Get( DaoProcess *proc, DaoValue *p[], int N )
 		return;
 	}
 	self->local = ( p[0]->xEnum.value == 0 );
-	if ( !DaoTime_GetTime( self ) ){
+	if ( !DaoTime_GetParts( self ) ){
 		DaoProcess_RaiseError( proc, timeerr, "Failed to get current datetime" );
 		DaoTime_Delete( self );
 		return;
@@ -161,7 +161,7 @@ static void DaoTime_Time( DaoProcess *proc, DaoValue *p[], int N )
 	self = DaoTime_New();
 	self->value = value;
 	self->local = ( p[1]->xEnum.value == 0 );
-	if ( !DaoTime_GetTime( self ) ){
+	if ( !DaoTime_GetParts( self ) ){
 		DaoProcess_RaiseError( proc, timeerr, "Unknown system error" );
 		DaoTime_Delete( self );
 		return;
@@ -237,7 +237,7 @@ static void DaoTime_Parse( DaoProcess *proc, DaoValue *p[], int N )
 		DaoTime_Delete( self );
 		return;
 	}
-	DaoTime_GetTime( self );
+	DaoTime_GetParts( self );
 	self->parts.tm_isdst = -1;
 	if ( sdate ){
 		/* YYYY-MM-DD */
@@ -386,7 +386,7 @@ static void DaoTime_Convert( DaoProcess *proc, DaoValue *p[], int N )
 	*res = *self;
 	DaoProcess_PutCdata( proc, res, daox_type_time );
 	res->local = ( p[1]->xEnum.value == 0 );
-	DaoTime_GetTime( res );
+	DaoTime_GetParts( res );
 	DaoTime_CalcJulianDay( res );
 }
 
@@ -742,7 +742,7 @@ static void DaoTime_Add( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	if ( secs ){
 		res->value += secs;
-		if ( !DaoTime_GetTime( res ) )
+		if ( !DaoTime_GetParts( res ) )
 			DaoProcess_RaiseError( proc, timeerr, "Invalid resulting datetime" );
 		else
 			DaoTime_CalcJulianDay( res );
@@ -857,7 +857,7 @@ DaoTime* CreateTime( DaoProcess *proc, time_t value, int local )
 	self = DaoTime_New();
 	self->value = value;
 	self->local = local;
-	if ( !DaoTime_GetTime( self ) ){
+	if ( !DaoTime_GetParts( self ) ){
 		DaoProcess_RaiseError( proc, timeerr, "Unknown system error" );
 		DaoTime_Delete( self );
 		return NULL;

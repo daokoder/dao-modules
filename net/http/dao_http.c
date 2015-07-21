@@ -1037,6 +1037,24 @@ void AppendFieldValue( DaoValue *value, DString *dest )
 			}
 		}
 		break;
+	default: // time::DateTime
+		if ( 1 ){
+			const char *dnames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+			const char *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+			DaoTime *t = (DaoTime*)DaoValue_TryGetCdata( value );
+			DaoTime tmp;
+			struct tm *ts = &t->parts;
+			char buf[100];
+			if ( t->local ){ // convert to utc
+				tmp.value = t->value;
+				tmp.local = 0;
+				DaoTime_GetParts( &tmp );
+				ts = &tmp.parts;
+			}
+			snprintf( buf, sizeof(buf), "%s, %02i %s %i %02i:%02i:%02i GMT", dnames[ts->tm_wday], (int)ts->tm_mday, months[ts->tm_mon], (int)( 1900 + ts->tm_year ),
+					(int)ts->tm_hour, (int)ts->tm_min, (int)ts->tm_sec );
+			DString_AppendChars( dest, buf );
+		}
 	}
 }
 
@@ -1593,12 +1611,12 @@ static DaoFuncItem httpMeths[] =
 	//! origin-form URI and 'Host' field are formed. Other field name-values (headers) may be provided as additional
 	//! variadic parameters, the names of which are converted from camel case to hyphen-delimited notation:
 	//! 'fieldName' to 'Field-Name'. Returns the resulting header along with the terminating '\r\n'
-	{ HTTP_InitRequest,		"initRequest(method: string, url: string, ...: tuple<enum,int|string|list<string>>) => string" },
+	{ HTTP_InitRequest,		"initRequest(method: string, url: string, ...: tuple<enum,int|string|list<string>|time::DateTime>) => string" },
 
 	//! Constructs HTTP/1.1 response header string with the given status \a code, from which the reason string
 	//! is deduced. Field name-values (headers) may be provided the same way as with \c initRequest. Returns
 	//! the resulting header along with the terminating '\r\n'
-	{ HTTP_InitResponse,	"initResponse(code: int, ...: tuple<enum,int|string|list<string>>) => string" },
+	{ HTTP_InitResponse,	"initResponse(code: int, ...: tuple<enum,int|string|list<string>|time::DateTime>) => string" },
 
 	//! Parses \a date as HTTP date according to RFC 7231 and returns the resulting \c time::DateTime
 	{ HTTP_ParseDate,		"parseDate(date: string) => time::DateTime" },
