@@ -32,7 +32,10 @@
 #include <time.h>
 
 #include"dao_http.h"
-#include"dao_time.h"
+
+#define DAO_HAS_TIME
+#include"dao_api.h"
+
 
 static DaoType *daox_type_header = NULL;
 static DaoType *daox_type_request = NULL;
@@ -48,6 +51,7 @@ DaoHttpRequest* DaoHttpRequest_New()
 	res->headers = DMap_New( DAO_DATA_STRING, DAO_DATA_STRING );
 	res->cookies = DList_New( DAO_DATA_STRING );
 	res->size = 0;
+	return res;
 }
 
 void DaoHttpRequest_Delete( DaoHttpRequest *self )
@@ -69,6 +73,7 @@ DaoHttpResponse* DaoHttpResponse_New()
 	res->cookies = DList_New( DAO_DATA_STRING );
 	res->code = 0;
 	res->size = 0;
+	return res;
 }
 
 void DaoHttpResponse_Delete( DaoHttpResponse *self )
@@ -389,7 +394,7 @@ time_t ParseImfDate( DString *date )
 	cp = ParseTimeOfDay( cp + 5, &ts );
 	if ( !cp || strcmp( cp, "GMT" ) != 0 )
 		return inv_date;
-	return DaoMkTimeUtc( &ts );
+	return _DaoMkTimeUtc( &ts );
 }
 
 time_t ParseRfc850Date(DString *date)
@@ -426,7 +431,7 @@ time_t ParseRfc850Date(DString *date)
 	cp = ParseTimeOfDay( cp + 3, &ts );
 	if ( !cp || strcmp( cp, "GMT" ) != 0 )
 		return inv_date;
-	return DaoMkTimeUtc( &ts );
+	return _DaoMkTimeUtc( &ts );
 }
 
 time_t ParseAsctimeDate(DString *date)
@@ -470,7 +475,7 @@ time_t ParseAsctimeDate(DString *date)
 	cp += 4;
 	if ( *cp )
 		return inv_date;
-	return DaoMkTimeUtc( &ts );
+	return _DaoMkTimeUtc( &ts );
 }
 
 time_t ParseHttpDate( DString *date )
@@ -650,7 +655,7 @@ void PutDateValue( DaoProcess *proc, DMap *headers, const char *field )
 	DString name = DString_WrapChars( field );
 	DNode *node = DMap_Find( headers, &name );
 	if ( node )
-		DaoProcess_PutTime( proc, ParseHttpDate( node->value.pString ), 0 );
+		_DaoProcess_PutTime( proc, ParseHttpDate( node->value.pString ), 0 );
 	else
 		DaoProcess_PutNone( proc );
 }
@@ -1048,7 +1053,7 @@ void AppendFieldValue( DaoValue *value, DString *dest )
 			if ( t->local ){ // convert to utc
 				tmp.value = t->value;
 				tmp.local = 0;
-				DaoTime_GetParts( &tmp );
+				_DaoTime_GetParts( &tmp );
 				ts = &tmp.parts;
 			}
 			snprintf( buf, sizeof(buf), "%s, %02i %s %i %02i:%02i:%02i GMT", dnames[ts->tm_wday], (int)ts->tm_mday, months[ts->tm_mon], (int)( 1900 + ts->tm_year ),
@@ -1377,7 +1382,7 @@ DaoTypeBase chunkDecoderTyper = {
 
 static void HTTP_ParseDate( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoProcess_PutTime( proc, ParseHttpDate( p[0]->xString.value ), 0 );
+	_DaoProcess_PutTime( proc, ParseHttpDate( p[0]->xString.value ), 0 );
 }
 
 int HexToInt( char ch )
@@ -1386,6 +1391,7 @@ int HexToInt( char ch )
 		return ch - '0';
 	if ( ch >= 'A' && ch <= 'F' )
 		return ch - 'A' + 10;
+	return 0;
 }
 
 void DecodePercentageEncoding( const char *cp, daoint count, DString *str )

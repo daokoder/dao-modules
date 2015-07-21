@@ -1,10 +1,9 @@
 
-project = DaoMake::Project( "DaoHttp" )
+project = DaoMake::Project( "DaoHttp2" )
 
 daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
-daotm = DaoMake::FindPackage( "DaoTime", $REQUIRED )
 
-if( daovm == none or daotm == none ) return
+if( daovm == none ) return
 
 project.UseImportLibrary( daovm, "dao" )
 
@@ -12,9 +11,6 @@ dao_http_objs  = project.AddObjects( { "dao_http.c" } )
 
 dao_http_dll  = project.AddSharedLibrary( "dao_http", dao_http_objs )
 dao_http_lib  = project.AddStaticLibrary( "dao_http", dao_http_objs )
-
-project.AddIncludePath( "../../time" )
-dao_http_dll.UseSharedLibrary( daotm, "dao_time" )
 
 project.SetTargetPath( "../../../lib/dao/modules/net" )
 
