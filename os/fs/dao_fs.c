@@ -150,6 +150,8 @@ static DMutex fs_mtx;
 typedef char char_t;
 typedef struct stat stat_t;
 
+#define MKDIR_MODE ( S_IRWXU|S_IRWXG|S_IXOTH )
+
 #define T( tcs ) tcs
 #define T_FMT "s"
 
@@ -431,7 +433,7 @@ int DInode_SubInode( DInode *self, const char_t *path, int dir, DInode *dest, in
 			if ( mkdir( buf ) != 0 )
 				return ( errno == EINVAL )? -1 : errno;
 #else
-			if ( mkdir( buf, S_IRWXU|S_IRGRP|S_IXGRP|S_IXOTH ) != 0 )
+			if ( mkdir( buf, MKDIR_MODE ) != 0 )
 				return ( errno == EINVAL )? -1 : errno;
 #endif
 		}
@@ -1508,7 +1510,7 @@ static void FS_Mkdir( DaoProcess *proc, DaoValue *p[], int N )
 #ifdef WIN32
 	if ( mkdir( path ) != 0 )
 #else
-	if ( mkdir( path, S_IRWXU|S_IRGRP|S_IXGRP|S_IXOTH ) != 0 )
+	if ( mkdir( path, MKDIR_MODE ) != 0 )
 #endif
 		res = ( errno == EINVAL )? -1 : errno;
 	if( res != 0 ){
