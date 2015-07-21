@@ -305,6 +305,8 @@ Clean:
 
 time_t DaoMkTimeUtc( struct tm *ts )
 {
+#ifdef WIN32
+	// non-portable!
 	int tz, dl;
 	time_t value;
 	DMutex_Lock( &time_mtx );
@@ -317,6 +319,9 @@ time_t DaoMkTimeUtc( struct tm *ts )
 	daylight = dl;
 	DMutex_Unlock( &time_mtx );
 	return value;
+#else
+	return timegm( ts );
+#endif
 }
 
 void DaoTime_Mktime( DaoTime *self )
