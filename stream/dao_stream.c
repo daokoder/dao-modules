@@ -196,10 +196,10 @@ int DaoPipeStream_Close( DaoPipeStream *self )
 	self->base.SetColor = NULL;
 	if( self->file ){
 		fflush( self->file );
-#ifdef WIN32
 		ret = pclose( self->file );
-#else
-		ret = WEXITSTATUS( pclose( self->file ) );
+#ifdef UNIX
+		if ( ret != -1 )
+			ret = WEXITSTATUS( ret );
 #endif
 		self->file = NULL;
 	}

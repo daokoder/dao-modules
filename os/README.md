@@ -17,7 +17,7 @@ class [PipeStream](#pipestream): io::Stream
 - [pclose](#pclose)(_self_: PipeStream) => int
 
 Functions:
-- [system](#system)(_command_: string) => int
+- [run](#run)(_command_: string) => int
 - [popen](#popen)(_command_: string, mode: string) => os::PipeStream
 - [pclose](#pclose)(_pipe_: os::PipeStream) => int
 - [sleep](#sleep)(_seconds_: float)
@@ -45,9 +45,9 @@ Waits for the sub-process to finish and returns its exit code
 
 **Errors:** `Param` when the stream is closed
 ### Functions
-<a name="system"></a>
+<a name="run"></a>
 ```ruby
-system(command: string) => int
+run(command: string) => int
 ```
 Executes the given *command* via system shell and returns the resulting exit code
 <a name="popen"></a>

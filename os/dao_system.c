@@ -38,6 +38,7 @@
 #include<sys/types.h>
 #include<sys/utsname.h>
 #include<limits.h>
+#include<sys/wait.h>
 #endif
 
 #ifdef WIN32
@@ -95,7 +96,12 @@ static void OS_Exit( DaoProcess *proc, DaoValue *p[], int N )
 }
 static void OS_Shell( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoProcess_PutInteger( proc, system( DString_GetData( p[0]->xString.value ) ) );
+	int status = system( DString_GetData( p[0]->xString.value ) );
+#ifdef UNIX
+	if (status != -1)
+		status = WEXITSTATUS(status);
+#endif
+	DaoProcess_PutInteger( proc, status );
 }
 static void OS_SetLocale( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -284,7 +290,7 @@ static void OS_Null( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem sysMeths[]=
 {
 	/*! Executes the given \a command via system shell and returns the resulting exit code */
-	{ OS_Shell,     "system( command: string ) => int" },
+	{ OS_Shell,     "run( command: string ) => int" },
 
 	/*! Suspends execution of the current thread for the specified amount of \a seconds */
 	{ OS_Sleep,     "sleep( seconds: float )" },
