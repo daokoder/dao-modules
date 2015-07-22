@@ -29,8 +29,6 @@
 #ifndef __DAO_PATH_H__
 #define __DAO_PATH_H__
 
-#define DAO_CANVAS
-
 #include "dao_common.h"
 
 #define DAOX_MAX_DASH    8

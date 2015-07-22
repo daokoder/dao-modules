@@ -882,10 +882,11 @@ DaoValue* DaoProcess_NewTime( DaoProcess *proc, time_t value, int local )
 	return res? (DaoValue*)DaoProcess_NewCdata( proc, daox_type_time, res, 1 ) : NULL;
 }
 
+#undef DAO_TIME
 #define DAO_HAS_TIME
 #include"dao_api.h"
 
-DAO_DLL int DaoTime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_DLL_EXPORT int DaoTime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *timens = DaoNamespace_GetNamespace( ns, "time" );
 	daox_type_time = DaoNamespace_WrapType( timens, &timeTyper, DAO_CTYPE_INVAR|DAO_CTYPE_OPAQUE );

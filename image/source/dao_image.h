@@ -25,6 +25,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "dao.h"
 
 #ifndef DAO_IMAGE_DLL
 #ifdef DAO_IMAGE
@@ -38,7 +39,6 @@
 #ifndef __DAO_IMAGE_H__
 #define __DAO_IMAGE_H__
 
-#include "dao.h"
 #include "daoStdtype.h"
 
 typedef struct DaoxImage  DaoxImage;

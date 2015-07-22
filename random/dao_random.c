@@ -296,7 +296,7 @@ static DaoFuncItem randomMeths[]=
 
 DaoType *daox_type_rand_generator = NULL;
 
-DAO_DLL int DaoRandom_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_DLL_EXPORT int DaoRandom_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *randomns = DaoNamespace_GetNamespace( ns, "random" );
 	daox_type_rand_generator = DaoNamespace_WrapType( randomns, & DaoxRandGenerator_Typer, 1 );

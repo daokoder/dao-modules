@@ -30,8 +30,8 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-#include "daoValue.h"
 #include "dao_image.h"
+#include "daoValue.h"
 #include "lode_png.h"
 #include "micro_jpeg.h"
 
@@ -406,11 +406,13 @@ DaoTypeBase DaoxImage_Typer =
 	(FuncPtrDel)DaoxImage_Delete, NULL
 };
 
+#undef DAO_IMAGE
 #define DAO_HAS_IMAGE
 #include"dao_api.h"
 
-DAO_DLL int DaoImage_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_DLL_EXPORT int DaoImage_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
+	printf( "DaoImage_OnLoad\n" );
 	daox_type_image = DaoNamespace_WrapType( ns, & DaoxImage_Typer, 0 );
 
 #define DAO_API_INIT

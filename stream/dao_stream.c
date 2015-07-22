@@ -26,6 +26,8 @@
 // OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#define DAO_STREAM
+
 #include<time.h>
 #include<string.h>
 #include<errno.h>
@@ -552,10 +554,12 @@ DaoTypeBase ioSeekableTyper =
 	(FuncPtrDel) NULL, NULL
 };
 
+#undef DAO_STREAM
+#undef DAO_STREAM_DLL
 #define DAO_HAS_STREAM
 #include"dao_api.h"
 
-DAO_DLL int DaoStream_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_DLL_EXPORT int DaoStream_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *ions = DaoVmSpace_GetNamespace( vmSpace, "io" );
 	DaoFileStream_Typer.supers[0] = DaoType_GetTyper( dao_type_stream );

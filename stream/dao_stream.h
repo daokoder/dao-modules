@@ -27,6 +27,8 @@
 */
 
 
+#include"dao.h"
+
 #ifndef DAO_STREAM_DLL
 #ifdef DAO_STREAM
 #  define DAO_STREAM_DLL DAO_DLL_EXPORT
@@ -41,7 +43,6 @@
 
 #include<stdlib.h>
 #include<math.h>
-#include"dao.h"
 #include"daoStream.h"
 
 

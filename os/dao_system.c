@@ -64,7 +64,6 @@ extern char ** environ;
 #include"dao_api.h"
 
 
-
 static void OS_Sleep( DaoProcess *proc, DaoValue *p[], int N )
 {
 #ifdef DAO_WITH_THREAD
@@ -338,7 +337,7 @@ DaoNumItem sysConsts[] =
 	{ NULL, 0.0, 0.0 }
 };
 
-DAO_DLL int DaoOS_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_DLL_EXPORT int DaoOS_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *streamns = DaoVmSpace_LinkModule( vmSpace, ns, "stream" );
 	DaoNamespace *osns = DaoVmSpace_GetNamespace( vmSpace, "os" );

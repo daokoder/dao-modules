@@ -5,7 +5,7 @@ daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
 
 if( daovm == none ) return
 
-project.UseImportLibrary( daovm, "dao" )
+project.UseImportLibrary( daovm )
 
 dao_process_objs = project.AddObjects( { "dao_process.c" } )
 dao_process_dll  = project.AddSharedLibrary( "dao_process", dao_process_objs )

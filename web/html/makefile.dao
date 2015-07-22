@@ -7,7 +7,7 @@ if( daovm == none ) return
 
 project.AddDirectory( "gumbo-parser", "gumbo-parser" );
 
-project.UseImportLibrary( daovm, "dao" )
+project.UseImportLibrary( daovm )
 project.SetTargetPath( "../../../lib/dao/modules/web" )
 
 gumbo_parser = DaoMake::FindPackage( "GumboParser", $REQUIRED )

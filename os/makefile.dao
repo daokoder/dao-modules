@@ -8,7 +8,7 @@ if( daovm == none ) return
 project.AddDirectory( "fs", "fs" )
 project.AddDirectory( "process", "process" )
 
-project.UseImportLibrary( daovm, "dao" )
+project.UseImportLibrary( daovm )
 
 dao_os_objs = project.AddObjects( { "dao_system.c" } )
 dao_os_dll  = project.AddSharedLibrary( "dao_os", dao_os_objs )
