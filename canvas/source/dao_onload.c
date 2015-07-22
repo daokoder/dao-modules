@@ -866,7 +866,7 @@ static void CANVAS_AddText2( DaoProcess *proc, DaoValue *p[], int N )
 static void CANVAS_AddImage( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxCanvas *self = (DaoxCanvas*) p[0];
-	DaoxImage *image = (DaoxImage*) p[1];
+	DaoImage *image = (DaoImage*) p[1];
 	float x = p[2]->xFloat.value;
 	float y = p[3]->xFloat.value;
 	float w = p[4]->xFloat.value;
@@ -960,7 +960,7 @@ static void PAINTER_RenderToImage( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxPainter *self = (DaoxPainter*) p[0];
 	DaoxCanvas *canvas = (DaoxCanvas*) p[1];
-	DaoxImage *image = (DaoxImage*) p[2];
+	DaoImage *image = (DaoImage*) p[2];
 	int width = p[3]->xInteger.value;
 	int height = p[4]->xInteger.value;
 	DaoxPainter_PaintCanvasImage( self, canvas, canvas->viewport, image, width, height );

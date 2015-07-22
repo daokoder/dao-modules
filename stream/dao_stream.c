@@ -268,9 +268,15 @@ FILE* DaoStream_GetFile( DaoStream *self )
 	if( DaoType_ChildOf( self->ctype, dao_type_file_stream ) ){
 		DaoFileStream *stream = (DaoFileStream*) self;
 		return stream->file;
-	}else if( self->Write == DaoStdStream_WriteStdout || self->Write == DaoStream_WriteStderr ){
+	}else if( self->Write == DaoStdStream_WriteStdout || self->Write == DaoStdStream_WriteStderr ){
 		DaoStdStream *stream = (DaoStdStream*) self;
-		return DaoStream_GetFile( stream->redirect );
+		if( stream->redirect ){
+			return DaoStream_GetFile( stream->redirect );
+		}else if( self->Write == DaoStdStream_WriteStdout ){
+			return stdout;
+		}else if( self->Write == DaoStdStream_WriteStderr ){
+			return stderr;
+		}
 	}else if( self->Write == DaoStream_WriteStdout ){
 		return stdout;
 	}else if( self->Write == DaoStream_WriteStderr ){

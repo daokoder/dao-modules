@@ -280,7 +280,6 @@ static void OS_Null( DaoProcess *proc, DaoValue *p[], int N )
 	if ( !file )
 		DaoProcess_RaiseError( proc, "System", "Failed to open system null device" );
 	else {
-		printf( "%p\n", & _DaoFileStream_New );
 		DaoFileStream *stream = _DaoFileStream_New();
 		stream->file = file;
 		stream->base.mode |= DAO_STREAM_WRITABLE;

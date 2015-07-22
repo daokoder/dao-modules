@@ -216,11 +216,11 @@ struct DaoxSpanTinter
 //------------------------------------------------------------------------
 struct DaoxRenderer
 {
-    DaoxImage    *rbuf;
+    DaoImage    *rbuf;
     DaoxSpanTinter  span;
 };
 
-DaoxRenderer* DaoxRenderer_New( DaoxImage *rbuf );
+DaoxRenderer* DaoxRenderer_New( DaoImage *rbuf );
 void DaoxRenderer_Delete( DaoxRenderer *self );
 
 void DaoxRenderer_Clear( DaoxRenderer *self, DaoxColor c);

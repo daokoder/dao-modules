@@ -1,13 +1,11 @@
 
 daovm  = DaoMake::FindPackage( "Dao", $REQUIRED )
-daoaux  = DaoMake::FindPackage( "DaoAux", $REQUIRED )
 
-if( daovm == none or daoaux == none ) return
+if( daovm == none ) return
 
 
 project = DaoMake::Project( "DaoClinker" ) 
 project.UseImportLibrary( daovm, "dao" )
-project.UseSharedLibrary( daoaux, "dao_aux" )
 
 ffi = DaoMake::FindPackage( "FFI2", $OPTIONAL )
 if( ffi ){

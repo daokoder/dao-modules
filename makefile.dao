@@ -40,7 +40,7 @@ if( DaoMake::IsDir( "DaoJIT" ) ) modules.AddDirectory( "DaoJIT", "DaoJIT" );
 
 if( DaoMake::IsDir( "graph" ) ) modules.AddDirectory( "graph", "graph" );
 
-if( DaoMake::IsDir( "mlkit" ) ) modules.AddDirectory( "mlkit", "mlkit" );
+#if( DaoMake::IsDir( "mlkit" ) ) modules.AddDirectory( "mlkit", "mlkit" );
 
 
 if( DaoMake::IsDir( "DaoSDL" ) ) modules.AddDirectory( "SDL", "DaoSDL" );

@@ -39,7 +39,7 @@ struct DaoxPainter
 	DAO_CSTRUCT_COMMON;
 
 	DaoxOBBox2D      obbox;
-	DaoxImage       *buffer;
+	DaoImage        *buffer;
 	DaoxRenderer    *renderer;
 	DaoxRasterizer  *rasterizer;
 	DaoxGradient    *gradient;
@@ -52,6 +52,6 @@ void DaoxPainter_Delete( DaoxPainter *self );
 
 void DaoxPainter_Paint( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D viewport );
 
-void DaoxPainter_PaintCanvasImage( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D viewport, DaoxImage *image, int width, int height );
+void DaoxPainter_PaintCanvasImage( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D viewport, DaoImage *image, int width, int height );
 
 #endif

@@ -2,7 +2,7 @@
 // Dao Graphics Engine
 // http://www.daovm.net
 //
-// Copyright (c) 2012-2014, Limin Fu
+// Copyright (c) 2012-2015, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -14,15 +14,16 @@
 //   this list of conditions and the following disclaimer in the documentation
 //   and/or other materials provided with the distribution.
 //
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-// OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
-// SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
-// OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-// HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// THIS SOFTWARE IS PROVIDED  BY THE COPYRIGHT HOLDERS AND  CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED  WARRANTIES,  INCLUDING,  BUT NOT LIMITED TO,  THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+// IN NO EVENT SHALL  THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE FOR ANY DIRECT,
+// INDIRECT,  INCIDENTAL, SPECIAL,  EXEMPLARY,  OR CONSEQUENTIAL  DAMAGES (INCLUDING,
+// BUT NOT LIMITED TO,  PROCUREMENT OF  SUBSTITUTE  GOODS OR  SERVICES;  LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION)  HOWEVER CAUSED  AND ON ANY THEORY OF
+// LIABILITY,  WHETHER IN CONTRACT,  STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+// OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #define DAO_IMAGE
@@ -38,27 +39,27 @@
 
 DaoType *daox_type_image = NULL;
 
-DaoType* DaoxImage_Type()
+DaoType* DaoImage_Type()
 {
 	return daox_type_image;
 }
 
 
-DaoxImage* DaoxImage_New()
+DaoImage* DaoImage_New()
 {
-	DaoxImage *self = (DaoxImage*) dao_calloc( 1, sizeof(DaoxImage) );
+	DaoImage *self = (DaoImage*) dao_calloc( 1, sizeof(DaoImage) );
 	DaoCstruct_Init( (DaoCstruct*)self, daox_type_image );
 	self->depth = DAOX_IMAGE_BIT32;
 	return self;
 }
-void DaoxImage_Delete( DaoxImage *self )
+void DaoImage_Delete( DaoImage *self )
 {
 	DaoCstruct_Free( (DaoCstruct*) self );
 	DArray_Clear( & self->buffer );
 	dao_free( self );
 }
 
-void DaoxImage_Resize( DaoxImage *self, int width, int height )
+void DaoImage_Resize( DaoImage *self, int width, int height )
 {
 	int pixelBytes = 1 + self->depth;
 	int widthStep = width * pixelBytes;
@@ -77,7 +78,7 @@ void DaoxImage_Resize( DaoxImage *self, int width, int height )
 	DArray_Resize( & self->buffer, widthStep * height );
 	memset( self->buffer.data.base, 0, widthStep * height );
 }
-int DaoxImage_Convert( DaoxImage *self, int dep )
+int DaoImage_Convert( DaoImage *self, int dep )
 {
 	if( self->depth == dep ) return 1;
 	return 0;
@@ -93,7 +94,7 @@ short dao_read_short( uchar_t *data )
 	return data[0] + (data[1]<<8);
 }
 
-int DaoxImage_LoadBMP( DaoxImage *self, const char *file )
+int DaoImage_LoadBMP( DaoImage *self, const char *file )
 {
 	DString *mbs = DString_New();
 	FILE *fin = fopen( file, "r+" );
@@ -128,7 +129,7 @@ int DaoxImage_LoadBMP( DaoxImage *self, const char *file )
 	case 32 : self->depth = DAOX_IMAGE_BIT32; break;
 	default: goto Failed;
 	}
-	DaoxImage_Resize( self, width, height );
+	DaoImage_Resize( self, width, height );
 
 	pixelBytes = self->buffer.stride;
 	for(i=0; i<height; ++i){
@@ -158,7 +159,7 @@ void daox_write_short( FILE *fout, short i )
 {
 	fprintf( fout, "%c%c", i&0xFF, (i>>8)&0xFF );
 }
-int DaoxImage_SaveBMP( DaoxImage *self, const char *file )
+int DaoImage_SaveBMP( DaoImage *self, const char *file )
 {
 	FILE *fout = fopen( file, "w+" );
 	int i, j, pixelBytes = self->buffer.stride;
@@ -192,12 +193,12 @@ int DaoxImage_SaveBMP( DaoxImage *self, const char *file )
 	return 1;
 }
 
-void DaoxImage_SetData( DaoxImage *self, unsigned char *buffer, int width, int height, int dep )
+void DaoImage_SetData( DaoImage *self, unsigned char *buffer, int width, int height, int dep )
 {
 	unsigned i, j, pixelBytes;
 
 	self->depth = dep;
-	DaoxImage_Resize( self, width, height );
+	DaoImage_Resize( self, width, height );
 
 	pixelBytes = self->buffer.stride;
 	for(i=0; i<height; ++i){
@@ -206,7 +207,7 @@ void DaoxImage_SetData( DaoxImage *self, unsigned char *buffer, int width, int h
 		memcpy( dest, src, width*pixelBytes*sizeof(uchar_t) );
 	}
 }
-int DaoxImage_DecodePNG( DaoxImage *self, DString *data )
+int DaoImage_DecodePNG( DaoImage *self, DString *data )
 {
 	unsigned char *buffer = NULL;
 	unsigned char *bytes = (unsigned char*) data->chars;
@@ -217,11 +218,11 @@ int DaoxImage_DecodePNG( DaoxImage *self, DString *data )
 		if( buffer ) dao_free( buffer );
 		return 0;
 	}
-	DaoxImage_SetData( self, buffer, width, height, DAOX_IMAGE_BIT32 );
+	DaoImage_SetData( self, buffer, width, height, DAOX_IMAGE_BIT32 );
 	dao_free( buffer );
 	return 1;
 }
-int DaoxImage_LoadPNG( DaoxImage *self, const char *file )
+int DaoImage_LoadPNG( DaoImage *self, const char *file )
 {
 	unsigned char *buffer = NULL;
 	unsigned width = 0, height = 0;
@@ -231,11 +232,11 @@ int DaoxImage_LoadPNG( DaoxImage *self, const char *file )
 		if( buffer ) dao_free( buffer );
 		return 0;
 	}
-	DaoxImage_SetData( self, buffer, width, height, DAOX_IMAGE_BIT32 );
+	DaoImage_SetData( self, buffer, width, height, DAOX_IMAGE_BIT32 );
 	dao_free( buffer );
 	return 1;
 }
-int DaoxImage_SavePNG( DaoxImage *self, const char *file )
+int DaoImage_SavePNG( DaoImage *self, const char *file )
 {
 	unsigned i, pixelBytes = self->buffer.stride;
 	unsigned char *buffer = dao_malloc( self->width * self->height * pixelBytes );
@@ -257,7 +258,7 @@ int DaoxImage_SavePNG( DaoxImage *self, const char *file )
 	dao_free( buffer );
 	return 1;
 }
-int DaoxImage_DecodeJPEG( DaoxImage *self, DString *data )
+int DaoImage_DecodeJPEG( DaoImage *self, DString *data )
 {
 	unsigned char *buffer = NULL;
 	ujImage im = ujDecode( NULL, data->chars, data->size );
@@ -265,12 +266,12 @@ int DaoxImage_DecodeJPEG( DaoxImage *self, DString *data )
 	if( im == NULL ) return 0;
 
 	buffer = ujGetImage( im, NULL );
-	DaoxImage_SetData( self, buffer, ujGetWidth(im), ujGetWidth(im), DAOX_IMAGE_BIT24 );
+	DaoImage_SetData( self, buffer, ujGetWidth(im), ujGetWidth(im), DAOX_IMAGE_BIT24 );
 
 	ujDestroy( im );
 	return 1;
 }
-int DaoxImage_LoadJPEG( DaoxImage *self, const char *file )
+int DaoImage_LoadJPEG( DaoImage *self, const char *file )
 {
 	unsigned char *buffer = NULL;
 	ujImage im = ujDecodeFile( NULL, file );
@@ -278,17 +279,17 @@ int DaoxImage_LoadJPEG( DaoxImage *self, const char *file )
 	if( im == NULL ) return 0;
 
 	buffer = ujGetImage( im, NULL );
-	DaoxImage_SetData( self, buffer, ujGetWidth(im), ujGetWidth(im), DAOX_IMAGE_BIT24 );
+	DaoImage_SetData( self, buffer, ujGetWidth(im), ujGetWidth(im), DAOX_IMAGE_BIT24 );
 
 	ujDestroy( im );
 	return 1;
 }
-int DaoxImage_Decode( DaoxImage *self, DString *data )
+int DaoImage_Decode( DaoImage *self, DString *data )
 {
-	if( DaoxImage_DecodePNG( self, data ) ) return 1;
-	return DaoxImage_DecodeJPEG( self, data );
+	if( DaoImage_DecodePNG( self, data ) ) return 1;
+	return DaoImage_DecodeJPEG( self, data );
 }
-int DaoxImage_Encode( DaoxImage *self, DString *data, int format )
+int DaoImage_Encode( DaoImage *self, DString *data, int format )
 {
 	unsigned i, pixelBytes = self->buffer.stride;
 	unsigned char *buffer = dao_malloc( self->width * self->height * pixelBytes );
@@ -317,7 +318,7 @@ int DaoxImage_Encode( DaoxImage *self, DString *data, int format )
 	return 1;
 }
 
-void DaoxImage_Export( DaoxImage *self, DaoArray *matrix, float factor )
+void DaoImage_Export( DaoImage *self, DaoArray *matrix, float factor )
 {
 	int i, j, pixelBytes = self->buffer.stride;
 	daoint dims[2];
@@ -342,55 +343,55 @@ void DaoxImage_Export( DaoxImage *self, DaoArray *matrix, float factor )
 
 static void IMAGE_New( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxImage *self = DaoxImage_New();
+	DaoImage *self = DaoImage_New();
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void IMAGE_Load( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxImage *self = (DaoxImage*) p[0];
+	DaoImage *self = (DaoImage*) p[0];
 	DString *codePath = proc->activeRoutine->nameSpace->path;
 	DString *file = p[1]->xString.value;
 	int ret = 0;
 	DString_MakePath( codePath, file );
 	if( DString_Match( file, "<I>%.PNG $", NULL, NULL ) ){
-		ret = DaoxImage_LoadPNG( self, file->chars );
+		ret = DaoImage_LoadPNG( self, file->chars );
 	}else if( DString_Match( file, "<I>%. (JPG|JPEG) $", NULL, NULL ) ){
-		ret = DaoxImage_LoadJPEG( self, file->chars );
+		ret = DaoImage_LoadJPEG( self, file->chars );
 	}else if( DString_Match( file, "<I>%.BMP $", NULL, NULL ) ){
-		ret = DaoxImage_LoadBMP( self, file->chars );
+		ret = DaoImage_LoadBMP( self, file->chars );
 	}
 	if( ret == 0 ) DaoProcess_RaiseError( proc, NULL, "file format not supported" );
 }
 static void IMAGE_Save( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxImage *self = (DaoxImage*) p[0];
+	DaoImage *self = (DaoImage*) p[0];
 	DString *codePath = proc->activeRoutine->nameSpace->path;
 	DString *file = p[1]->xString.value;
 	int ret = 0;
 	DString_MakePath( codePath, file );
 	if( DString_Match( file, "<I>%.PNG $", NULL, NULL ) ){
-		ret = DaoxImage_SavePNG( self, file->chars );
+		ret = DaoImage_SavePNG( self, file->chars );
 	}else if( DString_Match( file, "<I>%.BMP $", NULL, NULL ) ){
-		ret = DaoxImage_SaveBMP( self, file->chars );
+		ret = DaoImage_SaveBMP( self, file->chars );
 	}
 	if( ret == 0 ) DaoProcess_RaiseError( proc, NULL, "file saving failed" );
 }
 static void IMAGE_Encode( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxImage *self = (DaoxImage*) p[0];
+	DaoImage *self = (DaoImage*) p[0];
 	DString *res = DaoProcess_PutChars( proc, "" );
-	DaoxImage_Encode( self, res, 0 ); // TODO: format;
+	DaoImage_Encode( self, res, 0 ); // TODO: format;
 }
 static void IMAGE_Export( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxImage *self = (DaoxImage*) p[0];
+	DaoImage *self = (DaoImage*) p[0];
 	DaoArray *matrix = (DaoArray*) p[2];
 	double factor = DaoValue_GetFloat( p[3] );
 	int channels = p[1]->xEnum.value; // TODO:
 
-	DaoxImage_Export( self, matrix, factor );
+	DaoImage_Export( self, matrix, factor );
 }
-static DaoFuncItem DaoxImageMeths[]=
+static DaoFuncItem DaoImageMeths[]=
 {
 	{ IMAGE_New,     "Image()" },
 	{ IMAGE_Load,    "Load( self: Image, file: string )" },
@@ -400,10 +401,10 @@ static DaoFuncItem DaoxImageMeths[]=
 	{ NULL, NULL }
 };
 
-DaoTypeBase DaoxImage_Typer =
+DaoTypeBase DaoImage_Typer =
 {
-	"Image", NULL, NULL, (DaoFuncItem*) DaoxImageMeths, { NULL }, { NULL },
-	(FuncPtrDel)DaoxImage_Delete, NULL
+	"Image", NULL, NULL, (DaoFuncItem*) DaoImageMeths, { NULL }, { NULL },
+	(FuncPtrDel)DaoImage_Delete, NULL
 };
 
 #undef DAO_IMAGE
@@ -413,8 +414,7 @@ DaoTypeBase DaoxImage_Typer =
 
 DAO_DLL_EXPORT int DaoImage_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	printf( "DaoImage_OnLoad\n" );
-	daox_type_image = DaoNamespace_WrapType( ns, & DaoxImage_Typer, 0 );
+	daox_type_image = DaoNamespace_WrapType( ns, & DaoImage_Typer, 0 );
 
 #define DAO_API_INIT
 #include"dao_api.h"

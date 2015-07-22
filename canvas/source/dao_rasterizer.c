@@ -804,7 +804,7 @@ static DaoxPixCell** DaoxOutline_Cells( DaoxOutline *self )
 
 
 
-DaoxRenderer* DaoxRenderer_New( DaoxImage *rbuf )
+DaoxRenderer* DaoxRenderer_New( DaoImage *rbuf )
 {
 	DaoxRenderer *self = (DaoxRenderer*) dao_malloc( sizeof(DaoxRenderer) );
 	self->rbuf = rbuf;
@@ -830,13 +830,13 @@ void DaoxRenderer_Clear( DaoxRenderer *self, DaoxColor c)
 	}
 }
 
-static int DaoxImage_InBox( DaoxImage *self, int x, int y )
+static int DaoImage_InBox( DaoImage *self, int x, int y )
 {
 	return x >= 0 && y >= 0 && x < (int)self->width && y < (int)self->height;
 }
 void DaoxRenderer_SetPixel( DaoxRenderer *self, int x, int y, DaoxColor c)
 {
-	if( DaoxImage_InBox( self->rbuf, x, y) )
+	if( DaoImage_InBox( self->rbuf, x, y) )
 	{
 		uchar_t *row = self->rbuf->buffer.data.uchars + y * self->rbuf->stride;
 		self->span.hline(row, x, 1, c);

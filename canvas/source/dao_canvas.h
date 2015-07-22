@@ -102,7 +102,7 @@ struct DaoxBrush
 	DaoxColor      fillColor;
 	DaoxGradient  *strokeGradient;
 	DaoxGradient  *fillGradient;
-	DaoxImage     *image;
+	DaoImage      *image;
 	DaoxFont      *font;
 	float          fontSize;
 };
@@ -244,7 +244,7 @@ DAO_CANVAS_DLL DaoxCanvasText* DaoxCanvas_AddText( DaoxCanvas *self, const char 
 
 DAO_CANVAS_DLL DaoxCanvasText* DaoxCanvas_AddPathText( DaoxCanvas *self, const char *text, DaoxPath *path, float degrees );
 
-DAO_CANVAS_DLL DaoxCanvasImage* DaoxCanvas_AddImage( DaoxCanvas *self, DaoxImage *image, float x, float y, float w );
+DAO_CANVAS_DLL DaoxCanvasImage* DaoxCanvas_AddImage( DaoxCanvas *self, DaoImage *image, float x, float y, float w );
 
 
 

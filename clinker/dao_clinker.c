@@ -5,6 +5,7 @@
  */
 
 #include"string.h"
+#include"dao.h"
 #include"daoType.h"
 #include"daoValue.h"
 #include"daoClass.h"
@@ -19,6 +20,9 @@
 #include"daoGC.h"
 
 #include"ffi.h"
+
+#define DAO_HAS_STREAM
+#include"dao_api.h"
 
 
 const char *const ctype[] =
@@ -85,11 +89,13 @@ static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 	DaoRoutine *func = proc->topFrame->routine;
 	DaoType *routype, *tp, *itp, **nested;
 	DaoArray *array;
+	DaoCstruct *cstruct;
 	DaoCdata *cdata;
 	DaoFFI *ffi;
 	DString *str = NULL;
 	dao_complex com = { 0.0, 0.0 };
 	IntArgument ints[DAO_MAX_PARAM];
+	FILE *files[DAO_MAX_PARAM];
 	void *args[DAO_MAX_PARAM];
 	char *bytes = NULL;
 	double dummy;
@@ -171,12 +177,11 @@ static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 			break;
 		case DAO_CSTRUCT :
 			args[i] = & p[i];
-#warning"TODO: stream type support!"
-#if 0
-			if( DaoValue_CastCstruct( p[i], daox_ffi_stream_type ) ){
-				args[i] = & p[i]->xStream.file;
+			cstruct = DaoValue_CastCstruct( p[i], daox_ffi_stream_type );
+			if( cstruct ){
+				files[i] = _DaoStream_GetFile( (DaoStream*) cstruct );
+				args[i] = & files[i];
 			}
-#endif
 			break;
 		case DAO_CDATA :
 			args[i] = & p[i]->xCdata.data;
@@ -400,11 +405,13 @@ DaoTypeBase DaoFFI_Typer =
 
 DAO_DLL int DaoClinker_OnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 {
+	DaoNamespace *streamns = DaoVmSpace_LinkModule( vms, ns, "stream" );
 	DaoNamespace *io = DaoVmSpace_GetNamespace( vms, "io" );
 	int i;
 
 	daox_ffi_stream_type = DaoNamespace_FindTypeChars( io, "Stream" );
 	daox_ffi_type = DaoNamespace_WrapType( ns, & DaoFFI_Typer, 0 );
+	printf( "%p\n", daox_ffi_stream_type );
 	for(i=0; i<DAO_FFI_SINT64; i++){
 		DString mbs = DString_WrapChars( alias[i] );
 		daox_ffi_int_types[i] = DaoNamespace_DefineType( ns, "int", ctype[i] );

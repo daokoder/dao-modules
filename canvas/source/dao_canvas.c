@@ -816,7 +816,7 @@ DaoxCanvasText* DaoxCanvas_AddPathText( DaoxCanvas *self, const char *text, Daox
 	DArray_Delete( codepoints );
 	return node;
 }
-DaoxCanvasImage* DaoxCanvas_AddImage( DaoxCanvas *self, DaoxImage *image, float x, float y, float w )
+DaoxCanvasImage* DaoxCanvas_AddImage( DaoxCanvas *self, DaoImage *image, float x, float y, float w )
 {
 	DaoxCanvasPath *node = DaoxCanvasImage_New();
 	DaoxBrush *brush = DaoxCanvas_GetOrPushBrush( self );

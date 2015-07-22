@@ -14,15 +14,16 @@
 //   this list of conditions and the following disclaimer in the documentation
 //   and/or other materials provided with the distribution.
 //
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-// OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
-// SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
-// OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-// HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// THIS SOFTWARE IS PROVIDED  BY THE COPYRIGHT HOLDERS AND  CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED  WARRANTIES,  INCLUDING,  BUT NOT LIMITED TO,  THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+// IN NO EVENT SHALL  THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE FOR ANY DIRECT,
+// INDIRECT,  INCIDENTAL, SPECIAL,  EXEMPLARY,  OR CONSEQUENTIAL  DAMAGES (INCLUDING,
+// BUT NOT LIMITED TO,  PROCUREMENT OF  SUBSTITUTE  GOODS OR  SERVICES;  LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION)  HOWEVER CAUSED  AND ON ANY THEORY OF
+// LIABILITY,  WHETHER IN CONTRACT,  STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+// OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "dao.h"
@@ -41,13 +42,13 @@
 
 #include "daoStdtype.h"
 
-typedef struct DaoxImage  DaoxImage;
+typedef struct DaoImage  DaoImage;
 
 
 /*
 // Image depths including the alpha channel:
 */
-enum DaoxImageDepth
+enum DaoImageDepth
 {
 	DAOX_IMAGE_BIT8 ,
 	DAOX_IMAGE_BIT16 ,
@@ -57,10 +58,10 @@ enum DaoxImageDepth
 
 
 /*
-// DaoxImage supports only RGBA with different depth.
+// DaoImage supports only RGBA with different depth.
 // Each channel is encoded in the same number of bits.
 */
-struct DaoxImage
+struct DaoImage
 {
 	DAO_CSTRUCT_COMMON;
 
@@ -73,23 +74,23 @@ struct DaoxImage
 #endif
 
 
-DAO_API( DAO_IMAGE_DLL, DaoType*, DaoxImage_Type, () );
+DAO_API( DAO_IMAGE_DLL, DaoType*, DaoImage_Type, () );
 
-DAO_API( DAO_IMAGE_DLL, DaoxImage*, DaoxImage_New, () );
-DAO_API( DAO_IMAGE_DLL, void, DaoxImage_Delete, (DaoxImage *self) );
+DAO_API( DAO_IMAGE_DLL, DaoImage*, DaoImage_New, () );
+DAO_API( DAO_IMAGE_DLL, void, DaoImage_Delete, (DaoImage *self) );
 
-DAO_API( DAO_IMAGE_DLL, void, DaoxImage_Resize, (DaoxImage *self, int width, int height) );
+DAO_API( DAO_IMAGE_DLL, void, DaoImage_Resize, (DaoImage *self, int width, int height) );
 
-DAO_API( DAO_IMAGE_DLL, int, DaoxImage_Convert, (DaoxImage *self, int dep) );
+DAO_API( DAO_IMAGE_DLL, int, DaoImage_Convert, (DaoImage *self, int dep) );
 
-DAO_API( DAO_IMAGE_DLL, int, DaoxImage_Decode, (DaoxImage *self, DString *data) );
-DAO_API( DAO_IMAGE_DLL, int, DaoxImage_Encode, (DaoxImage *self, DString *data, int format) );
+DAO_API( DAO_IMAGE_DLL, int, DaoImage_Decode, (DaoImage *self, DString *data) );
+DAO_API( DAO_IMAGE_DLL, int, DaoImage_Encode, (DaoImage *self, DString *data, int format) );
 
-DAO_API( DAO_IMAGE_DLL, int, DaoxImage_LoadBMP, (DaoxImage *self, const char *file) );
-DAO_API( DAO_IMAGE_DLL, int, DaoxImage_SaveBMP, (DaoxImage *self, const char *file) );
+DAO_API( DAO_IMAGE_DLL, int, DaoImage_LoadBMP, (DaoImage *self, const char *file) );
+DAO_API( DAO_IMAGE_DLL, int, DaoImage_SaveBMP, (DaoImage *self, const char *file) );
 
-DAO_API( DAO_IMAGE_DLL, int, DaoxImage_LoadPNG, (DaoxImage *self, const char *file) );
-DAO_API( DAO_IMAGE_DLL, int, DaoxImage_SavePNG, (DaoxImage *self, const char *file) );
+DAO_API( DAO_IMAGE_DLL, int, DaoImage_LoadPNG, (DaoImage *self, const char *file) );
+DAO_API( DAO_IMAGE_DLL, int, DaoImage_SavePNG, (DaoImage *self, const char *file) );
 
-DAO_API( DAO_IMAGE_DLL, void, DaoxImage_Export, (DaoxImage *self, DaoArray *matrix, float factor) );
+DAO_API( DAO_IMAGE_DLL, void, DaoImage_Export, (DaoImage *self, DaoArray *matrix, float factor) );
 

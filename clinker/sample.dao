@@ -39,6 +39,6 @@ s = test2( 123.5 );
 io.writeln( s, x )
 
 test_stream( io::stdio )
-test_stream( io::stderr )
+#test_stream( io::stderr )
 
 #test( 'abc' ); # compile error;
