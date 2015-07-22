@@ -883,6 +883,7 @@ DaoValue* DaoProcess_NewTime( DaoProcess *proc, time_t value, int local )
 }
 
 #undef DAO_TIME
+#undef DAO_TIME_DLL
 #define DAO_HAS_TIME
 #include"dao_api.h"
 

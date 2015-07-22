@@ -1,7 +1,0 @@
-
-# On Windows, it is necessary to load the image module before the canvas module,
-# because the linker may not be able to find the dll file for the image module.
-
-load image
-load dao_canvas
-

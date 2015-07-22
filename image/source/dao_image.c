@@ -407,6 +407,7 @@ DaoTypeBase DaoxImage_Typer =
 };
 
 #undef DAO_IMAGE
+#undef DAO_IMAGE_DLL
 #define DAO_HAS_IMAGE
 #include"dao_api.h"
 

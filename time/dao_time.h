@@ -28,6 +28,7 @@
 
 // 2013-12: Danilov Aleksey, initial implementation.
 
+#include"dao.h"
 
 #ifndef DAO_TIME_DLL
 #ifdef DAO_TIME
@@ -41,7 +42,6 @@
 #ifndef __DAO_TIME_H__
 #define __DAO_TIME_H__
 
-#include"dao.h"
 #include"daoValue.h"
 #include<ctype.h>
 
