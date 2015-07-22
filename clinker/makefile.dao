@@ -5,7 +5,7 @@ if( daovm == none ) return
 
 
 project = DaoMake::Project( "DaoClinker" ) 
-project.UseImportLibrary( daovm, "dao" )
+project.UseImportLibrary( daovm )
 
 ffi = DaoMake::FindPackage( "FFI2", $OPTIONAL )
 if( ffi ){
