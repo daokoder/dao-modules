@@ -159,6 +159,8 @@ void GetErrorMessage( int code, char *buffer, size_t size )
 	case EEXIST:	snprintf( buffer, size, "Failed to generate uniqe file name (EEXIST)" ); break;
 	case ENOSPC:	snprintf( buffer, size, "Not enough free space in the file system (ENOSPC)" ); break;
 	case EROFS:		snprintf( buffer, size, "Writing to a read-only file system (EROFS)" ); break;
+	case EINVAL:	snprintf( buffer, size, "Invalid mode (EINVAL)" ); break;
+	case EBADF:		snprintf( buffer, size, "Invalid file descriptor (EBADF)" ); break;
 	default:		snprintf( buffer, size, "Unknown system error (%x)", code );
 	}
 }
@@ -332,7 +334,7 @@ static FILE* DaoIO_OpenFile( DaoProcess *proc, DString *name, const char *mode, 
 	DString_Delete( fname );
 	if( fin == NULL && silent == 0 ){
 		snprintf( buf, sizeof(buf), "error opening file: %s", DString_GetData( name ) );
-		DaoProcess_RaiseError( proc, NULL, buf );
+		DaoProcess_RaiseError( proc, "Stream", buf );
 		return NULL;
 	}
 	return fin;
@@ -355,7 +357,7 @@ static void DaoIO_Open( DaoProcess *proc, DaoValue *p[], int N )
 		if( !self->file ){
 			char errbuf[512];
 			GetErrorMessage( errno, errbuf, sizeof(errbuf) );
-			DaoProcess_RaiseError( proc, NULL, errbuf );
+			DaoProcess_RaiseError( proc, "Stream", errbuf );
 			return;
 		}
 	}else{
@@ -363,7 +365,9 @@ static void DaoIO_Open( DaoProcess *proc, DaoValue *p[], int N )
 		if( p[0]->type == DAO_INTEGER ){
 			self->file = fdopen( p[0]->xInteger.value, mode );
 			if( self->file == NULL ){
-				DaoProcess_RaiseError( proc, NULL, "failed to open file descriptor" );
+				char errbuf[512];
+				GetErrorMessage( errno, errbuf, sizeof(errbuf) );
+				DaoProcess_RaiseError( proc, "Stream", errbuf );
 				return;
 			}
 		}else{
@@ -437,7 +441,7 @@ static void PIPE_New( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoPipeStream *stream = NULL;
 	DString *fname = p[0]->xString.value;
-	char *mode, *cp;
+	char *mode;
 
 	stream = DaoPipeStream_New();
 	DaoProcess_PutValue( proc, (DaoValue*)stream );
@@ -446,20 +450,11 @@ static void PIPE_New( DaoProcess *proc, DaoValue *p[], int N )
 		return;
 	}
 	mode = DString_GetData( p[1]->xString.value );
-	if ( p[1]->xString.value->size > 2 ){
-		DaoProcess_RaiseError( proc, "Param", "Invalid mode" );
-		return;
-	}
-	for ( cp = mode; *cp; ++cp )
-		if ( *cp != 'r' && *cp != 'w' ){
-			DaoProcess_RaiseError( proc, "Param", "Invalid mode" );
-			return;
-		}
 	stream->file = popen( DString_GetData( fname ), mode );
 	if( stream->file == NULL ){
 		char errbuf[512];
 		GetErrorMessage( errno, errbuf, sizeof(errbuf) );
-		DaoProcess_RaiseError( proc, "System", errbuf );
+		DaoProcess_RaiseError( proc, "Stream", errbuf );
 		return;
 	}
 	if( strstr( mode, "r" ) ) stream->base.mode |= DAO_STREAM_READABLE;
