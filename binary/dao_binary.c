@@ -330,7 +330,7 @@ static void DaoBinary_Read( DaoProcess *proc, DaoValue *p[], int N )
 	dao_integer count =  p[2]->xInteger.value;
 	size_t size = 0;
 	DaoArray_Sliced( arr );
-	if( ( stream->mode & DAO_STREAM_READABLE ) == 0 ){
+	if( !DaoStream_IsReadable( stream ) ){
 		DaoProcess_RaiseError( proc, "Param", "The stream is not readable" );
 		return;
 	}
@@ -352,7 +352,7 @@ static void DaoBinary_Unpack( DaoProcess *proc, DaoValue *p[], int N )
 	size_t size =  sizes[p[2]->xEnum.value];
 	dao_integer count = p[3]->xInteger.value;
 	DaoArray_Sliced( arr );
-	if( ( stream->mode & DAO_STREAM_READABLE ) == 0 ){
+	if( !DaoStream_IsReadable( stream ) ){
 		DaoProcess_RaiseError( proc, "Param", "The stream is not readable" );
 		return;
 	}
@@ -379,7 +379,7 @@ static void DaoBinary_Pack( DaoProcess *proc, DaoValue *p[], int N )
 	dao_integer count = p[3]->xInteger.value, res = 0;
 	size_t i;
 	DaoArray_Sliced( arr );
-	if( ( stream->mode & DAO_STREAM_WRITABLE ) == 0 ){
+	if( !DaoStream_IsWritable( stream ) ){
 		DaoProcess_RaiseError( proc, "Param", "The stream is not writable" );
 		return;
 	}
@@ -425,7 +425,7 @@ static void DaoBinary_Write( DaoProcess *proc, DaoValue *p[], int N )
 	size_t size = 0;
 	dao_integer count = p[2]->xInteger.value;
 	DaoArray_Sliced( arr );
-	if( ( stream->mode & DAO_STREAM_WRITABLE ) == 0 ){
+	if( !DaoStream_IsWritable( stream ) ){
 		DaoProcess_RaiseError( proc, "Param", "The stream is not writable" );
 		return;
 	}
@@ -584,7 +584,6 @@ static void DaoBinary_SetItem( DaoProcess *proc, DaoValue *p[], int N )
 	}
 }
 
-/*! \note All the routines below accepting \c io::Stream expect a file stream only */
 static DaoFuncItem binMeths[] =
 {
 	/*! Reads \a count elements from \a source to \a dest. If \a count is zero, or greater than \a dest size,

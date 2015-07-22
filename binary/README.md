@@ -45,10 +45,10 @@ interface [Decodable](#decodable)
 - [decode](#decode_in)(_decoder_: Decoder) => Decodable
 
 Functions:
-- [read](#read)(_source_: io::FileStream, _dest_: array&lt;@T&lt;int|float|complex&gt;&gt;, _count_ = 0) => int
-- [unpack](#unpack)(_source_: io::FileStream, _dest_: array&lt;int&gt;, _size_: enum&lt;byte,word,dword&gt;, _count_ = 0) => int
-- [pack](#pack)(invar _source_: array&lt;int&gt;, _dest_: io::FileStream, _size_: enum&lt;byte,word,dword&gt;, _count_ = 0) => int
-- [write](#write)(invar _source_: array&lt;@T&lt;int|float|complex&gt;&gt;, _dest_: io::FileStream, _count_ = 0) => int
+- [read](#read)(_source_: io::Stream, _dest_: array&lt;@T&lt;int|float|complex&gt;&gt;, _count_ = 0) => int
+- [unpack](#unpack)(_source_: io::Stream, _dest_: array&lt;int&gt;, _size_: enum&lt;byte,word,dword&gt;, _count_ = 0) => int
+- [pack](#pack)(invar _source_: array&lt;int&gt;, _dest_: io::Stream, _size_: enum&lt;byte,word,dword&gt;, _count_ = 0) => int
+- [write](#write)(invar _source_: array&lt;@T&lt;int|float|complex&gt;&gt;, _dest_: io::Stream, _count_ = 0) => int
 - [get](#get1)(invar _source_: array&lt;int&gt;|string, _what_: enum&lt;byte,ubyte,word,uword,dword,udword,qword,uqword&gt;, _offset_: int) => int
 - [get](#get1)(invar _source_: array&lt;int&gt;|string, _what_: enum&lt;float&gt;, _offset_: int) => float
 - [get](#get2)(invar _source_: array&lt;int&gt;|string, _what_: enum&lt;bits&gt;, _offset_: int, _count_: int) => int
@@ -179,33 +179,33 @@ Deserializes self using the provided *decoder*
 ### Functions
 <a name="read"></a>
 ```ruby
-read(source: io::FileStream, dest: array<@T<int|float|complex>>, count = 0) => int
+read(source: io::Stream, dest: array<@T<int|float|complex>>, count = 0) => int
 ```
 Reads *count* elements from *source* to *dest*. If *count* is zero, or greater than *dest* size, *dest* size is assumed. Returns the number of elements actually read
 
-**Errors:** `Param` when *source* is not a file stream or is not readable
+**Errors:** `Param` when *source* is not readable
 <a name="unpack"></a>
 ```ruby
-unpack(source: io::FileStream, dest: array<int>, size: enum<byte,word,dword>, count = 0) => int
+unpack(source: io::Stream, dest: array<int>, size: enum<byte,word,dword>, count = 0) => int
 ```
 Reads *count* chunks of size *size* from *source* into *dest* so that each chunk corresponds to a single *dest* element (with possible widening). If *count* is zero, or greater than *dest* element size, *dest* element size is assumed. Returns the number of chunks actually read
 
-**Errors:** `Param` when *source* is not a file stream or is not readable
+**Errors:** `Param` when *source* is not readable
 <a name="pack"></a>
 ```ruby
-pack(invar source: array<int>, dest: io::FileStream, size: enum<byte,word,dword>, count = 0) => int
+pack(invar source: array<int>, dest: io::Stream, size: enum<byte,word,dword>, count = 0) => int
 ```
 Writes *count* chunks of size *size* to *dest* so that each *source* element corresponds to a single chunk (with possible narrowing). Returns the number of chunks actually written
 
-**Errors:** `Param` when *dest* is not a file stream or is not writable
+**Errors:** `Param` when *dest* is not writable
 <a name="write"></a>
 ```ruby
-write(invar source: array<@T<int|float|complex>>, dest: io::FileStream, count = 0) => int
+write(invar source: array<@T<int|float|complex>>, dest: io::Stream, count = 0) => int
 ```
 Writes *count* elements from *source* to *dest*. If *count* is zero, or greater than *dest* size, all *dest* data is written. Returns the number of elements
 actually written
 
-**Errors:** `Param` when *dest* is not a file stream or is not writable
+**Errors:** `Param` when *dest* is not writable
 <a name="get1"></a>
 ```ruby
 get(invar source: array<int>|string, what: enum<byte,ubyte,word,uword,dword,udword,qword,uqword>, offset: int) => int
