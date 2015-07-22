@@ -31,6 +31,7 @@
 #define DAO_TIME
 
 #include<string.h>
+#include<stdlib.h>
 #include"dao_time.h"
 
 #ifdef WIN32
@@ -321,8 +322,25 @@ time_t DaoMkTimeUtc( struct tm *ts )
 	daylight = dl;
 	DMutex_Unlock( &time_mtx );
 	return value;
-#else
+#elif defined(LINUX) || defined(MACOSX) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
 	return timegm( ts );
+#else
+	time_t value;
+	char tz[200];
+	char *ev = getenv( "TZ" );
+	if ( ev )
+		snprintf( tz, sizeof(tz), "%s", ev );
+	else
+		tz[0] = 0;
+	setenv( "TZ", "", 1 );
+	tzset();
+	value = mktime( ts );
+	if ( *tz )
+		setenv( "TZ", tz, 1 );
+	else
+		unsetenv( "TZ" );
+	tzset();
+	return value;
 #endif
 }
 
