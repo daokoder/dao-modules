@@ -382,6 +382,27 @@ static void DaoIO_Open( DaoProcess *proc, DaoValue *p[], int N )
 		DaoFileStream_InitCallbacks( self );
 	}
 }
+static void DaoIO_ReadFile( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DString *res = DaoProcess_PutChars( proc, "" );
+	daoint silent = p[1]->xBoolean.value;
+	if( DString_Size( p[0]->xString.value ) ==0 ){
+		char buf[4096];
+		while(1){
+			size_t count = fread( buf, 1, sizeof( buf ), stdin );
+			if( count ==0 ) break;
+			DString_AppendBytes( res, buf, count );
+		}
+	}else{
+		FILE *fin = DaoIO_OpenFile( proc, p[0]->xString.value, "r", silent );
+		struct stat info;
+		if( fin == NULL ) return;
+		fstat( fileno( fin ), &info );
+		DString_Reserve( res, info.st_size );
+		DString_Reset( res, fread( res->chars, 1, info.st_size, fin ) );
+		fclose( fin );
+	}
+}
 
 static void DaoIO_Seek( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -494,6 +515,8 @@ static DaoFuncItem dao_io_methods[] =
 	 * If \a mode is 'r', returns readable stream of the process output; if \a mode is 'w', returns writable stream of the process
 	 * input */
 	{ PIPE_New,        "popen( command: string, mode: string ) => PipeStream" },
+
+	{ DaoIO_ReadFile,  "read( file: string, silent = false )=>string" },
 	{ NULL, NULL }
 };
 
