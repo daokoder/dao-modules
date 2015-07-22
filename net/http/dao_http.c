@@ -490,6 +490,56 @@ time_t ParseHttpDate( DString *date )
 	return value;
 }
 
+void ParseMediaType( DString *mime, DString *name, DaoMap *params )
+{
+	DaoString *key = DaoString_New();
+	DaoString *val = DaoString_New();
+	DString *pname = key->value;
+	DString *pvalue = val->value;
+	const char *start = mime->chars;
+	const char *cp = start;
+	const char *end;
+	for ( ; *cp && *cp != ';'; ++cp ); // find name-params boundary, if any
+	end = cp;
+	for ( ; end > start && IS_OWS( end - 1 ); --end ); // backtrack on whitespace
+	DString_SetBytes( name, start, end - start ); // type name
+	DString_ToLower( name );
+	while ( *cp ){
+		for ( ++cp; IS_OWS( cp ); ++cp ); // pass whitespace
+		start = cp;
+		if ( !*cp )
+			break;
+		for ( ++cp; *cp && *cp != '='; ++cp ); // find param name-value boundary
+		if ( *cp ){
+			int quoted = 0;
+			DString_SetBytes( pname, start, cp - start ); // param name
+			DString_ToLower( pname );
+			start = cp + 1;
+			for ( ++cp; *cp; ++cp ) // find value end
+				if ( *cp == '"' )
+					quoted = !quoted;
+				else if ( *cp == '\\' ){
+					++cp;
+					if ( !*cp )
+						break;
+				}
+				else if ( !quoted && *cp == ';' )
+					break;
+			end = cp;
+			if ( *start == '"' )
+				++start;
+			if ( end > start && *( end - 1 ) == '"' )
+				--end;
+			DString_SetBytes( pvalue, start, end - start ); // param value
+			if ( strcmp( pname->chars, "charset" ) == 0 )
+				DString_ToLower( pvalue );
+			DaoMap_Insert( params, (DaoValue*)key, (DaoValue*)val );
+		}
+	}
+	DaoString_Delete( key );
+	DaoString_Delete( val );
+}
+
 static void DaoHttpHeader_Version( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
@@ -522,6 +572,24 @@ DaoList* PutListValue( DaoProcess *proc, DMap *headers, const char *field )
 	if ( node ){
 		DaoList *res = DaoProcess_PutList( proc );
 		SplitValue( node->value.pString, res );
+		return res;
+	}
+	DaoProcess_PutNone( proc );
+	return NULL;
+}
+
+DaoTuple* PutMimeValue( DaoProcess *proc, DMap *headers, const char *field )
+{
+	DString key = DString_WrapChars( field );
+	DNode *node = DMap_Find( headers, &key );
+	if ( node ){
+		DaoTuple *res = DaoProcess_PutTuple( proc, 2 );
+		if ( !res->values[1] ){
+			DaoMap *map = DaoMap_New( 0 );
+			DaoMap_SetType( map, &res->ctype->nested->items.pType[1]->aux->xType );
+			DaoTuple_SetItem( res, (DaoValue*)map, 1 );
+		}
+		ParseMediaType( node->value.pString, res->values[0]->xString.value, &res->values[1]->xMap );
 		return res;
 	}
 	DaoProcess_PutNone( proc );
@@ -612,32 +680,10 @@ static void DaoHttpHeader_TE( DaoProcess *proc, DaoValue *p[], int N )
 	PutListValue( proc, self->headers, "te" );
 }
 
-void SplitMediaType( DString *value, DaoTuple *tuple )
-{
-	const char *cp = value->chars;
-	for ( ; *cp && *cp != ';'; ++cp );
-	if ( *cp ){
-		const char *end = cp;
-		for ( ; end > value->chars && IS_OWS( end - 1 ); --end );
-		DString_SetBytes( tuple->values[0]->xString.value, value->chars, end - value->chars );
-		for ( ++cp; IS_OWS( cp ); ++cp );
-		DString_SetChars( tuple->values[1]->xString.value, cp );
-	}
-	else
-		DString_Assign( tuple->values[0]->xString.value, value );
-}
-
 static void DaoHttpHeader_ContType( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
-	DString field = DString_WrapChars( "content-type" );
-	DNode *node = DMap_Find( self->headers, &field );
-	if ( node ){
-		DaoTuple *res = DaoProcess_PutTuple( proc, 2 );
-		SplitMediaType( node->value.pString, res );
-	}
-	else
-		DaoProcess_PutNone( proc );
+	PutMimeValue( proc, self->headers, "content-type" );
 }
 
 void PutStringValue( DaoProcess *proc, DMap *headers, const char *field )
@@ -709,7 +755,7 @@ static DaoFuncItem headerMeths[] =
 	{ DaoHttpHeader_Upgrade,	".upgrade(self: Header) => list<string>|none" },
 	{ DaoHttpHeader_Trailer,	".trailer(self: Header) => list<string>|none" },
 	{ DaoHttpHeader_TE,			".te(self: Header) => list<string>|none" },
-	{ DaoHttpHeader_ContType,	".contentType(self: Header) => tuple<name: string, params: string>|none" },
+	{ DaoHttpHeader_ContType,	".contentType(self: Header) => MediaType|none" },
 	{ DaoHttpHeader_ContEnc,	".contentEncoding(self: Header) => list<string>|none" },
 	{ DaoHttpHeader_ContLang,	".contentLanguage(self: Header) => list<string>|none" },
 	{ DaoHttpHeader_ContLoc,	".contentLocation(self: Header) => string|none" },
@@ -1477,6 +1523,12 @@ http_err_t ParseMultipartForm( DString *form, DString *boundary, DaoMap *parts )
 	while ( 1 ){
 		DaoType *type = parts->ctype->nested->items.pType[1];
 		DaoTuple *tup = DaoTuple_Create( type, type->nested->size, 1 );
+		if ( !tup->values[2] ){
+			DaoTuple *mime;
+			type = &tup->ctype->nested->items.pType[2]->aux->xType;
+			mime = DaoTuple_Create( type, type->nested->size, 1 );
+			DaoTuple_SetItem( tup, (DaoValue*)mime, 2 );
+		}
 		DString_Clear( name );
 		DString_Clear( fname );
 		// parse headers
@@ -1552,8 +1604,15 @@ http_err_t ParseMultipartForm( DString *form, DString *boundary, DaoMap *parts )
 						}
 				}
 			}
-			else if ( strcmp( fname->chars, "content-type" ) == 0 )
-				DString_Assign( tup->values[2]->xString.value, value );
+			else if ( strcmp( fname->chars, "content-type" ) == 0 ){
+				DaoTuple *mime = &tup->values[2]->xTuple;
+				if ( !mime->values[1] ){
+					DaoMap *map = DaoMap_New( 0 );
+					DaoMap_SetType( map, &mime->ctype->nested->items.pType[1]->aux->xType );
+					DaoTuple_SetItem( mime, (DaoValue*)map, 1 );
+				}
+				ParseMediaType( value, mime->values[0]->xString.value, &mime->values[1]->xMap );
+			}
 			else if ( strcmp( fname->chars, "content-transfer-encoding" ) == 0 ){
 				DString_ToLower( value ); // case-insensitive
 				DString_Assign( tup->values[4]->xString.value, value );
@@ -1640,20 +1699,21 @@ static DaoFuncItem httpMeths[] =
 	//! \note if the content type of a form control appears to be 'multipart/mixed', use this routine with the
 	//! \a boundary parameter extracted from the relevant \c mimeType to decode that content
 	{ HTTP_ParseMultiForm,	"decodeMultipartForm(form: string, boundary: string) => map<string,"
-							"tuple<value: string, disposition: string, mimeType: string, fileName: string, encoding: string>>" },
+							"tuple<value: string, disposition: string, mimeType: MediaType, fileName: string, encoding: string>>" },
 	{ NULL, NULL }
 };
 
 DAO_DLL int DaoHttp_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *timens = DaoVmSpace_LinkModule( vmSpace, ns, "time" );
-	DaoNamespace *httptns = DaoVmSpace_GetNamespace( vmSpace, "http" );
-	DaoNamespace_AddConstValue( ns, "http", (DaoValue*)httptns );
-	DaoNamespace_AddParent( httptns, ns );
-	daox_type_header = DaoNamespace_WrapType( httptns, &headerTyper, DAO_CTYPE_OPAQUE | DAO_CTYPE_INVAR );
-	daox_type_request = DaoNamespace_WrapType( httptns, &requestTyper, DAO_CTYPE_OPAQUE | DAO_CTYPE_INVAR );
-	daox_type_response = DaoNamespace_WrapType( httptns, &responseTyper, DAO_CTYPE_OPAQUE | DAO_CTYPE_INVAR );
-	daox_type_chunkDecoder = DaoNamespace_WrapType( httptns, &chunkDecoderTyper, DAO_CTYPE_OPAQUE );
-	DaoNamespace_WrapFunctions( httptns, httpMeths );
+	DaoNamespace *httpns = DaoVmSpace_GetNamespace( vmSpace, "http" );
+	DaoNamespace_AddConstValue( ns, "http", (DaoValue*)httpns );
+	DaoNamespace_AddParent( httpns, ns );
+	daox_type_header = DaoNamespace_WrapType( httpns, &headerTyper, DAO_CTYPE_OPAQUE | DAO_CTYPE_INVAR );
+	daox_type_request = DaoNamespace_WrapType( httpns, &requestTyper, DAO_CTYPE_OPAQUE | DAO_CTYPE_INVAR );
+	daox_type_response = DaoNamespace_WrapType( httpns, &responseTyper, DAO_CTYPE_OPAQUE | DAO_CTYPE_INVAR );
+	daox_type_chunkDecoder = DaoNamespace_WrapType( httpns, &chunkDecoderTyper, DAO_CTYPE_OPAQUE );
+	DaoNamespace_DefineType( httpns, "tuple<name: string, params: map<string,string>>", "MediaType" );
+	DaoNamespace_WrapFunctions( httpns, httpMeths );
 	return 0;
 }
