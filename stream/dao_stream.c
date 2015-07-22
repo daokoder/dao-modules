@@ -446,6 +446,10 @@ static void PIPE_New( DaoProcess *proc, DaoValue *p[], int N )
 		return;
 	}
 	mode = DString_GetData( p[1]->xString.value );
+	if ( p[1]->xString.value->size > 2 ){
+		DaoProcess_RaiseError( proc, "Param", "Invalid mode" );
+		return;
+	}
 	for ( cp = mode; *cp; ++cp )
 		if ( *cp != 'r' && *cp != 'w' ){
 			DaoProcess_RaiseError( proc, "Param", "Invalid mode" );
