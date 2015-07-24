@@ -1477,7 +1477,7 @@ DaoTypeBase macroTyper =
 
 DAO_DLL int DaoMacro_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	daox_type_macro = DaoNamespace_WrapType( ns, & macroTyper, 0 );
+	daox_type_macro = DaoNamespace_WrapType( ns, & macroTyper, DAO_CSTRUCT, 0 );
 	DList_Append( ns->tokenFilters, (void*) DaoMacro_Preprocess );
 	return 0;
 }

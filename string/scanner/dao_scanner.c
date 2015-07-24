@@ -339,6 +339,6 @@ DAO_DLL int DaoScanner_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *strns = DaoVmSpace_GetNamespace( vmSpace, "str" );
 	DaoNamespace_AddConstValue( ns, "str", (DaoValue*)strns );
-	daox_type_scanner = DaoNamespace_WrapType( strns, &scannerTyper, 1 );
+	daox_type_scanner = DaoNamespace_WrapType( strns, &scannerTyper, DAO_CDATA, 0 );
 	return 0;
 }

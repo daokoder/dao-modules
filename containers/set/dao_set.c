@@ -919,6 +919,6 @@ DaoTypeBase setTyper = {
 DAO_DLL int DaoSet_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *stdns = DaoVmSpace_GetNamespace( vmSpace, "std" );
-	daox_type_set = DaoNamespace_WrapType( stdns, &setTyper, 0 );
+	daox_type_set = DaoNamespace_WrapType( stdns, &setTyper, DAO_CSTRUCT, 0 );
 	return 0;
 }

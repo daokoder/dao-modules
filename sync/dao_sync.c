@@ -971,12 +971,12 @@ DaoTypeBase guardTyper = {
 DAO_DLL int DaoSync_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *mtns = DaoVmSpace_GetNamespace( vmSpace, "mt" );
-	dao_type_mutex   = DaoNamespace_WrapType( mtns, & mutexTyper, 0 );
-	dao_type_condvar = DaoNamespace_WrapType( mtns, & condvTyper, 0 );
-	dao_type_sema    = DaoNamespace_WrapType( mtns, & semaTyper, 0 );
-	daox_type_DaoState = DaoNamespace_WrapType( mtns, &stateTyper, 0 );
-	daox_type_DaoQueue = DaoNamespace_WrapType( mtns, &queueTyper, 0 );
-	daox_type_DaoGuard = DaoNamespace_WrapType( mtns, &guardTyper, 0 );
+	dao_type_mutex   = DaoNamespace_WrapType( mtns, & mutexTyper, DAO_CSTRUCT, 0 );
+	dao_type_condvar = DaoNamespace_WrapType( mtns, & condvTyper, DAO_CSTRUCT, 0 );
+	dao_type_sema    = DaoNamespace_WrapType( mtns, & semaTyper, DAO_CSTRUCT, 0 );
+	daox_type_DaoState = DaoNamespace_WrapType( mtns, &stateTyper, DAO_CSTRUCT, 0 );
+	daox_type_DaoQueue = DaoNamespace_WrapType( mtns, &queueTyper, DAO_CSTRUCT, 0 );
+	daox_type_DaoGuard = DaoNamespace_WrapType( mtns, &guardTyper, DAO_CSTRUCT, 0 );
 	return 0;
 }
 

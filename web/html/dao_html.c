@@ -1524,8 +1524,8 @@ DAO_DLL int DaoHtml_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *htmlns = DaoNamespace_GetNamespace( ns, "html" );
 
-	daox_type_html_node = DaoNamespace_WrapType( htmlns, & DaoxHtmlNode_Typer, 0 );
-	daox_type_html_document = DaoNamespace_WrapType( htmlns, & DaoxHtmlDocument_Typer, 0 );
+	daox_type_html_node = DaoNamespace_WrapType( htmlns, & DaoxHtmlNode_Typer, DAO_CSTRUCT, 0 );
+	daox_type_html_document = DaoNamespace_WrapType( htmlns, & DaoxHtmlDocument_Typer, DAO_CSTRUCT, 0 );
 
 	DaoNamespace_DefineType( htmlns, html_global_attr, "GlobalAttr" );
 	DaoNamespace_DefineType( htmlns, html_step_attr, "Step" );

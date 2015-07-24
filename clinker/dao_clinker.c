@@ -361,7 +361,7 @@ static void DaoCLoader_Load( DaoProcess *proc, DaoValue *p[], int N )
 		if( value != NULL ) continue; /* warn XXX */
 		typer = calloc( 1, sizeof(DaoTypeBase) );
 		typer->name = str->chars;
-		DaoNamespace_WrapType( ns, typer, 1 );
+		DaoNamespace_WrapType( ns, typer, DAO_CDATA, 0 );
 	}
 	for(i=0; i<funames->value->size; i++){
 		str = DaoValue_TryGetString( DaoList_GetItem( funames, i ) );
@@ -410,7 +410,7 @@ DAO_DLL int DaoClinker_OnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 	int i;
 
 	daox_ffi_stream_type = DaoNamespace_FindTypeChars( io, "Stream" );
-	daox_ffi_type = DaoNamespace_WrapType( ns, & DaoFFI_Typer, 0 );
+	daox_ffi_type = DaoNamespace_WrapType( ns, & DaoFFI_Typer, DAO_CSTRUCT, 0 );
 	printf( "%p\n", daox_ffi_stream_type );
 	for(i=0; i<DAO_FFI_SINT64; i++){
 		DString mbs = DString_WrapChars( alias[i] );

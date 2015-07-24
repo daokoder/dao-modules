@@ -253,7 +253,7 @@ static DaoFuncItem zipMeths[]=
 DAO_DLL int DaoZip_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	ns = DaoNamespace_GetNamespace( ns, "zip" );
-	daox_type_zipstream = DaoNamespace_WrapType( ns, &zipstreamTyper, 1 );
+	daox_type_zipstream = DaoNamespace_WrapType( ns, &zipstreamTyper, DAO_CDATA, 0 );
 	DaoNamespace_WrapFunctions( ns, zipMeths );
 	return 0;
 }

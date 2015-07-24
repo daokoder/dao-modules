@@ -908,7 +908,7 @@ DaoValue* DaoProcess_NewTime( DaoProcess *proc, time_t value, int local )
 DAO_DLL_EXPORT int DaoTime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *timens = DaoNamespace_GetNamespace( ns, "time" );
-	daox_type_time = DaoNamespace_WrapType( timens, &timeTyper, DAO_CTYPE_INVAR|DAO_CTYPE_OPAQUE );
+	daox_type_time = DaoNamespace_WrapType( timens, &timeTyper, DAO_CDATA, DAO_CTYPE_INVAR );
 	DaoNamespace_WrapFunctions( timens, timeFuncs );
 	DMutex_Init( &time_mtx );
 

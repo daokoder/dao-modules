@@ -1,7 +1,7 @@
 /*
 // Webdao: A Lightweight Web Application Framework for Dao
 //
-// Copyright (c) 2013, Limin Fu
+// Copyright (c) 2013-2015, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -1491,12 +1491,12 @@ DAO_DLL int DaoHttp_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace *streamns = DaoVmSpace_LinkModule( vmSpace, ns, "stream" );
 	DaoNamespace *httpns = DaoNamespace_GetNamespace( ns, "http" );
 
-	daox_type_request = DaoNamespace_WrapType( httpns, & RequestTyper, 0 );
-	daox_type_response = DaoNamespace_WrapType( httpns, & ResponseTyper, 0 );
-	daox_type_session = DaoNamespace_WrapType( httpns, & SessionTyper, 0 );
-	daox_type_cache = DaoNamespace_WrapType( httpns, & CacheTyper, 0 );
-	daox_type_server = DaoNamespace_WrapType( httpns, & ServerTyper, 0 );
-	daox_type_client = DaoNamespace_WrapType( httpns, & ClientTyper, 0 );
+	daox_type_request = DaoNamespace_WrapType( httpns, & RequestTyper, DAO_CSTRUCT, 0 );
+	daox_type_response = DaoNamespace_WrapType( httpns, & ResponseTyper, DAO_CSTRUCT, 0 );
+	daox_type_session = DaoNamespace_WrapType( httpns, & SessionTyper, DAO_CSTRUCT, 0 );
+	daox_type_cache = DaoNamespace_WrapType( httpns, & CacheTyper, DAO_CSTRUCT, 0 );
+	daox_type_server = DaoNamespace_WrapType( httpns, & ServerTyper, DAO_CSTRUCT, 0 );
+	daox_type_client = DaoNamespace_WrapType( httpns, & ClientTyper, DAO_CSTRUCT, 0 );
 	daox_type_keyvalue = DaoNamespace_ParseType( httpns, "map<string,string>" );
 	daox_type_namestream = DaoNamespace_DefineType( httpns,
 			"tuple<file:string,size:int,data:io::FileStream>", "HttpUpload" );

@@ -1054,8 +1054,8 @@ DAO_DLL int DaoBinary_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 		return 1;
 	}
 	binns = DaoNamespace_GetNamespace( ns, "bin" );
-	daox_type_encoder = DaoNamespace_WrapType( binns, &encoderTyper, DAO_CTYPE_OPAQUE );
-	daox_type_decoder = DaoNamespace_WrapType( binns, &decoderTyper, DAO_CTYPE_OPAQUE );
+	daox_type_encoder = DaoNamespace_WrapType( binns, &encoderTyper, DAO_CDATA, 0 );
+	daox_type_decoder = DaoNamespace_WrapType( binns, &decoderTyper, DAO_CDATA, 0 );
 	DaoNamespace_WrapInterface( binns, &encodableTyper );
 	DaoNamespace_WrapInterface( binns, &decodableTyper );
 	DaoNamespace_WrapFunctions( binns, binMeths );

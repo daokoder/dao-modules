@@ -2526,12 +2526,12 @@ DAO_DLL int DaoNet_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace *netns = DaoNamespace_GetNamespace( ns, "net" );
 	DaoNamespace_DefineType( netns, SimpleTypes"|"ArrayTypes"|"ContainerTypes, "Object" );
 	DaoNamespace_AddConstNumbers( netns, netConsts );
-	daox_type_ipv4addr = DaoNamespace_WrapType( netns, & Ipv4AddrTyper, DAO_CTYPE_INVAR | DAO_CTYPE_OPAQUE );
-	daox_type_sockaddr = DaoNamespace_WrapType( netns, & sockaddrTyper, DAO_CTYPE_INVAR | DAO_CTYPE_OPAQUE );
-	daox_type_socket = DaoNamespace_WrapType( netns, & socketTyper, DAO_CTYPE_OPAQUE );
-	daox_type_tcpstream = DaoNamespace_WrapType( netns, & TcpStreamTyper, DAO_CTYPE_OPAQUE );
-	daox_type_tcplistener = DaoNamespace_WrapType( netns, & TcpListenerTyper, DAO_CTYPE_OPAQUE );
-	daox_type_udpsocket = DaoNamespace_WrapType( netns, & UdpSocketTyper, DAO_CTYPE_OPAQUE );
+	daox_type_ipv4addr = DaoNamespace_WrapType( netns, & Ipv4AddrTyper, DAO_CDATA, DAO_CTYPE_INVAR );
+	daox_type_sockaddr = DaoNamespace_WrapType( netns, & sockaddrTyper, DAO_CDATA, DAO_CTYPE_INVAR );
+	daox_type_socket = DaoNamespace_WrapType( netns, & socketTyper, DAO_CDATA, 0 );
+	daox_type_tcpstream = DaoNamespace_WrapType( netns, & TcpStreamTyper, DAO_CDATA, 0 );
+	daox_type_tcplistener = DaoNamespace_WrapType( netns, & TcpListenerTyper, DAO_CDATA, 0 );
+	daox_type_udpsocket = DaoNamespace_WrapType( netns, & UdpSocketTyper, DAO_CDATA, 0 );
 	DaoNamespace_WrapFunctions( netns, netMeths );
 	DaoNetwork_Init( vmSpace, ns );
 	return 0;

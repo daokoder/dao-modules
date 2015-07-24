@@ -148,6 +148,6 @@ DaoTypeBase protobjectTyper =
 
 DAO_DLL int DaoProtobject_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	daox_type_protobject = DaoNamespace_WrapType( ns, & protobjectTyper, 0 );
+	daox_type_protobject = DaoNamespace_WrapType( ns, & protobjectTyper, DAO_CSTRUCT, 0 );
 	return 0;
 }

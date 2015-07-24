@@ -2304,7 +2304,7 @@ DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 
 	daox_helpers = DaoMap_New(0);
 	dao_help_namespace = ns;
-	daox_type_helper = DaoNamespace_WrapType( ns, & helpTyper, 0 );
+	daox_type_helper = DaoNamespace_WrapType( ns, & helpTyper, DAO_CSTRUCT, 0 );
 	DaoNamespace_AddValue( ns, "__helpers__", (DaoValue*)daox_helpers, "map<string,help>" );
 	daox_helper = DaoxHelper_New();
 	DaoMap_InsertChars( daox_helpers, "en", (DaoValue*) daox_helper );

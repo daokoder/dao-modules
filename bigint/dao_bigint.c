@@ -2054,6 +2054,6 @@ DAO_DLL int DaoBigint_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 #ifdef DAO_WITH_THREAD
 	DMutex_Init( & mutex_long_sharing ); /* TODO: destroy; */
 #endif
-	daox_type_bigint = DaoNamespace_WrapType( ns, & bigintTyper, DAO_CTYPE_INVAR );
+	daox_type_bigint = DaoNamespace_WrapType( ns, & bigintTyper, DAO_CSTRUCT, DAO_CTYPE_INVAR );
 	return 0;
 }

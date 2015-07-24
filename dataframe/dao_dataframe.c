@@ -1840,8 +1840,8 @@ DaoTypeBase dataframeTyper =
 
 DAO_DLL int DaoDataframe_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	daox_type_datacolumn = DaoNamespace_WrapType( ns, & datacolumnTyper, 0 );
-	daox_type_dataframe = DaoNamespace_WrapType( ns, & dataframeTyper, 0 );
+	daox_type_datacolumn = DaoNamespace_WrapType( ns, & datacolumnTyper, DAO_CSTRUCT, 0 );
+	daox_type_dataframe = DaoNamespace_WrapType( ns, & dataframeTyper, DAO_CSTRUCT, 0 );
 	DaoNamespace_DefineType( ns, "enum<row,column,depth>", "DataFrame_DimType" );
 	DaoNamespace_DefineType( ns, "none|int|string|tuple<none,none>|tuple<int,int>|tuple<string,string>|tuple<int|string,none>|tuple<none,int|string>", "DataFrame_IndexType" );
 	return 0;

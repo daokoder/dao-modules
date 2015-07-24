@@ -215,6 +215,6 @@ DaoTypeBase coroutineTyper =
 
 DAO_DLL int DaoCoroutine_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	daox_type_coroutine = DaoNamespace_WrapType( ns, & coroutineTyper, 0 );
+	daox_type_coroutine = DaoNamespace_WrapType( ns, & coroutineTyper, DAO_CSTRUCT, 0 );
 	return 0;
 }

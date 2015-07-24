@@ -691,9 +691,9 @@ static DaoFuncItem reMeths[] =
 DAO_DLL int DaoRegex_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *rens = DaoNamespace_GetNamespace( ns, "re" );
-	daox_type_regex = DaoNamespace_WrapType( rens, &regexTyper, DAO_CTYPE_INVAR|DAO_CTYPE_OPAQUE );
-	daox_type_match = DaoNamespace_WrapType( rens, &matchTyper, DAO_CTYPE_INVAR|DAO_CTYPE_OPAQUE );
-	daox_type_iter = DaoNamespace_WrapType( rens, &iterTyper, DAO_CTYPE_OPAQUE );
+	daox_type_regex = DaoNamespace_WrapType( rens, &regexTyper, DAO_CDATA, DAO_CTYPE_INVAR );
+	daox_type_match = DaoNamespace_WrapType( rens, &matchTyper, DAO_CDATA, DAO_CTYPE_INVAR );
+	daox_type_iter = DaoNamespace_WrapType( rens, &iterTyper, DAO_CDATA, 0 );
 	DaoNamespace_WrapFunctions(rens, reMeths);
 	onig_init();
 	return 0;

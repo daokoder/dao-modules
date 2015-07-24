@@ -1702,9 +1702,9 @@ DAO_DLL int DaoFS_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	FS_INIT();
 	fsns = DaoNamespace_GetNamespace( ns, "fs" );
 	DaoNamespace_AddParent( fsns, ns );
-	daox_type_entry = DaoNamespace_WrapType( fsns, & entryTyper, 1 );
-	daox_type_file = DaoNamespace_WrapType( fsns, & fileTyper, 1 );
-	daox_type_dir = DaoNamespace_WrapType( fsns, & dirTyper, 1 );
+	daox_type_entry = DaoNamespace_WrapType( fsns, & entryTyper, DAO_CDATA, 0 );
+	daox_type_file = DaoNamespace_WrapType( fsns, & fileTyper, DAO_CDATA, 0 );
+	daox_type_dir = DaoNamespace_WrapType( fsns, & dirTyper, DAO_CDATA, 0 );
 	DaoNamespace_WrapFunctions( fsns, fsMeths );
 	return 0;
 }

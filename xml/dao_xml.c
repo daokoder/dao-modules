@@ -3289,11 +3289,11 @@ DAO_DLL int DaoXML_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace *xmlns;
 	DMutex_Init( &xmlmtx );
 	xmlns = DaoNamespace_GetNamespace( ns, "xml" );
-	daox_type_xmlinst = DaoNamespace_WrapType( xmlns, &xmlInstTyper, 1 );
-	daox_type_xmlcdata = DaoNamespace_WrapType( xmlns, &xmlCdataTyper, 1 );
-	daox_type_xmlelem = DaoNamespace_WrapType( xmlns, &xmlElemTyper, 1 );
-	daox_type_xmldoc = DaoNamespace_WrapType( xmlns, &xmlDocTyper, 1 );
-	daox_type_xmlwriter = DaoNamespace_WrapType( xmlns, &xmlWriterTyper, 1 );
+	daox_type_xmlinst = DaoNamespace_WrapType( xmlns, &xmlInstTyper, DAO_CDATA, 0 );
+	daox_type_xmlcdata = DaoNamespace_WrapType( xmlns, &xmlCdataTyper, DAO_CDATA, 0 );
+	daox_type_xmlelem = DaoNamespace_WrapType( xmlns, &xmlElemTyper, DAO_CDATA, 0 );
+	daox_type_xmldoc = DaoNamespace_WrapType( xmlns, &xmlDocTyper, DAO_CDATA, 0 );
+	daox_type_xmlwriter = DaoNamespace_WrapType( xmlns, &xmlWriterTyper, DAO_CDATA, 0 );
 	DaoNamespace_WrapInterface( xmlns, &encodableTyper );
 	DaoNamespace_WrapInterface( xmlns, &decodableTyper );
 	DaoNamespace_WrapFunctions( xmlns, xmlMeths );

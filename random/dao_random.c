@@ -305,7 +305,7 @@ DaoType *daox_type_rand_generator = NULL;
 DAO_DLL_EXPORT int DaoRandom_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *randomns = DaoNamespace_GetNamespace( ns, "random" );
-	daox_type_rand_generator = DaoNamespace_WrapType( randomns, & DaoRandGenerator_Typer, 1 );
+	daox_type_rand_generator = DaoNamespace_WrapType( randomns, & DaoRandGenerator_Typer, DAO_CDATA, 0 );
 	DaoNamespace_WrapFunctions( randomns, randomMeths );
 
 #define DAO_API_INIT

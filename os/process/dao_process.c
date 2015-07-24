@@ -1730,11 +1730,11 @@ DAO_DLL int DaoProcess_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace *streamns = DaoVmSpace_LinkModule( vmSpace, ns, "stream" );
 	DaoNamespace *osns = DaoVmSpace_GetNamespace( vmSpace, "os" );
 	DaoNamespace_AddConstValue( ns, "os", (DaoValue*)osns );
-	daox_type_pipe = DaoNamespace_WrapType( osns, &pipeTyper, 1 );
+	daox_type_pipe = DaoNamespace_WrapType( osns, &pipeTyper, DAO_CDATA, 0 );
 
 #ifdef DAO_WITH_THREAD
 	DMutex_Init( &proc_mtx );
-	daox_type_process = DaoNamespace_WrapType( osns, &procTyper, 1 );
+	daox_type_process = DaoNamespace_WrapType( osns, &procTyper, DAO_CDATA, 0 );
 #else
 	DaoStream_WriteChars( vmSpace->errorStream, "WARNING: Module \"os.process\" is incomplete without Dao threading support!\n" );
 #endif

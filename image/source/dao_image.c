@@ -414,7 +414,7 @@ DaoTypeBase DaoImage_Typer =
 
 DAO_DLL_EXPORT int DaoImage_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	daox_type_image = DaoNamespace_WrapType( ns, & DaoImage_Typer, 0 );
+	daox_type_image = DaoNamespace_WrapType( ns, & DaoImage_Typer, DAO_CSTRUCT, 0 );
 
 #define DAO_API_INIT
 #include"dao_api.h"

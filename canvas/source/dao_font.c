@@ -246,8 +246,8 @@ DAO_CANVAS_DLL int DaoFont_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoxFont *font;
 
-	daox_type_font = DaoNamespace_WrapType( ns, & DaoxFont_Typer, 0 );
-	daox_type_glyph = DaoNamespace_WrapType( ns, & DaoxGlyph_Typer, 0 );
+	daox_type_font = DaoNamespace_WrapType( ns, & DaoxFont_Typer, DAO_CSTRUCT, 0 );
+	daox_type_glyph = DaoNamespace_WrapType( ns, & DaoxGlyph_Typer, DAO_CSTRUCT, 0 );
 	
 	daox_default_font = font = DaoxFont_New();
 	DaoNamespace_AddConstValue( ns, "DefaultFont", (DaoValue*) font );

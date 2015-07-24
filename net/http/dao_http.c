@@ -1709,10 +1709,10 @@ DAO_DLL int DaoHttp_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace *httpns = DaoVmSpace_GetNamespace( vmSpace, "http" );
 	DaoNamespace_AddConstValue( ns, "http", (DaoValue*)httpns );
 	DaoNamespace_AddParent( httpns, ns );
-	daox_type_header = DaoNamespace_WrapType( httpns, &headerTyper, DAO_CTYPE_OPAQUE | DAO_CTYPE_INVAR );
-	daox_type_request = DaoNamespace_WrapType( httpns, &requestTyper, DAO_CTYPE_OPAQUE | DAO_CTYPE_INVAR );
-	daox_type_response = DaoNamespace_WrapType( httpns, &responseTyper, DAO_CTYPE_OPAQUE | DAO_CTYPE_INVAR );
-	daox_type_chunkDecoder = DaoNamespace_WrapType( httpns, &chunkDecoderTyper, DAO_CTYPE_OPAQUE );
+	daox_type_header = DaoNamespace_WrapType( httpns, &headerTyper, DAO_CDATA, DAO_CTYPE_INVAR );
+	daox_type_request = DaoNamespace_WrapType( httpns, &requestTyper, DAO_CDATA, DAO_CTYPE_INVAR );
+	daox_type_response = DaoNamespace_WrapType( httpns, &responseTyper, DAO_CDATA, DAO_CTYPE_INVAR );
+	daox_type_chunkDecoder = DaoNamespace_WrapType( httpns, &chunkDecoderTyper, DAO_CDATA, 0 );
 	DaoNamespace_DefineType( httpns, "tuple<name: string, params: map<string,string>>", "MediaType" );
 	DaoNamespace_WrapFunctions( httpns, httpMeths );
 	return 0;
