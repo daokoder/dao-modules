@@ -1160,18 +1160,20 @@ void AppendFieldValue( DaoValue *value, DString *dest )
 		if ( 1 ){
 			const char *dnames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
 			const char *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-			DaoTime *t = (DaoTime*)DaoValue_TryGetCdata( value );
+			DaoTime *t = (DaoTime*)&value->xCpod;
 			DTime ts = t->time;
 			char buf[100];
 			if ( t->local )
 				ts = _DTime_LocalToUtc( t->time );
 			snprintf( buf, sizeof(buf), "%s, %02i %s %i %02i:%02i:%02i GMT", dnames[( _DTime_ToJulianDay(ts) + 1 )%7],
-					(int)ts.day, months[ts.month], (int)ts.year,
+					(int)ts.day, months[ts.month - 1], (int)ts.year,
 					(int)ts.hour, (int)ts.minute, (int)ts.second );
 			DString_AppendChars( dest, buf );
 		}
 	}
 }
+#include "../../../kernel/dao.h"
+#include "../../../kernel/daoValue.h"
 
 int AppendFieldHeader( DaoProcess *proc, DaoEnum *token, DaoValue *value, DString *dest )
 {
