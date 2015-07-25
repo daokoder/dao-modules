@@ -537,7 +537,7 @@ static void TIME_WeekDay( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*) p[0];
 	int jday = DTime_ToJulianDay( self->time );
-	DaoProcess_PutInteger( proc, (jday + 1) % 7 + 1 );
+	DaoProcess_PutInteger( proc, jday % 7 + 1 );
 }
 
 static void TIME_YearDay( DaoProcess *proc, DaoValue *p[], int N )

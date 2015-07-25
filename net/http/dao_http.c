@@ -1165,7 +1165,7 @@ void AppendFieldValue( DaoValue *value, DString *dest )
 			char buf[100];
 			if ( t->local )
 				ts = _DTime_LocalToUtc( t->time );
-			snprintf( buf, sizeof(buf), "%s, %02i %s %i %02i:%02i:%02i GMT", dnames[( _DTime_ToJulianDay(ts) + 1 )%7],
+			snprintf( buf, sizeof(buf), "%s, %02i %s %i %02i:%02i:%02i GMT", dnames[( _DTime_ToJulianDay(ts) )%7],
 					(int)ts.day, months[ts.month - 1], (int)ts.year,
 					(int)ts.hour, (int)ts.minute, (int)ts.second );
 			DString_AppendChars( dest, buf );
