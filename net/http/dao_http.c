@@ -1172,8 +1172,6 @@ void AppendFieldValue( DaoValue *value, DString *dest )
 		}
 	}
 }
-#include "../../../kernel/dao.h"
-#include "../../../kernel/daoValue.h"
 
 int AppendFieldHeader( DaoProcess *proc, DaoEnum *token, DaoValue *value, DString *dest )
 {
