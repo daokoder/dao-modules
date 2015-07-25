@@ -578,6 +578,15 @@ void DaoTime_GetTimezoneShift( DaoTime *self, char *buf, size_t size )
 	snprintf( buf, size, "%+02i:%02i", hours, minutes );
 }
 
+static void GetFracSecond( double second, char *buf, size_t size )
+{
+	if ( size > 6 ){
+		snprintf( buf, size, "%06f", second - (dao_time_t)second );
+		memmove( buf, buf + 2, 6 );
+		buf[6] = 0;
+	}
+}
+
 static void TIME_Format( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*) p[0];
@@ -592,6 +601,11 @@ static void TIME_Format( DaoProcess *proc, DaoValue *p[], int N )
 				DaoTime_GetTimezoneShift( self, buf, sizeof(buf) );
 				DString_InsertChars( fmt, buf, i, 2, 0 );
 				i += 5;
+			}
+			else if ( fmt->chars[i + 1] == 'f' ){
+				GetFracSecond( self->time.second, buf, sizeof(buf) );
+				DString_InsertChars( fmt, buf, i, 2, 0 );
+				i += 6;
 			}
 			else
 				i++;
@@ -612,9 +626,11 @@ static void TIME_ToString( DaoProcess *proc, DaoValue *p[], int N )
 	char buf[100];
 	// TODO: error;
 	DTime_ToTM( & self->time, & parts );
-	if ( strftime( buf, sizeof(buf), "%Y-%m-%d %H:%M:%S ", &parts )){
+	if ( strftime( buf, sizeof(buf), "%Y-%m-%d %H:%M:%S.", &parts )){
 		int len = strlen( buf );
-
+		GetFracSecond( self->time.second, buf + len, sizeof(buf) - len );
+		strcat( buf, " " );
+		len = strlen( buf );
 		DaoTime_GetTimezoneShift( self, buf + len, sizeof(buf) - len );
 		DaoProcess_PutChars( proc, buf );
 	}
@@ -754,7 +770,7 @@ static void TIME_Diff( DaoProcess *proc, DaoValue *p[], int N )
 		return;
 	}
 	res->values[0]->xInteger.value = DTime_ToDay( end->time ) - DTime_ToDay( start->time );
-	res->values[1]->xInteger.value = DTime_ToMicroSeconds( end->time ) - DTime_ToMicroSeconds( start->time );
+	res->values[1]->xFloat.value = ( DTime_ToMicroSeconds( end->time ) - DTime_ToMicroSeconds( start->time ) )/1E6;
 	if( sizeof(dao_integer) < sizeof(dao_time_t) ){
 		DaoProcess_RaiseWarning( proc, "Value", "The time value might overflow the int type" );
 	}
@@ -800,7 +816,7 @@ static void TIME_LE( DaoProcess *proc, DaoValue *p[], int N )
 static void TIME_Add( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*) p[0];
-	DaoTime *res = DaoProcess_PutTime( proc, self->time, self->local );
+	DaoTime *res = DaoTime_New();
 	daoint years = 0;
 	daoint months = 0;
 	daoint days = 0;
@@ -808,6 +824,7 @@ static void TIME_Add( DaoProcess *proc, DaoValue *p[], int N )
 	struct tm parts;
 	int i, y, m, d;
 
+	*res = *self;
 	if ( N == 0 )
 		return;
 	for ( i = 1; i < N; i++ ){
@@ -849,6 +866,9 @@ static void TIME_Add( DaoProcess *proc, DaoValue *p[], int N )
 	if ( DTime_ToTM( & res->time, & parts ) == (time_t)-1){
 		DaoProcess_RaiseError( proc, timeerr, "Invalid resulting datetime" );
 	}
+	else
+		*self = *res;
+	DaoTime_Delete( res );
 }
 
 static DaoFuncItem timeMeths[] =
@@ -857,53 +877,56 @@ static DaoFuncItem timeMeths[] =
 	{ TIME_Set,     "set(self: DateTime, ...: tuple<enum<year,month,day,hour,min,sec>,float>)" },
 
 	/*! \c Returns the number of microseconds since 2000-1-1, 00:00:00 UTC */
-	{ TIME_Value,   ".value(self: DateTime) => int" },
-	{ TIME_Value,   "(int)(self: DateTime)" },
+	{ TIME_Value,   ".value(invar self: DateTime) => int" },
+	{ TIME_Value,   "(int)(invar self: DateTime)" },
 
 	/*! Returns datetime kind with regard to the time zone: UTC or local */
-	{ TIME_Type,    ".kind(self: DateTime) => enum<local,utc>" },
+	{ TIME_Type,    ".kind(invar self: DateTime) => enum<local,utc>" },
 
 	/*! Converts datetime to the given \a kind and returns new datetime object representing the result */
-	{ TIME_Convert, "convert(self: DateTime, kind: enum<local,utc>) => DateTime" },
+	{ TIME_Convert, "convert(invar self: DateTime, kind: enum<local,utc>) => DateTime" },
 
 	/*! Specific datetime part */
-	{ TIME_Second,  ".second(self: DateTime) => float" },
-	{ TIME_Minute,  ".minute(self: DateTime) => int" },
-	{ TIME_Hour,    ".hour(self: DateTime) => int" },
-	{ TIME_Day,     ".day(self: DateTime) => int" },
-	{ TIME_Month,   ".month(self: DateTime) => int" },
-	{ TIME_Year,    ".year(self: DateTime) => int" },
+	{ TIME_Second,  ".second(invar self: DateTime) => float" },
+	{ TIME_Minute,  ".minute(invar self: DateTime) => int" },
+	{ TIME_Hour,    ".hour(invar self: DateTime) => int" },
+	{ TIME_Day,     ".day(invar self: DateTime) => int" },
+	{ TIME_Month,   ".month(invar self: DateTime) => int" },
+	{ TIME_Year,    ".year(invar self: DateTime) => int" },
 
 	/*! Day of week */
-	{ TIME_WeekDay, ".wday(self: DateTime) => int" },
+	{ TIME_WeekDay, ".wday(invar self: DateTime) => int" },
 
 	/*! Day of year */
-	{ TIME_YearDay, ".yday(self: DateTime) => int" },
+	{ TIME_YearDay, ".yday(invar self: DateTime) => int" },
 
-	/*! Returns datetime formatted to string using \a format, which follows the rules for C \c strftime()
+	/*! Returns datetime formatted to string using \a format, which follows the rules for C \c strftime() with
+	 * the following exceptions:
+	 * - '%t' -- time zone offset
+	 * - '%f' -- fractional part of seconds
 	 *
 	 * \warning Available format specifiers are platform-dependent. */
-	{ TIME_Format, "format(self: DateTime, format = '%Y-%m-%d %H:%M:%S %t') => string" },
+	{ TIME_Format, "format(invar self: DateTime, format = '%Y-%m-%d %H:%M:%S.%f %t') => string" },
 
 	/*! Converts datetime to string; identical to calling \c format() with default format string */
-	{ TIME_ToString, "(string)(self: DateTime)" },
+	{ TIME_ToString, "(string)(invar self: DateTime)" },
 
 	/*! Returns datetime formatted to string using template \a format. \a names can specify custome names for months
 	 * ('month' => {<12 names>}), days of week ('week' => {<7 names>}), days of year ('day' => {<365/366 names>}) or
 	 * halfday names ('halfday' => {<2 names>}) */
-	{ TIME_Format2, "format(self: DateTime, invar names: map<string,list<string>>, format = '%Y-%M-%D, %H:%I:%S' ) => string" },
+	{ TIME_Format2, "format(invar self: DateTime, invar names: map<string,list<string>>, format = '%Y-%M-%D, %H:%I:%S' ) => string" },
 
 	/*! Returns the number of day in the month or year of the given datetime depending on the \a period parameter */
-	{ TIME_Days,  "daysIn(self: DateTime, period: enum<month,year>) => int" },
+	{ TIME_Days,  "daysIn(invar self: DateTime, period: enum<month,year>) => int" },
 
 	/*! Returns new datetime obtained by adding the specified number of years, months, days or seconds (provided as named values) */
-	{ TIME_Add,	 "add(self: DateTime, ...: tuple<enum<years,months,days,seconds>,int>) => DateTime" },
+	{ TIME_Add,	 "add(self: DateTime, ...: tuple<enum<years,months,days,seconds>,int>)" },
 
 	/*! Datetime comparison */
-	{ TIME_EQ,  "== (a: DateTime, b: DateTime) => bool" },
-	{ TIME_NE,  "!= (a: DateTime, b: DateTime) => bool" },
-	{ TIME_LT,  "<  (a: DateTime, b: DateTime) => bool" },
-	{ TIME_LE,  "<= (a: DateTime, b: DateTime) => bool" },
+	{ TIME_EQ,  "== (invar a: DateTime, invar b: DateTime) => bool" },
+	{ TIME_NE,  "!= (invar a: DateTime, invar b: DateTime) => bool" },
+	{ TIME_LT,  "<  (invar a: DateTime, invar b: DateTime) => bool" },
+	{ TIME_LE,  "<= (invar a: DateTime, invar b: DateTime) => bool" },
 
 	{ NULL, NULL }
 };
@@ -933,7 +956,7 @@ static DaoFuncItem timeFuncs[] =
 	/*! Returns the difference between \a start and \a end datetime in days and microseconds.
 	 *
 	 * \note \a start and \a end should be of the same kind */
-	{ TIME_Diff,  "diff(start: DateTime, end: DateTime) => tuple<days: int, seconds: int>" },
+	{ TIME_Diff,  "diff(start: DateTime, end: DateTime) => tuple<days: int, seconds: float>" },
 
 	/*! Returns local time zone information (environment variable *TZ*):
 	 * -\c dst -- is Daylight Saving Time (DST) used
@@ -987,11 +1010,15 @@ DAO_DLL_EXPORT int DaoTime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DTime epoch1970 = { 1970, 1, 1, 0, 0, 0.0 };
 	DTime utc = DTime_Now(0);
 	DTime loc = DTime_Now(1);
+	int mod;
 
 	epoch2000_days = DTime_ToJulianDay( epoch2000 );
 	epoch2000_useconds = epoch2000_days * 24 * 3600 * 1E6;
 	epoch1970_seconds = DTime_ToJulianDay( epoch1970 ) * 24 * 3600;
 	time_zone_offset = DTime_ToSeconds( loc ) - DTime_ToSeconds( utc );
+	mod = time_zone_offset%10;
+	if ( mod ) // prevent errors caused by the possible difference between 'utc' and 'loc' in seconds
+		time_zone_offset += mod < 5? -mod : 10 - mod;
 
 	daox_type_time = DaoNamespace_WrapType( timens, &timeTyper, DAO_CPOD, DAO_CTYPE_INVAR );
 	DaoNamespace_WrapFunctions( timens, timeFuncs );
