@@ -335,43 +335,42 @@ void SplitValue( DString *value, DaoList *list )
 	}
 }
 
-const char* ParseTimeOfDay( const char *cp, struct tm *ts )
+const char* ParseTimeOfDay( const char *cp, DTime *ts )
 {
 	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || cp[2] != ':' )
 		return NULL;
-	ts->tm_hour = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	ts->hour = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
 	cp += 3;
 	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || cp[2] != ':' )
 		return NULL;
-	ts->tm_min = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	ts->minute = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
 	cp += 3;
 	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || cp[2] != ' ' )
 		return NULL;
-	ts->tm_sec = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	ts->second = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
 	cp += 3;
 	return cp;
 }
 
-const char* ParseMonth( const char *cp, struct tm *ts )
+const char* ParseMonth( const char *cp, DTime *ts )
 {
 	int i;
 	const char *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 	for ( i = 0; i < 12; ++i )
 		if ( strncmp( months[i], cp, 3 ) == 0 ){
-			ts->tm_mon = i;
+			ts->month = i;
 			return cp + 3;
 		}
 	return NULL;
 }
 
-time_t ParseImfDate( DString *date )
+DTime ParseImfDate( DString *date )
 {
-	const time_t inv_date = (time_t)-1;
+	const DTime inv_date = {-1};
 	const char *dnames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
 	const char *cp = date->chars;
-	struct tm ts = {0};
+	DTime ts = {0};
 	int i, found = 0;
-	ts.tm_isdst = -1;
 	for ( i = 0; i < 7; ++i )
 		if ( strncmp( dnames[i], cp, 3 ) == 0 ){
 			found = 1;
@@ -384,7 +383,7 @@ time_t ParseImfDate( DString *date )
 		return inv_date;
 	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || cp[2] != ' ' )
 		return inv_date;
-	ts.tm_mday = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	ts.day = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
 	cp = ParseMonth( cp + 3, &ts );
 	if ( !cp )
 		return inv_date;
@@ -392,21 +391,20 @@ time_t ParseImfDate( DString *date )
 		return inv_date;
 	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || !isdigit( cp[2] ) || !isdigit( cp[3] ) || cp[4] != ' ' )
 		return inv_date;
-	ts.tm_year = ( cp[0] - '0' )*1000 + ( cp[1] - '0' )*100 + ( cp[2] - '0' )*10 + ( cp[3] - '0' ) - 1900;
+	ts.year = ( cp[0] - '0' )*1000 + ( cp[1] - '0' )*100 + ( cp[2] - '0' )*10 + ( cp[3] - '0' ) - 1900;
 	cp = ParseTimeOfDay( cp + 5, &ts );
 	if ( !cp || strcmp( cp, "GMT" ) != 0 )
 		return inv_date;
-	return _DaoMkTimeUtc( &ts );
+	return _DTime_LocalToUtc( ts );
 }
 
-time_t ParseRfc850Date(DString *date)
+DTime ParseRfc850Date(DString *date)
 {
-	const time_t inv_date = (time_t)-1;
+	const DTime inv_date = {-1};
 	const char *dnames[] = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
 	const char *cp = date->chars;
-	struct tm ts = {0};
+	DTime ts = {0};
 	int i, found = 0;
-	ts.tm_isdst = -1;
 	for ( i = 0; i < 7; ++i ){
 		int len = strlen(dnames[i]);
 		if ( strncmp( dnames[i], cp, len ) == 0 ){
@@ -419,7 +417,7 @@ time_t ParseRfc850Date(DString *date)
 		return inv_date;
 	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || cp[2] != '-' )
 		return inv_date;
-	ts.tm_mday = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	ts.day = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
 	cp = ParseMonth( cp + 3, &ts );
 	if ( !cp )
 		return inv_date;
@@ -427,23 +425,22 @@ time_t ParseRfc850Date(DString *date)
 		return inv_date;
 	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || cp[2] != ' ' )
 		return inv_date;
-	ts.tm_year = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
-	if ( ts.tm_year < 70 )
-		ts.tm_year += 100;
+	ts.year = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	if ( ts.year < 70 )
+		ts.year += 100;
 	cp = ParseTimeOfDay( cp + 3, &ts );
 	if ( !cp || strcmp( cp, "GMT" ) != 0 )
 		return inv_date;
-	return _DaoMkTimeUtc( &ts );
+	return _DTime_LocalToUtc( ts );
 }
 
-time_t ParseAsctimeDate(DString *date)
+DTime ParseAsctimeDate(DString *date)
 {
-	const time_t inv_date = (time_t)-1;
+	const DTime inv_date = {-1};
 	const char *dnames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
 	const char *cp = date->chars;
-	struct tm ts = {0};
+	DTime ts = {0};
 	int i, found = 0;
-	ts.tm_isdst = -1;
 	for ( i = 0; i < 7; ++i )
 		if ( strncmp( dnames[i], cp, 3 ) == 0 ){
 			found = 1;
@@ -460,9 +457,9 @@ time_t ParseAsctimeDate(DString *date)
 	if ( *( cp++ ) != ' ' )
 		return inv_date;
 	if ( isdigit( cp[0] ) && isdigit( cp[1] ) )
-		ts.tm_mday = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+		ts.day = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
 	else if ( cp[0] == ' ' && isdigit( cp[1] ) )
-		ts.tm_mday = cp[1] - '0';
+		ts.day = cp[1] - '0';
 	else
 		return inv_date;
 	cp += 2;
@@ -473,20 +470,20 @@ time_t ParseAsctimeDate(DString *date)
 		return inv_date;
 	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || !isdigit( cp[2] ) || !isdigit( cp[3] ) )
 		return inv_date;
-	ts.tm_year = ( cp[0] - '0' )*1000 + ( cp[1] - '0' )*100 + ( cp[2] - '0' )*10 + ( cp[3] - '0' ) - 1900;
+	ts.year = ( cp[0] - '0' )*1000 + ( cp[1] - '0' )*100 + ( cp[2] - '0' )*10 + ( cp[3] - '0' ) - 1900;
 	cp += 4;
 	if ( *cp )
 		return inv_date;
-	return _DaoMkTimeUtc( &ts );
+	return _DTime_LocalToUtc( ts );
 }
 
-time_t ParseHttpDate( DString *date )
+DTime ParseHttpDate( DString *date )
 {
-	time_t inv_date = (time_t)-1;
-	time_t value = ParseImfDate( date );
-	if ( value == inv_date ){
+	const DTime inv_date = {-1};
+	DTime value = ParseImfDate( date );
+	if ( value.day == -1 ){
 		value = ParseRfc850Date( date );
-		if ( value == inv_date )
+		if ( value.day == -1 )
 			value = ParseAsctimeDate( date );
 	}
 	return value;
@@ -580,11 +577,11 @@ void ParseCookieString( DaoProcess *proc, DString *str, DaoMap *cookies )
 
 				if ( strncmp( pname, "Expires", len ) == 0 ){
 					DString date = DString_WrapBytes( start, cp - start );
-					time_t tm = ParseHttpDate( &date );
-					if ( tm != (time_t)-1 ){ // ignore invalid dates
-						DaoValue *val = _DaoProcess_NewTime( proc, tm, 0 );
+					DTime tm = ParseHttpDate( &date );
+					if ( tm.day != -1 ){ // ignore invalid dates
+						DaoTime *val = _DaoProcess_NewTime( proc, tm, 0 );
 						if ( val )
-							DaoTuple_SetItem( tup, val, 1 );
+							DaoTuple_SetItem( tup, (DaoValue*)val, 1 );
 					}
 				}
 				else if( strncmp( pname, "Max-Age", len ) == 0 ){
@@ -788,9 +785,16 @@ static void DaoHttpHeader_Cookies( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
 	DaoMap *res = DaoProcess_PutMap( proc, 1 );
+	DaoList *list = DaoList_New();
 	daoint i;
-	for ( i = 0; i < self->cookies->size; ++i )
-		ParseCookieString( proc,  self->cookies->items.pString[i], res );
+	for ( i = 0; i < self->cookies->size; ++i ){
+		int j;
+		SplitValue( self->cookies->items.pString[i], list );
+		for ( j = 0; j < list->value->size; ++j )
+			ParseCookieString( proc, DaoList_GetItem( list, j )->xString.value, res );
+		DaoList_Clear( list );
+	}
+	DaoList_Delete( list );
 }
 
 static DaoFuncItem headerMeths[] =
@@ -1157,17 +1161,13 @@ void AppendFieldValue( DaoValue *value, DString *dest )
 			const char *dnames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
 			const char *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 			DaoTime *t = (DaoTime*)DaoValue_TryGetCdata( value );
-			DaoTime tmp;
-			struct tm *ts = &t->parts;
+			DTime ts = t->time;
 			char buf[100];
-			if ( t->local ){ // convert to utc
-				tmp.value = t->value;
-				tmp.local = 0;
-				_DaoTime_GetParts( &tmp );
-				ts = &tmp.parts;
-			}
-			snprintf( buf, sizeof(buf), "%s, %02i %s %i %02i:%02i:%02i GMT", dnames[ts->tm_wday], (int)ts->tm_mday, months[ts->tm_mon], (int)( 1900 + ts->tm_year ),
-					(int)ts->tm_hour, (int)ts->tm_min, (int)ts->tm_sec );
+			if ( t->local )
+				ts = _DTime_LocalToUtc( t->time );
+			snprintf( buf, sizeof(buf), "%s, %02i %s %i %02i:%02i:%02i GMT", dnames[( _DTime_ToJulianDay(ts) + 1 )%7],
+					(int)ts.day, months[ts.month], (int)( 1900 + ts.year ),
+					(int)ts.hour, (int)ts.minute, (int)ts.second );
 			DString_AppendChars( dest, buf );
 		}
 	}
