@@ -90,6 +90,7 @@ DAO_API( DAO_TIME_DLL, DTime, DTime_UtcToLocal, (DTime utc) );
 DAO_API( DAO_TIME_DLL, dao_time_t, DTime_ToSeconds, (DTime time) );
 DAO_API( DAO_TIME_DLL, dao_time_t, DTime_ToMicroSeconds, (DTime time) );
 DAO_API( DAO_TIME_DLL, time_t, DTime_ToTime, (DTime time) );
+DAO_API( DAO_TIME_DLL, time_t, DTime_ToStructTM, (DTime time, struct tm *parts) );
 DAO_API( DAO_TIME_DLL, int, DTime_ToDay, (DTime time) );
 DAO_API( DAO_TIME_DLL, int, DTime_ToJulianDay, (DTime time) );
 DAO_API( DAO_TIME_DLL, int, DTime_Compare, (DTime first, DTime second) );

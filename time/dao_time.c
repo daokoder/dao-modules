@@ -216,8 +216,7 @@ dao_time_t DTime_ToMicroSeconds( DTime time )
 DTime DTime_LocalToUtc( DTime local )
 {
 	dao_time_t loc_s = DTime_ToSeconds( local );
-	int offset = time_zone_offset;
-	DTime utc = DTime_FromSeconds( loc_s - offset );
+	DTime utc = DTime_FromSeconds( loc_s - time_zone_offset );
 	utc.second = local.second;
 	return utc;
 }
@@ -225,8 +224,7 @@ DTime DTime_LocalToUtc( DTime local )
 DTime DTime_UtcToLocal( DTime utc )
 {
 	dao_time_t utc_s = DTime_ToSeconds( utc );
-	int offset = time_zone_offset;
-	DTime local = DTime_FromSeconds( utc_s + offset );
+	DTime local = DTime_FromSeconds( utc_s + time_zone_offset );
 	local.second = utc.second;
 	return local;
 }
@@ -245,6 +243,18 @@ int DTime_Compare( DTime first, DTime second )
 	return 0;
 }
 
+time_t DTime_ToStructTM( DTime time, struct tm *parts )
+{
+	parts->tm_year = time.year - 1900;
+	parts->tm_mon  = time.month - 1;
+	parts->tm_mday = time.day;
+	parts->tm_hour = time.hour;
+	parts->tm_min  = time.minute;
+	parts->tm_sec  = time.second;
+	parts->tm_isdst = -1;
+	return mktime( parts );
+}
+
 
 
 DaoTime* DaoTime_New()
@@ -257,7 +267,6 @@ void DaoTime_Delete( DaoTime *self )
 {
 	DaoCpod_Delete( (DaoCpod*) self );
 }
-
 
 int DaoTime_Now( DaoTime *self )
 {
@@ -289,17 +298,6 @@ static void TIME_Time( DaoProcess *proc, DaoValue *p[], int N )
 	}
 }
 
-static time_t DTime_ToTM( DTime *self, struct tm *parts )
-{
-	parts->tm_year = self->year - 1900;
-	parts->tm_mon  = self->month - 1;
-	parts->tm_mday = self->day;
-	parts->tm_hour = self->hour;
-	parts->tm_min  = self->minute;
-	parts->tm_sec  = self->second;
-	parts->tm_isdst = -1;
-	return mktime( parts );
-}
 
 static void TIME_MakeTime( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -314,20 +312,11 @@ static void TIME_MakeTime( DaoProcess *proc, DaoValue *p[], int N )
 	time.minute = p[4]->xInteger.value;
 	time.second = p[5]->xInteger.value;
 
-	if ( DTime_ToTM( & time, & parts ) == (time_t)-1){
+	if ( DTime_ToStructTM( time, & parts ) == (time_t)-1){
 		DaoProcess_RaiseError( proc, timeerr, "Invalid datetime" );
 		return;
 	}
 	DaoProcess_PutTime( proc, time, 1 );
-}
-
-static int IsNum( char *str, int len )
-{
-	int i;
-	for ( i = 0; i < len; i++ )
-		if ( !isdigit( str[i] ) )
-			return 0;
-	return 1;
 }
 
 static int ToBits( const char *str, int len )
@@ -430,7 +419,7 @@ static void TIME_Parse( DaoProcess *proc, DaoValue *p[], int N )
 		time.minute = 0;
 		time.second = 0;
 	}
-	if ( DTime_ToTM( & time, & parts ) == (time_t)-1){
+	if ( DTime_ToStructTM( time, & parts ) == (time_t)-1){
 		DaoProcess_RaiseError( proc, timeerr, "Invalid datetime" );
 		return;
 	}
@@ -465,7 +454,7 @@ static void TIME_Set( DaoProcess *proc, DaoValue *p[], int N )
 		default: break;
 		}
 	}
-	if ( DTime_ToTM( & self->time, & parts ) == (time_t)-1){
+	if ( DTime_ToStructTM( self->time, & parts ) == (time_t)-1){
 		DaoProcess_RaiseError( proc, timeerr, "Invalid datetime" );
 		return;
 	}
@@ -537,7 +526,7 @@ static void TIME_WeekDay( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*) p[0];
 	int jday = DTime_ToJulianDay( self->time );
-	DaoProcess_PutInteger( proc, jday % 7 + 1 );
+	DaoProcess_PutInteger( proc, jday%7 + 1 );
 }
 
 static void TIME_YearDay( DaoProcess *proc, DaoValue *p[], int N )
@@ -612,8 +601,10 @@ static void TIME_Format( DaoProcess *proc, DaoValue *p[], int N )
 		}
 	}
 
-	// TODO: error;
-	DTime_ToTM( & self->time, & parts );
+	if( DTime_ToStructTM( self->time, & parts ) == (time_t)-1 ){
+		DaoProcess_RaiseError( proc, "Param", "Invalid time" );
+		return;
+	}
 	if ( strftime( buf, sizeof(buf), fmt->chars, &parts ))
 		DaoProcess_PutChars( proc, buf );
 	else
@@ -624,8 +615,11 @@ static void TIME_ToString( DaoProcess *proc, DaoValue *p[], int N )
 	DaoTime *self = (DaoTime*) p[0];
 	struct tm parts;
 	char buf[100];
-	// TODO: error;
-	DTime_ToTM( & self->time, & parts );
+
+	if( DTime_ToStructTM( self->time, & parts ) == (time_t)-1 ){
+		DaoProcess_RaiseError( proc, "Param", "Invalid time" );
+		return;
+	}
 	if ( strftime( buf, sizeof(buf), "%Y-%m-%d %H:%M:%S.", &parts )){
 		int len = strlen( buf );
 		GetFracSecond( self->time.second, buf + len, sizeof(buf) - len );
@@ -713,7 +707,7 @@ static void TIME_Format2( DaoProcess *proc, DaoValue *p[], int N )
 				break;
 			case 'W' :
 			case 'w' :
-				wday = (DTime_ToJulianDay(self->time) + 1) % 7;
+				wday = DTime_ToJulianDay(self->time) % 7;
 				if( ! addStringFromMap( key, S, sym, "week", wday ) )
 					sprintf( p1, "%i", wday+1 );
 				else p2 = NULL;
@@ -816,7 +810,7 @@ static void TIME_LE( DaoProcess *proc, DaoValue *p[], int N )
 static void TIME_Add( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*) p[0];
-	DaoTime *res = DaoTime_New();
+	DTime restime = self->time;
 	daoint years = 0;
 	daoint months = 0;
 	daoint days = 0;
@@ -824,7 +818,6 @@ static void TIME_Add( DaoProcess *proc, DaoValue *p[], int N )
 	struct tm parts;
 	int i, y, m, d;
 
-	*res = *self;
 	if ( N == 0 )
 		return;
 	for ( i = 1; i < N; i++ ){
@@ -838,37 +831,36 @@ static void TIME_Add( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	if ( years || months || days ){
 		if ( years || months ){
-			res->time.year += years;
-			res->time.year += months/12;
-			res->time.month += months%12;
-			if ( res->time.month > 12 ){
-				res->time.year += 1;
-				res->time.month -= 12;
-			} else if ( res->time.month < 1 ){
-				res->time.year--;
-				res->time.month = 12 - res->time.month;
+			restime.year += years;
+			restime.year += months/12;
+			restime.month += months%12;
+			if ( restime.month > 12 ){
+				restime.year += 1;
+				restime.month -= 12;
+			} else if ( restime.month < 1 ){
+				restime.year--;
+				restime.month = 12 - restime.month;
 			}
-			d = DaysInMonth( res->time.year, res->time.month );
-			if ( res->time.day > d ){
-				days += d - res->time.day;
-				res->time.day = d;
+			d = DaysInMonth( restime.year, restime.month );
+			if ( restime.day > d ){
+				days += d - restime.day;
+				restime.day = d;
 			}
 		}
 		if ( days ){
 			int jday = DTime_ToJulianDay( self->time ) + days;
-			res->time = DTime_FromJulianDay( jday );
+			restime = DTime_FromJulianDay( jday );
 		}
 	}
 	if ( secs ){
 		dao_time_t S = DTime_ToSeconds( self->time );
-		res->time = DTime_FromSeconds( S + secs );
+		restime = DTime_FromSeconds( S + secs );
 	}
-	if ( DTime_ToTM( & res->time, & parts ) == (time_t)-1){
+	if ( DTime_ToStructTM( restime, & parts ) == (time_t)-1){
 		DaoProcess_RaiseError( proc, timeerr, "Invalid resulting datetime" );
+	} else {
+		self->time = restime;
 	}
-	else
-		*self = *res;
-	DaoTime_Delete( res );
 }
 
 static DaoFuncItem timeMeths[] =
@@ -975,7 +967,7 @@ DaoTime* DaoProcess_PutTime( DaoProcess *self, DTime time, int local )
 
 	if( res == NULL ) return NULL;
 
-	if ( DTime_ToTM( & time, & parts ) == (time_t)-1){
+	if ( DTime_ToStructTM( time, & parts ) == (time_t)-1){
 		DaoProcess_RaiseError( self, timeerr, "Invalid datetime" );
 		return NULL;
 	}
@@ -988,7 +980,7 @@ DaoTime* DaoProcess_NewTime( DaoProcess *self, DTime time, int local )
 {
 	DaoTime *res = (DaoTime*) DaoProcess_NewCpod( self, daox_type_time, sizeof(DaoTime) );
 	struct tm parts;
-	if ( DTime_ToTM( & time, & parts ) == (time_t)-1){
+	if ( DTime_ToStructTM( time, & parts ) == (time_t)-1){
 		DaoProcess_RaiseError( self, timeerr, "Invalid datetime" );
 		return NULL;
 	}
@@ -1015,10 +1007,12 @@ DAO_DLL_EXPORT int DaoTime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	epoch2000_days = DTime_ToJulianDay( epoch2000 );
 	epoch2000_useconds = epoch2000_days * 24 * 3600 * 1E6;
 	epoch1970_seconds = DTime_ToJulianDay( epoch1970 ) * 24 * 3600;
+
 	time_zone_offset = DTime_ToSeconds( loc ) - DTime_ToSeconds( utc );
+
+	// prevent errors caused by the possible difference between 'utc' and 'loc' in seconds
 	mod = time_zone_offset%10;
-	if ( mod ) // prevent errors caused by the possible difference between 'utc' and 'loc' in seconds
-		time_zone_offset += mod < 5? -mod : 10 - mod;
+	if ( mod ) time_zone_offset += mod < 5? -mod : 10 - mod;
 
 	daox_type_time = DaoNamespace_WrapType( timens, &timeTyper, DAO_CPOD, DAO_CTYPE_INVAR );
 	DaoNamespace_WrapFunctions( timens, timeFuncs );
