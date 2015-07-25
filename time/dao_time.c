@@ -96,7 +96,7 @@ DTime DTime_Now( int local )
 {
 	DTime res = {0};
 #ifdef WIN32
-	LPSYSTEMTIME systime;
+	SYSTEMTIME systime;
 	FILETIME ftime;
 	dao_time_t microsecs;
 	if( local ){
@@ -105,13 +105,13 @@ DTime DTime_Now( int local )
 		GetSystemTime( & systime );
 	}
 	GetSystemTimeAsFileTime( & ftime );
-	microsecs = (((dao_time_t) ftime.dwHighDateTime << 32) | tt.dwLowDateTime) / 10;
-	res.year   = sysres.wYear;
-	res.month  = sysres.wMonth;
-	res.day    = sysres.wDay;
-	res.hour   = sysres.wHour;
-	res.minute = sysres.wMinute;
-	res.second = sysres.wSecond + (microsecs % 1E6) / 1.0E6;
+	microsecs = (((dao_time_t) ftime.dwHighDateTime << 32) | ftime.dwLowDateTime) / 10;
+	res.year   = systime.wYear;
+	res.month  = systime.wMonth;
+	res.day    = systime.wDay;
+	res.hour   = systime.wHour;
+	res.minute = systime.wMinute;
+	res.second = systime.wSecond + (microsecs % 1000000) / 1.0E6;
 
 #else
 	struct tm parts;
