@@ -484,7 +484,7 @@ DTime ParseAsctimeDate(DString *date)
 
 DTime ParseHttpDate( DString *date )
 {
-	const DTime inv_date = {-1};
+	const DTime inv_date = {-1, -1, -1, -1, -1, -1};
 	DTime value = ParseImfDate( date );
 	if ( value.day == -1 ){
 		value = ParseRfc850Date( date );
@@ -581,8 +581,11 @@ void ParseCookieString( DaoProcess *proc, DString *str, DaoMap *cookies )
 				for ( ++cp; *cp && *cp != ';'; ++cp ); // param boundary
 
 				if ( strncmp( pname, "Expires", len ) == 0 ){
-					DString date = DString_WrapBytes( start, cp - start );
-					DTime tm = ParseHttpDate( &date );
+					DString *date = DString_New();
+					DTime tm;
+					DString_SetBytes( date, start, cp - start );
+					tm = ParseHttpDate( date );
+					DString_Delete( date );
 					if ( tm.day != -1 ){ // ignore invalid dates
 						DaoTime *val = _DaoProcess_NewTime( proc, tm, 0 );
 						if ( val )
@@ -790,16 +793,9 @@ static void DaoHttpHeader_Cookies( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
 	DaoMap *res = DaoProcess_PutMap( proc, 1 );
-	DaoList *list = DaoList_New();
 	daoint i;
-	for ( i = 0; i < self->cookies->size; ++i ){
-		int j;
-		SplitValue( self->cookies->items.pString[i], list );
-		for ( j = 0; j < list->value->size; ++j )
-			ParseCookieString( proc, DaoList_GetItem( list, j )->xString.value, res );
-		DaoList_Clear( list );
-	}
-	DaoList_Delete( list );
+	for ( i = 0; i < self->cookies->size; ++i )
+		ParseCookieString( proc, self->cookies->items.pString[i], res );
 }
 
 static DaoFuncItem headerMeths[] =
