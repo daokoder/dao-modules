@@ -358,7 +358,7 @@ const char* ParseMonth( const char *cp, DTime *ts )
 	const char *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 	for ( i = 0; i < 12; ++i )
 		if ( strncmp( months[i], cp, 3 ) == 0 ){
-			ts->month = i;
+			ts->month = i + 1;
 			return cp + 3;
 		}
 	return NULL;
@@ -391,7 +391,7 @@ DTime ParseImfDate( DString *date )
 		return inv_date;
 	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || !isdigit( cp[2] ) || !isdigit( cp[3] ) || cp[4] != ' ' )
 		return inv_date;
-	ts.year = ( cp[0] - '0' )*1000 + ( cp[1] - '0' )*100 + ( cp[2] - '0' )*10 + ( cp[3] - '0' ) - 1900;
+	ts.year = ( cp[0] - '0' )*1000 + ( cp[1] - '0' )*100 + ( cp[2] - '0' )*10 + ( cp[3] - '0' );
 	cp = ParseTimeOfDay( cp + 5, &ts );
 	if ( !cp || strcmp( cp, "GMT" ) != 0 )
 		return inv_date;
@@ -470,7 +470,7 @@ DTime ParseAsctimeDate(DString *date)
 		return inv_date;
 	if ( !isdigit( cp[0] ) || !isdigit( cp[1] ) || !isdigit( cp[2] ) || !isdigit( cp[3] ) )
 		return inv_date;
-	ts.year = ( cp[0] - '0' )*1000 + ( cp[1] - '0' )*100 + ( cp[2] - '0' )*10 + ( cp[3] - '0' ) - 1900;
+	ts.year = ( cp[0] - '0' )*1000 + ( cp[1] - '0' )*100 + ( cp[2] - '0' )*10 + ( cp[3] - '0' );
 	cp += 4;
 	if ( *cp )
 		return inv_date;
@@ -1166,7 +1166,7 @@ void AppendFieldValue( DaoValue *value, DString *dest )
 			if ( t->local )
 				ts = _DTime_LocalToUtc( t->time );
 			snprintf( buf, sizeof(buf), "%s, %02i %s %i %02i:%02i:%02i GMT", dnames[( _DTime_ToJulianDay(ts) + 1 )%7],
-					(int)ts.day, months[ts.month], (int)( 1900 + ts.year ),
+					(int)ts.day, months[ts.month], (int)ts.year,
 					(int)ts.hour, (int)ts.minute, (int)ts.second );
 			DString_AppendChars( dest, buf );
 		}
