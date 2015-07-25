@@ -30,6 +30,8 @@
 #include <ctype.h>
 #include <string.h>
 #include <time.h>
+#include <limits.h>
+#include <errno.h>
 
 #include"dao_http.h"
 
@@ -540,6 +542,70 @@ void ParseMediaType( DString *mime, DString *name, DaoMap *params )
 	DaoString_Delete( val );
 }
 
+void ParseCookieString( DaoProcess *proc, DString *str, DaoMap *cookies )
+{
+	DaoString *key = DaoString_New();
+	DString *name = key->value;
+	const char *cp = str->chars;
+	for ( ; *cp && *cp != '='; ++cp ); // name-value boundary
+	if ( *cp ){
+		const char *pname;
+		const char *start = cp + 1;
+		int len;
+		DaoTuple *tup;
+		DaoType *type = cookies->ctype->nested->items.pType[1];
+		DaoNone *none = DaoNone_New();
+		DString_SetBytes( name, str->chars, cp - str->chars );
+		for ( ++cp; *cp && *cp != ';'; ++cp ); // pair-params boundary
+		tup = DaoTuple_Create( type, type->nested->size, 1 );
+		DaoTuple_SetItem( tup, (DaoValue*)none, 1 );
+		DString_SetBytes( tup->values[0]->xString.value, start, cp - start );
+		while ( *cp == ';' ){ // extract params
+			if ( *( ++cp ) != ' ' )
+				break;
+			start = cp + 1;
+			if ( *cp ){
+				for ( ++cp; *cp && *cp != '=' && *cp != ';'; ++cp ); // name-value boundary
+				pname = start;
+				len = cp - start;
+				if ( *cp != '=' ){ // value-less params
+					if ( strncmp( pname, "Secure", len ) == 0 )
+						tup->values[5]->xBoolean.value = 1;
+					else if ( strncmp( pname, "HttpOnly", len ) == 0 )
+						tup->values[6]->xBoolean.value = 1;
+					continue;
+				}
+				start = cp + 1;
+				for ( ++cp; *cp && *cp != ';'; ++cp ); // param boundary
+
+				if ( strncmp( pname, "Expires", len ) == 0 ){
+					DString date = DString_WrapBytes( start, cp - start );
+					time_t tm = ParseHttpDate( &date );
+					if ( tm != (time_t)-1 ){ // ignore invalid dates
+						DaoValue *val = _DaoProcess_NewTime( proc, tm, 0 );
+						if ( val )
+							DaoTuple_SetItem( tup, val, 1 );
+					}
+				}
+				else if( strncmp( pname, "Max-Age", len ) == 0 ){
+					if ( *start > '0' && *start <= '9' ){ // non-zero
+						char *end;
+						unsigned long long num;
+						num = strtoull( start, &end, 10 );
+						if ( num && end == cp && ( num != ULLONG_MAX || errno != ERANGE ) )
+							tup->values[2]->xInteger.value = num;
+					}
+				}
+				else if ( strncmp( pname, "Domain", len ) == 0 ||
+						  strncmp( pname, "Path", len ) == 0 )
+					DString_SetBytes( tup->values[*pname == 'D'? 3 : 4]->xString.value, start, cp - start );
+			}
+		}
+		DaoMap_Insert( cookies, (DaoValue*)key, (DaoValue*)tup );
+	}
+	DaoString_Delete( key );
+}
+
 static void DaoHttpHeader_Version( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
@@ -721,13 +787,10 @@ static void DaoHttpHeader_Date( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoHttpHeader_Cookies( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
-	DaoList *res = DaoProcess_PutList( proc );
+	DaoMap *res = DaoProcess_PutMap( proc, 1 );
 	daoint i;
-	for ( i = 0; i < self->cookies->size; ++i ){
-		DaoString *str = DaoString_New();
-		DaoString_Set( str, self->cookies->items.pString[i] );
-		DaoList_Append( res, (DaoValue*)str );
-	}
+	for ( i = 0; i < self->cookies->size; ++i )
+		ParseCookieString( proc,  self->cookies->items.pString[i], res );
 }
 
 static DaoFuncItem headerMeths[] =
@@ -739,7 +802,8 @@ static DaoFuncItem headerMeths[] =
 	{ DaoHttpHeader_Size,		".size(self: Header) => int" },
 
 	//! Cookies set by 'Cookie' or 'Set-Cookie' fields (for requests and responses accordingly)
-	{ DaoHttpHeader_Cookies,	".cookies(self: Header) => list<string>" },
+	{ DaoHttpHeader_Cookies,	".cookies(self: Header) => map<string, tuple<name: string, expires: time::DateTime|none, "
+								"maxAge: int, domain: string, path: string, secure: bool, httpOnly: bool>>" },
 
 	//! Specific field (header) value
 	//!
@@ -1527,6 +1591,11 @@ http_err_t ParseMultipartForm( DString *form, DString *boundary, DaoMap *parts )
 			DaoTuple *mime;
 			type = &tup->ctype->nested->items.pType[2]->aux->xType;
 			mime = DaoTuple_Create( type, type->nested->size, 1 );
+			if ( !mime->values[1] ){
+				DaoMap *map = DaoMap_New( 0 );
+				DaoMap_SetType( map, &mime->ctype->nested->items.pType[1]->aux->xType );
+				DaoTuple_SetItem( mime, (DaoValue*)map, 1 );
+			}
 			DaoTuple_SetItem( tup, (DaoValue*)mime, 2 );
 		}
 		DString_Clear( name );
@@ -1606,11 +1675,6 @@ http_err_t ParseMultipartForm( DString *form, DString *boundary, DaoMap *parts )
 			}
 			else if ( strcmp( fname->chars, "content-type" ) == 0 ){
 				DaoTuple *mime = &tup->values[2]->xTuple;
-				if ( !mime->values[1] ){
-					DaoMap *map = DaoMap_New( 0 );
-					DaoMap_SetType( map, &mime->ctype->nested->items.pType[1]->aux->xType );
-					DaoTuple_SetItem( mime, (DaoValue*)map, 1 );
-				}
 				ParseMediaType( value, mime->values[0]->xString.value, &mime->values[1]->xMap );
 			}
 			else if ( strcmp( fname->chars, "content-transfer-encoding" ) == 0 ){
