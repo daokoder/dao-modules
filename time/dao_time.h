@@ -45,25 +45,59 @@
 #include"daoValue.h"
 #include<ctype.h>
 
-#ifdef UNIX
-#include<sys/time.h>
-#else
-#include<time.h>
-#endif
 
-typedef struct DaoTime DaoTime;
+typedef long long       dao_time_t;
+typedef struct DTime    DTime;
+typedef struct DaoTime  DaoTime;
 
-struct DaoTime {
-	time_t value;
-	int local;
-	struct tm parts;
-	int jday;
+/*
+// Zero month indicates an invalid datetime;
+*/
+struct DTime
+{
+	int     year;
+	char    month;
+	char    day;
+	char    hour;
+	char    minute;
+	double  second;
 };
+
+struct DaoTime
+{
+	DAO_CPOD_COMMON;
+
+	DTime  time;
+	short  local;
+};
+
+
 #endif
 
+/*
+// Note:
+// -- Seconds in DTime_FromTime()/DTime_ToTime() are counted since 1970-1-1, 00:00:00 UTC;
+// -- Other days, seconds and micro-seconds are counted since 2000-1-1, 00:00:00 UTC;
+*/
+DAO_API( DAO_TIME_DLL, DTime, DTime_Now, (int local) );
+DAO_API( DAO_TIME_DLL, DTime, DTime_FromTime, (time_t seconds) );
+DAO_API( DAO_TIME_DLL, DTime, DTime_FromSeconds, (dao_time_t seconds) );
+DAO_API( DAO_TIME_DLL, DTime, DTime_FromMicroSeconds, (dao_time_t useconds) );
+DAO_API( DAO_TIME_DLL, DTime, DTime_FromDay, (int day) );
+DAO_API( DAO_TIME_DLL, DTime, DTime_FromJulianDay, (int jday) );
+DAO_API( DAO_TIME_DLL, DTime, DTime_LocalToUtc, (DTime local) );
+DAO_API( DAO_TIME_DLL, DTime, DTime_UtcToLocal, (DTime utc) );
+DAO_API( DAO_TIME_DLL, dao_time_t, DTime_ToSeconds, (DTime time) );
+DAO_API( DAO_TIME_DLL, dao_time_t, DTime_ToMicroSeconds, (DTime time) );
+DAO_API( DAO_TIME_DLL, time_t, DTime_ToTime, (DTime time) );
+DAO_API( DAO_TIME_DLL, int, DTime_ToDay, (DTime time) );
+DAO_API( DAO_TIME_DLL, int, DTime_ToJulianDay, (DTime time) );
+DAO_API( DAO_TIME_DLL, int, DTime_Compare, (DTime first, DTime second) );
 
-DAO_API( DAO_TIME_DLL, time_t, DaoMkTimeUtc, (struct tm *ts) );
-DAO_API( DAO_TIME_DLL, int, DaoTime_GetParts, (DaoTime *self) );
-DAO_API( DAO_TIME_DLL, DaoTime*, DaoProcess_PutTime, (DaoProcess *proc, time_t value, int local) );
-DAO_API( DAO_TIME_DLL, DaoValue*, DaoProcess_NewTime, (DaoProcess *proc, time_t value, int local) );
+DAO_API( DAO_TIME_DLL, DaoTime*, DaoTime_New, () );
+DAO_API( DAO_TIME_DLL, void, DaoTime_Delete, (DaoTime *self) );
+DAO_API( DAO_TIME_DLL, int, DaoTime_Now, (DaoTime *self) );
+
+DAO_API( DAO_TIME_DLL, DaoTime*, DaoProcess_PutTime, (DaoProcess *self, DTime time, int local) );
+DAO_API( DAO_TIME_DLL, DaoTime*, DaoProcess_NewTime, (DaoProcess *self, DTime time, int local) );
 

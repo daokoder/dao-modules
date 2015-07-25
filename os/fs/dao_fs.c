@@ -853,12 +853,12 @@ static void FSNode_Time( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
 	DaoTuple *res = DaoProcess_PutTuple( proc, 3 );
-	DaoTuple_SetItem( res, _DaoProcess_NewTime( proc, self->ctime, 1 ), 0 );
-	DaoTuple_SetItem( res, _DaoProcess_NewTime( proc, self->mtime, 1 ), 1 );
-	DaoTuple_SetItem( res, _DaoProcess_NewTime( proc, self->atime, 1 ), 2 );
-//	res->values[0]->xInteger.value = self->ctime;
-//	res->values[1]->xInteger.value = self->mtime;
-//	res->values[2]->xInteger.value = self->atime;
+	DTime ctime = _DTime_UtcToLocal( _DTime_FromTime( self->ctime ) );
+	DTime mtime = _DTime_UtcToLocal( _DTime_FromTime( self->mtime ) );
+	DTime atime = _DTime_UtcToLocal( _DTime_FromTime( self->atime ) );
+	DaoTuple_SetItem( res, (DaoValue*) _DaoProcess_NewTime( proc, ctime, 1 ), 0 );
+	DaoTuple_SetItem( res, (DaoValue*) _DaoProcess_NewTime( proc, mtime, 1 ), 1 );
+	DaoTuple_SetItem( res, (DaoValue*) _DaoProcess_NewTime( proc, atime, 1 ), 2 );
 }
 
 static void FSNode_Access( DaoProcess *proc, DaoValue *p[], int N )
