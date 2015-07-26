@@ -441,19 +441,26 @@ static void TIME_Set( DaoProcess *proc, DaoValue *p[], int N )
 	DaoTime *self = (DaoTime*) p[0];
 	struct tm parts;
 	daoint i;
+	DString *name = DString_New();
 
 	for ( i = 1; i < N; i++ ){
-		dao_float val = p[i]->xTuple.values[1]->xFloat.value;
-		switch ( p[i]->xTuple.values[0]->xEnum.value ){
-		case 0:  self->time.year  = val; break; // year
-		case 1:  self->time.month  = val; break; // month
-		case 2:  self->time.day    = val; break; // day
-		case 3:  self->time.hour   = val; break; // hour
-		case 4:  self->time.minute = val; break; // min
-		case 5:  self->time.second = val; break; // sec
-		default: break;
+		DaoEnum *en = &p[i]->xTuple.values[0]->xEnum;
+		DaoEnum_MakeName( en, name );
+		if ( strcmp( name->chars, "$second" ) == 0 )
+			self->time.second =  p[i]->xTuple.values[1]->xFloat.value; //sec
+		else {
+			dao_integer val = p[i]->xTuple.values[1]->xInteger.value;
+			switch ( p[i]->xTuple.values[0]->xEnum.value ){
+			case 0:  self->time.year  = val; break; // year
+			case 1:  self->time.month  = val; break; // month
+			case 2:  self->time.day    = val; break; // day
+			case 3:  self->time.hour   = val; break; // hour
+			case 4:  self->time.minute = val; break; // min
+			default: break;
+			}
 		}
 	}
+	DString_Delete( name );
 	if ( DTime_ToStructTM( self->time, & parts ) == (time_t)-1){
 		DaoProcess_RaiseError( proc, timeerr, "Invalid datetime" );
 		return;
@@ -477,12 +484,9 @@ static void TIME_Convert( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*) p[0];
 
-	if( self->local == (p[1]->xEnum.value == 0) ){
-		DaoTime *res = DaoProcess_PutTime( proc, self->time, self->local );
-	}else if( p[1]->xEnum.value == 0 ){
-		DaoTime *res = DaoProcess_PutTime( proc, DTime_UtcToLocal( self->time ), 1 );
-	}else{
-		DaoTime *res = DaoProcess_PutTime( proc, DTime_LocalToUtc( self->time ), 0 );
+	if( self->local != (p[1]->xEnum.value == 0) ){
+		self->time = p[1]->xEnum.value == 0? DTime_UtcToLocal( self->time ) : DTime_LocalToUtc( self->time );
+		self->local = !self->local;
 	}
 }
 
@@ -866,7 +870,7 @@ static void TIME_Add( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem timeMeths[] =
 {
 	/*! Sets one or more datetime parts using named values */
-	{ TIME_Set,     "set(self: DateTime, ...: tuple<enum<year,month,day,hour,min,sec>,float>)" },
+	{ TIME_Set,     "set(self: DateTime, ...: tuple<enum<year,month,day,hour,minute>,int> | tuple<enum<second>,float>)" },
 
 	/*! \c Returns the number of microseconds since 2000-1-1, 00:00:00 UTC */
 	{ TIME_Value,   ".value(invar self: DateTime) => int" },
@@ -875,8 +879,8 @@ static DaoFuncItem timeMeths[] =
 	/*! Returns datetime kind with regard to the time zone: UTC or local */
 	{ TIME_Type,    ".kind(invar self: DateTime) => enum<local,utc>" },
 
-	/*! Converts datetime to the given \a kind and returns new datetime object representing the result */
-	{ TIME_Convert, "convert(invar self: DateTime, kind: enum<local,utc>) => DateTime" },
+	/*! Converts datetime to the given \a kind */
+	{ TIME_Convert, "convert(self: DateTime, kind: enum<local,utc>)" },
 
 	/*! Specific datetime part */
 	{ TIME_Second,  ".second(invar self: DateTime) => float" },
@@ -887,10 +891,10 @@ static DaoFuncItem timeMeths[] =
 	{ TIME_Year,    ".year(invar self: DateTime) => int" },
 
 	/*! Day of week */
-	{ TIME_WeekDay, ".wday(invar self: DateTime) => int" },
+	{ TIME_WeekDay, ".weekDay(invar self: DateTime) => int" },
 
 	/*! Day of year */
-	{ TIME_YearDay, ".yday(invar self: DateTime) => int" },
+	{ TIME_YearDay, ".yearDay(invar self: DateTime) => int" },
 
 	/*! Returns datetime formatted to string using \a format, which follows the rules for C \c strftime() with
 	 * the following exceptions:
