@@ -1019,6 +1019,8 @@ struct DaoSocket
 };
 
 struct DaoIpv4Addr {
+	DAO_CPOD_COMMON;
+
 	uint8_t octets[4];
 };
 
@@ -1034,6 +1036,11 @@ DaoType *daox_type_tcplistener = NULL;
 DaoType *daox_type_udpsocket = NULL;
 DaoType *daox_type_ipv4addr = NULL;
 DaoType *daox_type_sockaddr = NULL;
+
+DaoIpv4Addr* DaoIpv4Addr_New()
+{
+	return (DaoIpv4Addr*)DaoCpod_New( daox_type_ipv4addr, sizeof(DaoIpv4Addr) );
+}
 
 static DaoSocket* DaoSocket_New(  )
 {
@@ -1961,7 +1968,7 @@ void DaoIpv4Addr_Delete( DaoIpv4Addr *self )
 
 static void DaoIpv4Addr_Create( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoIpv4Addr *res = (DaoIpv4Addr*)dao_malloc( sizeof(DaoIpv4Addr) );
+	DaoIpv4Addr *res = (DaoIpv4Addr*)DaoProcess_PutCpod( proc, daox_type_ipv4addr, sizeof(DaoIpv4Addr) );
 	if ( p[0]->type == DAO_STRING ){
 		DString *str = p[0]->xString.value;
 		if ( !str->size ){
@@ -1987,12 +1994,11 @@ static void DaoIpv4Addr_Create( DaoProcess *proc, DaoValue *p[], int N  )
 			res->octets[i] = octet;
 		}
 	}
-	DaoProcess_PutCdata( proc, res, daox_type_ipv4addr );
 }
 
 static void DaoIpv4Addr_ToString( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoIpv4Addr *self = (DaoIpv4Addr*)DaoValue_TryGetCdata( p[0] );
+	DaoIpv4Addr *self = (DaoIpv4Addr*)p[0];
 	char buf[20];
 	snprintf( buf, sizeof(buf), "%i.%i.%i.%i", (int)self->octets[0], (int)self->octets[1], (int)self->octets[2], (int)self->octets[3] );
 	DaoProcess_PutChars( proc, buf );
@@ -2010,7 +2016,7 @@ enum {
 
 static void DaoIpv4Addr_Check( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoIpv4Addr *self = (DaoIpv4Addr*)DaoValue_TryGetCdata( p[0] );
+	DaoIpv4Addr *self = (DaoIpv4Addr*)p[0];
 	int res;
 	uint8_t *octets = self->octets;
 	switch ( p[1]->xEnum.value ){
@@ -2043,29 +2049,29 @@ static void DaoIpv4Addr_Check( DaoProcess *proc, DaoValue *p[], int N  )
 
 static void DaoIpv4Addr_Lt( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoIpv4Addr *a = (DaoIpv4Addr*)DaoValue_TryGetCdata( p[0] );
-	DaoIpv4Addr *b = (DaoIpv4Addr*)DaoValue_TryGetCdata( p[1] );
+	DaoIpv4Addr *a = (DaoIpv4Addr*)p[0];
+	DaoIpv4Addr *b = (DaoIpv4Addr*)p[1];
 	DaoProcess_PutBoolean( proc, memcmp( a->octets, b->octets, 4 ) < 0 );
 }
 
 static void DaoIpv4Addr_Le( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoIpv4Addr *a = (DaoIpv4Addr*)DaoValue_TryGetCdata( p[0] );
-	DaoIpv4Addr *b = (DaoIpv4Addr*)DaoValue_TryGetCdata( p[1] );
+	DaoIpv4Addr *a = (DaoIpv4Addr*)p[0];
+	DaoIpv4Addr *b = (DaoIpv4Addr*)p[1];
 	DaoProcess_PutBoolean( proc, memcmp( a->octets, b->octets, 4 ) <= 0 );
 }
 
 static void DaoIpv4Addr_Eq( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoIpv4Addr *a = (DaoIpv4Addr*)DaoValue_TryGetCdata( p[0] );
-	DaoIpv4Addr *b = (DaoIpv4Addr*)DaoValue_TryGetCdata( p[1] );
+	DaoIpv4Addr *a = (DaoIpv4Addr*)p[0];
+	DaoIpv4Addr *b = (DaoIpv4Addr*)p[1];
 	DaoProcess_PutBoolean( proc, memcmp( a->octets, b->octets, 4 ) == 0 );
 }
 
 static void DaoIpv4Addr_Neq( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoIpv4Addr *a = (DaoIpv4Addr*)DaoValue_TryGetCdata( p[0] );
-	DaoIpv4Addr *b = (DaoIpv4Addr*)DaoValue_TryGetCdata( p[1] );
+	DaoIpv4Addr *a = (DaoIpv4Addr*)p[0];
+	DaoIpv4Addr *b = (DaoIpv4Addr*)p[1];
 	DaoProcess_PutBoolean( proc, memcmp( a->octets, b->octets, 4 ) != 0 );
 }
 
@@ -2082,23 +2088,21 @@ void IPv4_Add( DaoIpv4Addr *self, int32_t value, DaoIpv4Addr *res )
 
 static void DaoIpv4Addr_Lib_Add( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoIpv4Addr *self = (DaoIpv4Addr*)DaoValue_TryGetCdata( p[0] );
-	DaoIpv4Addr *res = (DaoIpv4Addr*)dao_malloc( sizeof(DaoIpv4Addr) );
+	DaoIpv4Addr *self = (DaoIpv4Addr*)p[0];
+	DaoIpv4Addr *res = (DaoIpv4Addr*)DaoProcess_PutCpod( proc, daox_type_ipv4addr, sizeof(DaoIpv4Addr) );
 	IPv4_Add( self, p[1]->xInteger.value, res );
-	DaoProcess_PutCdata( proc, res, daox_type_ipv4addr );
 }
 
 static void DaoIpv4Addr_Lib_Sub( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoIpv4Addr *self = (DaoIpv4Addr*)DaoValue_TryGetCdata( p[0] );
-	DaoIpv4Addr *res = (DaoIpv4Addr*)dao_malloc( sizeof(DaoIpv4Addr) );
+	DaoIpv4Addr *self = (DaoIpv4Addr*)p[0];
+	DaoIpv4Addr *res = (DaoIpv4Addr*)DaoProcess_PutCpod( proc, daox_type_ipv4addr, sizeof(DaoIpv4Addr) );
 	IPv4_Add( self, -p[1]->xInteger.value, res );
-	DaoProcess_PutCdata( proc, res, daox_type_ipv4addr );
 }
 
 static void DaoIpv4Addr_Octets( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoIpv4Addr *self = (DaoIpv4Addr*)DaoValue_TryGetCdata( p[0] );
+	DaoIpv4Addr *self = (DaoIpv4Addr*)p[0];
 	DaoTuple *tup = DaoProcess_PutTuple( proc, 4 );
 	daoint i;
 	for ( i = 0; i < 4; i++ )
@@ -2155,7 +2159,7 @@ static void DaoSocketAddr_Create( DaoProcess *proc, DaoValue *p[], int N )
 		}
 	}
 	else {
-		DaoIpv4Addr *ip = (DaoIpv4Addr*)DaoValue_TryGetCdata( p[0] );
+		DaoIpv4Addr *ip = (DaoIpv4Addr*)p[0];
 		dao_integer port = p[1]->xInteger.value;
 		if ( !CheckPort( proc, port ) ){
 			dao_free( addr );
@@ -2192,9 +2196,8 @@ static void DaoSocketAddr_Neq( DaoProcess *proc, DaoValue *p[], int N  )
 static void DaoSocketAddr_IP( DaoProcess *proc, DaoValue *p[], int N  )
 {
 	DaoSocketAddr *self = (DaoSocketAddr*)DaoValue_TryGetCdata( p[0] );
-	DaoIpv4Addr *ip = (DaoIpv4Addr*)dao_malloc( sizeof(DaoIpv4Addr) );
+	DaoIpv4Addr *ip = (DaoIpv4Addr*)DaoProcess_PutCpod( proc, daox_type_ipv4addr, sizeof(DaoIpv4Addr) );
 	*(ipv4_t*)ip->octets = *(ipv4_t*)self->ip;
-	DaoProcess_PutCdata( proc, ip, daox_type_ipv4addr );
 }
 
 static void DaoSocketAddr_Port( DaoProcess *proc, DaoValue *p[], int N  )
@@ -2335,10 +2338,9 @@ static void DaoNetLib_GetHost( DaoProcess *proc, DaoValue *par[], int N  )
 			p ++;
 		}
 		while ( *q ){
-			DaoIpv4Addr *ip = (DaoIpv4Addr*)dao_malloc( sizeof(DaoIpv4Addr) );
+			DaoIpv4Addr *ip = (DaoIpv4Addr*)DaoProcess_NewCpod( proc, daox_type_ipv4addr, sizeof(DaoIpv4Addr) );
 			*(ipv4_t*)ip->octets = ( (struct in_addr*)(*q) )->s_addr;
-			DaoValue *value = (DaoValue*)DaoProcess_NewCdata( proc, daox_type_ipv4addr, ip, 1 );
-			DaoList_Append( &tup->values[2]->xList, value );
+			DaoList_Append( &tup->values[2]->xList, (DaoValue*)ip );
 			q ++;
 		}
 	}else{ /* AF_INET6 */
@@ -2526,7 +2528,7 @@ DAO_DLL int DaoNet_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace *netns = DaoNamespace_GetNamespace( ns, "net" );
 	DaoNamespace_DefineType( netns, SimpleTypes"|"ArrayTypes"|"ContainerTypes, "Object" );
 	DaoNamespace_AddConstNumbers( netns, netConsts );
-	daox_type_ipv4addr = DaoNamespace_WrapType( netns, & Ipv4AddrTyper, DAO_CDATA, DAO_CTYPE_INVAR );
+	daox_type_ipv4addr = DaoNamespace_WrapType( netns, & Ipv4AddrTyper, DAO_CPOD, DAO_CTYPE_INVAR );
 	daox_type_sockaddr = DaoNamespace_WrapType( netns, & sockaddrTyper, DAO_CDATA, DAO_CTYPE_INVAR );
 	daox_type_socket = DaoNamespace_WrapType( netns, & socketTyper, DAO_CDATA, 0 );
 	daox_type_tcpstream = DaoNamespace_WrapType( netns, & TcpStreamTyper, DAO_CDATA, 0 );
