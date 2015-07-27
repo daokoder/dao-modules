@@ -98,6 +98,7 @@ DAO_API( DAO_TIME_DLL, int, DTime_Compare, (DTime first, DTime second) );
 DAO_API( DAO_TIME_DLL, DaoTime*, DaoTime_New, () );
 DAO_API( DAO_TIME_DLL, void, DaoTime_Delete, (DaoTime *self) );
 DAO_API( DAO_TIME_DLL, int, DaoTime_Now, (DaoTime *self) );
+DAO_API( DAO_TIME_DLL, DaoType*, DaoTime_Type, () );
 
 DAO_API( DAO_TIME_DLL, DaoTime*, DaoProcess_PutTime, (DaoProcess *self, DTime time, int local) );
 DAO_API( DAO_TIME_DLL, DaoTime*, DaoProcess_NewTime, (DaoProcess *self, DTime time, int local) );

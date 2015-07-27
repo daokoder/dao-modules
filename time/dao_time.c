@@ -287,6 +287,11 @@ int DaoTime_Now( DaoTime *self )
 	return self->time.month;
 }
 
+DaoType* DaoTime_Type()
+{
+	return daox_type_time;
+}
+
 
 
 static void TIME_Now( DaoProcess *proc, DaoValue *p[], int N )
@@ -539,6 +544,68 @@ static void TIME_Year( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*) p[0];
 	DaoProcess_PutInteger( proc, self->time.year );
+}
+
+static void TIME_SetSecond( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTime *self = (DaoTime*) p[0];
+	dao_float value = p[1]->xFloat.value;
+	if( value < 0.0 || value >= 60.0 ){
+		DaoProcess_RaiseError( proc, "Param", "Invalid seconds" );
+		return;
+	}
+	self->time.second = value;
+}
+
+static void TIME_SetMinute( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTime *self = (DaoTime*) p[0];
+	int value = p[1]->xInteger.value;
+	if( value < 0 || value >= 60 ){
+		DaoProcess_RaiseError( proc, "Param", "Invalid minutes" );
+		return;
+	}
+	self->time.minute = value;
+}
+
+static void TIME_SetHour( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTime *self = (DaoTime*) p[0];
+	int value = p[1]->xInteger.value;
+	if( value < 0 || value >= 24 ){
+		DaoProcess_RaiseError( proc, "Param", "Invalid hour" );
+		return;
+	}
+	self->time.hour = value;
+}
+
+static void TIME_SetDay( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTime *self = (DaoTime*) p[0];
+	int value = p[1]->xInteger.value;
+	int days = DaysInMonth( self->time.year, self->time.month );
+	if( value < 1 || value > days ){
+		DaoProcess_RaiseError( proc, "Param", "Invalid day" );
+		return;
+	}
+	self->time.day = value;
+}
+
+static void TIME_SetMonth( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTime *self = (DaoTime*) p[0];
+	int value = p[1]->xInteger.value;
+	if( value < 1 || value > 12 ){
+		DaoProcess_RaiseError( proc, "Param", "Invalid month" );
+		return;
+	}
+	self->time.month = value;
+}
+
+static void TIME_SetYear( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTime *self = (DaoTime*) p[0];
+	self->time.year = p[1]->xInteger.value;
 }
 
 static void TIME_WeekDay( DaoProcess *proc, DaoValue *p[], int N )
@@ -905,6 +972,13 @@ static DaoFuncItem timeMeths[] =
 	{ TIME_Month,   ".month(invar self: DateTime) => int" },
 	{ TIME_Year,    ".year(invar self: DateTime) => int" },
 
+	{ TIME_SetSecond,  ".second=(self: DateTime, value: float)" },
+	{ TIME_SetMinute,  ".minute=(self: DateTime, value: int)" },
+	{ TIME_SetHour,    ".hour=(self: DateTime, value: int)" },
+	{ TIME_SetDay,     ".day=(self: DateTime, value: int)" },
+	{ TIME_SetMonth,   ".month=(self: DateTime, value: int)" },
+	{ TIME_SetYear,    ".year=(self: DateTime, value: int)" },
+
 	/*! Day of week */
 	{ TIME_WeekDay, ".weekDay(invar self: DateTime) => int" },
 
@@ -1016,12 +1090,14 @@ DaoTime* DaoProcess_NewTime( DaoProcess *self, DTime time, int local )
 
 DAO_DLL_EXPORT int DaoTime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	DaoNamespace *timens = DaoNamespace_GetNamespace( ns, "time" );
+	DaoNamespace *timens = DaoVmSpace_GetNamespace( vmSpace, "time" );
 	DTime epoch2000 = { 2000, 1, 1, 0, 0, 0.0 };
 	DTime epoch1970 = { 1970, 1, 1, 0, 0, 0.0 };
 	DTime utc = DTime_Now(0);
 	DTime loc = DTime_Now(1);
 	int mod;
+
+	DaoNamespace_AddConstValue( ns, "time", (DaoValue*) timens );
 
 	epoch2000_days = DTime_ToJulianDay( epoch2000 );
 	epoch2000_useconds = epoch2000_days * 24 * 3600 * 1E6;
@@ -1033,7 +1109,7 @@ DAO_DLL_EXPORT int DaoTime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	mod = time_zone_offset%10;
 	if ( mod ) time_zone_offset += mod < 5? -mod : 10 - mod;
 
-	daox_type_time = DaoNamespace_WrapType( timens, &timeTyper, DAO_CPOD, DAO_CTYPE_INVAR );
+	daox_type_time = DaoNamespace_WrapType( timens, &timeTyper, DAO_CPOD,0 );
 	DaoNamespace_WrapFunctions( timens, timeFuncs );
 
 #define DAO_API_INIT
