@@ -544,7 +544,7 @@ void ParseMediaType( DString *mime, DString *name, DaoMap *params )
 	DaoString_Delete( val );
 }
 
-void ParseCookieString( DaoProcess *proc, DString *str, DaoMap *cookies )
+void ParseSetCookie( DaoProcess *proc, DString *str, DaoMap *cookies )
 {
 	DaoString *key = DaoString_New();
 	DString *name = key->value;
@@ -609,6 +609,46 @@ void ParseCookieString( DaoProcess *proc, DString *str, DaoMap *cookies )
 		DaoMap_Insert( cookies, (DaoValue*)key, (DaoValue*)tup );
 	}
 	DaoString_Delete( key );
+}
+
+void ParseCookie( DString *str, DaoMap *cookies )
+{
+	DaoString *key = DaoString_New();
+	DaoString *val = DaoString_New();
+	const char *start = str->chars;
+	const char *cp = start;
+	char delim = '=';
+	int quoted = 0;
+	while ( 1 ){
+		if ( *cp == '\\' ){
+			if ( !++cp)
+				break;
+		}
+		else if ( *cp == '"' )
+			quoted = !quoted;
+		else if ( !quoted && ( *cp == delim || ( delim == ';' && !*cp ) ) ){
+			const char *end = cp;
+			if ( delim == '=' ){
+				DaoString_SetBytes( key, start, end - start );
+				delim = ';';
+				start = cp + 1;
+			}
+			else {
+				if ( *start == '"' )
+					++start;
+				if ( end > start && *( end - 1) == '"' )
+					--end;
+				DaoString_SetBytes( val, start, end - start );
+				DaoMap_Insert(cookies, (DaoValue*)key, (DaoValue*)val);
+				delim = '=';
+				start = cp + 2;
+			}
+		}
+		if ( !*( cp++ ) )
+			break;
+	}
+	DaoString_Delete( key );
+	DaoString_Delete( val );
 }
 
 static void DaoHttpHeader_Version( DaoProcess *proc, DaoValue *p[], int N )
@@ -789,15 +829,6 @@ static void DaoHttpHeader_Date( DaoProcess *proc, DaoValue *p[], int N )
 	PutDateValue( proc, self->headers, "date" );
 }
 
-static void DaoHttpHeader_Cookies( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
-	DaoMap *res = DaoProcess_PutMap( proc, 1 );
-	daoint i;
-	for ( i = 0; i < self->cookies->size; ++i )
-		ParseCookieString( proc, self->cookies->items.pString[i], res );
-}
-
 static DaoFuncItem headerMeths[] =
 {
 	//! HTTP version number
@@ -805,10 +836,6 @@ static DaoFuncItem headerMeths[] =
 
 	//! Header size including the terminating '\r\n'
 	{ DaoHttpHeader_Size,		".size(self: Header) => int" },
-
-	//! Cookies set by 'Cookie' or 'Set-Cookie' fields (for requests and responses accordingly)
-	{ DaoHttpHeader_Cookies,	".cookies(self: Header) => map<string, tuple<name: string, expires: time::DateTime|none, "
-								"maxAge: int, domain: string, path: string, secure: bool, httpOnly: bool>>" },
 
 	//! Specific field (header) value
 	//!
@@ -923,6 +950,15 @@ static void DaoHttpRequest_MaxForw( DaoProcess *proc, DaoValue *p[], int N )
 	PutIntValue( proc, self->headers, "max-forwards" );
 }
 
+static void DaoHttpRequest_Cookies( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoHttpRequest *self = (DaoHttpRequest*)DaoValue_TryGetCdata( p[0] );
+	DaoMap *res = DaoProcess_PutMap( proc, 1 );
+	daoint i;
+	for ( i = 0; i < self->cookies->size; ++i )
+		ParseCookie( self->cookies->items.pString[i], res );
+}
+
 static DaoFuncItem requestMeths[] =
 {
 	//! Requested URI
@@ -930,6 +966,9 @@ static DaoFuncItem requestMeths[] =
 
 	//! Request method
 	{ DaoHttpRequest_Method,	".method(self: RequestHeader) => string" },
+
+	//! Cookies set by the 'Cookie' field
+	{ DaoHttpRequest_Cookies,	".cookies(self: Header) => map<string,string>" },
 
 	//! Some of the standard fields (also see \c Header)
 	{ DaoHttpRequest_Host,		".host(self: RequestHeader) => string|none" },
@@ -1029,6 +1068,15 @@ static void DaoHttpResponse_Age( DaoProcess *proc, DaoValue *p[], int N )
 	PutIntValue( proc, self->headers, "age" );
 }
 
+static void DaoHttpResponse_Cookies( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoHttpResponse *self = (DaoHttpResponse*)DaoValue_TryGetCdata( p[0] );
+	DaoMap *res = DaoProcess_PutMap( proc, 1 );
+	daoint i;
+	for ( i = 0; i < self->cookies->size; ++i )
+		ParseSetCookie( proc, self->cookies->items.pString[i], res );
+}
+
 static DaoFuncItem responseMeths[] =
 {
 	//! Status code
@@ -1036,6 +1084,10 @@ static DaoFuncItem responseMeths[] =
 
 	//! Textual description of response status
 	{ DaoHttpResponse_Reason,		".reason(self: ResponseHeader) => string" },
+
+	//! Cookies set by 'Set-Cookie' fields
+	{ DaoHttpResponse_Cookies,		".cookies(self: Header) => map<string, tuple<name: string, expires: time::DateTime|none, "
+									"maxAge: int, domain: string, path: string, secure: bool, httpOnly: bool>>" },
 
 	//! Some of the standard fields (also see \c Header)
 	{ DaoHttpResponse_Location,		".location(self: Header) => string|none" },
