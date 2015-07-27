@@ -839,7 +839,8 @@ static DaoFuncItem headerMeths[] =
 
 	//! Specific field (header) value
 	//!
-	//! \note Does not include 'Set-Cookie', which are available via \c ResponseHeader::.cookies()
+	//! \note Does not include 'Cookie' and 'Set-Cookie', which are available via
+	//! \c RequestHeader::.cookies() and \c ResponseHeader::.cookies()
 	{ DaoHttpHeader_Field,		"[](self: Header, field: string) => string" },
 
 	//! Some of the standard fields. \c none indicate field absence; empty values (or \c contentLength
@@ -968,7 +969,7 @@ static DaoFuncItem requestMeths[] =
 	{ DaoHttpRequest_Method,	".method(self: RequestHeader) => string" },
 
 	//! Cookies set by the 'Cookie' field
-	{ DaoHttpRequest_Cookies,	".cookies(self: Header) => map<string,string>" },
+	{ DaoHttpRequest_Cookies,	".cookies(self: RequestHeader) => map<string,string>" },
 
 	//! Some of the standard fields (also see \c Header)
 	{ DaoHttpRequest_Host,		".host(self: RequestHeader) => string|none" },
@@ -1086,7 +1087,7 @@ static DaoFuncItem responseMeths[] =
 	{ DaoHttpResponse_Reason,		".reason(self: ResponseHeader) => string" },
 
 	//! Cookies set by 'Set-Cookie' fields
-	{ DaoHttpResponse_Cookies,		".cookies(self: Header) => map<string, tuple<name: string, expires: time::DateTime|none, "
+	{ DaoHttpResponse_Cookies,		".cookies(self: ResponseHeader) => map<string, tuple<name: string, expires: time::DateTime|none, "
 									"maxAge: int, domain: string, path: string, secure: bool, httpOnly: bool>>" },
 
 	//! Some of the standard fields (also see \c Header)
