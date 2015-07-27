@@ -11,6 +11,9 @@ if( modules.SourcePath() != modules.BinaryPath() ){
 	modules.AddCommand( "copypkgtools:", "$(DAOMAKE) copy " + src + " " + dest );
 }
 
+# To generate DaoMake finder, mainly for single file deployment:
+modules.AddDirectory( "aux",         "aux" )
+
 modules.AddDirectory( "stream",      "stream" )
 modules.AddDirectory( "meta",        "meta" )
 modules.AddDirectory( "math",        "math" )

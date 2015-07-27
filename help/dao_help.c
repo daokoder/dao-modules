@@ -2148,7 +2148,6 @@ static void HELP_Export( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxHelpEntry *entry = NULL;
 	DaoxHelp *help = NULL;
 
-	DaoProcess_PutValue( proc, (DaoValue*) daox_helper );
 	if( stdio == NULL ) stdio = proc->vmSpace->stdioStream;
 	if( entry_name->size == 0 ){
 		entry = daox_helper->tree;

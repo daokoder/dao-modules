@@ -245,6 +245,7 @@ int DTime_Compare( DTime first, DTime second )
 
 time_t DTime_ToStructTM( DTime time, struct tm *parts )
 {
+	time_t ret, invalid = (time_t)-1;
 	parts->tm_year = time.year - 1900;
 	parts->tm_mon  = time.month - 1;
 	parts->tm_mday = time.day;
@@ -252,7 +253,19 @@ time_t DTime_ToStructTM( DTime time, struct tm *parts )
 	parts->tm_min  = time.minute;
 	parts->tm_sec  = time.second;
 	parts->tm_isdst = -1;
-	return mktime( parts );
+	ret = mktime( parts );
+	if( ret == invalid ) return ret;
+	/*
+	// mktime() allows carry-over (for example, 10:20:73 == 10:21:13);
+	// We don't allow it here.
+	*/
+	if( parts->tm_year != time.year - 1900 ) return invalid;
+	if( parts->tm_mon  != time.month - 1 ) return invalid;
+	if( parts->tm_mday != time.day ) return invalid;
+	if( parts->tm_hour != time.hour ) return invalid;
+	if( parts->tm_min  != time.minute ) return invalid;
+	if( parts->tm_sec  != (int)time.second ) return invalid;
+	return ret;
 }
 
 
@@ -312,10 +325,6 @@ static void TIME_MakeTime( DaoProcess *proc, DaoValue *p[], int N )
 	time.minute = p[4]->xInteger.value;
 	time.second = p[5]->xInteger.value;
 
-	if ( DTime_ToStructTM( time, & parts ) == (time_t)-1){
-		DaoProcess_RaiseError( proc, timeerr, "Invalid datetime" );
-		return;
-	}
 	DaoProcess_PutTime( proc, time, 1 );
 }
 
@@ -352,9 +361,9 @@ static void TIME_Parse( DaoProcess *proc, DaoValue *p[], int N )
 	DTime time = DTime_Now(1);
 	DString *str = NULL;
 	DString *sdate = NULL, *stime = NULL;
+	DString *sfrac = NULL;
 	daoint pos;
 	struct tm parts;
-	int del = 0;
 
 	if( time.month == 0 ){
 		DaoProcess_RaiseError( proc, timeerr, "Failed to get current datetime" );
@@ -371,68 +380,74 @@ static void TIME_Parse( DaoProcess *proc, DaoValue *p[], int N )
 		DString_SubString( str, stime, pos + 1, str->size - pos - 1 );
 	} else if ( DString_FindChar( str, ':', 0 ) > 0 ){
 		stime = str;
+		str = NULL;
 	} else if ( DString_FindChar( str, '-', 0 ) > 0 ){
 		sdate = str;
+		str = NULL;
 	} else {
 		goto Error;
 	}
 
+	if( stime ){
+		pos = DString_FindChar( stime, '.', 0 );
+		if( pos >= 0 ){
+			sfrac = DString_New( 1 );
+			DString_SubString( stime, sfrac, pos, -1 );
+			DString_Erase( stime, pos, -1 );
+		}
+	}
+
 	if ( sdate ){
-		/* YYYY-MM-DD */
-		if ( ToBits( sdate->chars, sdate->size ) == ToBits( "0000-00-00", 10 ) ){
+		int bits = ToBits( sdate->chars, sdate->size );
+		if ( bits == ToBits( "0000-00-00", 10 ) ){ /* YYYY-MM-DD */
 			time.year = GetNum( sdate->chars, 4 );
 			time.month = GetNum( sdate->chars + 5, 2 );
 			time.day = GetNum( sdate->chars + 8, 2 );
-		}
-		/* YYYY-MM */
-		else if ( ToBits( sdate->chars, sdate->size ) == ToBits( "0000-00", 7 ) ){
+		} else if ( bits == ToBits( "0000-00", 7 ) ){ /* YYYY-MM */
 			time.year = GetNum( sdate->chars, 4 );
 			time.month = GetNum( sdate->chars + 5, 2 );
 			time.day = 1;
-		}
-		/* MM-DD */
-		else if ( ToBits( sdate->chars, sdate->size ) == ToBits( "00-00", 5 ) ){
+		} else if ( bits == ToBits( "00-00", 5 ) ){ /* MM-DD */
 			time.month = GetNum( sdate->chars, 2 );
 			time.day = GetNum( sdate->chars + 3, 2 );
-		}
-		else
+		} else {
 			goto Error;
+		}
 	}
 	if ( stime ){
-		/* HH:MM:SS */
-		if ( ToBits( sdate->chars, sdate->size ) == ToBits( "00:00:00", 8 ) ){
+		int bits = ToBits( stime->chars, stime->size );
+		if ( bits == ToBits( "00:00:00", 8 ) ){ /* HH:MM:SS */
 			time.hour = GetNum( stime->chars, 2 );
 			time.minute = GetNum( stime->chars + 3, 2 );
 			time.second = GetNum( stime->chars + 6, 2 );
-		}
-		/* HH:MM */
-		else if ( ToBits( sdate->chars, sdate->size ) == ToBits( "00:00", 5 ) ){
+		} else if ( bits == ToBits( "00:00", 5 ) ){ /* HH:MM */
 			 time.hour = GetNum( stime->chars, 2 );
 			 time.minute = GetNum( stime->chars + 3, 2 );
 			 time.second = 0;
-		 }
-		else
+		} else {
 			goto Error;
-	}
-	else {
+		}
+	} else {
 		time.hour = 0;
 		time.minute = 0;
 		time.second = 0;
 	}
-	if ( DTime_ToStructTM( time, & parts ) == (time_t)-1){
-		DaoProcess_RaiseError( proc, timeerr, "Invalid datetime" );
-		return;
+	if ( sfrac ){
+		int i;
+		for(i=1; i<sfrac->size; ++i){
+			if( isdigit( sfrac->chars[i] ) == 0 ) goto Error;
+		}
+		time.second += strtod( sfrac->chars, NULL );
 	}
 	DaoProcess_PutTime( proc, time, 1 );
 	goto Clean;
 Error:
 	DaoProcess_RaiseError( proc, "Param", "Invalid format ('YYYY-MM-DD HH:MM:SS' or its part is required)" );
 Clean:
-	DString_Delete( str );
-	if ( del ){
-		DString_Delete( sdate );
-		DString_Delete( stime );
-	}
+	if( str ) DString_Delete( str );
+	if( sdate ) DString_Delete( sdate );
+	if( stime ) DString_Delete( stime );
+	if( sfrac ) DString_Delete( sfrac );
 }
 
 
