@@ -32,6 +32,10 @@
 
 #include<string.h>
 #include<stdlib.h>
+#include<ctype.h>
+#include<limits.h>
+#include<errno.h>
+#include<math.h>
 #include"dao_time.h"
 #include"daoPlatforms.h"
 
@@ -1265,6 +1269,108 @@ static void SPAN_LE( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutBoolean( proc, DTimeSpan_Compare( a->span, b->span ) <= 0 );
 }
 
+static void SPAN_ToString( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
+	char buf[50];
+	int len = 0;
+	if ( self->span.days )
+		len += snprintf( buf, sizeof(buf), "%id", self->span.days );
+	if ( self->span.hours )
+		len += snprintf( buf + len, sizeof(buf) - len, "%ih", self->span.hours );
+	if ( self->span.minutes )
+		len += snprintf( buf + len, sizeof(buf) - len, "%im", self->span.minutes );
+	if ( self->span.seconds != 0.0 )
+		snprintf( buf + len, sizeof(buf) - len, "%fs", self->span.seconds );
+	DaoProcess_PutChars( proc, buf );
+}
+
+enum {
+	Span_D = 1,
+	Span_H = 2,
+	Span_M = 4,
+	Span_S = 8,
+	Span_Ms = 16,
+	Span_Us = 32,
+};
+
+static void SPAN_Parse( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DTimeSpan ts = {0};
+	DaoTimeSpan *res = DaoProcess_PutTimeSpan( proc, ts );
+	const char *cp, *start = p[0]->xString.value->chars;
+	unsigned long num;
+	double dnum;
+	int mask = 0;
+	cp = start;
+	while ( 1 ){
+		if ( !isdigit( *cp ) )
+			goto FormatError;
+		for ( ++cp; isdigit( *cp ) || *cp == '.'; ++cp );
+		if ( !isalpha( *cp ) )
+			goto FormatError;
+		if ( *cp == 's' ){ // fractional seconds
+			char *pend;
+			if ( mask >= Span_S )
+				goto FormatError;
+			mask |= Span_S;
+			dnum = strtod( start, &pend );
+			if ( pend != cp || ( ( dnum == HUGE_VAL || dnum == -HUGE_VAL ) && errno == ERANGE ) || dnum < 0 || dnum > 60.0 )
+				goto NumericError;
+			res->span.seconds = dnum;
+		}
+		else {
+			char *pend;
+			num = strtoul( start, &pend, 10 );
+			if ( pend != cp || ( num == ULONG_MAX && errno == ERANGE ) || num < 0 )
+				goto NumericError;
+			if ( strncmp( cp, "ms", 2) == 0 ){
+				if ( mask != 0 ) goto FormatError;
+				if ( num > 1E3 ) goto NumericError;
+				mask |= Span_Ms;
+				res->span.seconds = num/1E3;
+				++cp;
+			}
+			else if ( strncmp( cp, "us", 2) == 0 ){
+				if ( mask != 0 ) goto FormatError;
+				if ( num > 1E6 ) goto NumericError;
+				mask |= Span_Us;
+				res->span.seconds = num/1E6;
+				++cp;
+			}
+			else if ( *cp == 'd' ){
+				if ( mask >= Span_D ) goto FormatError;
+				mask |= Span_D;
+				res->span.days = num;
+			}
+			else if ( *cp == 'h' ){
+				if ( mask >= Span_H ) goto FormatError;
+				if ( num >= 24 ) goto NumericError;
+				mask |= Span_H;
+				res->span.hours = num;
+			}
+			else if ( *cp == 'm' ){
+				if ( mask >= Span_M ) goto FormatError;
+				if ( num >= 60 ) goto NumericError;
+				mask |= Span_M;
+				res->span.minutes = num;
+			}
+			else
+				goto FormatError;
+		}
+		for ( ++cp; isspace( *cp ); ++cp );
+		if ( !*cp )
+			break;
+		start = cp;
+	}
+	return;
+FormatError:
+	DaoProcess_RaiseError( proc, "Param", "Invalid format" );
+	return;
+NumericError:
+	DaoProcess_RaiseError( proc, "Value", "Invalid number" );
+}
+
 static DaoFuncItem spanMeths[] =
 {
 	{ SPAN_New,  "TimeSpan( days = 0, hours = 0, minutes = 0, seconds = 0.0 )" },
@@ -1289,7 +1395,7 @@ static DaoFuncItem spanMeths[] =
 	{ SPAN_LT,  "<  (invar a: TimeSpan, invar b: TimeSpan) => bool" },
 	{ SPAN_LE,  "<= (invar a: TimeSpan, invar b: TimeSpan) => bool" },
 
-	//{ SPAN_ToString, "(string)(invar self: TimeSpan)" },
+	{ SPAN_ToString, "(string)(invar self: TimeSpan)" },
 
 	{ NULL, NULL }
 };
@@ -1315,6 +1421,11 @@ static DaoFuncItem timeFuncs[] =
 	/*! Returns local datetime parsed from \a value, which should contain date ('YYYY-MM-DD', 'YYYY-MM' or 'MM-DD')
 	 * and/or time ('HH:MM:SS' or 'HH:MM') separated by ' ' */
 	{ TIME_Parse,  "parse(value: string) => DateTime" },
+
+	/*! Parses \c TimeSpan from \a value. Examples: '1d 3h 5m', '10m12.34s', '300ms'. Accepted units: d, h, m, s, ms, us.
+	 * Seconds may have fractional part, other units must be integer numbers. When using ms or ns, no other units must be
+	 * present */
+	{ SPAN_Parse,  "span(value: string) => DateTime" },
 
 	/*! Returns local time zone information (environment variable *TZ*):
 	 * -\c dst -- is Daylight Saving Time (DST) used

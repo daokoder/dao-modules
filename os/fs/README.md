@@ -64,7 +64,7 @@ A file object is operated by its name, no descriptors or locks are kept for the 
 
 `Entry` uses '/' as the unified path separator on all platforms, Windows paths (including UNC) are automatically normalized to this form. Relative paths and symbolic links are automatically expanded to their absolute form.
 
-**Note:** On Windows, all path strings are assumed to be encoded in UTF-8, and are implicitly converted to UTF-16 in order to support Unicode file names on this platform.
+**Note:** On Windows, all path strings are assumed to be encoded in UTF-8, and are implicitly converted to UTF-16 in order to support Unicode file names on this platform. The maximum path length on this platform is limited to 260 wide characters, long file names are not supported.
 #### Methods
 <a name="entry_ctor"></a>
 <a name="path"></a>
