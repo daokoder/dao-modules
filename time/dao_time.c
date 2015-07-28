@@ -45,6 +45,7 @@
 
 static const char timeerr[] = "Time";
 static DaoType *daox_type_time = NULL;
+static DaoType *daox_type_span = NULL;
 
 static int time_zone_offset = 0;
 static dao_time_t epoch2000_days = 0;
@@ -270,6 +271,39 @@ time_t DTime_ToStructTM( DTime time, struct tm *parts )
 
 
 
+DTimeSpan DTimeSpan_FromUSeconds( dao_time_t useconds )
+{
+	DTimeSpan span = {0};
+	dao_time_t seconds = useconds / 1E6;
+	dao_time_t minutes = seconds / 60;
+	dao_time_t hours = minutes / 60;
+
+	span.seconds = (seconds % 60) + (useconds % (dao_time_t)1E6) / 1.0E6;
+	span.minutes = minutes % 60;
+	span.hours = hours % 24;
+	span.days = hours / 24;
+	return span;
+}
+dao_time_t DTimeSpan_ToUSeconds( DTimeSpan span )
+{
+	dao_time_t useconds = span.seconds * 1E6;
+	useconds += (span.days * 24 * 3600 + span.hours * 3600 + span.minutes * 60) * 1E6;
+	return useconds;
+}
+int DTimeSpan_Compare( DTimeSpan first, DTimeSpan second )
+{
+	int msa, msb;
+	if( first.days != second.days ) return first.days < second.days ? -1 : 1;
+	if( first.hours != second.hours ) return first.hours < second.hours ? -1 : 1;
+	if( first.minutes != second.minutes ) return first.minutes < second.minutes ? -1 : 1;
+	msa = (int)(first.seconds*1E6);
+	msb = (int)(second.seconds*1E6);
+	if( msa != msb ) return msa < msb ? -1 : 1;
+	return 0;
+}
+
+
+
 DaoTime* DaoTime_New()
 {
 	DaoTime *self = (DaoTime*) DaoCpod_New( daox_type_time, sizeof(DaoTime) );
@@ -290,6 +324,22 @@ int DaoTime_Now( DaoTime *self )
 DaoType* DaoTime_Type()
 {
 	return daox_type_time;
+}
+
+
+
+DaoTimeSpan* DaoTimeSpan_New()
+{
+	DaoTimeSpan *self = (DaoTimeSpan*) DaoCpod_New( daox_type_span, sizeof(DaoTimeSpan) );
+	return self;
+}
+void DaoTimeSpan_Delete( DaoTimeSpan *self )
+{
+	DaoCpod_Delete( (DaoCpod*) self );
+}
+DaoType* DaoTimeSpan_Type()
+{
+	return daox_type_span;
 }
 
 
@@ -328,7 +378,7 @@ static void TIME_MakeTime( DaoProcess *proc, DaoValue *p[], int N )
 	time.day    = p[2]->xInteger.value;
 	time.hour   = p[3]->xInteger.value;
 	time.minute = p[4]->xInteger.value;
-	time.second = p[5]->xInteger.value;
+	time.second = p[5]->xFloat.value;
 
 	DaoProcess_PutTime( proc, time, 1 );
 }
@@ -840,22 +890,6 @@ static void TIME_Format2( DaoProcess *proc, DaoValue *p[], int N )
 	DaoString_Delete( ds );
 }
 
-static void TIME_Diff( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoTime *start = (DaoTime*) p[0];
-	DaoTime *end = (DaoTime*) p[1];
-	DaoTuple *res = DaoProcess_PutTuple( proc, 2 );
-	if ( start->local != end->local ){
-		DaoProcess_RaiseError( proc, timeerr, "Start and end datetime should be of the same kind (local or utc)" );
-		return;
-	}
-	res->values[0]->xInteger.value = DTime_ToDay( end->time ) - DTime_ToDay( start->time );
-	res->values[1]->xFloat.value = ( DTime_ToMicroSeconds( end->time ) - DTime_ToMicroSeconds( start->time ) )/1E6;
-	if( sizeof(dao_integer) < sizeof(dao_time_t) ){
-		DaoProcess_RaiseWarning( proc, "Value", "The time value might overflow the int type" );
-	}
-}
-
 static void TIME_Days( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*) p[0];
@@ -948,6 +982,53 @@ static void TIME_Add( DaoProcess *proc, DaoValue *p[], int N )
 		self->time = restime;
 	}
 }
+static void TIME_Plus( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTime *a = (DaoTime*) p[0];
+	DaoTimeSpan *b = (DaoTimeSpan*) p[1];
+	dao_time_t useconds1 = DTime_ToMicroSeconds( a->time );
+	dao_time_t useconds2 = DTimeSpan_ToUSeconds( b->span );
+	DTime res = DTime_FromMicroSeconds( useconds1 + useconds2 );
+	DaoProcess_PutTime( proc, res, a->local );
+}
+static void TIME_Plus2( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTime *a = (DaoTime*) p[0];
+	DaoTimeSpan *b = (DaoTimeSpan*) p[1];
+	dao_time_t useconds1 = DTime_ToMicroSeconds( a->time );
+	dao_time_t useconds2 = DTimeSpan_ToUSeconds( b->span );
+	a->time = DTime_FromMicroSeconds( useconds1 + useconds2 );
+}
+static void TIME_Minus( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTime *a = (DaoTime*) p[0];
+	DaoTimeSpan *b = (DaoTimeSpan*) p[1];
+	dao_time_t useconds1 = DTime_ToMicroSeconds( a->time );
+	dao_time_t useconds2 = DTimeSpan_ToUSeconds( b->span );
+	DTime res = DTime_FromMicroSeconds( useconds1 - useconds2 );
+	DaoProcess_PutTime( proc, res, a->local );
+}
+static void TIME_Minus2( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTime *a = (DaoTime*) p[0];
+	DaoTimeSpan *b = (DaoTimeSpan*) p[1];
+	dao_time_t useconds1 = DTime_ToMicroSeconds( a->time );
+	dao_time_t useconds2 = DTimeSpan_ToUSeconds( b->span );
+	a->time = DTime_FromMicroSeconds( useconds1 - useconds2 );
+}
+static void TIME_Minus3( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTime *a = (DaoTime*) p[0];
+	DaoTime *b = (DaoTime*) p[1];
+	dao_time_t useconds1 = DTime_ToMicroSeconds( a->time );
+	dao_time_t useconds2 = DTime_ToMicroSeconds( b->time );
+	DTimeSpan res = DTimeSpan_FromUSeconds( useconds1 - useconds2 );
+	if( useconds1 < useconds2 ){
+		DaoProcess_RaiseError( proc, "Param", "Invalid time subtraction" );
+		return;
+	}
+	DaoProcess_PutTimeSpan( proc, res );
+}
 
 static DaoFuncItem timeMeths[] =
 {
@@ -1007,6 +1088,12 @@ static DaoFuncItem timeMeths[] =
 	/*! Returns new datetime obtained by adding the specified number of years, months, days or seconds (provided as named values) */
 	{ TIME_Add,	 "add(self: DateTime, ...: tuple<enum<years,months,days,seconds>,int>)" },
 
+	{ TIME_Plus,    "+  (invar a: DateTime, invar b: TimeSpan) => DateTime" },
+	{ TIME_Minus,   "-  (invar a: DateTime, invar b: TimeSpan) => DateTime" },
+	{ TIME_Minus3,  "-  (invar a: DateTime, invar b: DateTime) => TimeSpan" },
+	{ TIME_Plus2,   "+= (self: DateTime, invar b: TimeSpan)" },
+	{ TIME_Minus2,  "-= (self: DateTime, invar b: TimeSpan)" },
+
 	/*! Datetime comparison */
 	{ TIME_EQ,  "== (invar a: DateTime, invar b: DateTime) => bool" },
 	{ TIME_NE,  "!= (invar a: DateTime, invar b: DateTime) => bool" },
@@ -1023,6 +1110,197 @@ DaoTypeBase timeTyper =
 	(FuncPtrDel)DaoTime_Delete, NULL
 };
 
+
+
+static void SPAN_New( DaoProcess *proc, DaoValue *p[], int N )
+{
+	dao_integer days = p[0]->xInteger.value;
+	dao_integer hours = p[1]->xInteger.value;
+	dao_integer minutes = p[2]->xInteger.value;
+	double seconds = p[3]->xFloat.value;
+	DTimeSpan span;
+
+	if( days < 0 ) goto WrongParam;
+	if( hours < 0 || hours >= 24 ) goto WrongParam;
+	if( minutes < 0 || minutes >= 60 ) goto WrongParam;
+	if( seconds < 0.0 || seconds >= 60.0 ) goto WrongParam;
+
+	span.days = days;
+	span.hours = hours;
+	span.minutes = minutes;
+	span.seconds = seconds;
+	DaoProcess_PutTimeSpan( proc, span );
+	return;
+
+WrongParam:
+	DaoProcess_RaiseError( proc, "Param", "Invalid days" );
+}
+
+static void SPAN_Days( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
+	DaoProcess_PutInteger( proc, self->span.days );
+}
+
+static void SPAN_Hours( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
+	DaoProcess_PutInteger( proc, self->span.hours );
+}
+
+static void SPAN_Minutes( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
+	DaoProcess_PutInteger( proc, self->span.minutes );
+}
+
+static void SPAN_Seconds( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
+	DaoProcess_PutFloat( proc, self->span.seconds );
+}
+
+
+static void SPAN_SetDays( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
+	int value = p[1]->xInteger.value;
+	if( value < 0 ){
+		DaoProcess_RaiseError( proc, "Param", "Invalid days" );
+		return;
+	}
+	self->span.days = value;
+}
+
+static void SPAN_SetHours( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
+	int value = p[1]->xInteger.value;
+	if( value < 0 || value >= 24 ){
+		DaoProcess_RaiseError( proc, "Param", "Invalid hours" );
+		return;
+	}
+	self->span.hours = value;
+}
+
+static void SPAN_SetMinutes( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
+	int value = p[1]->xInteger.value;
+	if( value < 0 || value >= 60 ){
+		DaoProcess_RaiseError( proc, "Param", "Invalid minutes" );
+		return;
+	}
+	self->span.minutes = value;
+}
+
+static void SPAN_SetSeconds( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
+	dao_float value = p[1]->xFloat.value;
+	if( value < 0.0 || value >= 60.0 ){
+		DaoProcess_RaiseError( proc, "Param", "Invalid seconds" );
+		return;
+	}
+	self->span.seconds = value;
+}
+
+static void SPAN_Plus( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTimeSpan *s1 = (DaoTimeSpan*) p[0];
+	DaoTimeSpan *s2 = (DaoTimeSpan*) p[1];
+	dao_time_t us1 = DTimeSpan_ToUSeconds( s1->span );
+	dao_time_t us2 = DTimeSpan_ToUSeconds( s2->span );
+	DTimeSpan res = DTimeSpan_FromUSeconds( us1 + us2 );
+	DaoProcess_PutTimeSpan( proc, res );
+}
+static void SPAN_Plus2( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTimeSpan *s1 = (DaoTimeSpan*) p[0];
+	DaoTimeSpan *s2 = (DaoTimeSpan*) p[1];
+	dao_time_t us1 = DTimeSpan_ToUSeconds( s1->span );
+	dao_time_t us2 = DTimeSpan_ToUSeconds( s2->span );
+	s1->span = DTimeSpan_FromUSeconds( us1 + us2 );
+}
+static void SPAN_Minus( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTimeSpan *s1 = (DaoTimeSpan*) p[0];
+	DaoTimeSpan *s2 = (DaoTimeSpan*) p[1];
+	dao_time_t us1 = DTimeSpan_ToUSeconds( s1->span );
+	dao_time_t us2 = DTimeSpan_ToUSeconds( s2->span );
+	DTimeSpan res = DTimeSpan_FromUSeconds( us1 - us2 );
+	DaoProcess_PutTimeSpan( proc, res );
+}
+static void SPAN_Minus2( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTimeSpan *s1 = (DaoTimeSpan*) p[0];
+	DaoTimeSpan *s2 = (DaoTimeSpan*) p[1];
+	dao_time_t us1 = DTimeSpan_ToUSeconds( s1->span );
+	dao_time_t us2 = DTimeSpan_ToUSeconds( s2->span );
+	s1->span = DTimeSpan_FromUSeconds( us1 - us2 );
+}
+
+static void SPAN_EQ( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTimeSpan *a = (DaoTimeSpan*) p[0];
+	DaoTimeSpan *b = (DaoTimeSpan*) p[1];
+	DaoProcess_PutBoolean( proc, DTimeSpan_Compare( a->span, b->span ) == 0 );
+}
+static void SPAN_NE( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTimeSpan *a = (DaoTimeSpan*) p[0];
+	DaoTimeSpan *b = (DaoTimeSpan*) p[1];
+	DaoProcess_PutBoolean( proc, DTimeSpan_Compare( a->span, b->span ) != 0 );
+}
+static void SPAN_LT( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTimeSpan *a = (DaoTimeSpan*) p[0];
+	DaoTimeSpan *b = (DaoTimeSpan*) p[1];
+	DaoProcess_PutBoolean( proc, DTimeSpan_Compare( a->span, b->span ) < 0 );
+}
+static void SPAN_LE( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTimeSpan *a = (DaoTimeSpan*) p[0];
+	DaoTimeSpan *b = (DaoTimeSpan*) p[1];
+	DaoProcess_PutBoolean( proc, DTimeSpan_Compare( a->span, b->span ) <= 0 );
+}
+
+static DaoFuncItem spanMeths[] =
+{
+	{ SPAN_New,  "TimeSpan( days = 0, hours = 0, minutes = 0, seconds = 0.0 )" },
+
+	{ SPAN_Seconds,  ".seconds(invar self: TimeSpan) => float" },
+	{ SPAN_Minutes,  ".minutes(invar self: TimeSpan) => int" },
+	{ SPAN_Hours,    ".hours(invar self: TimeSpan) => int" },
+	{ SPAN_Days,     ".days(invar self: TimeSpan) => int" },
+
+	{ SPAN_SetSeconds,  ".seconds=(self: TimeSpan, value: float)" },
+	{ SPAN_SetMinutes,  ".minutes=(self: TimeSpan, value: int)" },
+	{ SPAN_SetHours,    ".hours=(self: TimeSpan, value: int)" },
+	{ SPAN_SetDays,     ".days=(self: TimeSpan, value: int)" },
+
+	{ SPAN_Plus,    "+  (invar a: TimeSpan, invar b: TimeSpan) => TimeSpan" },
+	{ SPAN_Minus,   "-  (invar a: TimeSpan, invar b: TimeSpan) => TimeSpan" },
+	{ SPAN_Plus2,   "+= (self: TimeSpan, invar span: TimeSpan)" },
+	{ SPAN_Minus2,  "-= (self: TimeSpan, invar span: TimeSpan)" },
+
+	{ SPAN_EQ,  "== (invar a: TimeSpan, invar b: TimeSpan) => bool" },
+	{ SPAN_NE,  "!= (invar a: TimeSpan, invar b: TimeSpan) => bool" },
+	{ SPAN_LT,  "<  (invar a: TimeSpan, invar b: TimeSpan) => bool" },
+	{ SPAN_LE,  "<= (invar a: TimeSpan, invar b: TimeSpan) => bool" },
+
+	//{ SPAN_ToString, "(string)(invar self: TimeSpan)" },
+
+	{ NULL, NULL }
+};
+
+DaoTypeBase spanTyper =
+{
+	"TimeSpan", NULL, NULL, spanMeths, {NULL}, {0},
+	(FuncPtrDel)DaoTimeSpan_Delete, NULL
+};
+
+
 static DaoFuncItem timeFuncs[] =
 {
 	/*! Returns current datetime of the given \a kind */
@@ -1037,11 +1315,6 @@ static DaoFuncItem timeFuncs[] =
 	/*! Returns local datetime parsed from \a value, which should contain date ('YYYY-MM-DD', 'YYYY-MM' or 'MM-DD')
 	 * and/or time ('HH:MM:SS' or 'HH:MM') separated by ' ' */
 	{ TIME_Parse,  "parse(value: string) => DateTime" },
-
-	/*! Returns the difference between \a start and \a end datetime in days and microseconds.
-	 *
-	 * \note \a start and \a end should be of the same kind */
-	{ TIME_Diff,  "diff(start: DateTime, end: DateTime) => tuple<days: int, seconds: float>" },
 
 	/*! Returns local time zone information (environment variable *TZ*):
 	 * -\c dst -- is Daylight Saving Time (DST) used
@@ -1083,6 +1356,24 @@ DaoTime* DaoProcess_NewTime( DaoProcess *self, DTime time, int local )
 }
 
 
+DaoTimeSpan* DaoProcess_PutTimeSpan( DaoProcess *self, DTimeSpan span )
+{
+	DaoTimeSpan *res = (DaoTimeSpan*) DaoProcess_PutCpod( self, daox_type_span, sizeof(DaoTimeSpan) );
+
+	if( res == NULL ) return NULL;
+
+	res->span = span;
+	return res;
+}
+
+DaoTimeSpan* DaoProcess_NewTimeSpan( DaoProcess *self, DTimeSpan span )
+{
+	DaoTimeSpan *res = (DaoTimeSpan*) DaoProcess_NewCpod( self, daox_type_span, sizeof(DaoTimeSpan) );
+	res->span = span;
+	return res;
+}
+
+
 #undef DAO_TIME
 #undef DAO_TIME_DLL
 #define DAO_HAS_TIME
@@ -1110,6 +1401,7 @@ DAO_DLL_EXPORT int DaoTime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	if ( mod ) time_zone_offset += mod < 5? -mod : 10 - mod;
 
 	daox_type_time = DaoNamespace_WrapType( timens, &timeTyper, DAO_CPOD,0 );
+	daox_type_span = DaoNamespace_WrapType( timens, &spanTyper, DAO_CPOD,0 );
 	DaoNamespace_WrapFunctions( timens, timeFuncs );
 
 #define DAO_API_INIT

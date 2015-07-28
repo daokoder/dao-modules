@@ -46,9 +46,13 @@
 #include<ctype.h>
 
 
-typedef long long       dao_time_t;
+typedef long long  dao_time_t;
+ 
 typedef struct DTime    DTime;
 typedef struct DaoTime  DaoTime;
+
+typedef struct DTimeSpan    DTimeSpan;
+typedef struct DaoTimeSpan  DaoTimeSpan;
 
 /*
 // Zero month indicates an invalid datetime;
@@ -63,12 +67,27 @@ struct DTime
 	double  second;
 };
 
+struct DTimeSpan
+{
+	int     days;
+	short   hours;
+	short   minutes;
+	double  seconds;
+};
+
 struct DaoTime
 {
 	DAO_CPOD_COMMON;
 
 	DTime  time;
 	short  local;
+};
+
+struct DaoTimeSpan
+{
+	DAO_CPOD_COMMON;
+
+	DTimeSpan  span;
 };
 
 
@@ -100,6 +119,12 @@ DAO_API( DAO_TIME_DLL, void, DaoTime_Delete, (DaoTime *self) );
 DAO_API( DAO_TIME_DLL, int, DaoTime_Now, (DaoTime *self) );
 DAO_API( DAO_TIME_DLL, DaoType*, DaoTime_Type, () );
 
+DAO_API( DAO_TIME_DLL, DaoTimeSpan*, DaoTimeSpan_New, () );
+DAO_API( DAO_TIME_DLL, void, DaoTimeSpan_Delete, (DaoTimeSpan *self) );
+DAO_API( DAO_TIME_DLL, DaoType*, DaoTimeSpan_Type, () );
+
 DAO_API( DAO_TIME_DLL, DaoTime*, DaoProcess_PutTime, (DaoProcess *self, DTime time, int local) );
 DAO_API( DAO_TIME_DLL, DaoTime*, DaoProcess_NewTime, (DaoProcess *self, DTime time, int local) );
 
+DAO_API( DAO_TIME_DLL, DaoTimeSpan*, DaoProcess_PutTimeSpan, (DaoProcess *self, DTimeSpan span) );
+DAO_API( DAO_TIME_DLL, DaoTimeSpan*, DaoProcess_NewTimeSpan, (DaoProcess *self, DTimeSpan span) );
