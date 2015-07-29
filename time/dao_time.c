@@ -1301,12 +1301,14 @@ static void SPAN_Parse( DaoProcess *proc, DaoValue *p[], int N )
 	const char *cp, *start = p[0]->xString.value->chars;
 	unsigned long num;
 	double dnum;
-	int mask = 0;
+	int mask = 0, fract = 0;
 	cp = start;
 	while ( 1 ){
 		if ( !isdigit( *cp ) )
 			goto FormatError;
-		for ( ++cp; isdigit( *cp ) || *cp == '.'; ++cp );
+		for ( ++cp; isdigit( *cp ) || *cp == '.'; ++cp )
+			if ( *cp == '.' )
+				fract = 1;
 		if ( !isalpha( *cp ) )
 			goto FormatError;
 		if ( *cp == 's' ){ // fractional seconds
@@ -1325,14 +1327,14 @@ static void SPAN_Parse( DaoProcess *proc, DaoValue *p[], int N )
 			if ( pend != cp || ( num == ULONG_MAX && errno == ERANGE ) || num < 0 )
 				goto NumericError;
 			if ( strncmp( cp, "ms", 2) == 0 ){
-				if ( mask != 0 ) goto FormatError;
+				if ( mask >= Span_Ms || ( ( mask & Span_S ) && fract ) ) goto FormatError;
 				if ( num > 1E3 ) goto NumericError;
 				mask |= Span_Ms;
-				res->span.seconds = num/1E3;
+				res->span.seconds += num/1E3;
 				++cp;
 			}
 			else if ( strncmp( cp, "us", 2) == 0 ){
-				if ( mask != 0 && mask != Span_Ms ) goto FormatError;
+				if ( mask >= Span_Us || ( ( mask & Span_S ) && fract ) ) goto FormatError;
 				if ( mask == 0 ){
 					if ( num > 1E6 ) goto NumericError;
 					res->span.seconds = num/1E6;
@@ -1429,8 +1431,8 @@ static DaoFuncItem timeFuncs[] =
 	{ TIME_Parse,  "parse(value: string) => DateTime" },
 
 	/*! Parses \c TimeSpan from \a value. Examples: '1d 3h 5m', '10m12.34s', '300ms'. Accepted units: d, h, m, s, ms, us.
-	 * Seconds may have fractional part, other units must be integer numbers. When d, h, m or s are present, ms and us are
-	 * not allowed */
+	 * Seconds may have fractional part, other units must be integer numbers. When seconds are given as a fractional value,
+	 * ms and us must not be present */
 	{ SPAN_Parse,  "span(value: string) => DateTime" },
 
 	/*! Returns local time zone information (environment variable *TZ*):
