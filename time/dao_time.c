@@ -1332,10 +1332,16 @@ static void SPAN_Parse( DaoProcess *proc, DaoValue *p[], int N )
 				++cp;
 			}
 			else if ( strncmp( cp, "us", 2) == 0 ){
-				if ( mask != 0 ) goto FormatError;
-				if ( num > 1E6 ) goto NumericError;
+				if ( mask != 0 && mask != Span_Ms ) goto FormatError;
+				if ( mask == 0 ){
+					if ( num > 1E6 ) goto NumericError;
+					res->span.seconds = num/1E6;
+				}
+				else {
+					if ( num > 1E3 ) goto NumericError;
+					res->span.seconds += num/1E6;
+				}
 				mask |= Span_Us;
-				res->span.seconds = num/1E6;
 				++cp;
 			}
 			else if ( *cp == 'd' ){
@@ -1423,8 +1429,8 @@ static DaoFuncItem timeFuncs[] =
 	{ TIME_Parse,  "parse(value: string) => DateTime" },
 
 	/*! Parses \c TimeSpan from \a value. Examples: '1d 3h 5m', '10m12.34s', '300ms'. Accepted units: d, h, m, s, ms, us.
-	 * Seconds may have fractional part, other units must be integer numbers. When using ms or ns, no other units must be
-	 * present */
+	 * Seconds may have fractional part, other units must be integer numbers. When d, h, m or s are present, ms and us are
+	 * not allowed */
 	{ SPAN_Parse,  "span(value: string) => DateTime" },
 
 	/*! Returns local time zone information (environment variable *TZ*):
