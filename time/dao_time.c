@@ -1034,6 +1034,21 @@ static void TIME_Minus3( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutTimeSpan( proc, res );
 }
 
+static void TIME_Since( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTime *self = (DaoTime*) p[0];
+	DTime now = DTime_Now( self->local );
+	dao_time_t diff = DTime_ToMicroSeconds( now ) - DTime_ToMicroSeconds( self->time );
+	DaoProcess_PutTimeSpan( proc, DTimeSpan_FromUSeconds( diff ) );
+}
+
+static void TIME_DayDiff( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTime *a = (DaoTime*) p[0];
+	DaoTime *b = (DaoTime*) p[1];
+	DaoProcess_PutInteger( proc, DTime_ToJulianDay( b->time ) - DTime_ToJulianDay( a->time ) );
+}
+
 static DaoFuncItem timeMeths[] =
 {
 	/*! Sets one or more datetime parts using named values */
@@ -1433,7 +1448,13 @@ static DaoFuncItem timeFuncs[] =
 	/*! Parses \c TimeSpan from \a value. Examples: '1d 3h 5m', '10m12.34s', '300ms'. Accepted units: d, h, m, s, ms, us.
 	 * Seconds may have fractional part, other units must be integer numbers. When seconds are given as a fractional value,
 	 * ms and us must not be present */
-	{ SPAN_Parse,  "span(value: string) => DateTime" },
+	{ SPAN_Parse,  "span(value: string) => TimeSpan" },
+
+	/*! Difference between the specified \a time and \c time.now() */
+	{ TIME_Since,  "since(time: DateTime) => TimeSpan" },
+
+	/*! Number of calendar days between \a start and \a end dates */
+	{ TIME_DayDiff,  "daysBetween(start: DateTime, end: DateTime) => int" },
 
 	/*! Returns local time zone information (environment variable *TZ*):
 	 * -\c dst -- is Daylight Saving Time (DST) used
@@ -1443,7 +1464,6 @@ static DaoFuncItem timeFuncs[] =
 	{ TIME_Zone,  "zone() => tuple<dst: bool, shift: int, name: string, dstZone: string>" },
 	{ NULL, NULL }
 };
-
 
 DaoTime* DaoProcess_PutTime( DaoProcess *self, DTime time, int local )
 {
