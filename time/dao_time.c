@@ -938,7 +938,6 @@ static void TIME_Add( DaoProcess *proc, DaoValue *p[], int N )
 	daoint years = 0;
 	daoint months = 0;
 	daoint days = 0;
-	daoint secs = 0;
 	struct tm parts;
 	int i, y, m, d;
 
@@ -950,35 +949,28 @@ static void TIME_Add( DaoProcess *proc, DaoValue *p[], int N )
 		case 0:	years = count; break;
 		case 1:	months = count; break;
 		case 2:	days = count; break;
-		case 3: secs = count; break;
 		}
 	}
-	if ( years || months || days ){
-		if ( years || months ){
-			restime.year += years;
-			restime.year += months/12;
-			restime.month += months%12;
-			if ( restime.month > 12 ){
-				restime.year += 1;
-				restime.month -= 12;
-			} else if ( restime.month < 1 ){
-				restime.year--;
-				restime.month = 12 - restime.month;
-			}
-			d = DaysInMonth( restime.year, restime.month );
-			if ( restime.day > d ){
-				days += d - restime.day;
-				restime.day = d;
-			}
+	if ( years || months ){
+		restime.year += years;
+		restime.year += months/12;
+		restime.month += months%12;
+		if ( restime.month > 12 ){
+			restime.year += 1;
+			restime.month -= 12;
+		} else if ( restime.month < 1 ){
+			restime.year--;
+			restime.month = 12 - restime.month;
 		}
-		if ( days ){
-			int jday = DTime_ToJulianDay( self->time ) + days;
-			restime = DTime_FromJulianDay( jday );
+		d = DaysInMonth( restime.year, restime.month );
+		if ( restime.day > d ){
+			days += restime.day - d;
+			restime.day = d;
 		}
 	}
-	if ( secs ){
-		dao_time_t S = DTime_ToSeconds( self->time );
-		restime = DTime_FromSeconds( S + secs );
+	if ( days ){
+		int jday = DTime_ToJulianDay( restime ) + days;
+		restime = DTime_FromJulianDay( jday );
 	}
 	if ( DTime_ToStructTM( restime, & parts ) == (time_t)-1){
 		DaoProcess_RaiseError( proc, timeerr, "Invalid resulting datetime" );
@@ -1104,8 +1096,8 @@ static DaoFuncItem timeMeths[] =
 	/*! Returns the number of day in the month or year of the given datetime depending on the \a period parameter */
 	{ TIME_Days,  "daysIn(invar self: DateTime, period: enum<month,year>) => int" },
 
-	/*! Returns new datetime obtained by adding the specified number of years, months, days or seconds (provided as named values) */
-	{ TIME_Add,	 "add(self: DateTime, ...: tuple<enum<years,months,days,seconds>,int>)" },
+	/*! Returns new datetime obtained by adding the specified number of years, months or days (provided as named values) */
+	{ TIME_Add,	 "add(self: DateTime, ...: tuple<enum<years,months,days>,int>)" },
 
 	{ TIME_Plus,    "+  (invar a: DateTime, invar b: TimeSpan) => DateTime" },
 	{ TIME_Minus,   "-  (invar a: DateTime, invar b: TimeSpan) => DateTime" },
@@ -1511,7 +1503,6 @@ DaoTimeSpan* DaoProcess_NewTimeSpan( DaoProcess *self, DTimeSpan span )
 	res->span = span;
 	return res;
 }
-
 
 #undef DAO_TIME
 #undef DAO_TIME_DLL
