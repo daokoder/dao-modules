@@ -1045,7 +1045,16 @@ static void TIME_DayDiff( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *a = (DaoTime*) p[0];
 	DaoTime *b = (DaoTime*) p[1];
-	DaoProcess_PutInteger( proc, DTime_ToJulianDay( b->time ) - DTime_ToJulianDay( a->time ) );
+	DTime atime = a->time;
+	DTime btime = a->time;
+	if ( a->local != b->local ){
+		if ( a->local )
+			atime = DTime_LocalToUtc( atime );
+		else
+			btime = DTime_LocalToUtc( btime );
+	}
+	else
+		DaoProcess_PutInteger( proc, DTime_ToJulianDay( btime ) - DTime_ToJulianDay( atime ) );
 }
 
 static DaoFuncItem timeMeths[] =
