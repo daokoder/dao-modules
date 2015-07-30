@@ -1018,7 +1018,14 @@ static void TIME_Minus3( DaoProcess *proc, DaoValue *p[], int N )
 	DaoTime *b = (DaoTime*) p[1];
 	dao_time_t useconds1 = DTime_ToMicroSeconds( a->time );
 	dao_time_t useconds2 = DTime_ToMicroSeconds( b->time );
-	DTimeSpan res = DTimeSpan_FromUSeconds( useconds1 - useconds2 );
+	DTimeSpan res;
+	if ( a->local != b->local ){
+		if ( a->local )
+			useconds1 -= time_zone_offset*1000000;
+		else
+			useconds2 -= time_zone_offset*1000000;
+	}
+	res = DTimeSpan_FromUSeconds( useconds1 - useconds2 );
 	if( useconds1 < useconds2 ){
 		DaoProcess_RaiseError( proc, "Param", "Invalid time subtraction" );
 		return;
