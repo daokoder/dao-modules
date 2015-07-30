@@ -903,32 +903,45 @@ static void TIME_Days( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_PutInteger( proc, LeapYear( self->time.year )? 366 : 365 );
 }
 
+int DaoTime_Compare( DaoTime *a, DaoTime *b )
+{
+	DTime first = a->time;
+	DTime second = b->time;
+	if ( a->local != b->local ){
+		if ( a->local )
+			first = DTime_LocalToUtc( first );
+		else
+			second = DTime_LocalToUtc( second );
+	}
+	return DTime_Compare( first, second );
+}
+
 static void TIME_EQ( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *a = (DaoTime*) p[0];
 	DaoTime *b = (DaoTime*) p[1];
-	DaoProcess_PutBoolean( proc, DTime_Compare( a->time, b->time ) == 0 );
+	DaoProcess_PutBoolean( proc, DaoTime_Compare( a, b ) == 0 );
 }
 
 static void TIME_NE( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *a = (DaoTime*) p[0];
 	DaoTime *b = (DaoTime*) p[1];
-	DaoProcess_PutBoolean( proc, DTime_Compare( a->time, b->time ) != 0 );
+	DaoProcess_PutBoolean( proc, DaoTime_Compare( a, b ) != 0 );
 }
 
 static void TIME_LT( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *a = (DaoTime*) p[0];
 	DaoTime *b = (DaoTime*) p[1];
-	DaoProcess_PutBoolean( proc, DTime_Compare( a->time, b->time ) < 0 );
+	DaoProcess_PutBoolean( proc, DaoTime_Compare( a, b ) < 0 );
 }
 
 static void TIME_LE( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *a = (DaoTime*) p[0];
 	DaoTime *b = (DaoTime*) p[1];
-	DaoProcess_PutBoolean( proc, DTime_Compare( a->time, b->time ) <= 0 );
+	DaoProcess_PutBoolean( proc, DaoTime_Compare( a, b ) <= 0 );
 }
 
 static void TIME_Add( DaoProcess *proc, DaoValue *p[], int N )
