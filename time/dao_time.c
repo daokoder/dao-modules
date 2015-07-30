@@ -545,7 +545,7 @@ static void TIME_Set( DaoProcess *proc, DaoValue *p[], int N )
 static void TIME_Value( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*) p[0];
-	DaoProcess_PutInteger( proc, (dao_integer) DTime_ToMicroSeconds( self->time ) );
+	DaoProcess_PutFloat( proc, (dao_integer) DTime_ToMicroSeconds( self->time ) / 1.0E6 );
 }
 
 static void TIME_Type( DaoProcess *proc, DaoValue *p[], int N )
@@ -1055,8 +1055,8 @@ static DaoFuncItem timeMeths[] =
 	{ TIME_Set,     "set(self: DateTime, ...: tuple<enum<year,month,day,hour,minute>,int> | tuple<enum<second>,float>)" },
 
 	/*! \c Returns the number of microseconds since 2000-1-1, 00:00:00 UTC */
-	{ TIME_Value,   ".value(invar self: DateTime) => int" },
-	{ TIME_Value,   "(int)(invar self: DateTime)" },
+	{ TIME_Value,   ".value(invar self: DateTime) => float" },
+	{ TIME_Value,   "(float)(invar self: DateTime)" },
 
 	/*! Returns datetime kind with regard to the time zone: UTC or local */
 	{ TIME_Type,    ".kind(invar self: DateTime) => enum<local,utc>" },
@@ -1339,7 +1339,7 @@ static void SPAN_Parse( DaoProcess *proc, DaoValue *p[], int N )
 		else {
 			char *pend;
 			num = strtoul( start, &pend, 10 );
-			if ( pend != cp || ( num == ULONG_MAX && errno == ERANGE ) || num < 0 )
+			if ( pend != cp || ( num == ULONG_MAX && errno == ERANGE ) )
 				goto NumericError;
 			if ( strncmp( cp, "ms", 2) == 0 ){
 				if ( mask >= Span_Ms || ( ( mask & Span_S ) && fract ) ) goto FormatError;
