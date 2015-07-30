@@ -692,7 +692,7 @@ static void TIME_Zone( DaoProcess *proc, DaoValue *p[], int N )
 int DaoTime_GetTzOffset( DaoTime *self )
 {
 	if ( self->local ){
-		return time_zone_offset;
+		return DTime_ToSeconds( self->time ) - DTime_ToSeconds( DTime_LocalToUtc( self->time ) );
 	}
 	return 0;
 }
@@ -1034,13 +1034,13 @@ static void TIME_Minus3( DaoProcess *proc, DaoValue *p[], int N )
 	DTimeSpan res;
 	if ( a->local != b->local ){
 		if ( a->local )
-			useconds1 -= time_zone_offset*1000000;
+			useconds1 -= DaoTime_GetTzOffset( a )*1000000LL;
 		else
-			useconds2 -= time_zone_offset*1000000;
+			useconds2 -= DaoTime_GetTzOffset( b )*1000000LL;
 	}
 	res = DTimeSpan_FromUSeconds( useconds1 - useconds2 );
 	if( useconds1 < useconds2 ){
-		DaoProcess_RaiseError( proc, "Param", "Invalid time subtraction" );
+		DaoProcess_RaiseError( proc, "Param", "Subtracting leading to negative result" );
 		return;
 	}
 	DaoProcess_PutTimeSpan( proc, res );
