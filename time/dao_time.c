@@ -36,6 +36,7 @@
 #include<limits.h>
 #include<errno.h>
 #include<math.h>
+#include<time.h>
 #include"dao_time.h"
 #include"daoPlatforms.h"
 
@@ -51,7 +52,6 @@ static const char timeerr[] = "Time";
 static DaoType *daox_type_time = NULL;
 static DaoType *daox_type_span = NULL;
 
-static int time_zone_offset = 0;
 static dao_time_t epoch2000_days = 0;
 static dao_time_t epoch2000_useconds = 0;
 static dao_time_t epoch1970_seconds = 0;
@@ -220,18 +220,105 @@ dao_time_t DTime_ToMicroSeconds( DTime time )
 
 DTime DTime_LocalToUtc( DTime local )
 {
-	dao_time_t loc_s = DTime_ToSeconds( local );
-	DTime utc = DTime_FromSeconds( loc_s - time_zone_offset );
-	utc.second = local.second;
-	return utc;
+	double fract = local.second - (dao_time_t)local.second;
+	DTime res;
+#ifdef WIN32
+	SYSTEMTIME loc = {0};
+	SYSTEMTIME gmt = {0};
+	loc.wYear = local.year;
+	loc.wMonth = local.month;
+	loc.wDay = local.day;
+	loc.wHour = local.hour;
+	loc.wMinute = local.minute;
+	loc.wSecond = local.second;
+	TzSpecificLocalTimeToSystemTime( NULL, &loc, &gmt );
+	res.year = gmt.wYear;
+	res.month = gmt.wMonth;
+	res.day = gmt.wDay;
+	res.hour = gmt.wHour;
+	res.minute = gmt.wMinute;
+	res.second = gmt.wSecond;
+#else
+	time_t t;
+	struct tm ts = {0};
+	ts.tm_isdst = -1;
+	ts.tm_year = local.year - 1900;
+	ts.tm_mon = local.month - 1;
+	ts.tm_mday = local.day;
+	ts.tm_hour = local.hour;
+	ts.tm_min = local.minute;
+	ts.tm_sec = local.second;
+	t = mktime( &ts );
+	gmtime_r( &t, &ts );
+	res.year = ts.tm_year + 1900;
+	res.month = ts.tm_mon + 1;
+	res.day = ts.tm_mday;
+	res.hour = ts.tm_hour;
+	res.minute = ts.tm_min;
+	res.second = ts.tm_sec;
+#endif
+	res.second += fract;
+	return res;
 }
 
 DTime DTime_UtcToLocal( DTime utc )
 {
-	dao_time_t utc_s = DTime_ToSeconds( utc );
-	DTime local = DTime_FromSeconds( utc_s + time_zone_offset );
-	local.second = utc.second;
-	return local;
+	double fract = utc.second - (dao_time_t)utc.second;
+	DTime res;
+#ifdef WIN32
+	SYSTEMTIME loc = {0};
+	SYSTEMTIME gmt = {0};
+	gmt.wYear = utc.year;
+	gmt.wMonth = utc.month;
+	gmt.wDay = utc.day;
+	gmt.wHour = utc.hour;
+	gmt.wMinute = utc.minute;
+	gmt.wSecond = utc.second;
+	SystemTimeToTzSpecificLocalTime(NULL, &gmt, &loc);
+	res.year = loc.wYear;
+	res.month = loc.wMonth;
+	res.day = loc.wDay;
+	res.hour = loc.wHour;
+	res.minute = loc.wMinute;
+	res.second = loc.wSecond;
+#else
+	time_t t;
+	struct tm ts = {0};
+	ts.tm_isdst = -1;
+	ts.tm_year = utc.year - 1900;
+	ts.tm_mon = utc.month - 1;
+	ts.tm_mday = utc.day;
+	ts.tm_hour = utc.hour;
+	ts.tm_min = utc.minute;
+	ts.tm_sec = utc.second;
+#if defined(LINUX) || defined(MACOSX) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
+	t = timegm( &ts );
+#else
+	char tz[200];
+	char *ev = getenv( "TZ" );
+	if ( ev )
+		snprintf( tz, sizeof(tz), "%s", ev );
+	else
+		tz[0] = 0;
+	setenv( "TZ", "", 1 );
+	tzset();
+	t = mktime( &ts );
+	if ( *tz )
+		setenv( "TZ", tz, 1 );
+	else
+		unsetenv( "TZ" );
+	tzset();
+#endif
+	gmtime_r( &t, &ts );
+	res.year = ts.tm_year + 1900;
+	res.month = ts.tm_mon + 1;
+	res.day = ts.tm_mday;
+	res.hour = ts.tm_hour;
+	res.minute = ts.tm_min;
+	res.second = ts.tm_sec;
+#endif
+	res.second += fract;
+	return res;
 }
 
 int DTime_Compare( DTime first, DTime second )
@@ -1066,8 +1153,7 @@ static void TIME_DayDiff( DaoProcess *proc, DaoValue *p[], int N )
 		else
 			btime = DTime_LocalToUtc( btime );
 	}
-	else
-		DaoProcess_PutInteger( proc, DTime_ToJulianDay( btime ) - DTime_ToJulianDay( atime ) );
+	DaoProcess_PutInteger( proc, DTime_ToJulianDay( btime ) - DTime_ToJulianDay( atime ) );
 }
 
 static DaoFuncItem timeMeths[] =
@@ -1543,21 +1629,12 @@ DAO_DLL_EXPORT int DaoTime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace *timens = DaoVmSpace_GetNamespace( vmSpace, "time" );
 	DTime epoch2000 = { 2000, 1, 1, 0, 0, 0.0 };
 	DTime epoch1970 = { 1970, 1, 1, 0, 0, 0.0 };
-	DTime utc = DTime_Now(0);
-	DTime loc = DTime_Now(1);
-	int mod;
 
 	DaoNamespace_AddConstValue( ns, "time", (DaoValue*) timens );
 
 	epoch2000_days = DTime_ToJulianDay( epoch2000 );
 	epoch2000_useconds = epoch2000_days * 24 * 3600 * 1E6;
 	epoch1970_seconds = DTime_ToJulianDay( epoch1970 ) * 24 * 3600;
-
-	time_zone_offset = DTime_ToSeconds( loc ) - DTime_ToSeconds( utc );
-
-	// prevent errors caused by the possible difference between 'utc' and 'loc' in seconds
-	mod = time_zone_offset%10;
-	if ( mod ) time_zone_offset += mod < 5? -mod : 10 - mod;
 
 	daox_type_time = DaoNamespace_WrapType( timens, &timeTyper, DAO_CPOD,0 );
 	daox_type_span = DaoNamespace_WrapType( timens, &spanTyper, DAO_CPOD,0 );
