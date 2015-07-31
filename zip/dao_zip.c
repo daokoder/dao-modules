@@ -1,48 +1,75 @@
+/*
+// Dao Standard Modules
+// http://www.daovm.net
+//
+// Copyright (c) 2014,2015, Limin Fu
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without modification,
+// are permitted provided that the following conditions are met:
+//
+// * Redistributions of source code must retain the above copyright notice,
+//   this list of conditions and the following disclaimer.
+// * Redistributions in binary form must reproduce the above copyright notice,
+//   this list of conditions and the following disclaimer in the documentation
+//   and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED  BY THE COPYRIGHT HOLDERS AND  CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED  WARRANTIES,  INCLUDING,  BUT NOT LIMITED TO,  THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+// IN NO EVENT SHALL  THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE FOR ANY DIRECT,
+// INDIRECT,  INCIDENTAL, SPECIAL,  EXEMPLARY,  OR CONSEQUENTIAL  DAMAGES (INCLUDING,
+// BUT NOT LIMITED TO,  PROCUREMENT OF  SUBSTITUTE  GOODS OR  SERVICES;  LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION)  HOWEVER CAUSED  AND ON ANY THEORY OF
+// LIABILITY,  WHETHER IN CONTRACT,  STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+// OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
 
-#include "dao.h"
+#include "dao_zip.h"
 #include "daoString.h"
 #include "daoValue.h"
 #include "bzlib.h"
+
+void DaoZip_Compress( DString *input, DString *output )
+{
+	unsigned int outputLen = input->size;
+	int block = 100000;
+	daoint size = input->size;
+
+	DString_Reserve( output, size );
+	size = 1 + size / block;
+	if( size > 9 ) size = 9;
+	BZ2_bzBuffToBuffCompress( output->chars, & outputLen, input->chars, input->size, size, 0, 30 );
+	DString_Reset( output, outputLen );
+}
+void DaoZip_Decompress( DString *input, DString *output )
+{
+	unsigned int outputLen;
+
+	/* TODO: get decompressed size from the compressed data? */
+	DString_Reserve( output, input->size );
+	outputLen = output->bufSize;
+	while( outputLen == output->bufSize ){
+		DString_Reserve( output, 2*outputLen );
+		outputLen = output->bufSize;
+		BZ2_bzBuffToBuffDecompress( output->chars, & outputLen, input->chars, input->size, 0, 0 );
+	}
+	DString_Reset( output, outputLen );
+}
 
 static void ZIP_Compress( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DString *source = p[0]->xString.value;
 	DString *res = DaoProcess_PutChars( proc, "" );
-	unsigned int resLen = source->size;
-	int block = 100000;
-	daoint size = source->size;
-
-	DString_Reserve( res, size );
-	size = 1 + size / block;
-	if( size > 9 ) size = 9;
-	BZ2_bzBuffToBuffCompress( res->chars, & resLen, source->chars, source->size, size, 0, 30 );
-	DString_Reset( res, resLen );
+	DaoZip_Compress( source, res );
 }
 static void ZIP_Decompress( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DString *source = p[0]->xString.value;
 	DString *res = DaoProcess_PutChars( proc, "" );
-	unsigned int resLen;
-
-	/* TODO: get decompressed size from the compressed data? */
-	DString_Reserve( res, source->size );
-	resLen = res->bufSize;
-	while( resLen == res->bufSize ){
-		DString_Reserve( res, 2*resLen );
-		resLen = res->bufSize;
-		BZ2_bzBuffToBuffDecompress( res->chars, & resLen, source->chars, source->size, 0, 0 );
-	}
-	DString_Reset( res, resLen );
 }
 
-typedef struct DaoZipStream DaoZipStream;
-
-struct DaoZipStream
-{
-	FILE *file;
-	void *bzfile;
-	short read, end;
-};
 
 DaoType *daox_type_zipstream = NULL;
 
@@ -92,10 +119,25 @@ int DaoZipStream_Open( DaoZipStream *self, FILE *file, int read )
 	return bzerr == BZ_OK;
 }
 
-static void DaoZipStream_LibClose( DaoProcess *proc, DaoValue *p[], int N )
+int DaoZipStream_Read( DaoZipStream *self, DString *buffer, int count )
 {
-	DaoZipStream *self = (DaoZipStream*)DaoValue_TryGetCdata( p[0] );
-	DaoZipStream_Close( self );
+	int bzerr;
+	if ( count < 0 ){
+		struct stat info;
+		fstat( fileno( self->file ), &info );
+		count = info.st_size;
+	}
+	DString_Reserve( buffer, count );
+	DString_Reset( buffer, BZ2_bzRead( &bzerr, self->bzfile, buffer->chars, count ) );
+	self->end = ( bzerr == BZ_STREAM_END );
+	return bzerr;
+}
+
+int DaoZipStream_Write( DaoZipStream *self, DString *data )
+{
+	int bzerr;
+	BZ2_bzWrite( &bzerr, self->bzfile, data->chars, data->size );
+	return bzerr;
 }
 
 static void ZIP_Open( DaoProcess *proc, DaoValue *p[], int N )
@@ -130,27 +172,20 @@ static void ZIP_Open( DaoProcess *proc, DaoValue *p[], int N )
 	}
 }
 
-static void DaoZipStream_Read( DaoProcess *proc, DaoValue *p[], int N )
+static void ZIP_Read( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoZipStream *self = (DaoZipStream*)DaoValue_TryGetCdata( p[0] );
 	int bzerr;
 	dao_integer count = p[1]->xInteger.value;
 	DString *res = DaoProcess_PutChars( proc, "" );
-	if ( !self->bzfile )
+	if ( !self->bzfile ){
 		DaoProcess_RaiseError( proc, NULL, "Reading from a closed zip stream" );
-	else {
-		if ( count < 0 ){
-			struct stat info;
-			fstat( fileno( self->file ), &info );
-			count = info.st_size;
-		}
-		DString_Reserve( res, count );
-		DString_Reset( res, BZ2_bzRead( &bzerr, self->bzfile, res->chars, count ) );
-		self->end = ( bzerr == BZ_STREAM_END );
+		return;
 	}
+	DaoZipStream_Read( self, res, count );
 }
 
-static void DaoZipStream_Write( DaoProcess *proc, DaoValue *p[], int N )
+static void ZIP_Write( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoZipStream *self = (DaoZipStream*)DaoValue_TryGetCdata( p[0] );
 	DString *data = p[1]->xString.value;
@@ -161,7 +196,13 @@ static void DaoZipStream_Write( DaoProcess *proc, DaoValue *p[], int N )
 		BZ2_bzWrite( &bzerr, self->bzfile, data->chars, data->size );
 }
 
-static void DaoZipStream_Check( DaoProcess *proc, DaoValue *p[], int N )
+static void ZIP_Close( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoZipStream *self = (DaoZipStream*)DaoValue_TryGetCdata( p[0] );
+	DaoZipStream_Close( self );
+}
+
+static void ZIP_Check( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoZipStream *self = (DaoZipStream*)DaoValue_TryGetCdata( p[0] );
 	int res = 0;
@@ -224,12 +265,12 @@ static void ZIP_ReadFile( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem zipstreamMeths[] =
 {
-	{ ZIP_Open,				"Stream(file: string, mode: string) => Stream" },
-	{ ZIP_Open,				"Stream(fileno: int, mode: string) => Stream" },
-	{ DaoZipStream_Read,	"read(self: Stream, count = -1) => string" },
-	{ DaoZipStream_Write,	"write(self: Stream, data: string)" },
-	{ DaoZipStream_Check,	"check(self: Stream, what: enum<readable,writable,open,eof>) => bool" },
-	{ DaoZipStream_LibClose,"close(self: Stream)" },
+	{ ZIP_Open,   "Stream(file: string, mode: string) => Stream" },
+	{ ZIP_Open,   "Stream(fileno: int, mode: string) => Stream" },
+	{ ZIP_Read,   "read(self: Stream, count = -1) => string" },
+	{ ZIP_Write,  "write(self: Stream, data: string)" },
+	{ ZIP_Check,  "check(self: Stream, what: enum<readable,writable,open,eof>) => bool" },
+	{ ZIP_Close,  "close(self: Stream)" },
 	{ NULL, NULL }
 };
 

@@ -335,7 +335,7 @@ int DTime_Compare( DTime first, DTime second )
 
 int DTime_IsValid( DTime time )
 {
-	return time.year > 0 && time.month > 0 && time.month < 13 && time.day > 0 &&
+	return time.month > 0 && time.month < 13 && time.day > 0 &&
 			time.day <= DaysInMonth( time.year, time.month ) && time.hour >= 0 &&
 			time.hour < 24 && time.minute >= 0 && time.minute < 60 &&
 			time.second >= 0.0 && time.second < 60.0;
@@ -1232,7 +1232,7 @@ static DaoFuncItem timeMeths[] =
 	/*! Sets one or more datetime parts using named values */
 	{ TIME_Set,     "set(self: DateTime, ...: tuple<enum<year,month,day,hour,minute>,int> | tuple<enum<second>,float>)" },
 
-	/*! \c Returns the number of microseconds since 2000-1-1, 00:00:00 UTC */
+	/*! \c Returns the number of seconds since 2000-1-1, 00:00:00 UTC */
 	{ TIME_Value,   ".value(invar self: DateTime) => float" },
 	{ TIME_Value,   "(float)(invar self: DateTime)" },
 
