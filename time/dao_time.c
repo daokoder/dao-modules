@@ -218,6 +218,17 @@ dao_time_t DTime_ToMicroSeconds( DTime time )
 	return usec + (dao_time_t)(time.second*1E6) - epoch2000_useconds;
 }
 
+void DTime_ToStructTM( DTime time, struct tm *parts )
+{
+	parts->tm_year = time.year - 1900;
+	parts->tm_mon  = time.month - 1;
+	parts->tm_mday = time.day;
+	parts->tm_hour = time.hour;
+	parts->tm_min  = time.minute;
+	parts->tm_sec  = time.second;
+	parts->tm_isdst = -1;
+}
+
 DTime DTime_LocalToUtc( DTime local )
 {
 	double fract = local.second - (dao_time_t)local.second;
@@ -241,13 +252,7 @@ DTime DTime_LocalToUtc( DTime local )
 #else
 	time_t t;
 	struct tm ts = {0};
-	ts.tm_isdst = -1;
-	ts.tm_year = local.year - 1900;
-	ts.tm_mon = local.month - 1;
-	ts.tm_mday = local.day;
-	ts.tm_hour = local.hour;
-	ts.tm_min = local.minute;
-	ts.tm_sec = local.second;
+	DTime_ToStructTM( local, &ts );
 	t = mktime( &ts );
 	gmtime_r( &t, &ts );
 	res.year = ts.tm_year + 1900;
@@ -284,13 +289,7 @@ DTime DTime_UtcToLocal( DTime utc )
 #else
 	time_t t;
 	struct tm ts = {0};
-	ts.tm_isdst = -1;
-	ts.tm_year = utc.year - 1900;
-	ts.tm_mon = utc.month - 1;
-	ts.tm_mday = utc.day;
-	ts.tm_hour = utc.hour;
-	ts.tm_min = utc.minute;
-	ts.tm_sec = utc.second;
+	DTime_ToStructTM( utc, &ts );
 #if defined(LINUX) || defined(MACOSX) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
 	t = timegm( &ts );
 #else
@@ -335,32 +334,13 @@ int DTime_Compare( DTime first, DTime second )
 	return 0;
 }
 
-time_t DTime_ToStructTM( DTime time, struct tm *parts )
+int DTime_IsValid( DTime time )
 {
-	time_t ret, invalid = (time_t)-1;
-	parts->tm_year = time.year - 1900;
-	parts->tm_mon  = time.month - 1;
-	parts->tm_mday = time.day;
-	parts->tm_hour = time.hour;
-	parts->tm_min  = time.minute;
-	parts->tm_sec  = time.second;
-	parts->tm_isdst = -1;
-	ret = mktime( parts );
-	if( ret == invalid ) return ret;
-	/*
-	// mktime() allows carry-over (for example, 10:20:73 == 10:21:13);
-	// We don't allow it here.
-	*/
-	if( parts->tm_year != time.year - 1900 ) return invalid;
-	if( parts->tm_mon  != time.month - 1 ) return invalid;
-	if( parts->tm_mday != time.day ) return invalid;
-	if( parts->tm_hour != time.hour ) return invalid;
-	if( parts->tm_min  != time.minute ) return invalid;
-	if( parts->tm_sec  != (int)time.second ) return invalid;
-	return ret;
+	return time.year > 0 && time.month > 0 && time.month < 13 && time.day > 0 &&
+			time.day <= DaysInMonth( time.year, time.month ) && time.hour > 0 &&
+			time.hour < 24 && time.minute > 0 && time.minute < 60 &&
+			time.second > 0.0 && time.second < 60.0;
 }
-
-
 
 DTimeSpan DTimeSpan_FromUSeconds( dao_time_t useconds )
 {
@@ -600,7 +580,6 @@ Clean:
 static void TIME_Set( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*) p[0];
-	struct tm parts;
 	daoint i;
 	DString *name = DString_New();
 
@@ -622,7 +601,7 @@ static void TIME_Set( DaoProcess *proc, DaoValue *p[], int N )
 		}
 	}
 	DString_Delete( name );
-	if ( DTime_ToStructTM( self->time, & parts ) == (time_t)-1){
+	if ( !DTime_IsValid( self->time )){
 		DaoProcess_RaiseError( proc, timeerr, "Invalid datetime" );
 		return;
 	}
@@ -828,10 +807,7 @@ static void TIME_Format( DaoProcess *proc, DaoValue *p[], int N )
 		}
 	}
 
-	if( DTime_ToStructTM( self->time, & parts ) == (time_t)-1 ){
-		DaoProcess_RaiseError( proc, "Param", "Invalid time" );
-		return;
-	}
+	DTime_ToStructTM( self->time, & parts );
 	if ( strftime( buf, sizeof(buf), fmt->chars, &parts ))
 		DaoProcess_PutChars( proc, buf );
 	else
@@ -843,10 +819,7 @@ static void TIME_ToString( DaoProcess *proc, DaoValue *p[], int N )
 	struct tm parts;
 	char buf[100];
 
-	if( DTime_ToStructTM( self->time, & parts ) == (time_t)-1 ){
-		DaoProcess_RaiseError( proc, "Param", "Invalid time" );
-		return;
-	}
+	DTime_ToStructTM( self->time, & parts );
 	if ( strftime( buf, sizeof(buf), "%Y-%m-%d %H:%M:%S.", &parts )){
 		int len = strlen( buf );
 		GetFracSecond( self->time.second, buf + len, sizeof(buf) - len );
@@ -1038,7 +1011,6 @@ static void TIME_Add( DaoProcess *proc, DaoValue *p[], int N )
 	daoint years = 0;
 	daoint months = 0;
 	daoint days = 0;
-	struct tm parts;
 	int i, y, m, d;
 
 	if ( N == 0 )
@@ -1072,11 +1044,7 @@ static void TIME_Add( DaoProcess *proc, DaoValue *p[], int N )
 		int jday = DTime_ToJulianDay( restime ) + days;
 		restime = DTime_FromJulianDay( jday );
 	}
-	if ( DTime_ToStructTM( restime, & parts ) == (time_t)-1){
-		DaoProcess_RaiseError( proc, timeerr, "Invalid resulting datetime" );
-	} else {
-		self->time = restime;
-	}
+	self->time = restime;
 }
 static void TIME_Plus( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1575,11 +1543,10 @@ static DaoFuncItem timeFuncs[] =
 DaoTime* DaoProcess_PutTime( DaoProcess *self, DTime time, int local )
 {
 	DaoTime *res = (DaoTime*) DaoProcess_PutCpod( self, daox_type_time, sizeof(DaoTime) );
-	struct tm parts;
 
 	if( res == NULL ) return NULL;
 
-	if ( DTime_ToStructTM( time, & parts ) == (time_t)-1){
+	if ( !DTime_IsValid( time ) ){
 		DaoProcess_RaiseError( self, timeerr, "Invalid datetime" );
 		return NULL;
 	}
@@ -1591,8 +1558,7 @@ DaoTime* DaoProcess_PutTime( DaoProcess *self, DTime time, int local )
 DaoTime* DaoProcess_NewTime( DaoProcess *self, DTime time, int local )
 {
 	DaoTime *res = (DaoTime*) DaoProcess_NewCpod( self, daox_type_time, sizeof(DaoTime) );
-	struct tm parts;
-	if ( DTime_ToStructTM( time, & parts ) == (time_t)-1){
+	if ( !DTime_IsValid( time ) ){
 		DaoProcess_RaiseError( self, timeerr, "Invalid datetime" );
 		return NULL;
 	}

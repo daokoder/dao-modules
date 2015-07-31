@@ -369,7 +369,6 @@ DTime ParseImfDate( DString *date )
 	const DTime inv_date = {-1};
 	const char *dnames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
 	const char *cp = date->chars;
-	struct tm parts;
 	DTime ts = {0};
 	int i, found = 0;
 	for ( i = 0; i < 7; ++i )
@@ -396,7 +395,7 @@ DTime ParseImfDate( DString *date )
 	cp = ParseTimeOfDay( cp + 5, &ts );
 	if ( !cp || strcmp( cp, "GMT" ) != 0 )
 		return inv_date;
-	if( _DTime_ToStructTM( ts, & parts ) == (time_t)-1 ) return inv_date;
+	if( !_DTime_IsValid( ts ) ) return inv_date;
 	return _DTime_LocalToUtc( ts );
 }
 
@@ -405,7 +404,6 @@ DTime ParseRfc850Date(DString *date)
 	const DTime inv_date = {-1};
 	const char *dnames[] = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
 	const char *cp = date->chars;
-	struct tm parts;
 	DTime ts = {0};
 	int i, found = 0;
 	for ( i = 0; i < 7; ++i ){
@@ -434,7 +432,7 @@ DTime ParseRfc850Date(DString *date)
 	cp = ParseTimeOfDay( cp + 3, &ts );
 	if ( !cp || strcmp( cp, "GMT" ) != 0 )
 		return inv_date;
-	if( _DTime_ToStructTM( ts, & parts ) == (time_t)-1 ) return inv_date;
+	if( !_DTime_IsValid( ts ) ) return inv_date;
 	return _DTime_LocalToUtc( ts );
 }
 
@@ -443,7 +441,6 @@ DTime ParseAsctimeDate(DString *date)
 	const DTime inv_date = {-1};
 	const char *dnames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
 	const char *cp = date->chars;
-	struct tm parts;
 	DTime ts = {0};
 	int i, found = 0;
 	for ( i = 0; i < 7; ++i )
@@ -478,7 +475,7 @@ DTime ParseAsctimeDate(DString *date)
 	ts.year = ( cp[0] - '0' )*1000 + ( cp[1] - '0' )*100 + ( cp[2] - '0' )*10 + ( cp[3] - '0' );
 	cp += 4;
 	if ( *cp ) return inv_date;
-	if( _DTime_ToStructTM( ts, & parts ) == (time_t)-1 ) return inv_date;
+	if( !_DTime_IsValid( ts ) ) return inv_date;
 	return _DTime_LocalToUtc( ts );
 }
 
