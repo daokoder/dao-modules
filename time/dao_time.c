@@ -481,26 +481,105 @@ static int GetNum( char *str, int len )
 	return res;
 }
 
-static void TIME_Parse( DaoProcess *proc, DaoValue *p[], int N )
+DTime ParseRfc3339Time( DString *str )
 {
-	DTime time = DTime_Now(1);
-	DString *str = NULL;
+	DTime inv_time = {0};
+	DTime res = {0};
+	int n, sign, offset = 0;
+	const char *cp = str->chars;
+	if ( !isdigit(cp[0]) || !isdigit(cp[1]) || !isdigit(cp[2]) || !isdigit(cp[3]) || cp[4] != '-' )
+		return inv_time;
+	res.year = ( cp[0] - '0' )*1000 + ( cp[1] - '0' )*100 + ( cp[2] - '0' )*10 + ( cp[3] - '0' );
+	cp += 5;
+
+	if ( !isdigit(cp[0]) || !isdigit(cp[1]) || cp[2] != '-' )
+		return inv_time;
+	res.month = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	if ( res.month == 0 || res.month > 12 )
+		return inv_time;
+	cp += 3;
+
+	if ( !isdigit(cp[0]) || !isdigit(cp[1]) || cp[2] != 'T' )
+		return inv_time;
+	res.day = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	if ( res.day == 0 || res.day > DaysInMonth( res.year, res.month ) )
+		return inv_time;
+	cp += 3;
+
+	if ( !isdigit(cp[0]) || !isdigit(cp[1]) || cp[2] != ':' )
+		return inv_time;
+	res.hour = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	if ( res.hour >= 24 )
+		return inv_time;
+	cp += 3;
+
+	if ( !isdigit(cp[0]) || !isdigit(cp[1]) || cp[2] != ':' )
+		return inv_time;
+	res.minute = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	if ( res.minute >= 60 )
+		return inv_time;
+	cp += 3;
+
+	if ( !isdigit(cp[0]) || !isdigit(cp[1]) )
+		return inv_time;
+	cp += 2;
+	if ( *cp == '.' ){ // fractional seconds
+		char *end;
+		const char *start = cp - 2;
+		double num;
+		for ( ++cp; isdigit( *cp ); ++cp );
+		num = strtod( start, &end );
+		if ( end != cp || ( ( num == HUGE_VAL || num == -HUGE_VAL ) && errno == ERANGE ) || num < 0 || num > 60.0 )
+			return inv_time;
+		res.second = num;
+	}
+	else { // integer seconds
+		res.second = ( *( cp - 2 ) - '0' )*10 + ( *( cp - 1 ) - '0' );
+		if ( res.second >= 60.0 )
+			return inv_time;
+	}
+
+	if ( *cp == 'Z' )
+		return cp[1] == 0? res : inv_time;
+
+	// utc offset
+	if ( ( cp[0] != '+' && cp[0] != '-' ) || !isdigit(cp[1]) || !isdigit(cp[2]) || cp[3] != ':' ||
+		 !isdigit(cp[4]) || !isdigit(cp[5]) || cp[6] != 0 )
+		return inv_time;
+	sign = *cp == '+'? 1 : -1;
+	++cp;
+	n = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	if ( n >= 24 )
+		return inv_time;
+	offset = n*3600*sign;
+	cp += 3;
+	n = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	if ( n >= 60 )
+		return inv_time;
+	offset += n*60*sign;
+
+	if (1){
+		double fract = res.second - (dao_time_t)res.second;
+		res = DTime_FromSeconds( DTime_ToSeconds( res ) - offset );
+		res.second += fract;
+	}
+
+	return res;
+}
+
+DTime ParseSimpleTime( DaoProcess *proc, DString *str )
+{
+	DTime inv_time = {0};
+	DTime time = {0};
 	DString *sdate = NULL, *stime = NULL;
 	DString *sfrac = NULL;
 	daoint pos;
-	struct tm parts;
 
-	if( time.month == 0 ){
-		DaoProcess_RaiseError( proc, timeerr, "Failed to get current datetime" );
-		return;
-	}
-
-	str = DString_Copy( p[0]->xString.value );
-	DString_Trim( str, 1, 1, 0 );
+	str = DString_Copy( str );
 	pos = DString_FindChar( str, ' ', 0 );
 	if ( pos >= 0 ){
-		sdate = DString_New( 1 );
-		stime = DString_New( 1 );
+		sdate = DString_New();
+		stime = DString_New();
 		DString_SubString( str, sdate, 0, pos );
 		DString_SubString( str, stime, pos + 1, str->size - pos - 1 );
 	} else if ( DString_FindChar( str, ':', 0 ) > 0 ){
@@ -516,7 +595,7 @@ static void TIME_Parse( DaoProcess *proc, DaoValue *p[], int N )
 	if( stime ){
 		pos = DString_FindChar( stime, '.', 0 );
 		if( pos >= 0 ){
-			sfrac = DString_New( 1 );
+			sfrac = DString_New();
 			DString_SubString( stime, sfrac, pos, -1 );
 			DString_Erase( stime, pos, -1 );
 		}
@@ -537,6 +616,13 @@ static void TIME_Parse( DaoProcess *proc, DaoValue *p[], int N )
 			time.day = GetNum( sdate->chars + 3, 2 );
 		} else {
 			goto Error;
+		}
+	}
+	else {
+		time = DTime_Now( 1 );
+		if( time.month == 0 ){
+			DaoProcess_RaiseError( proc, timeerr, "Failed to get current datetime" );
+			return inv_time;
 		}
 	}
 	if ( stime ){
@@ -564,15 +650,33 @@ static void TIME_Parse( DaoProcess *proc, DaoValue *p[], int N )
 		}
 		time.second += strtod( sfrac->chars, NULL );
 	}
-	DaoProcess_PutTime( proc, time, 1 );
 	goto Clean;
 Error:
-	DaoProcess_RaiseError( proc, "Param", "Invalid format ('YYYY-MM-DD HH:MM:SS' or its part is required)" );
+	time = inv_time;
 Clean:
 	if( str ) DString_Delete( str );
 	if( sdate ) DString_Delete( sdate );
 	if( stime ) DString_Delete( stime );
 	if( sfrac ) DString_Delete( sfrac );
+	return time;
+}
+
+static void TIME_Parse( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DString *str = p[0]->xString.value;
+	int local = 0;
+	DTime t = ParseRfc3339Time( str );
+
+	if ( !t.month ){
+		local = 1;
+		t = ParseSimpleTime( proc, str );
+
+		if ( !t.month ){
+			DaoProcess_RaiseError( proc, "Param", "Unsupported datetime format" );
+			return;
+		}
+	}
+	DaoProcess_PutTime( proc, t, local );
 }
 
 
@@ -1515,8 +1619,9 @@ static DaoFuncItem timeFuncs[] =
 	/*! Returns local datetime composed of the specified \a year, \a month, \a day, \a hour, \a min and \a sec */
 	{ TIME_MakeTime, "make(year: int, month: int, day: int, hour = 0, min = 0, sec = 0.0) => DateTime" },
 
-	/*! Returns local datetime parsed from \a value, which should contain date ('YYYY-MM-DD', 'YYYY-MM' or 'MM-DD')
-	 * and/or time ('HH:MM:SS' or 'HH:MM') separated by ' ' */
+	/*! Returns datetime parsed from \a value, which may be
+	 * - local datetime consisting of date ('YYYY-MM-DD', 'YYYY-MM' or 'MM-DD') and/or time ('HH:MM:SS' or 'HH:MM') separated by ' '
+	 * - RFC 3339 datetime returned as UTC */
 	{ TIME_Parse,  "parse(value: string) => DateTime" },
 
 	/*! Parses \c TimeSpan from \a value. Examples: '1d 3h 5m', '10m12.34s', '300ms'. Accepted units: d, h, m, s, ms, us.
