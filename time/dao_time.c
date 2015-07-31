@@ -336,9 +336,9 @@ int DTime_Compare( DTime first, DTime second )
 int DTime_IsValid( DTime time )
 {
 	return time.year > 0 && time.month > 0 && time.month < 13 && time.day > 0 &&
-			time.day <= DaysInMonth( time.year, time.month ) && time.hour > 0 &&
-			time.hour < 24 && time.minute > 0 && time.minute < 60 &&
-			time.second > 0.0 && time.second < 60.0;
+			time.day <= DaysInMonth( time.year, time.month ) && time.hour >= 0 &&
+			time.hour < 24 && time.minute >= 0 && time.minute < 60 &&
+			time.second >= 0.0 && time.second < 60.0;
 }
 
 DTimeSpan DTimeSpan_FromUSeconds( dao_time_t useconds )
