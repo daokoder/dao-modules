@@ -121,14 +121,13 @@ DTime DTime_Now( int local )
 #else
 	struct tm parts;
 	struct timeval now;
-	time_t seconds = time(NULL);
 	int ret = 1;
-	if( local ){
-		ret = localtime_r( & seconds, & parts ) != NULL;
-	}else{
-		ret = gmtime_r( & seconds, & parts ) != NULL;
-	}
 	gettimeofday( & now, NULL );
+	if( local ){
+		ret = localtime_r( & now.tv_sec, & parts ) != NULL;
+	}else{
+		ret = gmtime_r( & now.tv_sec, & parts ) != NULL;
+	}
 	res.year   = parts.tm_year + 1900;
 	res.month  = parts.tm_mon + 1;
 	res.day    = parts.tm_mday;
