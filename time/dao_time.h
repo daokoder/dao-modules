@@ -48,23 +48,40 @@
 
 typedef long long  dao_time_t;
  
+typedef struct DDate    DDate;
 typedef struct DTime    DTime;
+typedef struct DaoDate  DaoDate;
 typedef struct DaoTime  DaoTime;
 
+typedef struct DDateSpan    DDateSpan;
 typedef struct DTimeSpan    DTimeSpan;
+typedef struct DaoDateSpan  DaoDateSpan;
 typedef struct DaoTimeSpan  DaoTimeSpan;
 
 /*
 // Zero month indicates an invalid datetime;
 */
+struct DDate
+{
+	int    year;
+	short  month;
+	short  day;
+};
+
 struct DTime
 {
-	int     year;
-	char    month;
-	char    day;
-	char    hour;
-	char    minute;
+	DDate   date;
+	short   hour;
+	short   minute;
 	double  second;
+};
+
+struct DDateSpan
+{
+	int    value;
+	int    years;
+	short  months;
+	short  days;
 };
 
 struct DTimeSpan
@@ -75,12 +92,27 @@ struct DTimeSpan
 	double  seconds;
 };
 
+struct DaoDate
+{
+	DAO_CPOD_COMMON;
+
+	DDate  date;
+};
+
+
 struct DaoTime
 {
 	DAO_CPOD_COMMON;
 
 	DTime  time;
 	short  local;
+};
+
+struct DaoDateSpan
+{
+	DAO_CPOD_COMMON;
+
+	DDateSpan  span;
 };
 
 struct DaoTimeSpan
@@ -92,6 +124,14 @@ struct DaoTimeSpan
 
 
 #endif
+
+DAO_API( DAO_TIME_DLL, DDate, DDate_Today, (int local) );
+DAO_API( DAO_TIME_DLL, DDate, DDate_FromTime, (DTime time) );
+DAO_API( DAO_TIME_DLL, DDate, DDate_FromJulianDay, (int jday) );
+DAO_API( DAO_TIME_DLL, int, DDate_ToJulianDay, (DDate date) );
+DAO_API( DAO_TIME_DLL, DDate, DDate_FromDay, (int day) );
+DAO_API( DAO_TIME_DLL, int, DDate_ToDay, (DDate time) );
+DAO_API( DAO_TIME_DLL, int, DDate_Compare, (DDate first, DDate second) );
 
 /*
 // Note:
@@ -120,12 +160,22 @@ DAO_API( DAO_TIME_DLL, void, DaoTime_Delete, (DaoTime *self) );
 DAO_API( DAO_TIME_DLL, int, DaoTime_Now, (DaoTime *self) );
 DAO_API( DAO_TIME_DLL, DaoType*, DaoTime_Type, () );
 
+DAO_API( DAO_TIME_DLL, DaoDateSpan*, DaoDateSpan_New, () );
+DAO_API( DAO_TIME_DLL, void, DaoDateSpan_Delete, (DaoDateSpan *self) );
+DAO_API( DAO_TIME_DLL, DaoType*, DaoDateSpan_Type, () );
+
 DAO_API( DAO_TIME_DLL, DaoTimeSpan*, DaoTimeSpan_New, () );
 DAO_API( DAO_TIME_DLL, void, DaoTimeSpan_Delete, (DaoTimeSpan *self) );
 DAO_API( DAO_TIME_DLL, DaoType*, DaoTimeSpan_Type, () );
 
 DAO_API( DAO_TIME_DLL, DaoTime*, DaoProcess_PutTime, (DaoProcess *self, DTime time, int local) );
 DAO_API( DAO_TIME_DLL, DaoTime*, DaoProcess_NewTime, (DaoProcess *self, DTime time, int local) );
+
+DAO_API( DAO_TIME_DLL, DaoDate*, DaoProcess_PutDate, (DaoProcess *self, DDate date) );
+DAO_API( DAO_TIME_DLL, DaoDate*, DaoProcess_NewDate, (DaoProcess *self, DDate date) );
+
+DAO_API( DAO_TIME_DLL, DaoDateSpan*, DaoProcess_PutDateSpan, (DaoProcess *self, DDateSpan span) );
+DAO_API( DAO_TIME_DLL, DaoDateSpan*, DaoProcess_NewDateSpan, (DaoProcess *self, DDateSpan span) );
 
 DAO_API( DAO_TIME_DLL, DaoTimeSpan*, DaoProcess_PutTimeSpan, (DaoProcess *self, DTimeSpan span) );
 DAO_API( DAO_TIME_DLL, DaoTimeSpan*, DaoProcess_NewTimeSpan, (DaoProcess *self, DTimeSpan span) );
