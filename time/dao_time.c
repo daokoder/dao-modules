@@ -98,7 +98,8 @@ DDate DDate_Today( int local )
 }
 DDate DDate_FromTime( DTime time )
 {
-	return time.date;
+	DDate date = {time.year, time.month, time.day};
+	return date;
 }
 DDate DDate_FromJulianDay( int jday )
 {
@@ -147,8 +148,6 @@ int DDate_IsValid( DDate date )
 	return date.month > 0 && date.month < 13 && date.day > 0 && date.day <= DDate_MonthDays( date );
 }
 
-
-
 DTime DTime_Now( int local )
 {
 	DTime res = {0};
@@ -163,9 +162,9 @@ DTime DTime_Now( int local )
 	}
 	GetSystemTimeAsFileTime( & ftime );
 	microsecs = (((dao_time_t) ftime.dwHighDateTime << 32) | ftime.dwLowDateTime) / 10;
-	res.date.year   = systime.wYear;
-	res.date.month  = systime.wMonth;
-	res.date.day    = systime.wDay;
+	res.year   = systime.wYear;
+	res.month  = systime.wMonth;
+	res.day    = systime.wDay;
 	res.hour   = systime.wHour;
 	res.minute = systime.wMinute;
 	res.second = systime.wSecond + (microsecs % 1000000) / 1.0E6;
@@ -180,9 +179,9 @@ DTime DTime_Now( int local )
 	}else{
 		ret = gmtime_r( & now.tv_sec, & parts ) != NULL;
 	}
-	res.date.year   = parts.tm_year + 1900;
-	res.date.month  = parts.tm_mon + 1;
-	res.date.day    = parts.tm_mday;
+	res.year   = parts.tm_year + 1900;
+	res.month  = parts.tm_mon + 1;
+	res.day    = parts.tm_mday;
 	res.hour   = parts.tm_hour;
 	res.minute = parts.tm_min;
 	res.second = parts.tm_sec + now.tv_usec / 1.0E6;
@@ -193,8 +192,7 @@ DTime DTime_Now( int local )
 
 DTime DTime_FromDate( DDate date )
 {
-	DTime time = {0,0,0,0,0,0.0};
-	time.date = date;
+	DTime time = {date.year,date.month,date.day,0,0,0.0};
 	return time;
 }
 DTime DTime_FromJulianDay( int jday )
@@ -265,9 +263,9 @@ dao_time_t DTime_ToMicroSeconds( DTime time )
 
 void DTime_ToStructTM( DTime time, struct tm *parts )
 {
-	parts->tm_year = time.date.year - 1900;
-	parts->tm_mon  = time.date.month - 1;
-	parts->tm_mday = time.date.day;
+	parts->tm_year = time.year - 1900;
+	parts->tm_mon  = time.month - 1;
+	parts->tm_mday = time.day;
 	parts->tm_hour = time.hour;
 	parts->tm_min  = time.minute;
 	parts->tm_sec  = time.second;
@@ -288,9 +286,9 @@ DTime DTime_LocalToUtc( DTime local )
 	loc.wMinute = local.minute;
 	loc.wSecond = local.second;
 	TzSpecificLocalTimeToSystemTime( NULL, &loc, &gmt );
-	res.date.year = gmt.wYear;
-	res.date.month = gmt.wMonth;
-	res.date.day = gmt.wDay;
+	res.year = gmt.wYear;
+	res.month = gmt.wMonth;
+	res.day = gmt.wDay;
 	res.hour = gmt.wHour;
 	res.minute = gmt.wMinute;
 	res.second = gmt.wSecond;
@@ -300,9 +298,9 @@ DTime DTime_LocalToUtc( DTime local )
 	DTime_ToStructTM( local, &ts );
 	t = mktime( &ts );
 	gmtime_r( &t, &ts );
-	res.date.year = ts.tm_year + 1900;
-	res.date.month = ts.tm_mon + 1;
-	res.date.day = ts.tm_mday;
+	res.year = ts.tm_year + 1900;
+	res.month = ts.tm_mon + 1;
+	res.day = ts.tm_mday;
 	res.hour = ts.tm_hour;
 	res.minute = ts.tm_min;
 	res.second = ts.tm_sec;
@@ -325,9 +323,9 @@ DTime DTime_UtcToLocal( DTime utc )
 	gmt.wMinute = utc.minute;
 	gmt.wSecond = utc.second;
 	SystemTimeToTzSpecificLocalTime(NULL, &gmt, &loc);
-	res.date.year = loc.wYear;
-	res.date.month = loc.wMonth;
-	res.date.day = loc.wDay;
+	res.year = loc.wYear;
+	res.month = loc.wMonth;
+	res.day = loc.wDay;
 	res.hour = loc.wHour;
 	res.minute = loc.wMinute;
 	res.second = loc.wSecond;
@@ -354,9 +352,9 @@ DTime DTime_UtcToLocal( DTime utc )
 	tzset();
 #endif
 	gmtime_r( &t, &ts );
-	res.date.year = ts.tm_year + 1900;
-	res.date.month = ts.tm_mon + 1;
-	res.date.day = ts.tm_mday;
+	res.year = ts.tm_year + 1900;
+	res.month = ts.tm_mon + 1;
+	res.day = ts.tm_mday;
 	res.hour = ts.tm_hour;
 	res.minute = ts.tm_min;
 	res.second = ts.tm_sec;
@@ -368,9 +366,9 @@ DTime DTime_UtcToLocal( DTime utc )
 int DTime_Compare( DTime first, DTime second )
 {
 	int msa, msb;
-	if( first.date.year != second.date.year ) return first.date.year < second.date.year ? -1 : 1;
-	if( first.date.month != second.date.month ) return first.date.month < second.date.month ? -1 : 1;
-	if( first.date.day != second.date.day ) return first.date.day < second.date.day ? -1 : 1;
+	if( first.year != second.year ) return first.year < second.year ? -1 : 1;
+	if( first.month != second.month ) return first.month < second.month ? -1 : 1;
+	if( first.day != second.day ) return first.day < second.day ? -1 : 1;
 	if( first.hour != second.hour ) return first.hour < second.hour ? -1 : 1;
 	if( first.minute != second.minute ) return first.minute < second.minute ? -1 : 1;
 	msa = (int)(first.second*1E6);
@@ -381,8 +379,8 @@ int DTime_Compare( DTime first, DTime second )
 
 int DTime_IsValid( DTime time )
 {
-	return time.date.month > 0 && time.date.month < 13 && time.date.day > 0 &&
-			time.date.day <= DDate_MonthDays( time.date ) && time.hour >= 0 &&
+	return time.month > 0 && time.month < 13 && time.day > 0 &&
+			time.day <= DDate_MonthDays( DDate_FromTime( time ) ) && time.hour >= 0 &&
 			time.hour < 24 && time.minute >= 0 && time.minute < 60 &&
 			time.second >= 0.0 && time.second < 60.0;
 }
@@ -494,7 +492,7 @@ void DaoTime_Delete( DaoTime *self )
 int DaoTime_Now( DaoTime *self )
 {
 	self->time = DTime_Now( self->local );
-	return self->time.date.month;
+	return self->time.month;
 }
 
 DaoType* DaoTime_Type()
@@ -840,7 +838,7 @@ static void TIME_Now( DaoProcess *proc, DaoValue *p[], int N )
 	int local = p[0]->xEnum.value == 0;
 	DTime time = DTime_Now( local );
 	DaoTime *self = DaoProcess_PutTime( proc, time, local );
-	if ( time.date.month == 0 ){
+	if ( time.month == 0 ){
 		DaoProcess_RaiseError( proc, timeerr, "Failed to get current datetime" );
 		return;
 	}
@@ -851,7 +849,7 @@ static void TIME_Time( DaoProcess *proc, DaoValue *p[], int N )
 	DTime time = DTime_FromMicroSeconds( p[0]->xInteger.value );
 	if( p[1]->xEnum.value == 0 ) time = DTime_UtcToLocal( time );
 	DaoProcess_PutTime( proc, time, p[1]->xEnum.value == 0 );
-	if( time.date.month == 0 ){
+	if( time.month == 0 ){
 		DaoProcess_RaiseError( proc, timeerr, "Invalid datetime" );
 		return;
 	}
@@ -864,9 +862,9 @@ static void TIME_MakeTime( DaoProcess *proc, DaoValue *p[], int N )
 	struct tm parts;
 	DTime time;
 
-	time.date.year   = p[0]->xInteger.value;
-	time.date.month  = p[1]->xInteger.value;
-	time.date.day    = p[2]->xInteger.value;
+	time.year   = p[0]->xInteger.value;
+	time.month  = p[1]->xInteger.value;
+	time.day    = p[2]->xInteger.value;
 	time.hour   = p[3]->xInteger.value;
 	time.minute = p[4]->xInteger.value;
 	time.second = p[5]->xFloat.value;
@@ -910,20 +908,20 @@ DTime ParseRfc3339Time( DString *str )
 	const char *cp = str->chars;
 	if ( !isdigit(cp[0]) || !isdigit(cp[1]) || !isdigit(cp[2]) || !isdigit(cp[3]) || cp[4] != '-' )
 		return inv_time;
-	res.date.year = ( cp[0] - '0' )*1000 + ( cp[1] - '0' )*100 + ( cp[2] - '0' )*10 + ( cp[3] - '0' );
+	res.year = ( cp[0] - '0' )*1000 + ( cp[1] - '0' )*100 + ( cp[2] - '0' )*10 + ( cp[3] - '0' );
 	cp += 5;
 
 	if ( !isdigit(cp[0]) || !isdigit(cp[1]) || cp[2] != '-' )
 		return inv_time;
-	res.date.month = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
-	if ( res.date.month == 0 || res.date.month > 12 )
+	res.month = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	if ( res.month == 0 || res.month > 12 )
 		return inv_time;
 	cp += 3;
 
 	if ( !isdigit(cp[0]) || !isdigit(cp[1]) || cp[2] != 'T' )
 		return inv_time;
-	res.date.day = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
-	if ( res.date.day == 0 || res.date.day > DDate_MonthDays( res.date ) )
+	res.day = ( cp[0] - '0' )*10 + ( cp[1] - '0' );
+	if ( res.day == 0 || res.day > DDate_MonthDays( DDate_FromTime( res ) ) )
 		return inv_time;
 	cp += 3;
 
@@ -1025,23 +1023,23 @@ DTime ParseSimpleTime( DaoProcess *proc, DString *str )
 	if ( sdate ){
 		int bits = ToBits( sdate->chars, sdate->size );
 		if ( bits == ToBits( "0000-00-00", 10 ) ){ /* YYYY-MM-DD */
-			time.date.year = GetNum( sdate->chars, 4 );
-			time.date.month = GetNum( sdate->chars + 5, 2 );
-			time.date.day = GetNum( sdate->chars + 8, 2 );
+			time.year = GetNum( sdate->chars, 4 );
+			time.month = GetNum( sdate->chars + 5, 2 );
+			time.day = GetNum( sdate->chars + 8, 2 );
 		} else if ( bits == ToBits( "0000-00", 7 ) ){ /* YYYY-MM */
-			time.date.year = GetNum( sdate->chars, 4 );
-			time.date.month = GetNum( sdate->chars + 5, 2 );
-			time.date.day = 1;
+			time.year = GetNum( sdate->chars, 4 );
+			time.month = GetNum( sdate->chars + 5, 2 );
+			time.day = 1;
 		} else if ( bits == ToBits( "00-00", 5 ) ){ /* MM-DD */
-			time.date.month = GetNum( sdate->chars, 2 );
-			time.date.day = GetNum( sdate->chars + 3, 2 );
+			time.month = GetNum( sdate->chars, 2 );
+			time.day = GetNum( sdate->chars + 3, 2 );
 		} else {
 			goto Error;
 		}
 	}
 	else {
 		time = DTime_Now( 1 );
-		if( time.date.month == 0 ){
+		if( time.month == 0 ){
 			DaoProcess_RaiseError( proc, timeerr, "Failed to get current datetime" );
 			return inv_time;
 		}
@@ -1088,11 +1086,11 @@ static void TIME_Parse( DaoProcess *proc, DaoValue *p[], int N )
 	int local = 0;
 	DTime t = ParseRfc3339Time( str );
 
-	if ( !t.date.month ){
+	if ( !t.month ){
 		local = 1;
 		t = ParseSimpleTime( proc, str );
 
-		if ( !t.date.month ){
+		if ( !t.month ){
 			DaoProcess_RaiseError( proc, "Param", "Unsupported datetime format" );
 			return;
 		}
@@ -1115,9 +1113,9 @@ static void TIME_Set( DaoProcess *proc, DaoValue *p[], int N )
 		else {
 			dao_integer val = p[i]->xTuple.values[1]->xInteger.value;
 			switch ( p[i]->xTuple.values[0]->xEnum.value ){
-			case 0:  self->time.date.year  = val; break; // year
-			case 1:  self->time.date.month  = val; break; // month
-			case 2:  self->time.date.day    = val; break; // day
+			case 0:  self->time.year  = val; break; // year
+			case 1:  self->time.month  = val; break; // month
+			case 2:  self->time.day    = val; break; // day
 			case 3:  self->time.hour   = val; break; // hour
 			case 4:  self->time.minute = val; break; // min
 			default: break;
@@ -1157,7 +1155,7 @@ static void TIME_Convert( DaoProcess *proc, DaoValue *p[], int N )
 static void TIME_GetDate( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*) p[0];
-	DaoProcess_PutDate( proc, self->time.date );
+	DaoProcess_PutDate( proc, DDate_FromTime( self->time ) );
 }
 
 static void TIME_GetSecond( DaoProcess *proc, DaoValue *p[], int N )
@@ -1181,19 +1179,19 @@ static void TIME_GetHour( DaoProcess *proc, DaoValue *p[], int N )
 static void TIME_GetDay( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*) p[0];
-	DaoProcess_PutInteger( proc, self->time.date.day );
+	DaoProcess_PutInteger( proc, self->time.day );
 }
 
 static void TIME_GetMonth( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*) p[0];
-	DaoProcess_PutInteger( proc, self->time.date.month );
+	DaoProcess_PutInteger( proc, self->time.month );
 }
 
 static void TIME_GetYear( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*) p[0];
-	DaoProcess_PutInteger( proc, self->time.date.year );
+	DaoProcess_PutInteger( proc, self->time.year );
 }
 
 static void TIME_SetSecond( DaoProcess *proc, DaoValue *p[], int N )
@@ -1233,12 +1231,12 @@ static void TIME_SetDay( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*) p[0];
 	int value = p[1]->xInteger.value;
-	int days = DDate_MonthDays( self->time.date );
+	int days = DDate_MonthDays( DDate_FromTime( self->time ) );
 	if( value < 1 || value > days ){
 		DaoProcess_RaiseError( proc, "Param", "Invalid day" );
 		return;
 	}
-	self->time.date.day = value;
+	self->time.day = value;
 }
 
 static void TIME_SetMonth( DaoProcess *proc, DaoValue *p[], int N )
@@ -1249,13 +1247,13 @@ static void TIME_SetMonth( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, "Param", "Invalid month" );
 		return;
 	}
-	self->time.date.month = value;
+	self->time.month = value;
 }
 
 static void TIME_SetYear( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*) p[0];
-	self->time.date.year = p[1]->xInteger.value;
+	self->time.year = p[1]->xInteger.value;
 }
 
 static void TIME_WeekDay( DaoProcess *proc, DaoValue *p[], int N )
@@ -1269,8 +1267,8 @@ static void TIME_YearDay( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*) p[0];
 	DTime nyday = self->time;
-	nyday.date.month = 1;
-	nyday.date.day = 1;
+	nyday.month = 1;
+	nyday.day = 1;
 	DaoProcess_PutInteger( proc, DTime_ToJulianDay( self->time ) - DTime_ToJulianDay( nyday ) + 1 );
 }
 
@@ -1415,23 +1413,23 @@ static void TIME_Format2( DaoProcess *proc, DaoValue *p[], int N )
 			const char ch = format[i+1];
 			switch( ch ){
 			case 'Y' :
-				sprintf( p1, "%i", self->time.date.year );
+				sprintf( p1, "%i", self->time.year );
 				break;
 			case 'y' :
-				sprintf( p1, "%i", self->time.date.year );
+				sprintf( p1, "%i", self->time.year );
 				p2 += 2;
 				break;
 			case 'M' :
 			case 'm' :
-				if( ! addStringFromMap( key, S, sym, "month", self->time.date.month-1 ) ){
-					sprintf( p1, "%i", self->time.date.month );
+				if( ! addStringFromMap( key, S, sym, "month", self->time.month-1 ) ){
+					sprintf( p1, "%i", self->time.month );
 					if( ch=='M' && p1[1]==0 ) p2 = buf; /* padding 0; */
 				}else p2 = NULL;
 				break;
 			case 'D' :
 			case 'd' :
-				if( ! addStringFromMap( key, S, sym, "date", self->time.date.day ) ){
-					sprintf( p1, "%i", self->time.date.day );
+				if( ! addStringFromMap( key, S, sym, "date", self->time.day ) ){
+					sprintf( p1, "%i", self->time.day );
 					if( ch=='D' && p1[1]==0 ) p2 = buf; /* padding 0; */
 				}else p2 = NULL;
 				break;

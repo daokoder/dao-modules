@@ -70,7 +70,9 @@ struct DDate
 
 struct DTime
 {
-	DDate   date;
+	int     year;
+	short   month;
+	short   day;
 	short   hour;
 	short   minute;
 	double  second;
