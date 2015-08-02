@@ -319,8 +319,6 @@ DTime DTime_UtcToLocal( DTime utc )
 	return res;
 }
 
-dao_time_t DTimeSpan_ToUSeconds( DTimeSpan span );
-
 DTime DTime_AddSpan( DTime time, DTimeSpan span )
 {
 	dao_time_t useconds1 = DTime_ToMicroSeconds( time );
@@ -432,27 +430,32 @@ int DTimeSpan_ToDays( DTimeSpan span )
 
 	/* Reverse the carray-over down to days: */
 	if( span.nyday == 0 ){
+		/* A carray-over year (12 full months from two partial years): */
 		if( months < 12 - span.month ){
 			years -= 1;
 			months += 12;
 		}
+		/* A carray-over month (mdays full days from two partial months): */
 		if( days < (mdays - span.day) ){
 			months -= 1;
 			days += mdays;
 		}
 	}
+	/* Days of full years: */
 	for(i=0; i<years; ++i){
 		year = span.year + i + (span.nyday == 0);
 		days += 365 + LeapYear( year );
 	}
 	month = months;
 	if( span.nyday == 0 ){
+		/* Days of the full months in the starting partial year: */
 		for(i=span.month+1; i<=12; ++i){
 			days += DaysInMonth( span.year, i );
 		}
 		month = months - (12 - span.month);
 	}
 	year = span.year + years + (span.nyday == 0);
+	/* Days of the full months in the ending partial year: */
 	for(i=0; i<month; ++i){
 		days += DaysInMonth( year, i + 1 );
 	}
@@ -473,7 +476,6 @@ dao_time_t DTimeSpan_ToUSeconds( DTimeSpan span )
 	useconds += (span.hours * 3600 + span.minutes * 60) * 1E6;
 	return useconds;
 }
-int DTimeSpan_Compare( DTimeSpan first, DTimeSpan second );
 int DTimeSpan_IsValid( DTimeSpan span )
 {
 	DTimeSpan span2;

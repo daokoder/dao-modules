@@ -111,7 +111,7 @@ struct DaoTimeSpan
 
 /*
 // Note:
-// -- Seconds in DTime_FromTime()/DTime_ToTime() are counted since 1970-1-1, 00:00:00 UTC;
+// -- Seconds DTime_FromTime()/DTime_ToTime() are counted since 1970-1-1, 00:00:00 UTC;
 // -- Other days, seconds and micro-seconds are counted since 2000-1-1, 00:00:00 UTC;
 */
 DAO_API( DAO_TIME_DLL, DTime, DTime_Now, (int local) );
@@ -130,6 +130,14 @@ DAO_API( DAO_TIME_DLL, void, DTime_ToStructTM, (DTime time, struct tm *parts) );
 DAO_API( DAO_TIME_DLL, int, DTime_ToDay, (DTime time) );
 DAO_API( DAO_TIME_DLL, int, DTime_ToJulianDay, (DTime time) );
 DAO_API( DAO_TIME_DLL, int, DTime_Compare, (DTime first, DTime second) );
+
+DAO_API( DAO_TIME_DLL, DTimeSpan, DTimeSpan_Init, () );
+DAO_API( DAO_TIME_DLL, DTimeSpan, DTimeSpan_FromTimeInterval, (DTime start, DTime end) );
+DAO_API( DAO_TIME_DLL, int, DTimeSpan_ToDays, (DTimeSpan span) );
+DAO_API( DAO_TIME_DLL, DTimeSpan, DTimeSpan_FromUSeconds, (dao_time_t useconds) );
+DAO_API( DAO_TIME_DLL, dao_time_t, DTimeSpan_ToUSeconds, (DTimeSpan span) );
+DAO_API( DAO_TIME_DLL, int, DTimeSpan_IsValid, (DTimeSpan span) );
+DAO_API( DAO_TIME_DLL, int, DTimeSpan_Compare, (DTimeSpan first, DTimeSpan second) );
 
 DAO_API( DAO_TIME_DLL, DaoTime*, DaoTime_New, () );
 DAO_API( DAO_TIME_DLL, void, DaoTime_Delete, (DaoTime *self) );
