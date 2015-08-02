@@ -398,23 +398,23 @@ DTimeSpan DTimeSpan_FromTimeInterval( DTime start, DTime end )
 	//
 	// The following will handle the carry over:
 	*/
-	if( span.seconds > 60.0 ){
+	if( span.seconds >= 60.0 ){
 		span.seconds -= 60.0;
 		span.minutes += 1;
 	}
-	if( span.minutes > 60 ){
+	if( span.minutes >= 60 ){
 		span.minutes -= 60;
 		span.hours += 1;
 	}
-	if( span.hours > 24 ){
+	if( span.hours >= 24 ){
 		span.hours -= 24;
 		span.days += 1;
 	}
-	if( span.days > mdays ){
+	if( span.days >= mdays ){
 		span.days -= mdays;
 		span.months += 1;
 	}
-	if( span.months > 12 ){
+	if( span.months >= 12 ){
 		span.months -= 12;
 		span.years += 1;
 	}
