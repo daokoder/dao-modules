@@ -48,59 +48,48 @@
 
 typedef long long  dao_time_t;
  
-typedef struct DDate    DDate;
 typedef struct DTime    DTime;
-typedef struct DaoDate  DaoDate;
 typedef struct DaoTime  DaoTime;
 
-typedef struct DDateSpan    DDateSpan;
 typedef struct DTimeSpan    DTimeSpan;
-typedef struct DaoDateSpan  DaoDateSpan;
 typedef struct DaoTimeSpan  DaoTimeSpan;
 
 /*
 // Zero month indicates an invalid datetime;
 */
-struct DDate
-{
-	int    year;
-	short  month;
-	short  day;
-};
-
 struct DTime
 {
 	int     year;
-	short   month;
-	short   day;
-	short   hour;
-	short   minute;
+	char    month;
+	char    day;
+	char    hour;
+	char    minute;
 	double  second;
 };
 
-struct DDateSpan
-{
-	int    value;
-	int    years;
-	short  months;
-	short  days;
-};
-
+/*
+// The TimeSpan includes an anchor year-month-day, which are the start year-month-day
+// if the span is computed from two datetimes, otherwise they take a default value of
+// 2000-01-01. The anchor year-month-day are included such that the accurate calendar
+// days of the span can be computed.
+//
+// Datetimes are converted to UTC time when computing spans.
+// And for time units smaller than a day, the following is assumed:
+// 1day=24hours, 1hour=60minutes and 1minute=60seconds.
+*/
 struct DTimeSpan
 {
-	int     days;
-	short   hours;
-	short   minutes;
-	double  seconds;
+	int     year;     /* Anchor year,  default: 2000; */
+	char    month;    /* Anchor month, default:    1; */
+	char    day;      /* Anchor day,   default:    1; */
+	short   nyday;    /* New year day: 01-01, 00:00:00.0; */
+	int     years;    /* Full years within the span; */
+	char    months;   /* Remaining full months within the span; */
+	char    days;     /* Remaining days within the span; */
+	char    hours;    /* Remaining hours; */
+	char    minutes;  /* Remaining minutes; */
+	double  seconds;  /* Remaining seconds; */
 };
-
-struct DaoDate
-{
-	DAO_CPOD_COMMON;
-
-	DDate  date;
-};
-
 
 struct DaoTime
 {
@@ -108,13 +97,6 @@ struct DaoTime
 
 	DTime  time;
 	short  local;
-};
-
-struct DaoDateSpan
-{
-	DAO_CPOD_COMMON;
-
-	DDateSpan  span;
 };
 
 struct DaoTimeSpan
@@ -126,14 +108,6 @@ struct DaoTimeSpan
 
 
 #endif
-
-DAO_API( DAO_TIME_DLL, DDate, DDate_Today, (int local) );
-DAO_API( DAO_TIME_DLL, DDate, DDate_FromTime, (DTime time) );
-DAO_API( DAO_TIME_DLL, DDate, DDate_FromJulianDay, (int jday) );
-DAO_API( DAO_TIME_DLL, int, DDate_ToJulianDay, (DDate date) );
-DAO_API( DAO_TIME_DLL, DDate, DDate_FromDay, (int day) );
-DAO_API( DAO_TIME_DLL, int, DDate_ToDay, (DDate time) );
-DAO_API( DAO_TIME_DLL, int, DDate_Compare, (DDate first, DDate second) );
 
 /*
 // Note:
@@ -162,22 +136,12 @@ DAO_API( DAO_TIME_DLL, void, DaoTime_Delete, (DaoTime *self) );
 DAO_API( DAO_TIME_DLL, int, DaoTime_Now, (DaoTime *self) );
 DAO_API( DAO_TIME_DLL, DaoType*, DaoTime_Type, () );
 
-DAO_API( DAO_TIME_DLL, DaoDateSpan*, DaoDateSpan_New, () );
-DAO_API( DAO_TIME_DLL, void, DaoDateSpan_Delete, (DaoDateSpan *self) );
-DAO_API( DAO_TIME_DLL, DaoType*, DaoDateSpan_Type, () );
-
 DAO_API( DAO_TIME_DLL, DaoTimeSpan*, DaoTimeSpan_New, () );
 DAO_API( DAO_TIME_DLL, void, DaoTimeSpan_Delete, (DaoTimeSpan *self) );
 DAO_API( DAO_TIME_DLL, DaoType*, DaoTimeSpan_Type, () );
 
 DAO_API( DAO_TIME_DLL, DaoTime*, DaoProcess_PutTime, (DaoProcess *self, DTime time, int local) );
 DAO_API( DAO_TIME_DLL, DaoTime*, DaoProcess_NewTime, (DaoProcess *self, DTime time, int local) );
-
-DAO_API( DAO_TIME_DLL, DaoDate*, DaoProcess_PutDate, (DaoProcess *self, DDate date) );
-DAO_API( DAO_TIME_DLL, DaoDate*, DaoProcess_NewDate, (DaoProcess *self, DDate date) );
-
-DAO_API( DAO_TIME_DLL, DaoDateSpan*, DaoProcess_PutDateSpan, (DaoProcess *self, DDateSpan span) );
-DAO_API( DAO_TIME_DLL, DaoDateSpan*, DaoProcess_NewDateSpan, (DaoProcess *self, DDateSpan span) );
 
 DAO_API( DAO_TIME_DLL, DaoTimeSpan*, DaoProcess_PutTimeSpan, (DaoProcess *self, DTimeSpan span) );
 DAO_API( DAO_TIME_DLL, DaoTimeSpan*, DaoProcess_NewTimeSpan, (DaoProcess *self, DTimeSpan span) );
