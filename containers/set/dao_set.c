@@ -812,7 +812,7 @@ static DaoFuncItem setMeths[] =
 	{ DaoSet_Create,	"Set<@T>(kind: enum<tree,hash> = $tree)" },
 
 	//! Set size
-	{ DaoSet_Size,		"size(invar self: Set<@T>) => int" },
+	{ DaoSet_Size,		".size(invar self: Set<@T>) => int" },
 
 	//! Inserts \a value into the set
 	{ DaoSet_Insert,	"insert(self: Set<@T>, invar value: @T)" },
@@ -833,11 +833,11 @@ static DaoFuncItem setMeths[] =
 	//! Removes all items from the set
 	{ DaoSet_Clear,		"clear(self: Set<@T>)" },
 
-	//! Insert \a other items in the set
+	//! Insert \a other items in the set and returns self
 	{ DaoSet_AddAssign,	"+=(self: Set<@T>, invar other: Set<@T>|list<@T>) => Set<int>" },
 	{ DaoSet_AddAssign,	"|=(self: Set<@T>, invar other: Set<@T>|list<@T>) => Set<int>" },
 
-	//! Removes \a other items from the set
+	//! Removes \a other items from the set and returns self
 	{ DaoSet_SubAssign,	"-=(self: Set<@T>, invar other: Set<@T>|list<@T>) => Set<int>" },
 
 	//! Union of \a a and \a b
@@ -850,7 +850,7 @@ static DaoFuncItem setMeths[] =
 	{ DaoSet_Sub,		"-(invar a: Set<@T>, invar b: Set<@T>|list<@T>) => Set<@T>" },
 	{ DaoSet_SubTo,		"-(c: Set<@T>, invar a: Set<@T>, invar b: Set<@T>|list<@T>) => Set<@T>" },
 
-	//! Intersection of \a and \a b
+	//! Intersection of \a a and \a b
 	{ DaoSet_BitAnd,	"&(invar a: Set<@T>, invar b: Set<@T>|list<@T>) => Set<@T>" },
 	{ DaoSet_BitAndTo,	"&(c: Set<@T>, invar a: Set<@T>, invar b: Set<@T>|list<@T>) => Set<@T>" },
 
@@ -859,8 +859,8 @@ static DaoFuncItem setMeths[] =
 	{ DaoSet_BitXorTo,	"^(c: Set<@T>, invar a: Set<@T>, invar b: Set<@T>|list<@T>) => Set<@T>" },
 
 	//! Cartesian product of \a a and \a b
-	{ DaoSet_Mul,		"*(invar a: Set<@X>, invar b: Set<@Y>|list<@T>) => Set<tuple<@X,@Y>>" },
-	{ DaoSet_MulTo,		"*(c: Set<tuple<@X,@Y>>, invar a: Set<@X>, invar b: Set<@Y>|list<@T>) => Set<tuple<@X,@Y>>" },
+	{ DaoSet_Mul,		"*(invar a: Set<@X>, invar b: Set<@Y>|list<@Y>) => Set<tuple<@X,@Y>>" },
+	{ DaoSet_MulTo,		"*(c: Set<tuple<@X,@Y>>, invar a: Set<@X>, invar b: Set<@Y>|list<@Y>) => Set<tuple<@X,@Y>>" },
 
 	//! String conversion
 	{ DaoSet_ToString,	"(string)(invar self: Set<@T>)" },
