@@ -465,7 +465,7 @@ static void DaoPipe_LibWrite( DaoProcess *proc, DaoValue *p[], int N )
 			DString *data = p[1]->xString.value;
 			int len = DaoPipe_Write( self, data->chars, data->size );
 			if ( len < data->size )
-				DaoProcess_RaiseException( proc, "Pipe::Buffer", "Pipe buffer is full, some data were not written",
+				DaoProcess_RaiseException( proc, "Error::Pipe::Buffer", "Pipe buffer is full, some data were not written",
 										   (DaoValue*)DaoInteger_New( data->size - len ) );
 		}
 	}
