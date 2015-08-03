@@ -1,0 +1,16 @@
+
+project = DaoMake::Project( "DaoTest" )
+
+daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
+
+if( daovm == none ) return
+
+project.AddDirectory( "base", "base" )
+
+dest = DaoMake::MakePath( project.BinaryPath(), "../../lib/dao/modules/" );
+src = DaoMake::MakePath( project.SourcePath(), "test.dao" );
+cmd = project.AddCommand( "copypath:", "$(DAOMAKE) copy " + src + " " + dest );
+
+project.UseImportLibrary( daovm )
+project.SetTargetPath( "../../lib/dao/modules" )
+project.GenerateFinder( $TRUE );

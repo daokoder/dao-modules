@@ -1,0 +1,67 @@
+namespace test {@test}
+
+load test.base
+load meta
+
+import test.base
+
+const put = io.writef
+const AssertError = Error::define('Test::Assert')
+const AssertEqualError = Error::define('Test::AssertEqual')
+const AssertInRangeError = Error::define('Test::AssertInRange')
+const AssertNotInRangeError = Error::define('Test::AssertNotInRange')
+const AssertNotEqualError = Error::define('Test::AssertNotEqual')
+const AssertNoneError = Error::define('Test::AssertNone')
+const AssertNotNoneError = Error::define('Test::AssertNotNone')
+const AssertEmptyError = Error::define('Test::AssertEmpty')
+const AssertNotEmptyError = Error::define('Test::AssertNotEmpty')
+const AssertErrorError = Error::define('Test::AssertError')
+const SkipError = Error::define('Test::Skip')
+
+#! Marks routine as test and handles its execution. When not empty, *description* is used to describe the test,
+#! otherwise routine name is used in its stead
+routine @test(func(args): routine<>, description = ''){
+    invar caption = description == ''? meta.nameOf(func) : description;
+    invar header = (string)base.newTest() + '. ' + caption + ' %s'
+    invar err = std.try { func() }
+
+    if (err == none){
+        put(header + '[green]\n', 'passed')
+        base.testPassed()
+    }
+    else if (err ?< SkipError){
+        if (invar reason = ((SkipError)err).summary; reason != '')
+            put(header + '[yellow] -- %s\n', 'skipped', reason)
+        else
+            put(header + '[yellow]\n', 'skipped')
+
+        base.testSkipped()
+    }
+    else {
+        invar fail = 'failed'
+        invar hdr = header + '[red] -- '
+
+        switch (err) type {
+        case AssertError:           put(hdr + '%s\n', fail, err.summary)
+        case AssertEqualError:
+            invar (actual, expected) = (tuple<any,any>)err.data
+            put(hdr + '%s: expected %a, found %a\n', fail, err.summary, expected, actual)
+        case AssertInRangeError:
+            invar (actual, expected) = (tuple<any,tuple<any,any>>)err.data
+            put(hdr + '%s: expected [%a; %a], found %a\n', fail, err.summary, expected[0], expected[1], actual)
+        case AssertNotInRangeError:
+            invar (actual, notExpected) = (tuple<any,tuple<any,any>>)err.data
+            put(hdr + '%s: expected not [%a; %a], found %a\n', fail, err.summary, notExpected[0], notExpected[1], actual)
+        case AssertNotEqualError:   put(hdr + '%s: expected not %a\n', fail, err.summary, err.data)
+        case AssertNoneError:       put(hdr + '%s: expected none, found %a\n', fail, err.summary, err.data)
+        case AssertNotNoneError:    put(hdr + '%s: expected not none\n', fail, err.summary)
+        case AssertEmptyError:      put(hdr + '%s: expected empty value, found %a\n', fail, err.summary, err.data)
+        case AssertNotEmptyError:   put(hdr + '%s: expected non-empty value\n', fail, err.summary)
+        case AssertErrorError:      put(hdr + '%s\n', fail, err.summary)
+        case Error:                 put(hdr + 'error: %s -- %s\n', fail, err.name, err.summary)
+        case list<Error>:           put(hdr + 'multiple errors', fail)
+        }
+
+        base.testFailed()
+    }
+}
