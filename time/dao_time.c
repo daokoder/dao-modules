@@ -362,6 +362,7 @@ DTimeSpan DTimeSpan_Init()
 DTimeSpan DTimeSpan_FromTimeInterval( DTime start, DTime end )
 {
 	DTimeSpan span = DTimeSpan_Init();
+	int same = 1;
 	int mdays = DaysInMonth( start.year, start.month );
 	int midStart = start.month > 1 || start.day > 1 || start.hour > 0 || start.minute > 0;
 	midStart |= (int)(start.second*1E6) > 0;
@@ -375,17 +376,42 @@ DTimeSpan DTimeSpan_FromTimeInterval( DTime start, DTime end )
 	span.years = end.year - start.year;
 	if( span.nyday == 0 ){
 		if( span.years > 0 ) span.years -= 1;
-		span.months = 12 - start.month;
-		span.days = mdays - start.day;
-		span.hours = 23 - start.hour;
-		span.minutes = 59 - start.minute;
-		span.seconds = 60.0 - start.second;
 	}
-	span.months += end.month - 1;
-	span.days += end.day - 1;
-	span.hours += end.hour;
-	span.minutes += end.minute;
-	span.seconds += end.second;
+	same &= start.year == end.year;
+	if( same ){
+		span.months = end.month - start.month;
+	}else{
+		span.months = 12 - start.month;
+		span.months += end.month - 1;
+	}
+	same &= start.month == end.month;
+	if( same ){
+		span.days = end.day - start.day;
+	}else{
+		span.days = mdays - start.day;
+		span.days += end.day - 1;
+	}
+	same &= start.day == end.day;
+	if( same ){
+		span.hours = end.hour - start.hour;
+	}else{
+		span.hours = 23 - start.hour;
+		span.hours += end.hour;
+	}
+	same &= start.hour == end.hour;
+	if( same ){
+		span.minutes = end.minute - start.minute;
+	}else{
+		span.minutes = 59 - start.minute;
+		span.minutes += end.minute;
+	}
+	same &= start.minute == end.minute;
+	if( same ){
+		span.seconds = end.second - start.second;
+	}else{
+		span.seconds = 60.0 - start.second;
+		span.seconds += end.second;
+	}
 	/*
 	// Now:
 	// -- years are full years from Jan1 to Dec31;
