@@ -380,6 +380,7 @@ DTimeSpan DTimeSpan_FromTimeInterval( DTime start, DTime end )
 	same &= start.year == end.year;
 	if( same ){
 		span.months = end.month - start.month;
+		if( span.months ) span.months -= 1;
 	}else{
 		span.months = 12 - start.month;
 		span.months += end.month - 1;
@@ -387,6 +388,7 @@ DTimeSpan DTimeSpan_FromTimeInterval( DTime start, DTime end )
 	same &= start.month == end.month;
 	if( same ){
 		span.days = end.day - start.day;
+		if( span.days ) span.days -= 1;
 	}else{
 		span.days = mdays - start.day;
 		span.days += end.day - 1;
@@ -394,6 +396,7 @@ DTimeSpan DTimeSpan_FromTimeInterval( DTime start, DTime end )
 	same &= start.day == end.day;
 	if( same ){
 		span.hours = end.hour - start.hour;
+		if( span.hours ) span.hours -= 1;
 	}else{
 		span.hours = 23 - start.hour;
 		span.hours += end.hour;
@@ -401,6 +404,7 @@ DTimeSpan DTimeSpan_FromTimeInterval( DTime start, DTime end )
 	same &= start.hour == end.hour;
 	if( same ){
 		span.minutes = end.minute - start.minute;
+		if( span.minutes ) span.minutes -= 1;
 	}else{
 		span.minutes = 59 - start.minute;
 		span.minutes += end.minute;
