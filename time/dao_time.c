@@ -601,6 +601,11 @@ static void TIME_Time( DaoProcess *proc, DaoValue *p[], int N )
 	}
 }
 
+double TruncateSeconds( double seconds )
+{
+	dao_time_t fract = seconds*1E6;
+	return fract/1E6;
+}
 
 static void TIME_MakeTime( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -613,7 +618,7 @@ static void TIME_MakeTime( DaoProcess *proc, DaoValue *p[], int N )
 	time.day    = p[2]->xInteger.value;
 	time.hour   = p[3]->xInteger.value;
 	time.minute = p[4]->xInteger.value;
-	time.second = p[5]->xFloat.value;
+	time.second = TruncateSeconds( p[5]->xFloat.value );
 
 	DaoProcess_PutTime( proc, time, 1 );
 }
@@ -696,7 +701,7 @@ DTime ParseRfc3339Time( DString *str )
 		num = strtod( start, &end );
 		if ( end != cp || ( ( num == HUGE_VAL || num == -HUGE_VAL ) && errno == ERANGE ) || num < 0 || num > 60.0 )
 			return inv_time;
-		res.second = num;
+		res.second = TruncateSeconds( num );
 	}
 	else { // integer seconds
 		res.second = ( *( cp - 2 ) - '0' )*10 + ( *( cp - 1 ) - '0' );
@@ -813,7 +818,7 @@ DTime ParseSimpleTime( DaoProcess *proc, DString *str )
 		for(i=1; i<sfrac->size; ++i){
 			if( isdigit( sfrac->chars[i] ) == 0 ) goto Error;
 		}
-		time.second += strtod( sfrac->chars, NULL );
+		time.second += TruncateSeconds( strtod( sfrac->chars, NULL ) );
 	}
 	goto Clean;
 Error:
@@ -844,7 +849,6 @@ static void TIME_Parse( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutTime( proc, t, local );
 }
 
-
 static void TIME_Set( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*) p[0];
@@ -853,7 +857,7 @@ static void TIME_Set( DaoProcess *proc, DaoValue *p[], int N )
 	for ( i = 1; i < N; i++ ){
 		DaoEnum *en = &p[i]->xTuple.values[0]->xEnum;
 		if ( strstr( en->etype->name->chars, "second" ) != NULL ){
-			self->time.second =  p[i]->xTuple.values[1]->xFloat.value; //sec
+			self->time.second = TruncateSeconds( p[i]->xTuple.values[1]->xFloat.value ); //sec
 		} else {
 			dao_integer val = p[i]->xTuple.values[1]->xInteger.value;
 			switch ( p[i]->xTuple.values[0]->xEnum.value ){
@@ -939,7 +943,7 @@ static void TIME_SetSecond( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, "Param", "Invalid seconds" );
 		return;
 	}
-	self->time.second = value;
+	self->time.second = TruncateSeconds( value );
 }
 
 static void TIME_SetMinute( DaoProcess *proc, DaoValue *p[], int N )
@@ -1471,7 +1475,7 @@ static int SPAN_SetFields( DTimeSpan *span, DaoProcess *proc, DaoValue *p[], int
 	for(i = 0; i < N; i++ ){
 		DaoEnum *en = (DaoEnum*) p[i]->xTuple.values[0];
 		if ( strstr( en->etype->name->chars, "second" ) != NULL ){
-			span->seconds = p[i]->xTuple.values[1]->xFloat.value; //sec
+			span->seconds = TruncateSeconds( p[i]->xTuple.values[1]->xFloat.value ); //sec
 		}else{
 			dao_integer val = p[i]->xTuple.values[1]->xInteger.value;
 			switch ( p[i]->xTuple.values[0]->xEnum.value ){
