@@ -853,15 +853,7 @@ DAO_DLL int DaoMime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *streamns = DaoVmSpace_LinkModule( vmSpace, ns, "stream" );
 	DaoNamespace *mimens = DaoNamespace_GetNamespace( ns, "mime" );
-	DaoValue *defmime = (DaoValue*)DaoString_NewChars("application/octet-stream");
-	DaoValue *dirmime = (DaoValue*)DaoString_NewChars("inode/directory");
-	DString def = DString_WrapChars( "DEFAULT" );
-	DString dir = DString_WrapChars( "DIR" );
 	DaoMime_Init();
 	DaoNamespace_WrapFunctions( mimens, mimeFuncs );
-	DaoNamespace_AddConst( mimens, &def, defmime, DAO_PERM_PUBLIC );
-	DaoNamespace_AddConst( mimens, &dir, dirmime, DAO_PERM_PUBLIC );
-	DaoGC_TryDelete( defmime );
-	DaoGC_TryDelete( dirmime );
 	return 0;
 }
