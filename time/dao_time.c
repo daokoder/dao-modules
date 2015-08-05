@@ -307,7 +307,7 @@ DTime DTime_UtcToLocal( DTime utc )
 		unsetenv( "TZ" );
 	tzset();
 #endif
-	gmtime_r( &t, &ts );
+	localtime_r( &t, &ts );
 	res.year = ts.tm_year + 1900;
 	res.month = ts.tm_mon + 1;
 	res.day = ts.tm_mday;
@@ -596,7 +596,7 @@ static void TIME_Now( DaoProcess *proc, DaoValue *p[], int N )
 
 static void TIME_Time( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DTime time = DTime_FromMicroSeconds( p[0]->xInteger.value );
+	DTime time = DTime_FromMicroSeconds( p[0]->xFloat.value*1E6 );
 	if( p[1]->xEnum.value == 0 ) time = DTime_UtcToLocal( time );
 	DaoProcess_PutTime( proc, time, p[1]->xEnum.value == 0 );
 	if( time.month == 0 ){
@@ -867,7 +867,7 @@ static void TIME_Parse( DaoProcess *proc, DaoValue *p[], int N )
 static void TIME_Value( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*) p[0];
-	DaoProcess_PutFloat( proc, (dao_integer) DTime_ToMicroSeconds( self->time ) / 1.0E6 );
+	DaoProcess_PutFloat( proc, DTime_ToMicroSeconds( self->time ) / 1.0E6 );
 }
 
 static void TIME_Type( DaoProcess *proc, DaoValue *p[], int N )
@@ -1803,8 +1803,8 @@ static DaoFuncItem timeFuncs[] =
 	/*! Returns current datetime of the given \a kind */
 	{ TIME_Now,  "now(kind: enum<local,utc> = $local) => DateTime" },
 
-	/*! Returns \a kind datetime for a time in microseconds since 200-1-1, 00:00:00 UTC */
-	{ TIME_Time,  "fromValue(value: int, kind: enum<local,utc> = $local) => DateTime" },
+	/*! Returns \a kind datetime for a time in seconds since 200-1-1, 00:00:00 UTC */
+	{ TIME_Time,  "fromValue(value: float, kind: enum<local,utc> = $local) => DateTime" },
 
 	/*! Returns local datetime composed of the specified \a year, \a month, \a day, \a hour, \a min and \a sec */
 	{ TIME_MakeTime, "make(year: int, month: int, day: int, hour = 0, min = 0, sec = 0.0) => DateTime" },
@@ -1827,10 +1827,10 @@ static DaoFuncItem timeFuncs[] =
 
 	/*! Returns local time zone information (environment variable *TZ*):
 	 * -\c dst -- is Daylight Saving Time (DST) used
-	 * -\c shift -- shift in seconds from UTC
+	 * -\c offset -- offset in seconds from UTC
 	 * -\c name -- zone name
 	 * -\c dstZone -- DST zone name */
-	{ TIME_Zone,  "zone() => tuple<dst: bool, shift: int, name: string, dstZone: string>" },
+	{ TIME_Zone,  "zone() => tuple<dst: bool, offset: int, name: string, dstZone: string>" },
 	{ NULL, NULL }
 };
 

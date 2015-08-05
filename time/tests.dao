@@ -233,6 +233,27 @@ routine test4(){
     assertError('Time'){ time.parse('2015-08-05 12:35:001') }
 }
 
+@test('UTC-local conversions')
+routine test5(){
+    copy = routine(x: time::DateTime){ x }
+    zone = time.zone()
+
+    if (!zone.offset and !zone.dst)
+        skipTest('not testable with UTC zone')
+
+    offset = zone.offset + (zone.dst? 3600 : 0)
+
+    utc = time.now($utc)
+    loc = copy(utc)
+    loc.convert($local)
+    assertEqual((float)loc - (float)utc, offset)
+
+    loc = time.now($local)
+    utc = copy(loc)
+    utc.convert($utc)
+    assertEqual((float)loc - (float)utc, offset)
+}
+
 routine main(){
     runTests()
 }
