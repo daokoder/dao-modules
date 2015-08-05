@@ -182,7 +182,7 @@ int DTime_ToDay( DTime time )
 
 DTime DTime_FromSeconds( dao_time_t seconds )
 {
-	dao_time_t seconds2 = seconds + epoch2000_useconds / 1E6;
+	dao_time_t seconds2 = seconds + epoch2000_useconds / 1000000;
 	dao_time_t jday = seconds2 / (24*3600);
 	dao_time_t daysecs = seconds2 - jday*24*3600;
 	DTime time = DTime_FromJulianDay( jday );
@@ -195,12 +195,12 @@ DTime DTime_FromSeconds( dao_time_t seconds )
 dao_time_t DTime_ToSeconds( DTime time )
 {
 	dao_time_t jday = DTime_ToJulianDay( time );
-	return jday*24*3600 + time.hour*3600 + time.minute*60 + time.second - epoch2000_useconds / 1E6;
+	return jday*24*3600 + time.hour*3600 + time.minute*60 + (dao_time_t)time.second - epoch2000_useconds / 1E6;
 }
 
 DTime DTime_FromMicroSeconds( dao_time_t useconds )
 {
-	dao_time_t seconds = (useconds + epoch2000_useconds) / 1E6;
+	dao_time_t seconds = (useconds + epoch2000_useconds) / 1000000;
 	dao_time_t jday = seconds / (24*3600);
 	dao_time_t daysecs = seconds - jday*24*3600;
 	DTime time = DTime_FromJulianDay( jday );
@@ -852,40 +852,12 @@ static void TIME_Parse( DaoProcess *proc, DaoValue *p[], int N )
 		t = ParseSimpleTime( proc, str );
 
 		if ( !t.month ){
-			DaoProcess_RaiseError( proc, "Param", "Unsupported datetime format" );
+			DaoProcess_RaiseError( proc, "Param", "Unsupported datetime format or invalid datetime" );
 			return;
 		}
 	}
 	DaoProcess_PutTime( proc, t, local );
 }
-
-static void TIME_Set( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoTime *self = (DaoTime*) p[0];
-	daoint i;
-
-	for ( i = 1; i < N; i++ ){
-		DaoEnum *en = &p[i]->xTuple.values[0]->xEnum;
-		if ( strstr( en->etype->name->chars, "second" ) != NULL ){
-			self->time.second = TruncateSeconds( p[i]->xTuple.values[1]->xFloat.value ); //sec
-		} else {
-			dao_integer val = p[i]->xTuple.values[1]->xInteger.value;
-			switch ( p[i]->xTuple.values[0]->xEnum.value ){
-			case 0:  self->time.year   = val; break; // year
-			case 1:  self->time.month  = val; break; // month
-			case 2:  self->time.day    = val; break; // day
-			case 3:  self->time.hour   = val; break; // hour
-			case 4:  self->time.minute = val; break; // min
-			default: break;
-			}
-		}
-	}
-	if ( !DTime_IsValid( self->time )){
-		DaoProcess_RaiseError( proc, timeerr, "Invalid datetime" );
-		return;
-	}
-}
-
 
 static void TIME_Value( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1004,7 +976,16 @@ static void TIME_SetMonth( DaoProcess *proc, DaoValue *p[], int N )
 static void TIME_SetYear( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*) p[0];
-	self->time.year = p[1]->xInteger.value;
+	int value = p[1]->xInteger.value;
+	if ( value < 0 ){
+		DaoProcess_RaiseError( proc, "Param", "Invalid year" );
+		return;
+	}
+	if ( !LeapYear( value ) && self->time.month == 2 && self->time.day == 29 ){
+		DaoProcess_RaiseError( proc, "Param", "Specified year results in invalid datetime" );
+		return;
+	}
+	self->time.year = value;
 }
 
 static void TIME_WeekDay( DaoProcess *proc, DaoValue *p[], int N )
@@ -1399,9 +1380,6 @@ static void TIME_DayDiff( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem timeMeths[] =
 {
-	/*! Sets one or more datetime parts using named values */
-	{ TIME_Set,     "set(self: DateTime, ...: tuple<enum<year,month,day,hour,minute>,int> | tuple<enum<second>,float>)" },
-
 	/*! \c Returns the number of seconds since 2000-1-1, 00:00:00 UTC */
 	{ TIME_Value,   ".value(invar self: DateTime) => float" },
 	{ TIME_Value,   "(float)(invar self: DateTime)" },
