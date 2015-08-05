@@ -597,8 +597,7 @@ static void TIME_Now( DaoProcess *proc, DaoValue *p[], int N )
 static void TIME_Time( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DTime time = DTime_FromMicroSeconds( p[0]->xFloat.value*1E6 );
-	if( p[1]->xEnum.value == 0 ) time = DTime_UtcToLocal( time );
-	DaoProcess_PutTime( proc, time, p[1]->xEnum.value == 0 );
+	DaoProcess_PutTime( proc, time, 0 );
 	if( time.month == 0 ){
 		DaoProcess_RaiseError( proc, timeerr, "Invalid datetime" );
 		return;
@@ -867,7 +866,7 @@ static void TIME_Parse( DaoProcess *proc, DaoValue *p[], int N )
 static void TIME_Value( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*) p[0];
-	DaoProcess_PutFloat( proc, DTime_ToMicroSeconds( self->time ) / 1.0E6 );
+	DaoProcess_PutFloat( proc, DTime_ToMicroSeconds( self->local? DTime_LocalToUtc( self->time ) : self->time ) / 1.0E6 );
 }
 
 static void TIME_Type( DaoProcess *proc, DaoValue *p[], int N )
@@ -880,10 +879,8 @@ static void TIME_Convert( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*) p[0];
 
-	if( self->local != (p[1]->xEnum.value == 0) ){
-		self->time = p[1]->xEnum.value == 0? DTime_UtcToLocal( self->time ) : DTime_LocalToUtc( self->time );
-		self->local = !self->local;
-	}
+	if( self->local != (p[1]->xEnum.value == 0) )
+		DaoProcess_PutTime( proc, p[1]->xEnum.value == 0? DTime_UtcToLocal( self->time ) : DTime_LocalToUtc( self->time ), !self->local );
 }
 
 static void TIME_Second( DaoProcess *proc, DaoValue *p[], int N )
@@ -1385,7 +1382,7 @@ static void TIME_DayDiff( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem timeMeths[] =
 {
-	/*! \c Returns the number of seconds since 2000-1-1, 00:00:00 UTC */
+	/*! \c Returns the number of seconds elapsed since 2000-1-1, 00:00:00 UTC */
 	{ TIME_Value,   ".value(invar self: DateTime) => float" },
 	{ TIME_Value,   "(float)(invar self: DateTime)" },
 
@@ -1393,7 +1390,7 @@ static DaoFuncItem timeMeths[] =
 	{ TIME_Type,    ".kind(invar self: DateTime) => enum<local,utc>" },
 
 	/*! Converts datetime to the given \a kind */
-	{ TIME_Convert, "convert(self: DateTime, kind: enum<local,utc>)" },
+	{ TIME_Convert, "as(self: DateTime, kind: enum<local,utc>) => DateTime" },
 
 	/*! Specific datetime part */
 	{ TIME_Second,  ".second(invar self: DateTime) => float" },
@@ -1803,8 +1800,8 @@ static DaoFuncItem timeFuncs[] =
 	/*! Returns current datetime of the given \a kind */
 	{ TIME_Now,  "now(kind: enum<local,utc> = $local) => DateTime" },
 
-	/*! Returns \a kind datetime for a time in seconds since 200-1-1, 00:00:00 UTC */
-	{ TIME_Time,  "fromValue(value: float, kind: enum<local,utc> = $local) => DateTime" },
+	/*! Returns UTC datetime for given the number of seconds elapsed since 2000-1-1, 00:00:00 UTC */
+	{ TIME_Time,  "fromValue(value: float) => DateTime" },
 
 	/*! Returns local datetime composed of the specified \a year, \a month, \a day, \a hour, \a min and \a sec */
 	{ TIME_MakeTime, "make(year: int, month: int, day: int, hour = 0, min = 0, sec = 0.0) => DateTime" },
