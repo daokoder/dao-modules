@@ -1,0 +1,39 @@
+load time
+load test import test
+
+@test('Constructing datetime')
+routine test1(){
+    t = time.make(2015, 8, 5, 10, 30, 24.56)
+    assertEqual(t.year, 2015)
+    assertEqual(t.month, 8)
+    assertEqual(t.day, 5)
+    assertEqual(t.hour, 10)
+    assertEqual(t.minute, 30)
+    assertEqual(t.second, 24.56)
+
+    t = time.make(2015, 8, 5)
+    assertEqual(t.hour, 0)
+    assertEqual(t.minute, 0)
+    assertEqual(t.second, 0.0)
+    t = time.make(2015, 4, 12, 23)
+    assertEqual(t.minute, 0)
+    assertEqual(t.second, 0.0)
+    t = time.make(2015, 4, 12, 23, 7)
+    assertEqual(t.second, 0.0)
+
+    assertError('Time'){ time.make(-2, 8, 5) }
+    assertError('Time'){ time.make(2015, 0, 5) }
+    assertError('Time'){ time.make(2015, 13, 5) }
+    assertError('Time'){ time.make(2015, 8, 0) }
+    assertError('Time'){ time.make(2015, 8, 32) }
+    assertError('Time'){ time.make(2015, 2, 30) }
+    assertError('Time'){ time.make(2015, 8, 5, -3) }
+    assertError('Time'){ time.make(2015, 8, 5, 24) }
+    assertError('Time'){ time.make(2015, 8, 5, 10, -234) }
+    assertError('Time'){ time.make(2015, 8, 5, 10, 30, -1895.234) }
+    assertError('Time'){ time.make(2015, 8, 5, 10, 30, 60.36) }
+}
+
+routine main(){
+    runTests()
+}

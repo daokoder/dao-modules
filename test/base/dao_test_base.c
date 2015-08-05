@@ -199,7 +199,7 @@ static void TEST_AssertError( DaoProcess *proc, DaoValue* p[], int N )
 	DaoProcess_Execute( proc );
 	if ( proc->status == DAO_PROCESS_ABORTED && proc->exceptions->size ){
 		DaoException *e = (DaoException*)&proc->exceptions->items.pValue[0]->xCdata;
-		if ( DString_Compare( p[0]->xString.value, e->ctype->name ) != 0 )
+		if ( DString_Compare( expected, e->ctype->name ) != 0 )
 			actual = DString_Copy( e->ctype->name );
 		else
 			catched = 1;

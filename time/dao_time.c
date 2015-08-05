@@ -342,7 +342,7 @@ int DTime_Compare( DTime first, DTime second )
 
 int DTime_IsValid( DTime time )
 {
-	return time.month > 0 && time.month < 13 && time.day > 0 &&
+	return time.year > 0 && time.month > 0 && time.month < 13 && time.day > 0 &&
 			time.day <= DaysInMonth( time.year, time.month ) && time.hour >= 0 &&
 			time.hour < 24 && time.minute >= 0 && time.minute < 60 &&
 			time.second >= 0.0 && time.second < 60.0;
@@ -616,6 +616,12 @@ static void TIME_MakeTime( DaoProcess *proc, DaoValue *p[], int N )
 	DaoTime *self;
 	struct tm parts;
 	DTime time;
+	int i;
+	for ( i = 0; i < 5; ++i )
+		if ( p[i]->xInteger.value < 0 ){
+			DaoProcess_RaiseError( proc, timeerr, "Invalid datetime" );
+			return;
+		}
 
 	time.year   = p[0]->xInteger.value;
 	time.month  = p[1]->xInteger.value;
