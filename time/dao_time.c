@@ -1390,7 +1390,7 @@ static DaoFuncItem timeMeths[] =
 	{ TIME_Type,    ".kind(invar self: DateTime) => enum<local,utc>" },
 
 	/*! Converts datetime to the given \a kind */
-	{ TIME_Convert, "as(self: DateTime, kind: enum<local,utc>) => DateTime" },
+	{ TIME_Convert, "as(invar self: DateTime, kind: enum<local,utc>) => DateTime" },
 
 	/*! Specific datetime part */
 	{ TIME_Second,  ".second(invar self: DateTime) => float" },
