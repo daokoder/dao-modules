@@ -193,17 +193,19 @@ static void TEST_AssertError( DaoProcess *proc, DaoValue* p[], int N )
 {
 	DString *expected = p[0]->xString.value;
 	DString *actual = NULL;
+	DList *errors = proc->exceptions;
 	DaoVmCode *sect = DaoProcess_InitCodeSection( proc, 0 );
 	int catched = 0;
+	int size = errors->size;
 	if( sect == NULL ) return;
 	DaoProcess_Execute( proc );
-	if ( proc->status == DAO_PROCESS_ABORTED && proc->exceptions->size ){
-		DaoException *e = (DaoException*)&proc->exceptions->items.pValue[0]->xCdata;
+	if ( proc->status == DAO_PROCESS_ABORTED && errors->size > size ){
+		DaoException *e = (DaoException*)&errors->items.pValue[errors->size - 1]->xCdata;
 		if ( DString_Compare( expected, e->ctype->name ) != 0 )
 			actual = DString_Copy( e->ctype->name );
 		else
 			catched = 1;
-		DList_Clear( proc->exceptions );
+		DList_Clear( errors );
 	}
 	DaoProcess_PopFrame( proc );
 	if ( !catched ){

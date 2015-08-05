@@ -747,7 +747,7 @@ DTime ParseRfc3339Time( DString *str )
 	return res;
 }
 
-DTime ParseSimpleTime( DaoProcess *proc, DString *str )
+DTime ParseSimpleTime( DaoProcess *proc, DString *str, int *failed )
 {
 	DTime inv_time = {0};
 	DTime time = {0};
@@ -755,6 +755,7 @@ DTime ParseSimpleTime( DaoProcess *proc, DString *str )
 	DString *sfrac = NULL;
 	daoint pos;
 
+	*failed = 0;
 	str = DString_Copy( str );
 	pos = DString_FindChar( str, ' ', 0 );
 	if ( pos >= 0 ){
@@ -787,11 +788,14 @@ DTime ParseSimpleTime( DaoProcess *proc, DString *str )
 			time.year = GetNum( sdate->chars, 4 );
 			time.month = GetNum( sdate->chars + 5, 2 );
 			time.day = GetNum( sdate->chars + 8, 2 );
-		} else if ( bits == ToBits( "0000-00", 7 ) ){ /* YYYY-MM */
-			time.year = GetNum( sdate->chars, 4 );
-			time.month = GetNum( sdate->chars + 5, 2 );
-			time.day = 1;
 		} else if ( bits == ToBits( "00-00", 5 ) ){ /* MM-DD */
+			DTime now = DTime_Now( 1 );
+			if( now.month == 0 ){
+				DaoProcess_RaiseError( proc, timeerr, "Failed to get current datetime" );
+				*failed = 1;
+				return inv_time;
+			}
+			time.year = now.year;
 			time.month = GetNum( sdate->chars, 2 );
 			time.day = GetNum( sdate->chars + 3, 2 );
 		} else {
@@ -802,6 +806,7 @@ DTime ParseSimpleTime( DaoProcess *proc, DString *str )
 		time = DTime_Now( 1 );
 		if( time.month == 0 ){
 			DaoProcess_RaiseError( proc, timeerr, "Failed to get current datetime" );
+			*failed = 1;
 			return inv_time;
 		}
 	}
@@ -838,21 +843,21 @@ Clean:
 	if( sdate ) DString_Delete( sdate );
 	if( stime ) DString_Delete( stime );
 	if( sfrac ) DString_Delete( sfrac );
-	return time;
+	return DTime_IsValid( time )? time : inv_time;
 }
 
 static void TIME_Parse( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DString *str = p[0]->xString.value;
-	int local = 0;
+	int local = 0, failed;
 	DTime t = ParseRfc3339Time( str );
 
 	if ( !t.month ){
 		local = 1;
-		t = ParseSimpleTime( proc, str );
+		t = ParseSimpleTime( proc, str, &failed );
 
-		if ( !t.month ){
-			DaoProcess_RaiseError( proc, "Param", "Unsupported datetime format or invalid datetime" );
+		if ( !t.month && !failed ){
+			DaoProcess_RaiseError( proc, "Time", "Unsupported datetime format or invalid datetime" );
 			return;
 		}
 	}
@@ -1009,7 +1014,7 @@ static void TIME_Zone( DaoProcess *proc, DaoValue *p[], int N )
 	DaoTuple *res = DaoProcess_PutTuple( proc, 4 );
 	tzset();
 	res->values[0]->xBoolean.value = daylight > 0;
-	res->values[1]->xInteger.value = timezone;
+	res->values[1]->xInteger.value = -timezone;
 	DaoString_SetChars( &res->values[2]->xString, tzname[0] );
 	DaoString_SetChars( &res->values[3]->xString, tzname[1] );
 }
@@ -1805,7 +1810,7 @@ static DaoFuncItem timeFuncs[] =
 	{ TIME_MakeTime, "make(year: int, month: int, day: int, hour = 0, min = 0, sec = 0.0) => DateTime" },
 
 	/*! Returns datetime parsed from \a value, which may be
-	 * - local datetime consisting of date ('YYYY-MM-DD', 'YYYY-MM' or 'MM-DD') and/or time ('HH:MM:SS' or 'HH:MM') separated by ' '
+	 * - local datetime consisting of date ('YYYY-MM-DD' or 'MM-DD') and/or time ('HH:MM:SS' or 'HH:MM') separated by ' '
 	 * - RFC 3339 datetime returned as UTC */
 	{ TIME_Parse,  "parse(value: string) => DateTime" },
 

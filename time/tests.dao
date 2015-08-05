@@ -108,37 +108,129 @@ routine test3(){
     assertEqual(t.minute, 7)
     assertEqual(t.second, 15.2)
 
-    assertError('Param'){ time.parse('15-08-05T12:35:00Z') }
-    assertError('Param'){ time.parse('2015-8-05T12:35:00Z') }
-    assertError('Param'){ time.parse('2015-13-05T12:35:00Z') }
-    assertError('Param'){ time.parse('2015-8-5T12:35:00Z') }
-    assertError('Param'){ time.parse('2015-08-35T12:35:00Z') }
-    assertError('Param'){ time.parse('2015-08-05t12:35:00Z') }
-    assertError('Param'){ time.parse('2015-08-05T1:35:00Z') }
-    assertError('Param'){ time.parse('2015-08-05T24:35:00Z') }
-    assertError('Param'){ time.parse('2015-08-05T12:3:00Z') }
-    assertError('Param'){ time.parse('2015-08-05T12:64:00Z') }
-    assertError('Param'){ time.parse('2015-08T12:35:00Z') }
-    assertError('Param'){ time.parse('2015-08-05T12:35Z') }
-    assertError('Param'){ time.parse('2015-08-05T12:35:0Z') }
-    assertError('Param'){ time.parse('2015-08-05T12:35:234Z') }
-    assertError('Param'){ time.parse('2015-08-05T12:35:-5.0Z') }
-    assertError('Param'){ time.parse('2015-08-05T12:35:00') }
-    assertError('Param'){ time.parse('2015-08-05T12:35:00.0.0Z') }
-    assertError('Param'){ time.parse('2015-08-05T12:35:00z') }
-    assertError('Param'){ time.parse('2015-08-05T1a:35:00Z') }
-    assertError('Param'){ time.parse('2015-08-05T12:35:00.xZ') }
-    assertError('Param'){ time.parse('201f-08-05T12:35:00Z') }
-    assertError('Param'){ time.parse('2015-08-05T12:35:001') }
-    assertError('Param'){ time.parse('2015-08-05T12:35:00-1') }
-    assertError('Param'){ time.parse('2015-08-05T12:35:00-01') }
-    assertError('Param'){ time.parse('2015-08-05T12:35:00-01:') }
-    assertError('Param'){ time.parse('2015-08-05T12:35:00-01:0') }
-    assertError('Param'){ time.parse('2015-08-05T12:35:00-01Z') }
-    assertError('Param'){ time.parse('2015-08-05T12:35:00-01:65') }
-    assertError('Param'){ time.parse('2015-08-05T12:35:00-36:00') }
-    assertError('Param'){ time.parse('2015-08-05T12:35:00-1:00') }
-    assertError('Param'){ time.parse('2015-08-05T12:35:00-01:00Z') }
+    assertError('Time'){ time.parse('15-08-05T12:35:00Z') }
+    assertError('Time'){ time.parse('2015-8-05T12:35:00Z') }
+    assertError('Time'){ time.parse('2015-13-05T12:35:00Z') }
+    assertError('Time'){ time.parse('2015-08-5T12:35:00Z') }
+    assertError('Time'){ time.parse('2015-08-35T12:35:00Z') }
+    assertError('Time'){ time.parse('2015-08-05t12:35:00Z') }
+    assertError('Time'){ time.parse('2015-08-05T1:35:00Z') }
+    assertError('Time'){ time.parse('2015-08-05T24:35:00Z') }
+    assertError('Time'){ time.parse('2015-08-05T12:3:00Z') }
+    assertError('Time'){ time.parse('2015-08-05T12:64:00Z') }
+    assertError('Time'){ time.parse('2015-08T12:35:00Z') }
+    assertError('Time'){ time.parse('2015-08-05T12:35Z') }
+    assertError('Time'){ time.parse('2015-08-05T12:35:0Z') }
+    assertError('Time'){ time.parse('2015-08-05T12:35:234Z') }
+    assertError('Time'){ time.parse('2015-08-05T12:35:-5.0Z') }
+    assertError('Time'){ time.parse('2015-08-05T12:35:00') }
+    assertError('Time'){ time.parse('2015-08-05T12:35:00.0.0Z') }
+    assertError('Time'){ time.parse('2015-08-05T12:35:00z') }
+    assertError('Time'){ time.parse('2015-08-05T1a:35:00Z') }
+    assertError('Time'){ time.parse('2015-08-05T12:35:00.xZ') }
+    assertError('Time'){ time.parse('201f-08-05T12:35:00Z') }
+    assertError('Time'){ time.parse('2015-08-05T12:35:001') }
+    assertError('Time'){ time.parse('2015-08-05T12:35:00-1') }
+    assertError('Time'){ time.parse('2015-08-05T12:35:00-01') }
+    assertError('Time'){ time.parse('2015-08-05T12:35:00-01:') }
+    assertError('Time'){ time.parse('2015-08-05T12:35:00-01:0') }
+    assertError('Time'){ time.parse('2015-08-05T12:35:00-01Z') }
+    assertError('Time'){ time.parse('2015-08-05T12:35:00-01:65') }
+    assertError('Time'){ time.parse('2015-08-05T12:35:00-36:00') }
+    assertError('Time'){ time.parse('2015-08-05T12:35:00-1:00') }
+    assertError('Time'){ time.parse('2015-08-05T12:35:00-01:00Z') }
+}
+
+@test('Datetime parsing (simple format)')
+routine test4(){
+    t = time.parse('2015-08-05 12:35:00')
+    assertEqual(t.kind, $local)
+    assertEqual(t.year, 2015)
+    assertEqual(t.month, 8)
+    assertEqual(t.day, 5)
+    assertEqual(t.hour, 12)
+    assertEqual(t.minute, 35)
+    assertEqual(t.second, 0.0)
+
+    t = time.parse('2015-08-05 12:35:00.1234567')
+    assertEqual(t.kind, $local)
+    assertEqual(t.hour, 12)
+    assertEqual(t.second, 0.123456)
+
+    t = time.parse('1988-10-25')
+    assertEqual(t.kind, $local)
+    assertEqual(t.year, 1988)
+    assertEqual(t.month, 10)
+    assertEqual(t.day, 25)
+    assertEqual(t.hour, 0)
+    assertEqual(t.minute, 0)
+    assertEqual(t.second, 0.0)
+
+    t = time.parse('1988-10-25')
+    assertEqual(t.kind, $local)
+    assertEqual(t.year, 1988)
+    assertEqual(t.month, 10)
+    assertEqual(t.day, 25)
+    assertEqual(t.hour, 0)
+    assertEqual(t.minute, 0)
+    assertEqual(t.second, 0.0)
+
+    t = time.parse('10-25')
+    assertEqual(t.kind, $local)
+    assertEqual(t.year, time.now().year)
+    assertEqual(t.month, 10)
+    assertEqual(t.day, 25)
+    assertEqual(t.hour, 0)
+    assertEqual(t.minute, 0)
+    assertEqual(t.second, 0.0)
+
+    t = time.parse('15:45:09')
+    now = time.now()
+    assertEqual(t.kind, $local)
+    assertEqual(t.year, now.year)
+    assertEqual(t.month, now.month)
+    assertEqual(t.day, now.day)
+    assertEqual(t.hour, 15)
+    assertEqual(t.minute, 45)
+    assertEqual(t.second, 9.0)
+
+    t = time.parse('15:45')
+    now = time.now()
+    assertEqual(t.kind, $local)
+    assertEqual(t.year, now.year)
+    assertEqual(t.month, now.month)
+    assertEqual(t.day, now.day)
+    assertEqual(t.hour, 15)
+    assertEqual(t.minute, 45)
+    assertEqual(t.second, 0.0)
+
+    assertError('Time'){ time.parse('2015-08 12:35:00') }
+    assertError('Time'){ time.parse('15-08-05 12:35:00') }
+    assertError('Time'){ time.parse('2015-8-05 12:35:00') }
+    assertError('Time'){ time.parse('2015-13-05 12:35:00') }
+    assertError('Time'){ time.parse('2015-08-5 12:35:00') }
+    assertError('Time'){ time.parse('2015-08-35 12:35:00') }
+    assertError('Time'){ time.parse('2015-08-05 1:35:00') }
+    assertError('Time'){ time.parse('2015-08-05 24:35:00') }
+    assertError('Time'){ time.parse('12:3:00') }
+    assertError('Time'){ time.parse('2015-08-35 12:5:00') }
+    assertError('Time'){ time.parse('2015-08-05 12:64:00') }
+    assertError('Time'){ time.parse('2015-08-35 12:35:0') }
+    assertError('Time'){ time.parse('2015-08-35 12:35:324') }
+    assertError('Time'){ time.parse('2015-08 12:35:00') }
+    assertError('Time'){ time.parse('2015-08-05 12') }
+    assertError('Time'){ time.parse('2015') }
+    assertError('Time'){ time.parse('12') }
+    assertError('Time'){ time.parse('') }
+    assertError('Time'){ time.parse('2015-08-05 12:35:00:15') }
+    assertError('Time'){ time.parse('2015-08-05-01 12:35:00') }
+    assertError('Time'){ time.parse('2015-08-05 12:35:234') }
+    assertError('Time'){ time.parse('2015-08-05 12:35:-5.0') }
+    assertError('Time'){ time.parse('2015-08-05 12:35:00.0.0') }
+    assertError('Time'){ time.parse('2015-08-05 1a:35:00') }
+    assertError('Time'){ time.parse('2015-08-05 12:35:00.x') }
+    assertError('Time'){ time.parse('201f-08-05 12:35:00') }
+    assertError('Time'){ time.parse('2015-08-05 12:35:001') }
 }
 
 routine main(){
