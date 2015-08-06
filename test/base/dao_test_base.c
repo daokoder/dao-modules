@@ -104,7 +104,7 @@ static void TEST_SkipTest( DaoProcess *proc, DaoValue* p[], int N )
 
 static void TEST_AssertEq( DaoProcess *proc, DaoValue* p[], int N )
 {
-	if ( DaoValue_Compare( p[0], p[1] ) != 0 ){
+	if ( DaoValue_ComparePro( p[0], p[1], proc ) != 0 ){
 		char buf[20];
 		DaoTuple *tup = DaoTuple_New( 2 );
 		DaoTuple_SetItem( tup, p[0], 0 );
@@ -115,7 +115,7 @@ static void TEST_AssertEq( DaoProcess *proc, DaoValue* p[], int N )
 
 static void TEST_AssertNeq( DaoProcess *proc, DaoValue* p[], int N )
 {
-	if ( DaoValue_Compare( p[0], p[1] ) == 0 ){
+	if ( DaoValue_ComparePro( p[0], p[1], proc ) == 0 ){
 		char buf[20];
 		DaoProcess_RaiseException( proc, "Error::Test::AssertNotEqual", GetErrorMsg( proc, buf ), p[0] );
 	}
@@ -123,7 +123,7 @@ static void TEST_AssertNeq( DaoProcess *proc, DaoValue* p[], int N )
 
 static void TEST_AssertRange( DaoProcess *proc, DaoValue* p[], int N )
 {
-	if ( DaoValue_Compare( p[0], p[1]->xTuple.values[0] ) < 0 || DaoValue_Compare( p[0], p[1]->xTuple.values[1] ) > 0 ){
+	if ( DaoValue_ComparePro( p[0], p[1]->xTuple.values[0], proc ) < 0 || DaoValue_ComparePro( p[0], p[1]->xTuple.values[1], proc ) > 0 ){
 		char buf[20];
 		DaoTuple *tup = DaoTuple_New( 2 );
 		DaoTuple_SetItem( tup, p[0], 0 );
@@ -134,7 +134,7 @@ static void TEST_AssertRange( DaoProcess *proc, DaoValue* p[], int N )
 
 static void TEST_AssertNRange( DaoProcess *proc, DaoValue* p[], int N )
 {
-	if ( DaoValue_Compare( p[0], p[1]->xTuple.values[0] ) >= 0 && DaoValue_Compare( p[0], p[1]->xTuple.values[1] ) <= 0 ){
+	if ( DaoValue_ComparePro( p[0], p[1]->xTuple.values[0], proc ) >= 0 && DaoValue_ComparePro( p[0], p[1]->xTuple.values[1], proc ) <= 0 ){
 		char buf[20];
 		DaoTuple *tup = DaoTuple_New( 2 );
 		DaoTuple_SetItem( tup, p[0], 0 );
