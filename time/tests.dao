@@ -2,7 +2,7 @@ load time
 load test import test
 
 @test('Constructing datetime')
-routine test1(){
+routine testMakeTime(){
     t = time.make(2015, 8, 5, 10, 30, 24.56)
     assertEqual(t.year, 2015)
     assertEqual(t.month, 8)
@@ -38,7 +38,7 @@ routine test1(){
 }
 
 @test('Setting datetime parts')
-routine test2(){
+routine testSetTime(){
     t = time.make(2015, 8, 5)
 
     t.year = 2016
@@ -79,7 +79,7 @@ routine test2(){
 }
 
 @test('Datetime parsing (RFC 3339)')
-routine test3(){
+routine testParseTime1(){
     t = time.parse('2015-08-05T12:35:00Z')
     assertEqual(t.kind, $utc)
     assertEqual(t.year, 2015)
@@ -142,7 +142,7 @@ routine test3(){
 }
 
 @test('Datetime parsing (simple format)')
-routine test4(){
+routine testParseTime2(){
     t = time.parse('2015-08-05 12:35:00')
     assertEqual(t.kind, $local)
     assertEqual(t.year, 2015)
@@ -231,6 +231,71 @@ routine test4(){
     assertError('Time'){ time.parse('2015-08-05 12:35:00.x') }
     assertError('Time'){ time.parse('201f-08-05 12:35:00') }
     assertError('Time'){ time.parse('2015-08-05 12:35:001') }
+}
+
+@test('Time zone conversions')
+routine testConvertTime(){
+    t = time.parse('2015-08-06T13:46:34.54Z')
+    assertEqual(t.as($local).as($utc).value, t.value)
+
+    t = time.make(2015, 08, 06, 13, 46, 34.54)
+    assertEqual(t.as($utc).as($local).value, t.value)
+}
+
+@test('Epoch time conversions')
+routine testTimeValue(){
+    utc = time.parse('2000-01-01T00:00:45.903Z')
+    assertEqual(utc.value, utc.second)
+    assertEqual(time.fromValue(utc.value).value, utc.value)
+
+    loc = utc.as($local)
+    assertEqual(loc.value, utc.value)
+    assertEqual(time.fromValue(loc.value).value, utc.value)
+}
+
+@test('Datetime comparison')
+routine testCompareTime(){
+    t1 = time.parse('2015-08-06T13:46:34.54Z')
+    t2 = t1
+    assert(t1 == t2)
+    assert(t1 >= t2)
+    assert(t1 <= t2)
+    assert(not (t1 != t2))
+    t2.second = 34.545
+    assert(t2 > t1)
+    assert(not (t2 < t1))
+    assert(t2 >= t1)
+    assert(not (t2 <= t1))
+    assert(t1 < t2)
+    assert(not (t2 < t1))
+    assert(t1 <= t2)
+    assert(not (t2 <= t1))
+    assert(t1 != t2)
+    t1.hour = 18
+    assert(t1 > t2)
+    t2.month = 9
+    assert(t2 > t1)
+}
+
+@test('Week, month and year days')
+routine testDayNumbers(){
+    t = time.parse('2015-08-03')
+    assertEqual(t.weekDay, 1)
+    t.day = 9
+    assertEqual(t.weekDay, 7)
+
+    t = time.parse('2015-01-01')
+    assertEqual(t.yearDay, 1)
+    t = time.parse('2015-02-01')
+    assertEqual(t.yearDay, 32)
+
+    assertEqual(t.daysIn($month), 28)
+    assertEqual(t.daysIn($year), 365)
+    t.year = 2016
+    assertEqual(t.daysIn($month), 29)
+    assertEqual(t.daysIn($year), 366)
+    t.month = 8
+    assertEqual(t.daysIn($month), 31)
 }
 
 routine main(){

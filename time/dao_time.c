@@ -1495,7 +1495,9 @@ static void SPAN_New( DaoProcess *proc, DaoValue *p[], int N )
 static void SPAN_Set( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
-	if( SPAN_SetFields( & self->span, proc, p+1, N-1 ) == 0 ) return;
+	DTimeSpan span = self->span;
+	if( SPAN_SetFields( & span, proc, p+1, N-1 ) == 0 ) return;
+	self->span = span;
 }
 
 static void SPAN_GetYears( DaoProcess *proc, DaoValue *p[], int N )
