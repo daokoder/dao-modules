@@ -362,60 +362,83 @@ DTimeSpan DTimeSpan_Init()
 DTimeSpan DTimeSpan_FromTimeInterval( DTime start, DTime end )
 {
 	DTimeSpan span = DTimeSpan_Init();
-	int same = 1;
-	int mdays = DaysInMonth( start.year, start.month );
-	int midStart = start.month > 1 || start.day > 1 || start.hour > 0 || start.minute > 0;
-	midStart |= (int)(start.second*1E6) > 0;
+	dao_time_t msecs1, msecs2, ms, days;
+	int jday1, jday2;
+	int i, mdays = DaysInMonth( start.year, start.month );
+	int zerohms = start.hour == 0 && start.minute == 0 && (int)(start.second*1E6) == 0;
+	int nyday = start.month == 1 && start.day == 1 && zerohms;
 	
 	span.year = start.year;
 	span.month = start.month;
 	span.day = start.day;
-	span.nyday = midStart == 0;
+	span.nyday = nyday;
 	if( DTime_Compare( start, end ) > 0 ) return span;
 
-	span.years = end.year - start.year;
-	if( span.nyday == 0 ){
-		if( span.years > 0 ) span.years -= 1;
+	msecs1 = DTime_ToMicroSeconds( start );
+	msecs2 = DTime_ToMicroSeconds( end );
+
+	/* Less than one day: */
+	if( (msecs2 - msecs1) < 24*3600*1E6 ){
+		DTime d = DTime_FromMicroSeconds( msecs2 - msecs1 );
+		span.hours = d.hour;
+		span.minutes = d.minute;
+		span.seconds = d.second;
+		return span;
 	}
-	same &= start.year == end.year;
-	if( same ){
-		span.months = end.month - start.month;
-		if( span.months ) span.months -= 1;
-	}else{
-		span.months = 12 - start.month;
-		span.months += end.month - 1;
+
+	if( zerohms == 0 ){ /* Partial starting day: */
+		ms = 24*3600*1E6 - msecs1 % (dao_time_t)(24*3600*1E6);
+		DTime d = DTime_FromMicroSeconds( ms );
+		span.hours = d.hour;
+		span.minutes = d.minute;
+		span.seconds = d.second;
+
+		msecs1 += ms;
 	}
-	same &= start.month == end.month;
-	if( same ){
-		span.days = end.day - start.day;
-		if( span.days ) span.days -= 1;
-	}else{
-		span.days = mdays - start.day;
-		span.days += end.day - 1;
+
+	jday1 = DTime_ToJulianDay( start );
+	jday2 = DTime_ToJulianDay( end );
+	days = jday2 - jday1 - (zerohms == 0);
+	if( start.day > 1 || zerohms == 0 ){ /* Patial starting month: */
+		if( days >= (mdays - start.day) ){
+			span.days = mdays - start.day;
+			days -= span.days;
+		}else{
+			span.days = days;
+			goto HandleRemainder;
+		}
+	}else if( days < mdays ){
+		span.days = days;
+		goto HandleRemainder;
 	}
-	same &= start.day == end.day;
-	if( same ){
-		span.hours = end.hour - start.hour;
-		if( span.hours ) span.hours -= 1;
-	}else{
-		span.hours = 23 - start.hour;
-		span.hours += end.hour;
+
+	/* Starting year: */
+	for(i=start.month+(start.day > 1 || zerohms == 0); i<=12; ++i){
+		int mdays2 = DaysInMonth( start.year, i );
+		if( days < mdays2 ){
+			span.days += days;
+			goto HandleRemainder;
+		}
+		days -= mdays2;
+		span.months += 1;
 	}
-	same &= start.hour == end.hour;
-	if( same ){
-		span.minutes = end.minute - start.minute;
-		if( span.minutes ) span.minutes -= 1;
-	}else{
-		span.minutes = 59 - start.minute;
-		span.minutes += end.minute;
+
+	/* Full years: */
+	for(i=start.year+1; i<end.year; ++i){
+		days -= 365 + LeapYear( i );
+		span.years += 1;
 	}
-	same &= start.minute == end.minute;
-	if( same ){
-		span.seconds = end.second - start.second;
-	}else{
-		span.seconds = 60.0 - start.second;
-		span.seconds += end.second;
-	}
+
+	/* Partial ending year: */
+	span.months += end.month - 1;
+	span.days += end.day - 1;
+
+HandleRemainder:
+	/* Partial ending day: */
+	span.hours += end.hour;
+	span.minutes += end.minute;
+	span.seconds += end.second;
+
 	/*
 	// Now:
 	// -- years are full years from Jan1 to Dec31;
@@ -1641,6 +1664,12 @@ static void SPAN_LE( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutBoolean( proc, DTimeSpan_Compare( a->span, b->span ) <= 0 );
 }
 
+static void SPAN_Value( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
+	DaoProcess_PutFloat( proc, DTimeSpan_ToUSeconds( self->span ) / 1.0E6 );
+}
+
 static void SPAN_ToString( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
@@ -1785,6 +1814,8 @@ static DaoFuncItem spanMeths[] =
 	{ SPAN_LT,  "<  (invar a: TimeSpan, invar b: TimeSpan) => bool" },
 	{ SPAN_LE,  "<= (invar a: TimeSpan, invar b: TimeSpan) => bool" },
 
+	{ SPAN_Value,    ".value(invar self: TimeSpan) => float" },
+	{ SPAN_Value,    "(float)(invar self: TimeSpan)" },
 	{ SPAN_ToString, "(string)(invar self: TimeSpan)" },
 
 	{ NULL, NULL }
