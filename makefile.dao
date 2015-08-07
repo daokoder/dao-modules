@@ -38,7 +38,7 @@ modules.AddDirectory( "statistics",  "statistics" );
 modules.AddDirectory( "image",       "image" );
 modules.AddDirectory( "canvas",      "canvas" );
 modules.AddDirectory( "containers",  "containers" );
-modules.AddDirectory( "test",        "test" );
+modules.AddDirectory( "testing",     "testing" );
 
 if( DaoMake::IsDir( "DaoJIT" ) ) modules.AddDirectory( "DaoJIT", "DaoJIT" );
 

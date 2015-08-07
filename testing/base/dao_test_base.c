@@ -74,26 +74,11 @@ static void TEST_Run( DaoProcess *proc, DaoValue* p[], int N )
 	DMutex_Unlock( &test_mtx );
 }
 
-int GetSourceLine( DaoProcess *proc )
-{
-	DaoRoutine *rout = proc->activeRoutine;
-	ushort_t id = proc->activeCode - proc->topFrame->active->codes;
-	return id < rout->body->vmCodes->size? rout->body->annotCodes->items.pVmc[id]->line : rout->defLine;
-}
-
-char* GetErrorMsg( DaoProcess *proc, char *buf )
-{
-	sprintf( buf, "line %i", GetSourceLine( proc ) );
-	return buf;
-}
-
 static void TEST_Assert( DaoProcess *proc, DaoValue* p[], int N )
 {
 	if ( !p[0]->xBoolean.value ){
 		DString *msg = p[1]->xString.value;
-		char buf[1024];
-		snprintf( buf, sizeof(buf), "line %i -- %s", GetSourceLine( proc ), msg->size? msg->chars : "assertion failed" );
-		DaoProcess_RaiseError( proc, "Test::Assert", buf );
+		DaoProcess_RaiseError( proc, "Test::Assert", msg->size? msg->chars : "assertion failed" );
 	}
 }
 
@@ -105,30 +90,26 @@ static void TEST_SkipTest( DaoProcess *proc, DaoValue* p[], int N )
 static void TEST_AssertEq( DaoProcess *proc, DaoValue* p[], int N )
 {
 	if ( DaoValue_ComparePro( p[0], p[1], proc ) != 0 ){
-		char buf[20];
 		DaoTuple *tup = DaoTuple_New( 2 );
 		DaoTuple_SetItem( tup, p[0], 0 );
 		DaoTuple_SetItem( tup, p[1], 1 );
-		DaoProcess_RaiseException( proc, "Error::Test::AssertEqual", GetErrorMsg( proc, buf ), (DaoValue*)tup );
+		DaoProcess_RaiseException( proc, "Error::Test::AssertEqual", "", (DaoValue*)tup );
 	}
 }
 
 static void TEST_AssertNeq( DaoProcess *proc, DaoValue* p[], int N )
 {
-	if ( DaoValue_ComparePro( p[0], p[1], proc ) == 0 ){
-		char buf[20];
-		DaoProcess_RaiseException( proc, "Error::Test::AssertNotEqual", GetErrorMsg( proc, buf ), p[0] );
-	}
+	if ( DaoValue_ComparePro( p[0], p[1], proc ) == 0 )
+		DaoProcess_RaiseException( proc, "Error::Test::AssertNotEqual", "", p[0] );
 }
 
 static void TEST_AssertRange( DaoProcess *proc, DaoValue* p[], int N )
 {
 	if ( DaoValue_ComparePro( p[0], p[1]->xTuple.values[0], proc ) < 0 || DaoValue_ComparePro( p[0], p[1]->xTuple.values[1], proc ) > 0 ){
-		char buf[20];
 		DaoTuple *tup = DaoTuple_New( 2 );
 		DaoTuple_SetItem( tup, p[0], 0 );
 		DaoTuple_SetItem( tup, p[1], 1 );
-		DaoProcess_RaiseException( proc, "Error::Test::AssertInRange", GetErrorMsg( proc, buf ), (DaoValue*)tup );
+		DaoProcess_RaiseException( proc, "Error::Test::AssertInRange", "", (DaoValue*)tup );
 	}
 }
 
@@ -139,23 +120,20 @@ static void TEST_AssertNRange( DaoProcess *proc, DaoValue* p[], int N )
 		DaoTuple *tup = DaoTuple_New( 2 );
 		DaoTuple_SetItem( tup, p[0], 0 );
 		DaoTuple_SetItem( tup, p[1], 1 );
-		DaoProcess_RaiseException( proc, "Error::Test::AssertNotInRange", GetErrorMsg( proc, buf ), (DaoValue*)tup );
+		DaoProcess_RaiseException( proc, "Error::Test::AssertNotInRange", "", (DaoValue*)tup );
 	}
 }
 
 static void TEST_AssertNone( DaoProcess *proc, DaoValue* p[], int N )
 {
-	if ( p[0]->type != DAO_NONE ){
-		char buf[20];
-		DaoProcess_RaiseException( proc, "Error::Test::AssertNone", GetErrorMsg( proc, buf ), p[0] );
-	}
+	if ( p[0]->type != DAO_NONE )
+		DaoProcess_RaiseException( proc, "Error::Test::AssertNone", "", p[0] );
 }
 
 static void TEST_AssertNNone( DaoProcess *proc, DaoValue* p[], int N )
 {
 	if ( p[0]->type == DAO_NONE ){
-		char buf[20];
-		DaoProcess_RaiseException( proc, "Error::Test::AssertNotNone", GetErrorMsg( proc, buf ), p[0] );
+		DaoProcess_RaiseException( proc, "Error::Test::AssertNotNone", "", p[0] );
 	}
 }
 
@@ -168,10 +146,8 @@ static void TEST_AssertEmpty( DaoProcess *proc, DaoValue* p[], int N )
 	case DAO_ARRAY:	res = p[0]->xArray.size; break;
 	case DAO_MAP:	res = p[0]->xMap.value->size; break;
 	}
-	if ( res ){
-		char buf[20];
-		DaoProcess_RaiseException( proc, "Error::Test::AssertEmpty", GetErrorMsg( proc, buf ), p[0] );
-	}
+	if ( res )
+		DaoProcess_RaiseException( proc, "Error::Test::AssertEmpty", "", p[0] );
 }
 
 static void TEST_AssertNEmpty( DaoProcess *proc, DaoValue* p[], int N )
@@ -183,10 +159,8 @@ static void TEST_AssertNEmpty( DaoProcess *proc, DaoValue* p[], int N )
 	case DAO_ARRAY:	res = p[0]->xArray.size; break;
 	case DAO_MAP:	res = p[0]->xMap.value->size; break;
 	}
-	if ( !res ){
-		char buf[20];
-		DaoProcess_RaiseException( proc, "Error::Test::AssertNotEmpty", GetErrorMsg( proc, buf ), p[0] );
-	}
+	if ( !res )
+		DaoProcess_RaiseException( proc, "Error::Test::AssertNotEmpty", "", p[0] );
 }
 
 static void TEST_AssertError( DaoProcess *proc, DaoValue* p[], int N )
@@ -211,11 +185,11 @@ static void TEST_AssertError( DaoProcess *proc, DaoValue* p[], int N )
 	if ( !catched ){
 		char buf[512];
 		if ( actual ){
-			snprintf( buf, sizeof(buf), "line %i -- expected %s error, intercepted %s", GetSourceLine( proc ), expected->chars, actual->chars );
+			snprintf( buf, sizeof(buf), "expected %s error, intercepted %s", expected->chars, actual->chars );
 			DString_Delete( actual );
 		}
 		else
-			snprintf( buf, sizeof(buf), "line %i -- expected %s error, intercepted nothing", GetSourceLine( proc ), expected->chars );
+			snprintf( buf, sizeof(buf), "expected %s error, intercepted nothing", expected->chars );
 		DaoProcess_RaiseError( proc, "Test::AssertError", buf );
 	}
 }

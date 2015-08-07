@@ -6,7 +6,7 @@ daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
 if( daovm == none ) return
 
 project.UseImportLibrary( daovm )
-project.SetTargetPath( "../../../lib/dao/modules/test" )
+project.SetTargetPath( "../../../lib/dao/modules/testing" )
 
 project_objs = project.AddObjects( { "dao_test_base.c" } )
 project_dll  = project.AddSharedLibrary( "dao_base", project_objs )

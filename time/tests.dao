@@ -1,5 +1,5 @@
 load time
-load test import test
+load testing import test
 
 @test('Constructing datetime')
 routine testMakeTime(){
