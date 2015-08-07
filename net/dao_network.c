@@ -227,7 +227,6 @@ enum {
 	Socket_SharedAddress = 1,
 	Socket_ExclusiveAddress = 2,
 	Socket_ReusableAddress = 4,
-	Socket_DefaultAddress = 8,
 };
 
 typedef int socket_opts;
@@ -1881,7 +1880,7 @@ static DaoFuncItem TcpStreamMeths[] =
 	/*! Checks the property specified by \a what; required to satisfy `io::Device` interface  */
 	{ DaoSocket_Lib_Check,			"check(self: TcpStream, what: enum<readable,writable,open,eof>) => bool" },
 
-	/*! Shuts down the connection, stopping further operations specified by \a what */
+	/*! Fully or partially shuts down the connection, stopping further operations specified by \a what */
 	{ DaoSocket_Lib_Shutdown,		"shutdown( self: TcpStream, what: enum<send,receive,all> )" },
 
 	/*! TCP keep-alive option (SO_KEEPALIVE) */
@@ -1894,7 +1893,7 @@ static DaoFuncItem TcpStreamMeths[] =
 	{ NULL, NULL }
 };
 
-//! TCP stream socket (a connection endpoint)
+//! Connected TCP socket
 DaoTypeBase TcpStreamTyper = {
 	"TcpStream", NULL, NULL, TcpStreamMeths, {&socketTyper, NULL}, {0}, (FuncPtrDel)DaoSocket_Delete, NULL
 };
@@ -1915,7 +1914,7 @@ static DaoFuncItem TcpListenerMeths[] =
 	{ NULL, NULL }
 };
 
-//! TCP server-side socket
+//! Listening TCP socket
 DaoTypeBase TcpListenerTyper = {
 	"TcpListener", NULL, NULL, TcpListenerMeths, {&socketTyper, NULL}, {0}, (FuncPtrDel)DaoSocket_Delete, NULL
 };
@@ -1972,12 +1971,12 @@ static void DaoIpv4Addr_Create( DaoProcess *proc, DaoValue *p[], int N  )
 	if ( p[0]->type == DAO_STRING ){
 		DString *str = p[0]->xString.value;
 		if ( !str->size ){
-			DaoProcess_RaiseError( proc, "Value", "Empty IPv4 address string" );
+			DaoProcess_RaiseError( proc, "Param", "Empty IPv4 address string" );
 			dao_free( res );
 			return;
 		}
 		if ( !GetIpAddr( str->chars, (ipv4_t*)res->octets ) ){
-			DaoProcess_RaiseError( proc, "Value", "Invalid IPv4 address string" );
+			DaoProcess_RaiseError( proc, "Param", "Invalid IPv4 address string" );
 			dao_free( res );
 			return;
 		}
@@ -1987,7 +1986,7 @@ static void DaoIpv4Addr_Create( DaoProcess *proc, DaoValue *p[], int N  )
 		for ( i = 0; i < 4; i++ ){
 			dao_integer octet = p[i]->xInteger.value;
 			if ( octet < 0 || octet > 255 ){
-				DaoProcess_RaiseError( proc, "Value", "Invalid IPv4 address octet" );
+				DaoProcess_RaiseError( proc, "Param", "Invalid IPv4 address octet" );
 				dao_free( res );
 				return;
 			}
@@ -2115,18 +2114,18 @@ static DaoFuncItem Ipv4AddrMeths[] =
 	{ DaoIpv4Addr_Create,	"Ipv4Addr(value: string)" },
 	{ DaoIpv4Addr_Create,	"Ipv4Addr(a: int, b: int, c: int, d: int)" },
 
-	//! Dotted string value
+	//! Address as a dotted string value
 	{ DaoIpv4Addr_ToString,	".value(self: Ipv4Addr) => string" },
 
 	//! Individual address octets
 	{ DaoIpv4Addr_Octets,	".octets(self: Ipv4Addr) => tuple<int,int,int,int>" },
 
-	//! Same as calling value()
+	//! Same as .value()
 	{ DaoIpv4Addr_ToString,	"(string)(self: Ipv4Addr)" },
 
-	//! Returns true if the address belongs to the kind specified by \a what
+	//! Returns true if the address belongs to the specified \a kind
 	{ DaoIpv4Addr_Check,	"is(self: Ipv4Addr, "
-								"what: enum<unspecified,multicast,private,global,loopback,linkLocal,broadcast>) => bool" },
+								"kind: enum<unspecified,multicast,private,global,loopback,linkLocal,broadcast>) => bool" },
 
 	//! Address comparison
 	{ DaoIpv4Addr_Lt,		"<(a: Ipv4Addr, b: Ipv4Addr) => bool" },
@@ -2134,7 +2133,7 @@ static DaoFuncItem Ipv4AddrMeths[] =
 	{ DaoIpv4Addr_Eq,		"==(a: Ipv4Addr, b: Ipv4Addr) => bool" },
 	{ DaoIpv4Addr_Neq,		"!=(a: Ipv4Addr, b: Ipv4Addr) => bool" },
 
-	//! Address arithmetic
+	//! Address arithmetics
 	{ DaoIpv4Addr_Lib_Add,	"+(a: Ipv4Addr, b: int) => Ipv4Addr" },
 	{ DaoIpv4Addr_Lib_Sub,	"-(a: Ipv4Addr, b: int) => Ipv4Addr" },
 	{ NULL, NULL }
@@ -2214,16 +2213,19 @@ static DaoFuncItem sockaddrMeths[] =
 	//! Creates socket address given or \a ip and \a port
 	{ DaoSocketAddr_Create,		"SocketAddr(ip: Ipv4Addr, port: int)" },
 
+	//! IP address
 	{ DaoSocketAddr_IP,			".ip(self: SocketAddr) => Ipv4Addr" },
+
+	//! Port number
 	{ DaoSocketAddr_Port,		".port(self: SocketAddr) => int" },
 
 	//! 'ip:port' string
 	{ DaoSocketAddr_ToString,	".value(self: SocketAddr) => string" },
 
-	//! String conversion
+	//! Same as .value()
 	{ DaoSocketAddr_ToString,	"(string)(self: SocketAddr)" },
 
-	//! Comparison
+	//! Address comparison
 	{ DaoSocketAddr_Eq,			"==(a: SocketAddr, b: SocketAddr) => bool" },
 	{ DaoSocketAddr_Neq,		"!=(a: SocketAddr, b: SocketAddr) => bool" },
 	{ NULL, NULL }
@@ -2396,7 +2398,7 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 		value = DaoList_GetItem( list1, i );
 		fd = value->type == DAO_INTEGER? value->xInteger.value : ( (DaoSocket*)DaoValue_TryGetCdata( value ) )->id;
 		if( fd < 0 ){
-			DaoProcess_RaiseError( proc, "Value", "The read list contains a closed socket (or an invalid fd)" );
+			DaoProcess_RaiseError( proc, "Param", "The read list contains a closed socket (or an invalid fd)" );
 			return;
 		}
 		FD_SET( fd, &set1 );
@@ -2405,7 +2407,7 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 		value = DaoList_GetItem( list2, i );
 		fd = value->type == DAO_INTEGER? value->xInteger.value : ( (DaoSocket*)DaoValue_TryGetCdata( value ) )->id;
 		if( fd < 0 ){
-			DaoProcess_RaiseError( proc, "Value", "The write list contains a closed socket (or an invalid fd)" );
+			DaoProcess_RaiseError( proc, "Param", "The write list contains a closed socket (or an invalid fd)" );
 			return;
 		}
 		FD_SET( fd, &set2 );
@@ -2445,16 +2447,15 @@ static DaoFuncItem netMeths[] =
 	 * the maximum queue size).
 	 *
 	 * Meaning of \a addrOpts values:
-	 * -\c shared -- non-exclusive binding of the address and port, other sockets will be able to bind to the same address and port
+	 * -\c shared -- non-exclusive binding of the address, other sockets will be able to bind to the same socket address
 	 * (SO_REUSEADDR on Unix, ignored on Windows)
-	 * -\c exclusive -- exclusive binding of the address and port, no other sockets are allowed to rebind
+	 * -\c exclusive -- exclusive binding of the address, no other sockets are allowed to rebind
 	 * (SO_EXCLUSIVEADDRUSE on Windows, ignored on Unix)
-	 * -\c reused -- rebinds the socket even if the address and port are already bound by another socket (non-exclusively)
+	 * -\c reused -- rebinds the socket even if the socket address is already bound non-exclusively by another socket
 	 * (SO_REUSEADDR on Windows, ignored on Unix)
-	 * -\c default -- default mode for the current platform (\c exclusive + \c reused on Unix, \c shared on Windows)
 	 *
 	 * If \a addrOpts is not specified, \c exclusive address mode is used */
-	{  DaoNetLib_Listen,		"listen( addr: string|SocketAddr, backLog = 10, addrOpts: enum<shared;exclusive;reused;default> = $exclusive )"
+	{  DaoNetLib_Listen,		"listen( addr: string|SocketAddr, backLog = 10, addrOpts: enum<shared;exclusive;reused> = $exclusive )"
 								" => TcpListener" },
 
 	/*! Returns new UDP socket bound to address \a addr (either a 'host:port' string or \c SocketAddr) with \a addrOpts options used to regulate address binding

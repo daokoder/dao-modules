@@ -13,12 +13,8 @@ namespace [os](#os)
 Constants:
 - ATOMIC_WRITE_CAP -- Maximum number of bytes which can be atomically written to a device
 
-class [PipeStream](#pipestream): io::Stream
-- [pclose](#pclose)(_self_: PipeStream) => int
-
 Functions:
 - [run](#run)(_command_: string) => int
-- [popen](#popen)(_command_: string, mode: string) => os::PipeStream
 - [pclose](#pclose)(_pipe_: os::PipeStream) => int
 - [sleep](#sleep)(_seconds_: float)
 - [exit](#exit)(_code_ = 0)
@@ -32,31 +28,12 @@ Functions:
 - [null](#null)() => io::Stream
 
 <a name="os"></a>
-### Classes
-<a name="pipestream">os::PipeStream</a>
-
-Stream bound to a pipe opened with [popen()](#popen)
-#### Methods
-<a name="pclose"></a>
-```ruby
-pclose(self: PipeStream) => int
-```
-Waits for the sub-process to finish and returns its exit code
-
-**Errors:** `Param` when the stream is closed
 ### Functions
 <a name="run"></a>
 ```ruby
 run(command: string) => int
 ```
 Executes the given *command* via system shell and returns the resulting exit code
-<a name="popen"></a>
-```ruby
-popen(command: string, mode: string) => os::PipeStream
-```
-Spawns sub-process which executes the given shell *command* with redirected standard input or output depending on *mode*.
-If *mode* is 'r', returns readable stream of the process output; if *mode* is 'w', returns writable stream of the process input.
-Resulting `os::PipeStream` inherits `io::Stream` and can be used the same way
 <a name="sleep"></a>
 ```ruby
 sleep(seconds: float)
