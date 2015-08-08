@@ -1327,7 +1327,10 @@ static void TIME_Add( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	if ( days ){
 		int jday = DTime_ToJulianDay( restime ) + days;
-		restime = DTime_FromJulianDay( jday );
+		DTime date = DTime_FromJulianDay( jday );
+		restime.year = date.year;
+		restime.month = date.month;
+		restime.day = date.day;
 	}
 	self->time = restime;
 }
