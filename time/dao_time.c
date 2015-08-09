@@ -321,9 +321,86 @@ DTime DTime_UtcToLocal( DTime utc )
 
 DTime DTime_AddSpan( DTime time, DTimeSpan span )
 {
-	dao_time_t useconds1 = DTime_ToMicroSeconds( time );
-	dao_time_t useconds2 = DTimeSpan_ToUSeconds( span );
-	return DTime_FromMicroSeconds( useconds1 + useconds2 );
+	DTime res = time;
+	res.year += span.years;
+	res.month += span.months;
+	res.day += span.days;
+	res.hour += span.hours;
+	res.minute += span.minutes;
+	res.second += span.seconds;
+	/* Month should be normalized before day: */
+	if( res.month > 12 ){
+		res.month -= 12;
+		res.year += 1;
+	}
+	if( res.day > DaysInMonth( res.year, res.month ) ){
+		res.day -= DaysInMonth( res.year, res.month );
+		res.month += 1;
+	}
+	if( res.second >= 60.0 ){
+		res.second -= 60.0;
+		res.minute += 1;
+	}
+	if( res.minute >= 60 ){
+		res.minute -= 60;
+		res.hour += 1;
+	}
+	if( res.hour >= 24 ){
+		res.hour -= 24;
+		res.day += 1;
+	}
+	if( res.day > DaysInMonth( res.year, res.month ) ){
+		res.day -= DaysInMonth( res.year, res.month );
+		res.month += 1;
+	}
+	if( res.month > 12 ){
+		res.month -= 12;
+		res.year += 1;
+	}
+	return res;
+}
+DTime DTime_SubSpan( DTime time, DTimeSpan span )
+{
+	DTime res = time;
+	res.year -= span.years;
+	res.month -= span.months;
+	res.day -= span.days;
+	res.hour -= span.hours;
+	res.minute -= span.minutes;
+	res.second -= span.seconds;
+	if( res.month < 1 ){
+		res.month += 12;
+		res.year -= 1;
+	}
+	if( res.day < 1 ){
+		res.month -= 1;
+		if( res.month < 1 ){
+			res.month += 12;
+			res.year -= 1;
+		}
+		res.day += DaysInMonth( res.year, res.month );
+	}
+	if( res.second < 0.0 ){
+		res.second += 60.0;
+		res.minute -= 1;
+	}
+	if( res.minute < 0 ){
+		res.minute += 60;
+		res.hour -= 1;
+	}
+	if( res.hour < 0 ){
+		res.hour += 24;
+		res.day -= 1;
+	}
+	if( res.day < 1 ){
+		res.month -= 1;
+		if( res.month < 1 ){
+			res.month += 12;
+			res.year -= 1;
+		}
+		res.day += DaysInMonth( res.year, res.month );
+	}
+	return res;
 }
 
 int DTime_Compare( DTime first, DTime second )
@@ -515,6 +592,13 @@ int DTimeSpan_ToDays( DTimeSpan span )
 	//printf( "%i: %i\n", __LINE__, days );
 	return days;
 }
+DTimeSpan DTimeSpan_FromElapse( DTime since, dao_time_t useconds )
+{
+	dao_time_t sinceUS = DTime_ToMicroSeconds( since );
+	DTime end = DTime_FromMicroSeconds( useconds - sinceUS );
+	if( useconds < 0 ) return DTimeSpan_FromTimeInterval( end, since );
+	return DTimeSpan_FromTimeInterval( since, end );
+}
 DTimeSpan DTimeSpan_FromUSeconds( dao_time_t useconds )
 {
 	DTime epoch = DTime_FromMicroSeconds( 0 );
@@ -529,14 +613,23 @@ dao_time_t DTimeSpan_ToUSeconds( DTimeSpan span )
 	useconds += (span.hours * 3600 + span.minutes * 60) * 1E6;
 	return useconds;
 }
+DTime DTimeSpan_GetStartTime( DTimeSpan span )
+{
+	DTime time = {0};
+	time.year = span.year;
+	time.month = span.month;
+	time.day = span.day;
+	return time;
+}
+DTime DTimeSpan_GetEndTime( DTimeSpan span )
+{
+	DTime time = DTimeSpan_GetStartTime( span );
+	return DTime_AddSpan( time, span );
+}
 int DTimeSpan_IsValid( DTimeSpan span )
 {
 	DTimeSpan span2;
-	DTime end, start = {2000,1,1,0,0,0.0};
-
-	start.year = span.year;
-	start.month = span.month;
-	start.day = span.day;
+	DTime end, start = DTimeSpan_GetStartTime( span );
 
 	end = DTime_AddSpan( start, span );
 	span2 = DTimeSpan_FromTimeInterval( start, end );
@@ -1345,26 +1438,20 @@ static void TIME_Plus2( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *a = (DaoTime*) p[0];
 	DaoTimeSpan *b = (DaoTimeSpan*) p[1];
-	dao_time_t useconds1 = DTime_ToMicroSeconds( a->time );
-	dao_time_t useconds2 = DTimeSpan_ToUSeconds( b->span );
-	a->time = DTime_FromMicroSeconds( useconds1 + useconds2 );
+	a->time = DTime_AddSpan( a->time, b->span );
 }
 static void TIME_Minus( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *a = (DaoTime*) p[0];
 	DaoTimeSpan *b = (DaoTimeSpan*) p[1];
-	dao_time_t useconds1 = DTime_ToMicroSeconds( a->time );
-	dao_time_t useconds2 = DTimeSpan_ToUSeconds( b->span );
-	DTime res = DTime_FromMicroSeconds( useconds1 - useconds2 );
+	DTime res = DTime_SubSpan( a->time, b->span );
 	DaoProcess_PutTime( proc, res, a->local );
 }
 static void TIME_Minus2( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *a = (DaoTime*) p[0];
 	DaoTimeSpan *b = (DaoTimeSpan*) p[1];
-	dao_time_t useconds1 = DTime_ToMicroSeconds( a->time );
-	dao_time_t useconds2 = DTimeSpan_ToUSeconds( b->span );
-	a->time = DTime_FromMicroSeconds( useconds1 - useconds2 );
+	a->time = DTime_SubSpan( a->time, b->span );
 }
 static void TIME_Minus3( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1486,24 +1573,57 @@ DaoTypeBase timeTyper =
 
 static int SPAN_SetFields( DTimeSpan *span, DaoProcess *proc, DaoValue *p[], int N )
 {
-	int i;
+	dao_time_t years = 0, months = 0, days = 0, hours = 0, minutes = 0;
+	double seconds = 0.0;
+	int i, major = 5;
 
 	for(i = 0; i < N; i++ ){
 		DaoEnum *en = (DaoEnum*) p[i]->xTuple.values[0];
-		if ( strstr( en->etype->name->chars, "second" ) != NULL ){
-			span->seconds = TruncateSeconds( p[i]->xTuple.values[1]->xFloat.value ); //sec
-		}else{
-			dao_integer val = p[i]->xTuple.values[1]->xInteger.value;
-			switch ( p[i]->xTuple.values[0]->xEnum.value ){
-			case 0:  span->years   = val; break; // year
-			case 1:  span->months  = val; break; // month
-			case 2:  span->days    = val; break; // day
-			case 3:  span->hours   = val; break; // hour
-			case 4:  span->minutes = val; break; // min
-			default: break;
-			}
+		int part = p[i]->xTuple.values[0]->xEnum.value;
+		double val = p[i]->xTuple.values[1]->xFloat.value;
+		if( part < major ) major = part;
+		switch ( part ){
+		case 0:  years   = val; break;
+		case 1:  months  = val; break;
+		case 2:  days    = val; break;
+		case 3:  hours   = val; break;
+		case 4:  minutes = val; break;
+		case 5:  seconds = TruncateSeconds( val ); break;
+		default: break;
 		}
 	}
+	if( major == 5 && seconds >= 60.0 ){
+		minutes = seconds / 60;
+		seconds -= minutes * 60;
+		major -= 1;
+	}
+	if( major == 4 && minutes >= 60 ){
+		hours = minutes / 60;
+		minutes = minutes % 60;
+		major -= 1;
+	}
+	if( major == 3 && hours >= 24 ){
+		days = hours / 24;
+		hours = hours % 24;
+		major -= 1;
+	}
+	if( major == 2 ){
+		DTime time = DTime_FromDay( days );
+		years = time.year;
+		months = time.month - 1;
+		days = time.day - 1;
+		major = 0;
+	}
+	if( major == 1 && months >= 12 ){
+		years = months / 12;
+		months = months % 12;
+	}
+	span->years = years;
+	span->months = months;
+	span->days = days;
+	span->hours = hours;
+	span->minutes = minutes;
+	span->seconds = seconds;
 	if ( !DTimeSpan_IsValid( *span )){
 		DaoProcess_RaiseError( proc, timeerr, "Invalid time span" );
 		return 0;
@@ -1526,120 +1646,100 @@ static void SPAN_Set( DaoProcess *proc, DaoValue *p[], int N )
 	self->span = span;
 }
 
-static void SPAN_GetYears( DaoProcess *proc, DaoValue *p[], int N )
+static void SPAN_GetValue( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
+	DaoTuple *res = DaoProcess_PutTuple( proc, 6 );
+	res->values[0]->xInteger.value = self->span.years;
+	res->values[1]->xInteger.value = self->span.months;
+	res->values[2]->xInteger.value = self->span.days;
+	res->values[3]->xInteger.value = self->span.hours;
+	res->values[4]->xInteger.value = self->span.minutes;
+	res->values[5]->xFloat.value = self->span.seconds;
+}
+
+static void SPAN_GetFullYears( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
 	DaoProcess_PutInteger( proc, self->span.years );
 }
 
-static void SPAN_GetMonths( DaoProcess *proc, DaoValue *p[], int N )
+static void SPAN_GetFullMonths( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
-	DaoProcess_PutInteger( proc, self->span.months );
+	DaoProcess_PutInteger( proc, self->span.years * 12 + self->span.months );
 }
 
-static void SPAN_GetDays( DaoProcess *proc, DaoValue *p[], int N )
+static void SPAN_GetFullDays( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
-	DaoProcess_PutInteger( proc, self->span.days );
+	dao_integer days = DTimeSpan_ToDays( self->span );
+	DaoProcess_PutInteger( proc, days );
 }
 
-static void SPAN_GetHours( DaoProcess *proc, DaoValue *p[], int N )
+static void SPAN_GetFullHours( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
-	DaoProcess_PutInteger( proc, self->span.hours );
+	dao_integer hours = DTimeSpan_ToDays( self->span ) * 24;
+	DaoProcess_PutInteger( proc, hours + self->span.hours );
 }
 
-static void SPAN_GetMinutes( DaoProcess *proc, DaoValue *p[], int N )
+static void SPAN_GetFullMinutes( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
-	DaoProcess_PutInteger( proc, self->span.minutes );
+	dao_integer minutes = (DTimeSpan_ToDays( self->span ) * 24 + self->span.hours) * 60;
+	DaoProcess_PutInteger( proc, minutes + self->span.minutes );
 }
 
-static void SPAN_GetSeconds( DaoProcess *proc, DaoValue *p[], int N )
+static void SPAN_GetFullSeconds( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
-	DaoProcess_PutFloat( proc, self->span.seconds );
+	dao_integer minutes = (DTimeSpan_ToDays( self->span ) * 24 + self->span.hours) * 60;
+	DaoProcess_PutFloat( proc, (minutes + self->span.minutes) * 60.0 + self->span.seconds );
 }
 
-
-static void SPAN_SetDays( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
-	int value = p[1]->xInteger.value;
-	if( value < 0 ){
-		DaoProcess_RaiseError( proc, "Param", "Invalid days" );
-		return;
-	}
-	self->span.days = value;
-}
-
-static void SPAN_SetHours( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
-	int value = p[1]->xInteger.value;
-	if( value < 0 || value >= 24 ){
-		DaoProcess_RaiseError( proc, "Param", "Invalid hours" );
-		return;
-	}
-	self->span.hours = value;
-}
-
-static void SPAN_SetMinutes( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
-	int value = p[1]->xInteger.value;
-	if( value < 0 || value >= 60 ){
-		DaoProcess_RaiseError( proc, "Param", "Invalid minutes" );
-		return;
-	}
-	self->span.minutes = value;
-}
-
-static void SPAN_SetSeconds( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
-	dao_float value = p[1]->xFloat.value;
-	if( value < 0.0 || value >= 60.0 ){
-		DaoProcess_RaiseError( proc, "Param", "Invalid seconds" );
-		return;
-	}
-	self->span.seconds = value;
-}
 
 static void SPAN_Plus( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTimeSpan *s1 = (DaoTimeSpan*) p[0];
 	DaoTimeSpan *s2 = (DaoTimeSpan*) p[1];
-	dao_time_t us1 = DTimeSpan_ToUSeconds( s1->span );
-	dao_time_t us2 = DTimeSpan_ToUSeconds( s2->span );
-	DTimeSpan res = DTimeSpan_FromUSeconds( us1 + us2 );
-	DaoProcess_PutTimeSpan( proc, res );
+	DTime t1 = DTimeSpan_GetStartTime( s1->span );
+	DTime t2 = DTime_AddSpan( DTime_AddSpan( t1, s1->span ), s2->span );
+	DaoProcess_PutTimeSpan( proc, DTimeSpan_FromTimeInterval( t1, t2 ) );
 }
 static void SPAN_Plus2( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTimeSpan *s1 = (DaoTimeSpan*) p[0];
 	DaoTimeSpan *s2 = (DaoTimeSpan*) p[1];
-	dao_time_t us1 = DTimeSpan_ToUSeconds( s1->span );
-	dao_time_t us2 = DTimeSpan_ToUSeconds( s2->span );
-	s1->span = DTimeSpan_FromUSeconds( us1 + us2 );
+	DTime t1 = DTimeSpan_GetStartTime( s1->span );
+	DTime t2 = DTime_AddSpan( DTime_AddSpan( t1, s1->span ), s2->span );
+	s1->span = DTimeSpan_FromTimeInterval( t1, t2 );
 }
 static void SPAN_Minus( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTimeSpan *s1 = (DaoTimeSpan*) p[0];
 	DaoTimeSpan *s2 = (DaoTimeSpan*) p[1];
-	dao_time_t us1 = DTimeSpan_ToUSeconds( s1->span );
-	dao_time_t us2 = DTimeSpan_ToUSeconds( s2->span );
-	DTimeSpan res = DTimeSpan_FromUSeconds( us1 - us2 );
-	DaoProcess_PutTimeSpan( proc, res );
+	DTime a1 = DTimeSpan_GetStartTime( s1->span );
+	DTime b1 = DTime_AddSpan( a1, s1->span );
+	DTime a2 = DTime_SubSpan( b1, s2->span );
+	if( DTime_Compare( a1, a2 ) > 0 ){
+		DaoProcess_RaiseError( proc, timeerr, "Invalid time span subtraction" );
+		return;
+	}
+	DaoProcess_PutTimeSpan( proc, DTimeSpan_FromTimeInterval( a1, a2 ) );
 }
 static void SPAN_Minus2( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTimeSpan *s1 = (DaoTimeSpan*) p[0];
 	DaoTimeSpan *s2 = (DaoTimeSpan*) p[1];
-	dao_time_t us1 = DTimeSpan_ToUSeconds( s1->span );
-	dao_time_t us2 = DTimeSpan_ToUSeconds( s2->span );
-	s1->span = DTimeSpan_FromUSeconds( us1 - us2 );
+	DTime a1 = DTimeSpan_GetStartTime( s1->span );
+	DTime b1 = DTime_AddSpan( a1, s1->span );
+	DTime a2 = DTime_SubSpan( b1, s2->span );
+	if( DTime_Compare( a1, a2 ) > 0 ){
+		DaoProcess_RaiseError( proc, timeerr, "Invalid time span subtraction" );
+		return;
+	}
+	s1->span = DTimeSpan_FromTimeInterval( a1, a2 );
 }
 
 static void SPAN_EQ( DaoProcess *proc, DaoValue *p[], int N )
@@ -1667,11 +1767,6 @@ static void SPAN_LE( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutBoolean( proc, DTimeSpan_Compare( a->span, b->span ) <= 0 );
 }
 
-static void SPAN_Value( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoTimeSpan *self = (DaoTimeSpan*) p[0];
-	DaoProcess_PutFloat( proc, DTimeSpan_ToUSeconds( self->span ) / 1.0E6 );
-}
 
 static void SPAN_ToString( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1789,23 +1884,29 @@ NumericError:
 
 static DaoFuncItem spanMeths[] =
 {
-	{ SPAN_New, "TimeSpan( ...: tuple<enum<years,months,days,hours,minutes>,int> | tuple<enum<seconds>,float>)" },
+	{ SPAN_New,
+		/*
+		// The biggest unit can have any positive value, which will be normalized if necessary.
+		// Example: TimeSpan( months = 50, days = 10 )
+		*/
+		"TimeSpan( ...: tuple<enum<years,months,days,hours,minutes,seconds>,float>)"
+	},
 
-	{ SPAN_Set, "set( self: TimeSpan, ...: tuple<enum<years,months,days,hours,minutes>,int> | tuple<enum<seconds>,float>)" },
+	{ SPAN_Set,
+		"set( self: TimeSpan, ...: tuple<enum<years,months,days,hours,minutes,seconds>,float>)"
+	},
 
-	{ SPAN_GetYears,    ".years(invar self: TimeSpan) => int" },
-	{ SPAN_GetMonths,   ".months(invar self: TimeSpan) => int" },
-	{ SPAN_GetDays,     ".days(invar self: TimeSpan) => int" },
-	{ SPAN_GetHours,    ".hours(invar self: TimeSpan) => int" },
-	{ SPAN_GetMinutes,  ".minutes(invar self: TimeSpan) => int" },
-	{ SPAN_GetSeconds,  ".seconds(invar self: TimeSpan) => float" },
+	{ SPAN_GetValue,
+		".value(invar self: TimeSpan)"
+			"=> tuple<years: int, months: int, days: int, hours: int, minutes: int, seconds: float>"
+	},
 
-#if 0
-	{ SPAN_SetDays,     ".days=(self: TimeSpan, value: int)" },
-	{ SPAN_SetHours,    ".hours=(self: TimeSpan, value: int)" },
-	{ SPAN_SetMinutes,  ".minutes=(self: TimeSpan, value: int)" },
-	{ SPAN_SetSeconds,  ".seconds=(self: TimeSpan, value: float)" },
-#endif
+	{ SPAN_GetFullYears,    ".years(invar self: TimeSpan) => int" },
+	{ SPAN_GetFullMonths,   ".months(invar self: TimeSpan) => int" },
+	{ SPAN_GetFullDays,     ".days(invar self: TimeSpan) => int" },
+	{ SPAN_GetFullHours,    ".hours(invar self: TimeSpan) => int" },
+	{ SPAN_GetFullMinutes,  ".minutes(invar self: TimeSpan) => int" },
+	{ SPAN_GetFullSeconds,  ".seconds(invar self: TimeSpan) => float" },
 
 	{ SPAN_Plus,    "+  (invar a: TimeSpan, invar b: TimeSpan) => TimeSpan" },
 	{ SPAN_Minus,   "-  (invar a: TimeSpan, invar b: TimeSpan) => TimeSpan" },
@@ -1817,9 +1918,7 @@ static DaoFuncItem spanMeths[] =
 	{ SPAN_LT,  "<  (invar a: TimeSpan, invar b: TimeSpan) => bool" },
 	{ SPAN_LE,  "<= (invar a: TimeSpan, invar b: TimeSpan) => bool" },
 
-	{ SPAN_Value,    ".value(invar self: TimeSpan) => float" },
-	{ SPAN_Value,    "(float)(invar self: TimeSpan)" },
-	{ SPAN_ToString, "(string)(invar self: TimeSpan)" },
+	{ SPAN_ToString,      "(string)(invar self: TimeSpan)" },
 
 	{ NULL, NULL }
 };
