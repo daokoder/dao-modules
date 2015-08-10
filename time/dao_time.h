@@ -80,9 +80,8 @@ struct DTime
 struct DTimeSpan
 {
 	int     year;     /* Anchor year,  default: 2000; */
-	char    month;    /* Anchor month, default:    1; */
-	char    day;      /* Anchor day,   default:    1; */
-	short   nyday;    /* New year day: 01-01, 00:00:00.0; */
+	short   month;    /* Anchor month, default:    1; */
+	short   day;      /* Anchor day,   default:    1; */
 	int     years;    /* Full years within the span; */
 	char    months;   /* Remaining full months within the span; */
 	char    days;     /* Remaining days within the span; */

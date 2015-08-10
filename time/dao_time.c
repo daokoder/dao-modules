@@ -433,7 +433,6 @@ DTimeSpan DTimeSpan_Init()
 	span.year = 2000;
 	span.month = 1;
 	span.day = 1;
-	span.nyday = 1;
 	return span;
 }
 DTimeSpan DTimeSpan_FromTimeInterval( DTime start, DTime end )
@@ -443,12 +442,10 @@ DTimeSpan DTimeSpan_FromTimeInterval( DTime start, DTime end )
 	int jday1, jday2;
 	int i, mdays = DaysInMonth( start.year, start.month );
 	int zerohms = start.hour == 0 && start.minute == 0 && (int)(start.second*1E6) == 0;
-	int nyday = start.month == 1 && start.day == 1 && zerohms;
 	
 	span.year = start.year;
 	span.month = start.month;
 	span.day = start.day;
-	span.nyday = nyday;
 	if( DTime_Compare( start, end ) > 0 ) return span;
 
 	msecs1 = DTime_ToMicroSeconds( start );
@@ -558,33 +555,31 @@ int DTimeSpan_ToDays( DTimeSpan span )
 	int mdays = DaysInMonth( span.year, span.month );
 	int i, month, year;
 
-	/* Reverse the carray-over down to days: */
-	if( span.nyday == 0 ){
-		/* A carray-over year (12 full months from two partial years): */
-		if( months < 12 - span.month ){
-			years -= 1;
-			months += 12;
-		}
-		/* A carray-over month (mdays full days from two partial months): */
-		if( days < (mdays - span.day) ){
-			months -= 1;
-			days += mdays;
-		}
+	/* Get the sum of leading months in the start year and trailing months in the end year: */
+	if( years > 0 && months < 12 - span.month ){
+		years -= 1;
+		months += 12;
 	}
+	/* Get the sum of leading days in the start month and trailing days in the end month: */
+	if( months > 0 && days < (mdays - span.day) ){
+		months -= 1;
+		days += mdays;
+	}
+
 	/* Days of full years: */
 	for(i=0; i<years; ++i){
-		year = span.year + i + (span.nyday == 0);
+		year = span.year + i + (span.years > 0);
 		days += 365 + LeapYear( year );
 	}
 	month = months;
-	if( span.nyday == 0 ){
+	if( months > (12 - span.month) ){
 		/* Days of the full months in the starting partial year: */
 		for(i=span.month+1; i<=12; ++i){
 			days += DaysInMonth( span.year, i );
 		}
 		month = months - (12 - span.month);
 	}
-	year = span.year + years + (span.nyday == 0);
+	year = span.year + years + (span.years > 0);
 	/* Days of the full months in the ending partial year: */
 	for(i=0; i<month; ++i){
 		days += DaysInMonth( year, i + 1 );
