@@ -1609,7 +1609,7 @@ static int SPAN_SetFields( DTimeSpan *span, DaoProcess *proc, DaoValue *p[], int
 	}
 	if( major == 2 ){
 		DTime time = DTime_FromDay( days );
-		years = time.year;
+		years = time.year - 2000;
 		months = time.month - 1;
 		days = time.day - 1;
 		major = 0;

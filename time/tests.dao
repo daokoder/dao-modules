@@ -298,6 +298,66 @@ routine testDayNumbers(){
     assertEqual(t.daysIn($month), 31)
 }
 
+@test('Constructing timespan')
+routine testMakeTimeSpan()
+{
+	s = time.TimeSpan( years=1, months=2, days=3, hours=4 )
+    assertEqual(s.years, 1)
+    assertEqual(s.months, 14)
+
+	s = time.TimeSpan( months=50, days=3, hours=4 )
+    assertEqual(s.years, 4)
+    assertEqual(s.months, 50)
+
+	s = time.TimeSpan( days=100, minutes=20 )
+    assertEqual(s.days, 100)
+    assertEqual(s.hours, 100*24)
+
+	s = time.TimeSpan( hours=100, minutes=20 )
+    assertEqual(s.days, 100/24)
+    assertEqual(s.hours, 100)
+    assertEqual(s.minutes, 100*60 + 20)
+}
+
+@test('Datetime and timespan operations')
+routine testDateTimeSpanOper()
+{
+	t1 = time.parse( '2006-05-05 11:23:45' )
+	t2 = time.parse( '2009-02-09 15:23:45' )
+	s = t2 - t1
+    assertEqual(s.years, 2)
+    assertEqual(s.months, 33)
+    assertEqual(s.days, time.daysBetween(t1, t2))
+
+    assertEqual( t1 + s, t2)
+    assertEqual( t2 - s, t1)
+
+	s2 = s + s
+    assertEqual(s2.years, 5)
+    assertEqual(s2.months, 66)
+    assertEqual(s < s2, true)
+    assertEqual(t2 < t1 + s2, true)
+
+	t3 = t2 + s2
+    assertEqual( t2 + s2, t3)
+    assertEqual( t3 - s2, t2)
+    assertEqual( (t3 - t1).value, (8, 3, 11, 12, 0, 0.0) )
+
+	t1 = time.parse( '2000-01-01 00:00:00' )
+	t2 = time.parse( '2009-02-09 15:23:45' )
+	s1 = t2 - t1;
+	s3 = s1 + s1 + s1;
+
+	s4 = time.TimeSpan( years=27, months=3, days=26, hours=22, minutes=11, seconds=15.000000 )
+    assertEqual( s4, s3 )
+
+	tup = s3.value;
+	s5 = time.TimeSpan( years=tup.years, months=tup.months, days=tup.days, hours=tup.hours,
+			minutes=tup.minutes, seconds=tup.seconds )
+    assertEqual( s5, s3 )
+    assertEqual( s5.value, s3.value )
+}
+
 routine main(){
     runTests()
 }
