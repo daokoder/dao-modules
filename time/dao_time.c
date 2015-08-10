@@ -1548,8 +1548,8 @@ static DaoFuncItem timeMeths[] =
 	{ TIME_Plus,    "+  (invar a: DateTime, invar b: TimeSpan) => DateTime" },
 	{ TIME_Minus,   "-  (invar a: DateTime, invar b: TimeSpan) => DateTime" },
 	{ TIME_Minus3,  "-  (invar a: DateTime, invar b: DateTime) => TimeSpan" },
-	{ TIME_Plus2,   "+= (self: DateTime, invar b: DateTime) => DateTime" },
-	{ TIME_Minus2,  "-= (self: DateTime, invar b: DateTime) => DateTime" },
+	{ TIME_Plus2,   "+= (self: DateTime, invar b: TimeSpan) => DateTime" },
+	{ TIME_Minus2,  "-= (self: DateTime, invar b: TimeSpan) => DateTime" },
 
 	/*! Datetime comparison */
 	{ TIME_EQ,  "== (invar a: DateTime, invar b: DateTime) => bool" },
