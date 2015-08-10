@@ -1434,6 +1434,7 @@ static void TIME_Plus2( DaoProcess *proc, DaoValue *p[], int N )
 	DaoTime *a = (DaoTime*) p[0];
 	DaoTimeSpan *b = (DaoTimeSpan*) p[1];
 	a->time = DTime_AddSpan( a->time, b->span );
+	DaoProcess_PutValue( proc, (DaoValue*) a );
 }
 static void TIME_Minus( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1447,6 +1448,7 @@ static void TIME_Minus2( DaoProcess *proc, DaoValue *p[], int N )
 	DaoTime *a = (DaoTime*) p[0];
 	DaoTimeSpan *b = (DaoTimeSpan*) p[1];
 	a->time = DTime_SubSpan( a->time, b->span );
+	DaoProcess_PutValue( proc, (DaoValue*) a );
 }
 static void TIME_Minus3( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1546,8 +1548,8 @@ static DaoFuncItem timeMeths[] =
 	{ TIME_Plus,    "+  (invar a: DateTime, invar b: TimeSpan) => DateTime" },
 	{ TIME_Minus,   "-  (invar a: DateTime, invar b: TimeSpan) => DateTime" },
 	{ TIME_Minus3,  "-  (invar a: DateTime, invar b: DateTime) => TimeSpan" },
-	{ TIME_Plus2,   "+= (self: DateTime, invar b: TimeSpan)" },
-	{ TIME_Minus2,  "-= (self: DateTime, invar b: TimeSpan)" },
+	{ TIME_Plus2,   "+= (self: DateTime, invar b: DateTime) => DateTime" },
+	{ TIME_Minus2,  "-= (self: DateTime, invar b: DateTime) => DateTime" },
 
 	/*! Datetime comparison */
 	{ TIME_EQ,  "== (invar a: DateTime, invar b: DateTime) => bool" },
@@ -1709,6 +1711,7 @@ static void SPAN_Plus2( DaoProcess *proc, DaoValue *p[], int N )
 	DTime t1 = DTimeSpan_GetStartTime( s1->span );
 	DTime t2 = DTime_AddSpan( DTime_AddSpan( t1, s1->span ), s2->span );
 	s1->span = DTimeSpan_FromTimeInterval( t1, t2 );
+	DaoProcess_PutValue( proc, (DaoValue*) s1 );
 }
 static void SPAN_Minus( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1735,6 +1738,7 @@ static void SPAN_Minus2( DaoProcess *proc, DaoValue *p[], int N )
 		return;
 	}
 	s1->span = DTimeSpan_FromTimeInterval( a1, a2 );
+	DaoProcess_PutValue( proc, (DaoValue*) s1 );
 }
 
 static void SPAN_EQ( DaoProcess *proc, DaoValue *p[], int N )
@@ -1905,8 +1909,8 @@ static DaoFuncItem spanMeths[] =
 
 	{ SPAN_Plus,    "+  (invar a: TimeSpan, invar b: TimeSpan) => TimeSpan" },
 	{ SPAN_Minus,   "-  (invar a: TimeSpan, invar b: TimeSpan) => TimeSpan" },
-	{ SPAN_Plus2,   "+= (self: TimeSpan, invar span: TimeSpan)" },
-	{ SPAN_Minus2,  "-= (self: TimeSpan, invar span: TimeSpan)" },
+	{ SPAN_Plus2,   "+= (self: TimeSpan, invar span: TimeSpan) => TimeSpan" },
+	{ SPAN_Minus2,  "-= (self: TimeSpan, invar span: TimeSpan) => TimeSpan" },
 
 	{ SPAN_EQ,  "== (invar a: TimeSpan, invar b: TimeSpan) => bool" },
 	{ SPAN_NE,  "!= (invar a: TimeSpan, invar b: TimeSpan) => bool" },
