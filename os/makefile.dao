@@ -8,6 +8,9 @@ if( daovm == none ) return
 project.AddDirectory( "fs", "fs" )
 project.AddDirectory( "process", "process" )
 
+if( DaoMake::IsPlatform( "UNIX" ) )
+	project.AddDirectory( "unix", "unix" )
+
 project.UseImportLibrary( daovm )
 
 dao_os_objs = project.AddObjects( { "dao_system.c" } )

@@ -1,0 +1,22 @@
+
+project = DaoMake::Project( "DaoUnix" )
+
+daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
+
+if( daovm == none ) return
+
+project.UseImportLibrary( daovm )
+
+project_objs = project.AddObjects( { "dao_unix.c" } )
+project_dll  = project.AddSharedLibrary( "dao_unix", project_objs )
+project_lib  = project.AddStaticLibrary( "dao_unix", project_objs )
+
+project.SetTargetPath( "../../../lib/dao/modules/os" )
+
+path = DaoMake::MakePath( DaoMake::Variables[ "INSTALL_MOD" ], "os" )
+
+project.Install( path, project_dll );
+project.Install( path, project_lib );
+
+findpkg = project.GenerateFinder( $TRUE );
+project.Install( DaoMake::Variables[ "INSTALL_FINDER" ], findpkg );
