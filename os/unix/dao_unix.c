@@ -29,6 +29,7 @@
 #include <sys/types.h>
 #include <signal.h>
 #include <errno.h>
+#include <poll.h>
 
 #include"dao.h"
 #include"daoValue.h"
@@ -117,6 +118,73 @@ static void UNIX_Kill( DaoProcess *proc, DaoValue *p[], int N )
 	if ( kill( p[0]->xInteger.value, sig ) == -1 )
 		DaoProcess_RaiseError( proc, "System", errno == EPERM? "Insufficient permissions (EPERM)" : "Process or group does not exit (ESRCH)" );
 }
+
+enum {
+	Poll_In = 1,
+	Poll_Out = 2,
+	Poll_Error = 4,
+	Poll_Hup = 8,
+	Poll_None = 16
+};
+
+static void UNIX_Poll( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoList *fdlist = &p[0]->xList;
+	if ( fdlist->value->size ){
+		struct pollfd fds[fdlist->value->size];
+		daoint i;
+		int res, timeout = p[1]->xFloat.value*1E3;
+		if ( timeout < 0 ){
+			DaoProcess_RaiseError( proc, "Param", "Invalid timeout" );
+			return;
+		}
+		for ( i = 0; i < fdlist->value->size; ++i ){
+			DaoTuple *otup = &DaoList_GetItem( fdlist, i )->xTuple;
+			DaoTuple *itup = &otup->values[1]->xTuple;
+			int events = itup->values[0]->xEnum.value;
+			itup->values[1]->xEnum.value = Poll_None;
+			fds[i].fd = otup->values[0]->xInteger.value;
+			fds[i].events = 0;
+			if ( events & Poll_In )
+				fds[i].events |= POLLIN;
+			if ( events & Poll_Out )
+				fds[i].events |= POLLOUT;
+			if ( events & Poll_Error )
+				fds[i].events |= POLLERR;
+			if ( events & Poll_Hup )
+				fds[i].events |= POLLHUP;
+		}
+		res = poll( fds, (nfds_t)fdlist->value->size, timeout );
+		if ( res == -1 ){
+			if ( errno == EINTR )
+				DaoProcess_PutEnum( proc, "$interrupted" );
+			else
+				DaoProcess_RaiseError( proc, "System", errno == EINVAL? "Too many file descriptors given (EINVAL)" : "Insufficient memory (ENOMEM)" );
+		}
+		else if ( res == 0 )
+			DaoProcess_PutEnum( proc, "$timeouted" );
+		else {
+			DaoProcess_PutEnum( proc, "$polled" );
+			for ( i = 0; i < fdlist->value->size; ++i ){
+				DaoTuple *tup = &DaoList_GetItem( fdlist, i )->xTuple;
+				DaoEnum *en = &tup->values[1]->xTuple.values[1]->xEnum;
+				if ( !fds[i].revents )
+					en->value = Poll_None;
+				else {
+					if ( fds[i].revents & POLLIN )
+						en->value |= Poll_In;
+					if ( fds[i].revents & POLLOUT )
+						en->value |= Poll_Out;
+					if ( fds[i].revents & POLLERR )
+						en->value |= Poll_Error;
+					if ( fds[i].revents & POLLHUP )
+						en->value |= Poll_Hup;
+				}
+			}
+		}
+	}
+}
+
 static DaoFuncItem unixMeths[] =
 {
 	//! Sets the specified \a signals to be suppressed; when on of them is catched by the process, its ID will be written to the returned
@@ -128,6 +196,15 @@ static DaoFuncItem unixMeths[] =
 
 	//! Sends \a signal to \a pid
 	{ UNIX_Kill,	"kill(pid: int, signal: enum<sigint,sigterm,sigquit,sighup,sigchld,sigusr1,sigusr2,sigpipe,sigkill,sigstop,sigcont>)" },
+
+	//! Waits \a timeout seconds for events on file \a descriptors. Each \c PollFd item specifies *fd* to be polled and *events.monitored*;
+	//! *events.occurred* is updated according to the results (set to \c $none before polling).
+	//!
+	//! Possible results:
+	//! - \c polled -- one or more events occurred
+	//! - \c timeouted -- no events occurred within the given timeout
+	//! - \c interrupted -- interrupted by a signal before any events occurred
+	{ UNIX_Poll,	"poll(descriptors: list<PollFd>, timeout: float) => enum<polled,timeouted,interrupted>" },
 	{ NULL, NULL }
 };
 
@@ -184,6 +261,8 @@ DAO_DLL int DaoUnix_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace *osns = DaoVmSpace_GetNamespace( vmSpace, "os" );
 	DaoNamespace_AddConstValue( ns, "os", (DaoValue*)osns );
 	daox_type_sigpipe = DaoNamespace_WrapType( osns, &sigpipeTyper, DAO_CDATA, 0 );
+	DaoNamespace_DefineType( osns, "enum<in;out;error;hup;none>", "PollEvent" );
+	DaoNamespace_DefineType( osns, "tuple<fd: int, events: tuple<monitored: PollEvent, occurred: PollEvent>>", "PollFd" );
 	DaoNamespace_WrapFunctions( osns, unixMeths );
 
 	if ( pipe((int*)&signal_pipe) != 0 )
