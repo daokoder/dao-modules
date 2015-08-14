@@ -697,6 +697,7 @@ DaoTuple* PutMimeValue( DaoProcess *proc, DMap *headers, const char *field )
 			DaoMap_SetType( map, &res->ctype->nested->items.pType[1]->aux->xType );
 			DaoTuple_SetItem( res, (DaoValue*)map, 1 );
 		}
+		res->values[0]->xString.value->size = 0;
 		ParseMediaType( node->value.pString, res->values[0]->xString.value, &res->values[1]->xMap );
 		return res;
 	}

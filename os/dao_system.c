@@ -249,9 +249,11 @@ static void OS_Uname( DaoProcess *proc, DaoValue *p[], int N )
 			break;
 		}
 		DString_SetChars( tup->values[1]->xString.value, version );
+		tup->values[2]->xString.value->size = 0;
 		DString_AppendChar( tup->values[2]->xString.value, '0' + info.dwMajorVersion );
 		DString_AppendChar( tup->values[2]->xString.value, '.' );
 		DString_AppendChar( tup->values[2]->xString.value, '0' + info.dwMinorVersion );
+		tup->values[3]->xString.value->size = 0;
 		if ( GetComputerNameExW( ComputerNameDnsFullyQualified, buf, &len ) )
 			DString_SetTChars( tup->values[3]->xString.value, buf );
 	}

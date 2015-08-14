@@ -185,6 +185,61 @@ static void UNIX_Poll( DaoProcess *proc, DaoValue *p[], int N )
 	}
 }
 
+static void UNIX_Umask( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoTuple *res = DaoProcess_PutTuple( proc, 3 );
+	mode_t perm = 0;
+	DString *pmode;
+	const char *mode = p[0]->xString.value->chars;
+	const char *error = "Invalid user mode";
+
+	for ( ; *mode; ++mode )
+		switch ( *mode ){
+		case 'r':	if ( perm & S_IRUSR ) goto FormatError; perm |= S_IRUSR; break;
+		case 'w':	if ( perm & S_IWUSR ) goto FormatError; perm |= S_IWUSR; break;
+		case 'x':	if ( perm & S_IXUSR ) goto FormatError; perm |= S_IXUSR; break;
+		default:	goto FormatError;
+		}
+	mode = p[1]->xString.value->chars;
+	error = "Invalid group mode";
+	for ( ; *mode; ++mode )
+		switch ( *mode ){
+		case 'r':	if ( perm & S_IRGRP ) goto FormatError; perm |= S_IRGRP; break;
+		case 'w':	if ( perm & S_IWGRP ) goto FormatError; perm |= S_IWGRP; break;
+		case 'x':	if ( perm & S_IXGRP ) goto FormatError; perm |= S_IXGRP; break;
+		default:	goto FormatError;
+		}
+	mode = p[2]->xString.value->chars;
+	error = "Invalid other mode";
+	for ( ; *mode; ++mode )
+		switch ( *mode ){
+		case 'r':	if ( perm & S_IROTH ) goto FormatError; perm |= S_IROTH; break;
+		case 'w':	if ( perm & S_IWOTH ) goto FormatError; perm |= S_IWOTH; break;
+		case 'x':	if ( perm & S_IXOTH ) goto FormatError; perm |= S_IXOTH; break;
+		default:	goto FormatError;
+		}
+
+	perm = umask( perm );
+	pmode = res->values[0]->xString.value;
+	pmode->size = 0;
+	if ( perm & S_IRUSR ) DString_AppendChar( pmode, 'r' );
+	if ( perm & S_IWUSR ) DString_AppendChar( pmode, 'w' );
+	if ( perm & S_IXUSR ) DString_AppendChar( pmode, 'x' );
+	pmode = res->values[1]->xString.value;
+	pmode->size = 0;
+	if ( perm & S_IRGRP ) DString_AppendChar( pmode, 'r' );
+	if ( perm & S_IWGRP ) DString_AppendChar( pmode, 'w' );
+	if ( perm & S_IXGRP ) DString_AppendChar( pmode, 'x' );
+	pmode = res->values[2]->xString.value;
+	pmode->size = 0;
+	if ( perm & S_IROTH ) DString_AppendChar( pmode, 'r' );
+	if ( perm & S_IWOTH ) DString_AppendChar( pmode, 'w' );
+	if ( perm & S_IXOTH ) DString_AppendChar( pmode, 'x' );
+	return;
+FormatError:
+	DaoProcess_RaiseError( proc, "Param", error );
+}
+
 static DaoFuncItem unixMeths[] =
 {
 	//! Sets the specified \a signals to be suppressed; when on of them is catched by the process, its ID will be written to the returned
@@ -205,6 +260,9 @@ static DaoFuncItem unixMeths[] =
 	//! - \c timeouted -- no events occurred within the given timeout
 	//! - \c interrupted -- interrupted by a signal before any events occurred
 	{ UNIX_Poll,	"poll(descriptors: list<PollFd>, timeout: float) => enum<polled,timeouted,interrupted>" },
+
+	//! Sets the default \a user, \a group and \a other file permissions for the process and returns the previous permissions
+	{ UNIX_Umask,	"umask(user: string, group: string, other: string) => tuple<user: string, group: string, other: string>" },
 	{ NULL, NULL }
 };
 
