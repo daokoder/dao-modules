@@ -268,9 +268,9 @@ static void SetSignalMask( DaoProcess *proc, DaoValue *p[], int block )
 	if ( sig & Signal_Pipe )
 		sigaddset( &set, SIGPIPE );
 #ifdef DAO_WITH_THREAD
-	sigprocmask(action, &set, NULL);
-#else
 	pthread_sigmask(action, &set, NULL);
+#else
+	sigprocmask(action, &set, NULL);
 #endif
 }
 
