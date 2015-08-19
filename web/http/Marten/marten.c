@@ -4615,7 +4615,7 @@ static int set_ports_option(struct mg_context *ctx) {
 				   SO_REUSEADDR,
 #endif
 #else
-				   SO_REUSEADDR|MSG_NOSIGNAL,
+				   SO_REUSEADDR,
 #endif
 				   (void *) &on, sizeof(on)) != 0 ||
 #if defined(USE_IPV6)

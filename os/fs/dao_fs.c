@@ -551,10 +551,6 @@ int DInode_SetAccess( DInode *self, int ur, int uw, int ux, int gr, int gw, int 
 
 void DInode_GetMode( DInode *self, DaoTuple *res )
 {
-	/* Tuple returned from DaoProcess_PutTuple() could be a reused one: */
-	res->values[0]->xString.value->size = 0;
-	res->values[1]->xString.value->size = 0;
-	res->values[2]->xString.value->size = 0;
 #ifdef WIN32
 	if ( self->mode & _S_IREAD )
 		DString_AppendChars( res->values[0]->xString.value, "r" );
