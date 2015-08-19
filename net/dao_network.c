@@ -2381,12 +2381,11 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
 	struct timeval tv;
-	int i, fd;
+	int i, fd, res;
 	fd_set set1, set2;
-	DaoTuple *tuple = DaoProcess_PutTuple( proc, 2 );
+	DaoTuple *tuple = DaoProcess_PutTuple( proc, 3 );
 	DaoList *list1 = DaoValue_CastList( par[0] );
 	DaoList *list2 = DaoValue_CastList( par[1] );
-	DaoList *reslist;
 	DaoValue *value;
 	if( DaoList_Size( list1 ) == 0 && DaoList_Size( list2 ) == 0 ){
 		DaoProcess_RaiseError( proc, "Param", "Both read and write parameters are empty lists" );
@@ -2412,31 +2411,38 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 		}
 		FD_SET( fd, &set2 );
 	}
+	DaoTuple_SetItem( tuple, (DaoValue*) DaoProcess_NewList( proc ), 1 );
+	DaoTuple_SetItem( tuple, (DaoValue*) DaoProcess_NewList( proc ), 2 );
 	tv.tv_sec = (int)DaoValue_TryGetFloat( par[2] );
 	tv.tv_usec = ( DaoValue_TryGetFloat( par[2] )- tv.tv_sec ) * 1E6;
-	if( select( FD_SETSIZE, &set1, &set2, NULL, & tv ) == -1 ){
-		GetErrorMessage( errbuf, GetError() );
-		DaoProcess_RaiseError( proc, neterr, errbuf );
-		return;
+	res = select( FD_SETSIZE, &set1, &set2, NULL, & tv );
+	if( res == -1 ){
+		if ( errno == EINTR )
+			tuple->values[0]->xEnum.value = 2;
+		else {
+			GetErrorMessage( errbuf, GetError() );
+			DaoProcess_RaiseError( proc, neterr, errbuf );
+		}
 	}
-	value = (DaoValue*) DaoProcess_NewList( proc );
-	DaoTuple_SetItem( tuple, value, 0 );
-	reslist = DaoValue_CastList( DaoTuple_GetItem( tuple, 0 ) );
-	for( i = 0; i < DaoList_Size( list1 ); i++ ){
-		value = DaoList_GetItem( list1, i );
-		fd = value->type == DAO_INTEGER? value->xInteger.value : ( (DaoSocket*)DaoValue_TryGetCdata( value ) )->id;
-		if( FD_ISSET( fd, &set1 ) )
-			DaoList_PushBack( reslist, value );
-	}
-	value = (DaoValue*) DaoProcess_NewList( proc );
-	DaoTuple_SetItem( tuple, value, 1 );
-	reslist = DaoValue_CastList( DaoTuple_GetItem( tuple, 1 ) );
-	for( i = 0; i < DaoList_Size( list2 ); i++ ){
-
-		value = DaoList_GetItem( list2, i );
-		fd = value->type == DAO_INTEGER? value->xInteger.value : ( (DaoSocket*)DaoValue_TryGetCdata( value ) )->id;
-		if( FD_ISSET( fd, &set2 ) )
-			DaoList_PushBack( reslist, value );
+	else if ( res == 0 )
+		tuple->values[0]->xEnum.value = 1;
+	else {
+		DaoList *reslist;
+		tuple->values[0]->xEnum.value = 0;
+		reslist = DaoValue_CastList( DaoTuple_GetItem( tuple, 0 ) );
+		for( i = 0; i < DaoList_Size( list1 ); i++ ){
+			value = DaoList_GetItem( list1, i );
+			fd = value->type == DAO_INTEGER? value->xInteger.value : ( (DaoSocket*)DaoValue_TryGetCdata( value ) )->id;
+			if( FD_ISSET( fd, &set1 ) )
+				DaoList_PushBack( reslist, value );
+		}
+		reslist = DaoValue_CastList( DaoTuple_GetItem( tuple, 1 ) );
+		for( i = 0; i < DaoList_Size( list2 ); i++ ){
+			value = DaoList_GetItem( list2, i );
+			fd = value->type == DAO_INTEGER? value->xInteger.value : ( (DaoSocket*)DaoValue_TryGetCdata( value ) )->id;
+			if( FD_ISSET( fd, &set2 ) )
+				DaoList_PushBack( reslist, value );
+		}
 	}
 }
 
@@ -2480,7 +2486,7 @@ static DaoFuncItem netMeths[] =
 	 *
 	 * \note On Windows, only socket descriptors can be selected */
 	{  DaoNetLib_Select,		"select( invar read: list<@R<Socket|int>>, invar write: list<@W<Socket|int>>, timeout: float )"
-								" => tuple<read: list<@R>, write: list<@W>>" },
+								" => tuple<status: enum<selected,timeouted,interrupted>, read: list<@R>, write: list<@W>>" },
 	{ NULL, NULL }
 };
 

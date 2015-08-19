@@ -83,7 +83,7 @@ Functions
 - [connect](#connect)(_addr_: string|SocketAddr) => TcpStream
 - [host](#host)(_id_: string) => tuple<name: string, aliases: list<string>, addrs: list<Ipv4Addr>>|none
 - [service](#service)(_id_: string|int, _proto_: enum&lt;tcp,udp>) => tuple&lt;name: string, port: int, aliases: list<string>>|none
-- [select](#select)(invar _read_: list&lt;@R&lt;Socket|int>>, invar _write_: list&lt;@W&lt;Socket|int>>, _timeout_: float ) => tuple&lt;read: list&lt;@R>, write: list&lt;@W>>
+- [select](#select)(invar _read_: list&lt;@R&lt;Socket|int>>, invar _write_: list&lt;@W&lt;Socket|int>>, _timeout_: float ) => tuple&lt;status: enum&lt;selected,timeouted,interrupted>, read: list&lt;@R>, write: list&lt;@W>>
 
 <a name="net"></a>
 ### Types
@@ -426,7 +426,7 @@ service(id: string|int, proto: enum<tcp,udp>) => tuple<name: string, port: int, 
 Returns information for service with the given *id* (which may be either a name or a port number) to be used with the protocol *proto*. Returns `none` if the corresponding service was not found
 <a name="select"></a>
 ```ruby
-select(invar read: list<@R<Socket|int>>, invar write: list<@W<Socket|int>>, timeout: float) => tuple<read: list<@R>, write: list<@W>>
+select(invar read: list<@R<Socket|int>>, invar write: list<@W<Socket|int>>, timeout: float) => tuple<status: enum<selected,timeouted,interrupted>, read: list<@R>, write: list<@W>>
 ```
 Waits *timeout* seconds for any *Socket* or file descriptor in *read* or *write* list to become available for reading or writing accordingly. Returns sub-lists of *read* and *write* containing available sockets/descriptors.
 

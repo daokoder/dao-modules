@@ -31,6 +31,10 @@
 #include <errno.h>
 #include <poll.h>
 
+#ifdef DAO_WITH_THREAD
+#include <pthread.h>
+#endif
+
 #include"dao.h"
 #include"daoValue.h"
 
@@ -240,11 +244,57 @@ FormatError:
 	DaoProcess_RaiseError( proc, "Param", error );
 }
 
+static void SetSignalMask( DaoProcess *proc, DaoValue *p[], int block )
+{
+	int sig = p[0]->xEnum.value;
+	int action = block? SIG_BLOCK : SIG_UNBLOCK;
+	sigset_t set;
+
+	sigemptyset(&set);
+	if ( sig & Signal_Int )
+		sigaddset( &set, SIGINT);
+	if ( sig & Signal_Term )
+		sigaddset( &set, SIGTERM );
+	if ( sig & Signal_Quit )
+		sigaddset( &set, SIGQUIT );
+	if ( sig & Signal_Hup )
+		sigaddset( &set, SIGHUP );
+	if ( sig & Signal_Chld )
+		sigaddset( &set, SIGCHLD );
+	if ( sig & Signal_Usr1 )
+		sigaddset( &set, SIGUSR1 );
+	if ( sig & Signal_Usr2 )
+		sigaddset( &set, SIGUSR2 );
+	if ( sig & Signal_Pipe )
+		sigaddset( &set, SIGPIPE );
+#ifdef DAO_WITH_THREAD
+	sigprocmask(action, &set, NULL);
+#else
+	pthread_sigmask(action, &set, NULL);
+#endif
+}
+
+static void UNIX_Block( DaoProcess *proc, DaoValue *p[], int N )
+{
+	SetSignalMask( proc, p, 1 );
+}
+
+static void UNIX_Unblock( DaoProcess *proc, DaoValue *p[], int N )
+{
+	SetSignalMask( proc, p, 0 );
+}
+
 static DaoFuncItem unixMeths[] =
 {
 	//! Sets the specified \a signals to be suppressed; when on of them is catched by the process, its ID will be written to the returned
 	//! signal pipe (which exists in single instance per process)
-	{ UNIX_Trap,	"trap(signals: enum<sigint;sigterm;sigquit;sighup;sigchld;sigusr1;sigusr2;sigpipe>) => SignalPipe" },
+	{ UNIX_Trap,	"trap(signals: SignalSet) => SignalPipe" },
+
+	//! Blocks or unblocks the specified \a signals for the current thread using \c pthread_sigmask() or \c sigprocmask()
+	//!
+	//! \warning Be cautious when using these functions with tasklets -- newly created tasklets may reuse previously spawned threads
+	{ UNIX_Block,	"block(signals: SignalSet)" },
+	{ UNIX_Unblock,	"unblock(signals: SignalSet)" },
 
 	//! Current process PID
 	{ UNIX_Pid,		"pid() => int" },
@@ -319,6 +369,7 @@ DAO_DLL int DaoUnix_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace *osns = DaoVmSpace_GetNamespace( vmSpace, "os" );
 	DaoNamespace_AddConstValue( ns, "os", (DaoValue*)osns );
 	daox_type_sigpipe = DaoNamespace_WrapType( osns, &sigpipeTyper, DAO_CDATA, 0 );
+	DaoNamespace_DefineType( osns, "enum<sigint;sigterm;sigquit;sighup;sigchld;sigusr1;sigusr2;sigpipe>", "SignalSet" );
 	DaoNamespace_DefineType( osns, "enum<in;out;error;hup;none>", "PollEvent" );
 	DaoNamespace_DefineType( osns, "tuple<fd: int, events: tuple<monitored: PollEvent, occurred: PollEvent>>", "PollFd" );
 	DaoNamespace_WrapFunctions( osns, unixMeths );
