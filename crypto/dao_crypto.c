@@ -445,9 +445,19 @@ static DaoFuncItem cryptoMeths[] =
 	{ NULL, NULL }
 };
 
+
+#undef DAO_CRYPTO
+#undef DAO_CRYPTO_DLL
+#define DAO_HAS_CRYPTO
+#include"dao_api.h"
+
 DAO_DLL int DaoCrypto_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	DaoNamespace *crns = DaoNamespace_GetNamespace( ns, "crypto" );
-	DaoNamespace_WrapFunctions( crns, cryptoMeths );
+	DaoNamespace *cryptons = DaoVmSpace_GetNamespace( vmSpace, "crypto" );
+	DaoNamespace_AddConstValue( ns, "crypto", (DaoValue*) cryptons );
+	DaoNamespace_WrapFunctions( cryptons, cryptoMeths );
+
+#define DAO_API_INIT
+#include"dao_api.h"
 	return 0;
 }
