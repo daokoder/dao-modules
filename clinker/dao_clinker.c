@@ -214,7 +214,7 @@ static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 		}
 	}
 	ffi_call( & ffi->cif, ffi->fptr, ret, args );
-	DaoProcess_PutChars( proc, bytes );
+	if( tp && tp->tid == DAO_STRING ) DaoProcess_PutChars( proc, bytes );
 	for(i=0; i<func->parCount; i++){
 		if( i >= routype->nested->size ) continue;
 		tp = nested[i];
@@ -351,7 +351,7 @@ static void DaoCLoader_Load( DaoProcess *proc, DaoValue *p[], int N )
 	parser = DaoVmSpace_AcquireParser( vms );
 	parser->vmSpace = vms;
 	parser->nameSpace = ns;
-	parser->defParser = defparser = DaoVmSpace_AcquireParser( vms );
+	defparser = DaoVmSpace_AcquireParser( vms );
 	defparser->vmSpace = vms;
 	defparser->nameSpace = ns;
 	defparser->routine = dummy;
@@ -366,7 +366,7 @@ static void DaoCLoader_Load( DaoProcess *proc, DaoValue *p[], int N )
 	for(i=0; i<funames->value->size; i++){
 		str = DaoValue_TryGetString( DaoList_GetItem( funames, i ) );
 		if( str->size == 0 ) continue;
-		func = DaoNamespace_MakeFunction( ns, str->chars, parser );
+		func = DaoNamespace_MakeFunction( ns, str->chars, parser, defparser );
 		if( func == NULL ) continue;
 
 		routype = func->routType;
@@ -390,6 +390,7 @@ static void DaoCLoader_Load( DaoProcess *proc, DaoValue *p[], int N )
 			DaoFFI_Delete( ffi );
 			continue;
 		}
+		func->attribs |= DAO_ROUT_STATIC;
 		tp = DaoType_New( "FFI_Function", DAO_NONE, (DaoValue*) ffi, NULL );
 		GC_Assign( & func->routHost, tp );
 	}

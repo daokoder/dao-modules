@@ -727,11 +727,16 @@ static void TIME_MakeTime( DaoProcess *proc, DaoValue *p[], int N )
 	struct tm parts;
 	DTime time;
 	int i;
-	for ( i = 0; i < 5; ++i )
+	for ( i = 0; i < 5; ++i ){
 		if ( p[i]->xInteger.value < 0 ){
 			DaoProcess_RaiseError( proc, timeerr, "Invalid datetime" );
 			return;
 		}
+	}
+	if ( p[5]->xFloat.value < 0.0 ){
+		DaoProcess_RaiseError( proc, timeerr, "Invalid datetime" );
+		return;
+	}
 
 	time.year   = p[0]->xInteger.value;
 	time.month  = p[1]->xInteger.value;
