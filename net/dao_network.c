@@ -246,9 +246,6 @@ int DaoNetwork_SetSocketOptions( int sock, socket_opts opts )
 	if ( opts & Socket_SharedAddress ){
 		if( setsockopt( sock, SOL_SOCKET, SO_REUSEADDR, (void*)&flag, sizeof(int) ) == -1 ) return -1;
 	}
-	if ( opts & Socket_ReusableAddress ){
-		if( setsockopt( sock, SOL_SOCKET, SO_REUSEADDR, (void*)&flag, sizeof(int) ) == -1 ) return -1;
-	}
 #endif
 	return 0;
 }
