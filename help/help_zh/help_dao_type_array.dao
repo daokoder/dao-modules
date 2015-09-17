@@ -72,15 +72,15 @@ Array methods
 array<@T<none|int|float|double|complex>=none>( dim1: int, dim2 = 0, dim3 = 0 )
 	[I: int, J: int, K: int => @T|array<@T>] => array<@T>
 dim( invar self: array<@T>, i: int ) => int
-dims( invar self: array<@T> ) => array<int>
-index( invar self: array<@T>, i: int ) => array<int>
+dims( invar self: array<@T> ) => tuple<...:int>
+index( invar self: array<@T>, i: int ) => tuple<...:int>
 size( invar self: array<@T> ) => int
-resize( self: array<@T>, invar dims: array<int> )
-reshape( self: array<@T>, invar dims: array<int> )
-permute( self: array<@T>, invar dims: array<int> )
+resize( self: array<@T>, size: int, ...: int ) => array<@T>
+reshape( self: array<@T>, size: int, ...: int ) => array<@T>
+permute( self: array<@T>, size: int, ...: int ) => array<@T>
 transpose( self: array<@T> )
-max( invar self: array<@T<int|float|double>> ) => tuple<@T,int>
-min( invar self: array<@T<int|float|double>> ) => tuple<@T,int>
+max( invar self: array<@T<int|float|double>> ) => tuple<@T,int>|none
+min( invar self: array<@T<int|float|double>> ) => tuple<@T,int>|none
 sum( invar self: array<@T> ) => @T
 sort( self: array<@T>, order: enum<ascend,descend> = $ascend, part = 0 )
 	=> array<@T>
@@ -111,17 +111,17 @@ dim( invar self: array<@T>, i: int ) => int
 @[code]
 
 @[subsubsection]
-dims(invar self:array<@T>)=>array<int>
+dims(invar self:array<@T>)=>tuple<...:int>
 @[subsubsection]
 @[code]
-dims( invar self: array<@T> ) => array<int>
+dims( invar self: array<@T> ) => tuple<...:int>
 @[code]
 
 @[subsubsection]
-index(invar self:array<@T>,i:int)=>array<int>
+index(invar self:array<@T>,i:int)=>tuple<...:int>
 @[subsubsection]
 @[code]
-index( invar self: array<@T>, i: int ) => array<int>
+index( invar self: array<@T>, i: int ) => tuple<...:int>
 @[code]
 
 @[subsubsection]
@@ -132,24 +132,24 @@ size( invar self: array<@T> ) => int
 @[code]
 
 @[subsubsection]
-resize(self:array<@T>,invar dims:array<int>)
+resize(self:array<@T>,size:int, ...:int)=>array<@T>
 @[subsubsection]
 @[code]
-resize( self: array<@T>, invar dims: array<int> )
-@[code]
-
-@[subsubsection]
-reshape(self:array<@T>,invar dims:array<int>)
-@[subsubsection]
-@[code]
-reshape( self: array<@T>, invar dims: array<int> )
+resize( self: array<@T>, size: int, ...: int ) => array<@T>
 @[code]
 
 @[subsubsection]
-permute(self:array<@T>,invar dims:array<int>)
+reshape(self:array<@T>,size:int, ...:int)=>array<@T>
 @[subsubsection]
 @[code]
-permute( self: array<@T>, invar dims: array<int> )
+reshape( self: array<@T>, size: int, ...: int ) => array<@T>
+@[code]
+
+@[subsubsection]
+permute(self:array<@T>,size:int, ...:int)=>array<@T>
+@[subsubsection]
+@[code]
+permute( self: array<@T>, size: int, ...: int ) => array<@T>
 @[code]
 
 @[subsubsection]

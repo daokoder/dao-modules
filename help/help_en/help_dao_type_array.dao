@@ -73,15 +73,15 @@ Currently Dao array type supports the following methods:
 array<@T<none|int|float|double|complex>=none>( dim1: int, dim2 = 0, dim3 = 0 )
 	[I: int, J: int, K: int => @T|array<@T>] => array<@T>
 dim( invar self: array<@T>, i: int ) => int
-dims( invar self: array<@T> ) => array<int>
-index( invar self: array<@T>, i: int ) => array<int>
+dims( invar self: array<@T> ) => tuple<...:int>
+index( invar self: array<@T>, i: int ) => tuple<...:int>
 size( invar self: array<@T> ) => int
-resize( self: array<@T>, invar dims: array<int> )
-reshape( self: array<@T>, invar dims: array<int> )
-permute( self: array<@T>, invar dims: array<int> )
+resize( self: array<@T>, size: int, ...: int ) => array<@T>
+reshape( self: array<@T>, size: int, ...: int ) => array<@T>
+permute( self: array<@T>, size: int, ...: int ) => array<@T>
 transpose( self: array<@T> )
-max( invar self: array<@T<int|float|double>> ) => tuple<@T,int>
-min( invar self: array<@T<int|float|double>> ) => tuple<@T,int>
+max( invar self: array<@T<int|float|double>> ) => tuple<@T,int>|none
+min( invar self: array<@T<int|float|double>> ) => tuple<@T,int>|none
 sum( invar self: array<@T> ) => @T
 sort( self: array<@T>, order: enum<ascend,descend> = $ascend, part = 0 )
 	=> array<@T>
@@ -113,18 +113,18 @@ dim( invar self: array<@T>, i: int ) => int
 Get the i-th dimension.
 
 @[subsubsection]
-dims(invar self:array<@T>)=>array<int>
+dims(invar self:array<@T>)=>tuple<...:int>
 @[subsubsection]
 @[code]
-dims( invar self: array<@T> ) => array<int>
+dims( invar self: array<@T> ) => tuple<...:int>
 @[code]
 Get all the dimensions.
 
 @[subsubsection]
-index(invar self:array<@T>,i:int)=>array<int>
+index(invar self:array<@T>,i:int)=>tuple<...:int>
 @[subsubsection]
 @[code]
-index( invar self: array<@T>, i: int ) => array<int>
+index( invar self: array<@T>, i: int ) => tuple<...:int>
 @[code]
 Convert an one-dimensional index to a multi-dimensional index.
 
@@ -137,28 +137,26 @@ size( invar self: array<@T> ) => int
 Get the total number of elements in the array.
 
 @[subsubsection]
-resize(self:array<@T>,invar dims:array<int>)
+resize(self:array<@T>,size:int,...:int)
 @[subsubsection]
 @[code]
-resize( self: array<@T>, invar dims: array<int> )
+resize( self: array<@T>, size: int, ...: int )
 @[code]
-Resize the array such that the size in each dimension is the same as specified
-in @[code]dims@[code].
+Resize the array. The size in each dimension is specified in the parameters.
 
 @[subsubsection]
-reshape(self:array<@T>,invar dims:array<int>)
+reshape(self:array<@T>,size:int, ...:int)
 @[subsubsection]
 @[code]
-reshape( self: array<@T>, invar dims: array<int> )
+reshape( self: array<@T>, size: int, ...: int )
 @[code]
-Reshape the array such that the size in each dimension is the same as specified
-in @[code]dims@[code].
+Reshape the array. The size in each dimension is specified in the parameters.
 
 @[subsubsection]
-permute(self:array<@T>,invar dims:array<int>)
+permute(self:array<@T>,size:int,...:int)
 @[subsubsection]
 @[code]
-permute( self: array<@T>, invar dims: array<int> )
+permute( self: array<@T>, size: int, ...: int )
 @[code]
 Permute the elements of the array such that an element located by its original index
 in the original array is moved to the location as specified by its permuted index
@@ -173,18 +171,18 @@ transpose( self: array<@T> )
 Transpose a matrix.
 
 @[subsubsection]
-max(invar self:array<@T<int|float|double>>)=>tuple<@T,int>
+max(invar self:array<@T<int|float|double>>)=>tuple<@T,int>|none
 @[subsubsection]
 @[code]
-max( invar self: array<@T<int|float|double>> ) => tuple<@T,int>
+max( invar self: array<@T<int|float|double>> ) => tuple<@T,int>|none
 @[code]
 Get the maximum element in the array.
 
 @[subsubsection]
-min(invar self:array<@T<int|float|double>>)=>tuple<@T,int>
+min(invar self:array<@T<int|float|double>>)=>tuple<@T,int>|none
 @[subsubsection]
 @[code]
-min( invar self: array<@T<int|float|double>> ) => tuple<@T,int>
+min( invar self: array<@T<int|float|double>> ) => tuple<@T,int>|none
 @[code]
 Get the minimum element in the array.
 

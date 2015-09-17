@@ -176,6 +176,7 @@ static void GetErrorMessage( char *buffer, int code )
 	case EADDRNOTAVAIL:   strcpy( buffer, "Address not available (EADDRNOTAVAIL)" ); break;
 	case ETIMEDOUT:       strcpy( buffer, "Attempt to establish connection timed out (ETIMEDOUT)" ); break;
 	case ECONNREFUSED:    strcpy( buffer, "Connection was refused (ECONNREFUSED)" ); break;
+	case ECONNRESET:      strcpy( buffer, "Connection was terminated by the remote side (ECONNRESET)" ); break;
 	case ENETUNREACH:     strcpy( buffer, "Network not reachable (ENETUNREACH)" ); break;
 	case EADDRINUSE:      strcpy( buffer, "Address already in use (EADDRINUSE)" ); break;
 	case EINTR:           strcpy( buffer, "Data sending was interrupted by a signal (EINTR)" ); break;
@@ -243,6 +244,9 @@ int DaoNetwork_SetSocketOptions( int sock, socket_opts opts )
 	}
 #else
 	if ( opts & Socket_SharedAddress ){
+		if( setsockopt( sock, SOL_SOCKET, SO_REUSEADDR, (void*)&flag, sizeof(int) ) == -1 ) return -1;
+	}
+	if ( opts & Socket_ReusableAddress ){
 		if( setsockopt( sock, SOL_SOCKET, SO_REUSEADDR, (void*)&flag, sizeof(int) ) == -1 ) return -1;
 	}
 #endif
@@ -768,7 +772,7 @@ static int DaoNetwork_ReceivePacket( int sockfd, sockaddr_in *addr, DaoDataPacke
 {
 	int numbytes = LoopReceive( sockfd, (char*) packet, packet_core_size, 0, addr );
 
-	if( numbytes == -1 ) return 0;
+	if( numbytes <= 0 ) return 0;
 	if( packet->type == 0xff ) return 1;
 
 	numbytes = DaoNetwork_DecodeUInt16( packet->count );
@@ -903,6 +907,7 @@ static DaoValue* DaoNetwork_ReceiveDao( int sockfd, sockaddr_in *addr,  DaoNetOb
 			string = (DaoString*) DaoNetwork_ReceiveDao( sockfd, addr, obuffer );
 			if( string == NULL || string->type != DAO_STRING ) return NULL; // TODO;
 			type = DaoParser_ParseTypeName( string->value->chars, ns, NULL );
+			if( type == NULL ) return NULL;
 		}
 		tuple = DaoTuple_Create( type, size, 0 );
 		DaoProcess_CacheValue( proc, (DaoValue*) tuple );
