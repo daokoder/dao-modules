@@ -1,5 +1,0 @@
-
-load cxx;
-load 'test.cxx';
-
-greet( 'Hello C++!' );
