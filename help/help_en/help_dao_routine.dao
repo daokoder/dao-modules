@@ -110,7 +110,6 @@ The syntax to declare an anonymous routine or closure is nearly identical to
 the definition of a normal function, except the following differences:
 @[list]
 -- No need for a function name;
--- Default parameter values do not need to be constant;
 -- Its function body may access the local variables of the outer function;
 @[list]
 
@@ -127,23 +126,9 @@ The only difference of this declaration from normal function declaration is
 the lacking of function name here. 
 
 
-Here is another simple anonymous function that has non-constant default parameter,
-@[code]
-var max = 100
-rout = routine( start: int, offset = rand(max) ){
-	return start + offset
-}
-rout( 123 )
-@[code]
-When non-constant expression is used as the default parameter,
-this expression is evaluated right before the creation of the anonymous routine.
-So here, the default value for parameter "offset" is a random integer
-generated right before the creation of the anonymous routine.
-
-
-In the above two examples, the created routines do not access the local
-variables of the outer routines. So they are created as ordinary anonymous
-routines instead of closures.
+In the above example, the created routine does not access the local
+variables of the outer routine. So it is created as ordinary anonymous
+routine instead of closure.
 Here is another example where a local variable of the outer routine is accessed,
 @[code]
 routine MakeClosure( start: int )
