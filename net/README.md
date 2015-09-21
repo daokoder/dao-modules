@@ -57,13 +57,13 @@ class [TcpStream](#tcpstream)
 - [.noDelay=](#tcp_nodealy)(_self_: TcpStream, _value_: bool)
 
 class [TcpListener](#tcplistener)
-- [listen](#listen)(_self_: TcpListener, _addr_: string|SocketAddr, _backLog_ = 10, _addrOpts_: enum&lt;shared;exclusive;reused;default> = $exclusive)
+- [listen](#listen)(_self_: TcpListener, _addr_: string|SocketAddr, _backLog_ = 10, _binding_: enum&lt;exclusive,reused> = $exclusive)
 - [accept](#accept)(_self_: TcpListener) => tuple&lt;stream: TcpStream, addr: SocketAddr>
 - [for](#for)(_self_: TcpListener, _iterator_: ForIterator)
 - [<span>[]</span>](_self_: TcpListener, _index_: ForIterator) => tuple&lt;stream: TcpStream, addr: SocketAddr>
 
 class [UdpSocket](#udpsocket)
-- [bind](#udp_bind)(_self_: UdpSocket, _addr_: string|SocketAddr, _addrOpts_: enum&lt;shared;exclusive;reused;default> = $exclusive)
+- [bind](#udp_bind)(_self_: UdpSocket, _addr_: string|SocketAddr, _binding_: enum&lt;exclusive,reused> = $exclusive)
 - [write](#udp_write)(_self_: UdpSocket, _addr_: string|SocketAddr, _data_: string)
 - [read](#udp_read)(_self_: UdpSocket, _limit_ = 4096) => tuple&lt;addr: SocketAddr, data: string>
 - [.broadcast](#udp_broadcast)(invar _self_: UdpSocket) => bool
@@ -78,8 +78,8 @@ class [UdpSocket](#udpsocket)
 - [.ttl=](#udp_ttl)(_self_: UdpSocket, _value_: int)
 
 Functions
-- [listen](#listen)(_addr_: string|SocketAddr, _backLog_ = 10, _addrOpts_: enum&lt;shared;exclusive;reused> = $exclusive) => TcpListener
-- [bind](#bind)(_addr_: string|SocketAddr, _addrOpts_: enum<shared;exclusive;reused;default> = $exclusive) => UdpSocket
+- [listen](#listen)(_addr_: string|SocketAddr, _backLog_ = 10, _binding_: enum&lt;exclusive,reused> = $exclusive) => TcpListener
+- [bind](#bind)(_addr_: string|SocketAddr, _binding_: enum&lt;exclusive,reused> = $exclusive) => UdpSocket
 - [connect](#connect)(_addr_: string|SocketAddr) => TcpStream
 - [host](#host)(_id_: string) => tuple<name: string, aliases: list<string>, addrs: list<Ipv4Addr>>|none
 - [service](#service)(_id_: string|int, _proto_: enum&lt;tcp,udp>) => tuple&lt;name: string, port: int, aliases: list<string>>|none
@@ -293,9 +293,9 @@ Fully or partially shuts down the connection, stopping further operations specif
  #### Methods
  <a name="tcp_listen"></a>
  ```ruby
-listen(self: TcpListener, addr: string|SocketAddr, backLog = 10, addrOpts: enum<shared;exclusive;reused;default> = $exclusive)
+listen(self: TcpListener, addr: string|SocketAddr, backLog = 10, binding: enum<exclusive,reused> = $exclusive)
  ```
- Binds the socket to address *addr* (either a 'host:port' string or [SocketAddr](#sockaddr)) using *addrOpts* as the address binding options (for the description of *addrOpts*, see [net.listen()](#listen)). Sets the socket into the listening state using *backLog* as the maximum size of the queue of pending connections (use `MAX_BACKLOG` constant to assign the maximum queue size)
+ Binds the socket to address *addr* (either a 'host:port' string or [SocketAddr](#sockaddr)) using *binding* option (see [net.listen()](#listen) for its description). Sets the socket into the listening state using *backLog* as the maximum size of the queue of pending connections (use `MAX_BACKLOG` constant to assign the maximum queue size)
 
 **Errors:** [SocketAddr()](#sockaddr_ctor1) errors, `Param` on invalid *backLog*, `Network` in case of failure
  <a name="tcp_accept"></a>
@@ -318,9 +318,9 @@ UDP socket
 #### Methods
 <a name="udp_bind"></a>
 ```ruby
-bind(self: UdpSocket, addr: string|SocketAddr, addrOpts: enum<shared;exclusive;reused;default> = $exclusive)
+bind(self: UdpSocket, addr: string|SocketAddr, binding: enum<exclusive,reused> = $exclusive)
 ```
-Binds the socket to address *addr* (either a 'host:port' string or [SocketAddr](#sockaddr)) using *addrOpts* as the address binding options. For the description of *addrOpts*, see [net.listen()](#listen)
+Binds the socket to address *addr* (either a 'host:port' string or [SocketAddr](#sockaddr)) using *binding* option (see [net.listen()](#listen) for its description)
 
 **Errors:** [SocketAddr()](#sockaddr_ctor1) errors, `Network` in case of failure
 <a name="udp_write"></a>
@@ -386,23 +386,20 @@ TTL value (IP_TTL)
 
 <a name="listen"></a>
 ```ruby
-listen(addr: string|SocketAddr, backLog = 10, addrOpts: enum<shared;exclusive;reused> = $exclusive) => TcpListener
+listen(addr: string|SocketAddr, backLog = 10, binding: enum<exclusive,reused> = $exclusive) => TcpListener
 ```
-Returns new TCP listener bound to address *addr* (either a 'host:port' string or [SocketAddr](#sockaddr)) with *addrOpts* options used to regulate address binding. The socket is put in the listening state using *backLog* as the maximum size of the queue of pending connections (use `MAX_BACKLOG` constant to assign the maximum queue size).
+Returns new TCP listener bound to address *addr* (either a 'host:port' string or [SocketAddr](#sockaddr)) with *binding* option used to regulate the possibility of address rebinding. The socket is put in the listening state using *backLog* as the maximum size of the queue of pending connections (use `MAX_BACKLOG` constant to assign the maximum queue size).
 
-Meaning of *addrOpts* values:
--`shared` -- non-exclusive binding of the address and port, other sockets will be able to bind to the same address and port (SO_REUSEADDR on Unix, ignored on Windows)
--`exclusive` -- exclusive binding of the address and port, no other sockets are allowed to rebind (SO_EXCLUSIVEADDRUSE on Windows, ignored on Unix)
--`reused` -- rebinds the socket even if the address and port are already bound non-exclusively by another socket (SO_REUSEADDR on Windows, ignored on Unix)
-
-If *addrOpts* is not specified, *exclusive* address mode is used
+Meaning of *binding* values:
+-`exclusive` -- exclusive binding of the address which excludes rebinding (SO_EXCLUSIVEADDRUSE on Windows, ignored on Unix)
+-`reused` -- allows the address to be rebound if it is not already bound exclusively (SO_REUSEADDR on Windows and Unix)
 
 **Errors:** [SocketAddr()](#sockaddr_ctor1) errors, `Param` on invalid *backLog*, `Network` in case of failure
 <a name="bind"></a>
 ```ruby
-bind(addr: string|SocketAddr, addrOpts: enum<shared;exclusive;reused;default> = $exclusive) => UdpSocket
+bind(addr: string|SocketAddr, binding: enum<exclusive,reused> = $exclusive) => UdpSocket
 ```
-Returns new UDP socket bound to address *addr* (either a 'host:port' string or [SocketAddr](#sockaddr)) with *addrOpts* options used to regulate address binding (see [net.listen()](#listen) for the description of *addrOpts*)
+Returns new UDP socket bound to address *addr* (either a 'host:port' string or [SocketAddr](#sockaddr)) with *binding* option (see [net.listen()](#listen) for its description)
 
 **Errors:** [SocketAddr()](#sockaddr_ctor1) errors, `Network` in case of failure
 <a name="connect"></a>
