@@ -995,8 +995,11 @@ static void TIME_Convert( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoTime *self = (DaoTime*) p[0];
 
-	if( self->local != (p[1]->xEnum.value == 0) )
+	if( self->local != (p[1]->xEnum.value == 0) ){
 		DaoProcess_PutTime( proc, p[1]->xEnum.value == 0? DTime_UtcToLocal( self->time ) : DTime_LocalToUtc( self->time ), !self->local );
+	}else{
+		DaoProcess_PutValue( proc, p[0] );
+	}
 }
 
 static void TIME_Second( DaoProcess *proc, DaoValue *p[], int N )
