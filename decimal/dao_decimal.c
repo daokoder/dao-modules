@@ -112,11 +112,196 @@ static void DEC_ToString( DaoProcess *proc, DaoValue *p[], int N )
 	DaoDecimal_ToString( self, res );
 }
 
+static void DEC_ADD( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoDecimal *A = (DaoDecimal*) p[0];
+	DaoDecimal *B = (DaoDecimal*) p[1];
+	DaoDecimal *C = DaoProcess_PutDecimal( proc, 0 );
+	decContext *ctx = DaoProcess_GetDecimalContext( proc );
+	decQuadAdd( & C->value, & A->value, & B->value, ctx );
+}
+static void DEC_SUB( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoDecimal *A = (DaoDecimal*) p[0];
+	DaoDecimal *B = (DaoDecimal*) p[1];
+	DaoDecimal *C = DaoProcess_PutDecimal( proc, 0 );
+	decContext *ctx = DaoProcess_GetDecimalContext( proc );
+	decQuadSubtract( & C->value, & A->value, & B->value, ctx );
+}
+static void DEC_MUL( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoDecimal *A = (DaoDecimal*) p[0];
+	DaoDecimal *B = (DaoDecimal*) p[1];
+	DaoDecimal *C = DaoProcess_PutDecimal( proc, 0 );
+	decContext *ctx = DaoProcess_GetDecimalContext( proc );
+	decQuadMultiply( & C->value, & A->value, & B->value, ctx );
+}
+static void DEC_DIV( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoDecimal *A = (DaoDecimal*) p[0];
+	DaoDecimal *B = (DaoDecimal*) p[1];
+	DaoDecimal *C = DaoProcess_PutDecimal( proc, 0 );
+	decContext *ctx = DaoProcess_GetDecimalContext( proc );
+	decQuadDivide( & C->value, & A->value, & B->value, ctx );
+}
+static void DEC_MOD( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoDecimal *A = (DaoDecimal*) p[0];
+	DaoDecimal *B = (DaoDecimal*) p[1];
+	DaoDecimal *C = DaoProcess_PutDecimal( proc, 0 );
+	decContext *ctx = DaoProcess_GetDecimalContext( proc );
+	decQuadRemainder( & C->value, & A->value, & B->value, ctx );
+}
+static void DEC_AND( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoDecimal *A = (DaoDecimal*) p[0];
+	DaoDecimal *B = (DaoDecimal*) p[1];
+	int a = ! decQuadIsZero( & A->value );
+	int b = ! decQuadIsZero( & B->value );
+	DaoProcess_PutBoolean( proc, a && b );
+}
+static void DEC_OR( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoDecimal *A = (DaoDecimal*) p[0];
+	DaoDecimal *B = (DaoDecimal*) p[1];
+	int a = ! decQuadIsZero( & A->value );
+	int b = ! decQuadIsZero( & B->value );
+	DaoProcess_PutBoolean( proc, a || b );
+}
+static void DEC_LT( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoDecimal *A = (DaoDecimal*) p[0];
+	DaoDecimal *B = (DaoDecimal*) p[1];
+	decContext *ctx = DaoProcess_GetDecimalContext( proc );
+	decQuad Q;
+	decQuadCompare( & Q, & A->value, & B->value, ctx );
+	DaoProcess_PutBoolean( proc, decQuadIsNegative( & Q ) );
+}
+static void DEC_LE( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoDecimal *A = (DaoDecimal*) p[0];
+	DaoDecimal *B = (DaoDecimal*) p[1];
+	decContext *ctx = DaoProcess_GetDecimalContext( proc );
+	decQuad Q;
+	decQuadCompare( & Q, & A->value, & B->value, ctx );
+	DaoProcess_PutBoolean( proc, ! decQuadIsPositive( & Q ) );
+}
+static void DEC_EQ( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoDecimal *A = (DaoDecimal*) p[0];
+	DaoDecimal *B = (DaoDecimal*) p[1];
+	decContext *ctx = DaoProcess_GetDecimalContext( proc );
+	decQuad Q;
+	decQuadCompare( & Q, & A->value, & B->value, ctx );
+	DaoProcess_PutBoolean( proc, decQuadIsZero( & Q ) );
+}
+static void DEC_NE( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoDecimal *A = (DaoDecimal*) p[0];
+	DaoDecimal *B = (DaoDecimal*) p[1];
+	decContext *ctx = DaoProcess_GetDecimalContext( proc );
+	decQuad Q;
+	decQuadCompare( & Q, & A->value, & B->value, ctx );
+	DaoProcess_PutBoolean( proc, ! decQuadIsZero( & Q ) );
+}
+static void DEC_MINUS( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoDecimal *A = (DaoDecimal*) p[0];
+	DaoDecimal *C = DaoProcess_PutDecimal( proc, 0 );
+	decQuadCopyNegate( & C->value, & A->value );
+}
+static void DEC_NOT( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoDecimal *A = (DaoDecimal*) p[0];
+	DaoProcess_PutDecimal( proc, decQuadIsZero( & A->value ) );
+}
+static void DEC_TILDE( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoDecimal *A = (DaoDecimal*) p[0];
+	DaoDecimal *C = DaoProcess_PutDecimal( proc, 0 );
+	decContext *ctx = DaoProcess_GetDecimalContext( proc );
+	decQuadInvert( & C->value, & A->value, ctx );
+}
+static void DEC_BITAND( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoDecimal *A = (DaoDecimal*) p[0];
+	DaoDecimal *B = (DaoDecimal*) p[1];
+	DaoDecimal *C = DaoProcess_PutDecimal( proc, 0 );
+	decContext *ctx = DaoProcess_GetDecimalContext( proc );
+	decQuadAnd( & C->value, & A->value, & B->value, ctx );
+}
+static void DEC_BITOR( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoDecimal *A = (DaoDecimal*) p[0];
+	DaoDecimal *B = (DaoDecimal*) p[1];
+	DaoDecimal *C = DaoProcess_PutDecimal( proc, 0 );
+	decContext *ctx = DaoProcess_GetDecimalContext( proc );
+	decQuadOr( & C->value, & A->value, & B->value, ctx );
+}
+static void DEC_BITXOR( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoDecimal *A = (DaoDecimal*) p[0];
+	DaoDecimal *B = (DaoDecimal*) p[1];
+	DaoDecimal *C = DaoProcess_PutDecimal( proc, 0 );
+	decContext *ctx = DaoProcess_GetDecimalContext( proc );
+	decQuadXor( & C->value, & A->value, & B->value, ctx );
+}
+static void DEC_BITLFT( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoDecimal *A = (DaoDecimal*) p[0];
+	DaoDecimal *B = (DaoDecimal*) p[1];
+	DaoDecimal *C = DaoProcess_PutDecimal( proc, 0 );
+	decContext *ctx = DaoProcess_GetDecimalContext( proc );
+	if( decQuadIsNegative( & B->value ) ){
+		DaoProcess_RaiseError( proc, "Param", "Negative bit offset" );
+		return;
+	}
+	decQuadShift( & C->value, & A->value, & B->value, ctx );
+}
+static void DEC_BITRIT( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoDecimal *A = (DaoDecimal*) p[0];
+	DaoDecimal *B = (DaoDecimal*) p[1];
+	DaoDecimal *C = DaoProcess_PutDecimal( proc, 0 );
+	decContext *ctx = DaoProcess_GetDecimalContext( proc );
+	decQuad Q;
+
+	if( decQuadIsNegative( & B->value ) ){
+		DaoProcess_RaiseError( proc, "Param", "Negative bit offset" );
+		return;
+	}
+	decQuadCopyNegate( & Q, & B->value );
+	decQuadShift( & C->value, & A->value, & Q, ctx );
+}
+
 static DaoFuncItem decimalMeths[] =
 {
 	{ DEC_FromInteger,  "Decimal( value = 0 )" },
 	{ DEC_FromString,   "Decimal( value: string )" },
 	{ DEC_ToString,     "(string)( invar self: Decimal )" },
+
+	{ DEC_ADD,          "+( A: Decimal, B: Decimal ) => Decimal" },
+	{ DEC_SUB,          "-( A: Decimal, B: Decimal ) => Decimal" },
+	{ DEC_MUL,          "*( A: Decimal, B: Decimal ) => Decimal" },
+	{ DEC_DIV,          "/( A: Decimal, B: Decimal ) => Decimal" },
+	{ DEC_MOD,          "%( A: Decimal, B: Decimal ) => Decimal" },
+
+	{ DEC_AND,          "&&( A: Decimal, B: Decimal ) => bool" },
+	{ DEC_OR,           "||( A: Decimal, B: Decimal ) => bool" },
+	{ DEC_LT,           "< ( A: Decimal, B: Decimal ) => bool" },
+	{ DEC_LE,           "<=( A: Decimal, B: Decimal ) => bool" },
+	{ DEC_EQ,           "==( A: Decimal, B: Decimal ) => bool" },
+	{ DEC_NE,           "!=( A: Decimal, B: Decimal ) => bool" },
+
+	{ DEC_MINUS,        "-( A: Decimal ) => Decimal" },
+	{ DEC_NOT,          "!( A: Decimal ) => Decimal" },
+	{ DEC_TILDE,        "~( A: Decimal ) => Decimal" },
+
+	{ DEC_BITAND,       "&( A: Decimal, B: Decimal ) => Decimal" },
+	{ DEC_BITOR,        "|( A: Decimal, B: Decimal ) => Decimal" },
+	{ DEC_BITXOR,       "^( A: Decimal, B: Decimal ) => Decimal" },
+	{ DEC_BITLFT,       "<<( A: Decimal, B: Decimal ) => Decimal" },
+	{ DEC_BITRIT,       ">>( A: Decimal, B: Decimal ) => Decimal" },
 
 	{ NULL, NULL }
 };
