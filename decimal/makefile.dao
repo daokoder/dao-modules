@@ -1,0 +1,19 @@
+project = DaoMake::Project( "DaoDecimal" )
+
+daovm = DaoMake::FindPackage( "Dao", $REQUIRED )
+
+if( daovm == none ) return
+
+project.UseImportLibrary( daovm )
+project.SetTargetPath( "../../lib/dao/modules" )
+
+sources = { "dao_decimal.c", "decNumber/decContext.c", "decNumber/decQuad.c" }
+
+project_objs = project.AddObjects( sources )
+project_dll  = project.AddSharedLibrary( "dao_decimal", project_objs )
+project_lib  = project.AddStaticLibrary( "dao_decimal", project_objs )
+
+
+project.GenerateFinder( $TRUE );
+project.Install( DaoMake::Variables[ "INSTALL_MOD" ], project_dll );
+project.Install( DaoMake::Variables[ "INSTALL_MOD" ], project_lib );

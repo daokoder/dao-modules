@@ -394,7 +394,9 @@ DaoNumItem mathConsts[] =
 
 DAO_DLL int DaoMath_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	DaoNamespace *mathns = DaoNamespace_GetNamespace( ns, "math" );
+	DaoNamespace *mathns = DaoVmSpace_GetNamespace( vmSpace, "math" );
+	DaoNamespace_AddConstValue( ns, "math", (DaoValue*) mathns );
+
 	DaoNamespace_WrapFunctions( mathns, mathMeths );
 	DaoNamespace_AddConstNumbers( mathns, mathConsts );
 	return 0;
