@@ -68,5 +68,5 @@ DAO_API( DAO_DEC_DLL, void, DaoDecimal_Delete, (DaoDecimal *self) );
 DAO_API( DAO_DEC_DLL, void, DaoDecimal_FromString, (DaoDecimal *self, DString *in, DaoProcess*) );
 DAO_API( DAO_DEC_DLL, void, DaoDecimal_ToString, (DaoDecimal *self, DString *out) );
 
-DAO_API( DAO_DEC_DLL, DaoDecimal*, DaoProcess_PutDecimal, (DaoProcess *self, int value) );
+DAO_API( DAO_DEC_DLL, DaoDecimal*, DaoProcess_PutDecimal, (DaoProcess *self, double value) );
 
