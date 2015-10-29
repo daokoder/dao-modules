@@ -240,8 +240,6 @@ enum
 	JSON_NonStringKey
 };
 
-#include "../../../kernel/dao.h"
-
 DaoValue* JSON_ParseString( DaoProcess *process, char* *text )
 {
 	char* end = *text + 1;
