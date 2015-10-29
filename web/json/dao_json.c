@@ -240,6 +240,8 @@ enum
 	JSON_NonStringKey
 };
 
+#include "../../../kernel/dao.h"
+
 DaoValue* JSON_ParseString( DaoProcess *process, char* *text )
 {
 	char* end = *text + 1;
@@ -269,8 +271,10 @@ DaoValue* JSON_ParseString( DaoProcess *process, char* *text )
 							int j;
 							for ( j = 1; j < 5 && isxdigit( str->chars[i + j + 1] ); j++ );
 							if ( j == 5 ){
+								char code[5] = {0};
 								DString *buf = DString_New();
-								DString_AppendWChar( buf, strtoul( str->chars + i + 2, NULL, 16 ) );
+								strncpy(code, str->chars + i + 2, 4);
+								DString_AppendWChar( buf, strtoul( code, NULL, 16 ) );
 								DString_Insert( str, buf, i, 6, buf->size );
 								DString_Delete( buf );
 							}
