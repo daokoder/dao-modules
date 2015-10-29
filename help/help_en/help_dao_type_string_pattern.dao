@@ -77,6 +77,7 @@ A pattern item can be
 --@[green]^@[green] : match at the begin of a string;
 --@[green]$@[green] : match at the end of a string;
 --@[green]%n@[green] : match @[green]n@[green]-th captured sub string; @[green]n@[green] can be one or more digits;
+--@[green]{{verbatim}}@[green] : match verbatim text without escapes;
 --@[green]%bxy@[green] : match a balanced pair of characters @[green]x@[green] and @[green]y@[green];
 here balance means, starting from the same matched position, 
 the mached sub string should contain 

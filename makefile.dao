@@ -31,6 +31,7 @@ modules.AddDirectory( "net",         "net" );
 modules.AddDirectory( "os",          "os" );
 modules.AddDirectory( "crypto",      "crypto" );
 modules.AddDirectory( "zip",         "zip" );
+modules.AddDirectory( "tar",         "tar" );
 modules.AddDirectory( "web",         "web" );
 modules.AddDirectory( "sync",        "sync" );
 modules.AddDirectory( "xml",         "xml" );

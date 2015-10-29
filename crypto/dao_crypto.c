@@ -383,6 +383,13 @@ static void DaoSTR_Decrypt( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutValue( proc, p[0] );
 }
 
+static void DaoCrypto_HashInt( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DString *str = p[0]->xString.value;
+	unsigned int hash = Dao_Hash( str->chars, str->size, DAO_HASH_SEED );
+	DaoProcess_PutInteger( proc, hash );
+}
+
 static void DaoCrypto_Hash( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DString *str = p[0]->xString.value;
@@ -429,6 +436,9 @@ static void DaoCrypto_Random( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem cryptoMeths[] =
 {
+	/*! Returns hash integer of \a str */
+	{ DaoCrypto_HashInt,	"hash(str: string) => int" },
+
 	/*! Returns hash string of \a str using the specified \a method */
 	{ DaoCrypto_Hash,	"hash(str: string, method: enum<md5,sha1>) => string" },
 

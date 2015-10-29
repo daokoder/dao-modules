@@ -115,9 +115,9 @@ DaoDecimal* DaoProcess_PutDecimal( DaoProcess *self, double value )
 
 static void DEC_FromNumber( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoDecimal *dec = DaoProcess_PutDecimal( proc, 0 );
 	DString *buffer = DString_New();
 	DaoValue_GetString( p[0], buffer );
-	DaoDecimal *dec = DaoProcess_PutDecimal( proc, 0 );
 	DaoDecimal_FromString( dec, buffer, proc );
 	DString_Delete( buffer );
 }
