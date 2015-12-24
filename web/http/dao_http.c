@@ -100,6 +100,7 @@ struct DaoxRequest
 	DaoString  *value;  // Buffer string;
 
 	DString  *uri;
+	DString  *host;
 	daoint    remote_ip;
 	daoint    remote_port;
 };
@@ -109,6 +110,7 @@ DaoxRequest* DaoxRequest_New()
 	DaoxRequest *self = (DaoxRequest*) dao_calloc( 1, sizeof(DaoxRequest) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_request );
 	self->uri = DString_New();
+	self->host = DString_New();
 	self->key = DaoString_New(1);
 	self->value = DaoString_New(1);
 	self->http_get    = DaoMap_New( 1 + (size_t)rand() );  /* Random hash seed; */
@@ -136,6 +138,7 @@ DaoxRequest* DaoxRequest_New()
 static void DaoxRequest_Delete( DaoxRequest *self )
 {
 	DString_Delete( self->uri );
+	DString_Delete( self->host );
 	DaoGC_DecRC( (DaoValue*) self->key );
 	DaoGC_DecRC( (DaoValue*) self->value );
 	DaoGC_DecRC( (DaoValue*) self->http_get );
@@ -149,6 +152,8 @@ static void DaoxRequest_Delete( DaoxRequest *self )
 
 static void DaoxRequest_Reset( DaoxRequest *self )
 {
+	DString_Reset( self->uri, 0 );
+	DString_Reset( self->host, 0 );
 	DaoMap_Reset( self->http_get, 1 + (size_t)rand() );
 	DaoMap_Reset( self->http_post, 1 + (size_t)rand() );
 	DaoMap_Reset( self->http_cookie, 1 + (size_t)rand() );
@@ -667,6 +672,7 @@ DaoxRequest* DaoxServer_MakeRequest( DaoxServer *self, mg_connection *conn )
 	const mg_request_info *ri = mg_get_request_info( conn );
 	const char *cookie = mg_get_header( conn, "Cookie" );
 	const char *query_string = ri->query_string;
+    char host[1025];
 
 	if( self->freeRequests->size ){
 		DMutex_Lock( & self->mutex );
@@ -685,6 +691,9 @@ DaoxRequest* DaoxServer_MakeRequest( DaoxServer *self, mg_connection *conn )
 	}
 	request->remote_ip = ri->remote_ip;
 	request->remote_port = ri->remote_port;
+
+	mg_get_hostname( conn, host, sizeof(host) );
+	DString_SetChars( request->host, host );
 
 	DaoxRequest_SetURI( request, ri->uri );
 	if( cookie ) DaoxRequest_ParseQueryString( request, request->http_cookie, cookie );
@@ -916,6 +925,11 @@ static void DaoxServer_InitIndexFiles( DaoxServer *self )
 /*==============================================================
 // Dao Interfaces:
 //============================================================*/
+static void REQ_GETF_Host( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxRequest *request = (DaoxRequest*) p[0];
+	DaoProcess_PutString( proc, request->host );
+}
 static void REQ_GETF_URI( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxRequest *request = (DaoxRequest*) p[0];
@@ -975,6 +989,7 @@ static void REQ_SETF_HttpFile( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem RequestMeths[] =
 {
+	{ REQ_GETF_Host,       ".Host( self: Request ) => string" },
 	{ REQ_GETF_URI,        ".URI( self: Request ) => string" },
 	{ REQ_SETF_URI,        ".URI=( self: Request, uri: string )" },
 	{ REQ_GETF_HttpURI,    ".HttpURI( self: Request ) => list<string>" },

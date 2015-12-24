@@ -283,6 +283,8 @@ int mg_read(struct mg_connection *, void *buf, size_t len);
 // not present, NULL is returned.
 const char *mg_get_header(const struct mg_connection *, const char *name);
 
+void mg_get_hostname(struct mg_connection *conn, char *buffer, int size);
+
 
 // Get a value of particular form variable.
 //

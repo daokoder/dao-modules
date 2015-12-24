@@ -4401,6 +4401,22 @@ static int get_first_ssl_listener_index(const struct mg_context *ctx) {
     return index;
 }
 
+void mg_get_hostname(struct mg_connection *conn, char *buffer, int size)
+{
+	char format[20];
+	char host[1025];
+	const char *host_header;
+
+	buffer[0] = '\0';
+	sprintf( format, "%%%i%s", size-1, "[^:]" );
+
+	if ((host_header = mg_get_header(conn, "Host")) == NULL ||
+			sscanf(host_header, format, buffer) == 0) {
+		// Cannot get host from the Host: header. Fallback to our IP address.
+		sockaddr_to_string(buffer, size, &conn->client.lsa);
+	}
+}
+
 static void redirect_to_https_port(struct mg_connection *conn, int ssl_index) {
     char host[1025];
     const char *host_header;
