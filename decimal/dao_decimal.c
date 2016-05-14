@@ -348,7 +348,7 @@ DaoTypeBase decimalTyper =
 
 
 #undef DAO_DECIMAL
-#undef DAO_DEC_DLL
+#undef DAO_DECIMAL_DLL
 #define DAO_HAS_DECIMAL
 #include"dao_api.h"
 

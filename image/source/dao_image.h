@@ -74,23 +74,22 @@ struct DaoImage
 #endif
 
 
-DAO_API( DAO_IMAGE_DLL, DaoType*, DaoImage_Type, () );
+DAO_API( IMAGE, DaoType*, DaoImage_Type, () );
 
-DAO_API( DAO_IMAGE_DLL, DaoImage*, DaoImage_New, () );
-DAO_API( DAO_IMAGE_DLL, void, DaoImage_Delete, (DaoImage *self) );
+DAO_API( IMAGE, DaoImage*, DaoImage_New, () );
+DAO_API( IMAGE, void, DaoImage_Delete, (DaoImage *self) );
 
-DAO_API( DAO_IMAGE_DLL, void, DaoImage_Resize, (DaoImage *self, int width, int height) );
+DAO_API( IMAGE, void, DaoImage_Resize, (DaoImage *self, int width, int height) );
 
-DAO_API( DAO_IMAGE_DLL, int, DaoImage_Convert, (DaoImage *self, int dep) );
+DAO_API( IMAGE, int, DaoImage_Convert, (DaoImage *self, int dep) );
 
-DAO_API( DAO_IMAGE_DLL, int, DaoImage_Decode, (DaoImage *self, DString *data) );
-DAO_API( DAO_IMAGE_DLL, int, DaoImage_Encode, (DaoImage *self, DString *data, int format) );
+DAO_API( IMAGE, int, DaoImage_Decode, (DaoImage *self, DString *data) );
+DAO_API( IMAGE, int, DaoImage_Encode, (DaoImage *self, DString *data, int format) );
 
-DAO_API( DAO_IMAGE_DLL, int, DaoImage_LoadBMP, (DaoImage *self, const char *file) );
-DAO_API( DAO_IMAGE_DLL, int, DaoImage_SaveBMP, (DaoImage *self, const char *file) );
+DAO_API( IMAGE, int, DaoImage_LoadBMP, (DaoImage *self, const char *file) );
+DAO_API( IMAGE, int, DaoImage_LoadPNG, (DaoImage *self, const char *file) );
+DAO_API( IMAGE, int, DaoImage_SaveBMP, (DaoImage *self, const char *file) );
+DAO_API( IMAGE, int, DaoImage_SavePNG, (DaoImage *self, const char *file) );
 
-DAO_API( DAO_IMAGE_DLL, int, DaoImage_LoadPNG, (DaoImage *self, const char *file) );
-DAO_API( DAO_IMAGE_DLL, int, DaoImage_SavePNG, (DaoImage *self, const char *file) );
-
-DAO_API( DAO_IMAGE_DLL, void, DaoImage_Export, (DaoImage *self, DaoArray *matrix, float factor) );
+DAO_API( IMAGE, void, DaoImage_Export, (DaoImage *self, DaoArray *matrix, float factor) );
 

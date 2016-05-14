@@ -51,13 +51,13 @@ struct DaoZipStream
 
 #endif
 
-DAO_API( DAO_ZIP_DLL, void, DaoZip_Compress, (DString *input, DString *output) );
-DAO_API( DAO_ZIP_DLL, void, DaoZip_Decompress, (DString *input, DString *output) );
+DAO_API( ZIP, void, DaoZip_Compress, (DString *input, DString *output) );
+DAO_API( ZIP, void, DaoZip_Decompress, (DString *input, DString *output) );
 
 
-DAO_API( DAO_ZIP_DLL, DaoZipStream*, DaoZipStream_New, () );
-DAO_API( DAO_ZIP_DLL, void, DaoZipStream_Close, (DaoZipStream *self) );
-DAO_API( DAO_ZIP_DLL, void, DaoZipStream_Delete, (DaoZipStream *self) );
-DAO_API( DAO_ZIP_DLL, int, DaoZipStream_Open, (DaoZipStream *self, FILE *file, int read) );
-DAO_API( DAO_ZIP_DLL, int, DaoZipStream_Read, (DaoZipStream *self, DString *buffer, int count) );
-DAO_API( DAO_ZIP_DLL, int, DaoZipStream_Write, (DaoZipStream *self, DString *data) );
+DAO_API( ZIP, DaoZipStream*, DaoZipStream_New, () );
+DAO_API( ZIP, void, DaoZipStream_Close, (DaoZipStream *self) );
+DAO_API( ZIP, void, DaoZipStream_Delete, (DaoZipStream *self) );
+DAO_API( ZIP, int, DaoZipStream_Open, (DaoZipStream *self, FILE *file, int read) );
+DAO_API( ZIP, int, DaoZipStream_Read, (DaoZipStream *self, DString *buffer, int count) );
+DAO_API( ZIP, int, DaoZipStream_Write, (DaoZipStream *self, DString *data) );

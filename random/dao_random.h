@@ -46,12 +46,12 @@
 typedef struct DaoRandGenerator DaoRandGenerator;
 #endif
 
-DAO_API( DAO_RANDOM_DLL, DaoRandGenerator*, DaoRandGenerator_New, (uint_t seed) );
-DAO_API( DAO_RANDOM_DLL, void, DaoRandGenerator_Delete, (DaoRandGenerator *self) );
-DAO_API( DAO_RANDOM_DLL, void, DaoRandGenerator_Seed, (DaoRandGenerator *self, uint_t seed) );
-DAO_API( DAO_RANDOM_DLL, double, DaoRandGenerator_GetUniform, (DaoRandGenerator *self) );
-DAO_API( DAO_RANDOM_DLL, double, DaoRandGenerator_GetNormal, (DaoRandGenerator *self) );
+DAO_API( RANDOM, DaoRandGenerator*, DaoRandGenerator_New, (uint_t seed) );
+DAO_API( RANDOM, void, DaoRandGenerator_Delete, (DaoRandGenerator *self) );
+DAO_API( RANDOM, void, DaoRandGenerator_Seed, (DaoRandGenerator *self, uint_t seed) );
+DAO_API( RANDOM, double, DaoRandGenerator_GetUniform, (DaoRandGenerator *self) );
+DAO_API( RANDOM, double, DaoRandGenerator_GetNormal, (DaoRandGenerator *self) );
 
 /*
-%s/DAO_DLL \(.*\) \(\w\+\)( \(.*\) )/DAO_API( DAO_RAND_DLL, \1, \2, (\3) )/g
+%s/DAO_DLL \(.*\) \(\w\+\)( \(.*\) )/DAO_API( RANDOM, \1, \2, (\3) )/g
 */

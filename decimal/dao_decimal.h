@@ -29,11 +29,11 @@
 
 #include"dao.h"
 
-#ifndef DAO_DEC_DLL
+#ifndef DAO_DECIMAL_DLL
 #ifdef DAO_DECIMAL
-#  define DAO_DEC_DLL DAO_DLL_EXPORT
+#  define DAO_DECIMAL_DLL DAO_DLL_EXPORT
 #else
-#  define DAO_DEC_DLL DAO_DLL_IMPORT
+#  define DAO_DECIMAL_DLL DAO_DLL_IMPORT
 #endif
 #endif
 
@@ -60,13 +60,13 @@ struct DaoDecimal
 #endif
 
 
-DAO_API( DAO_DEC_DLL, DaoType*, DaoDecimal_Type, () );
+DAO_API( DECIMAL, DaoType*, DaoDecimal_Type, () );
 
-DAO_API( DAO_DEC_DLL, DaoDecimal*, DaoDecimal_New, () );
-DAO_API( DAO_DEC_DLL, void, DaoDecimal_Delete, (DaoDecimal *self) );
+DAO_API( DECIMAL, DaoDecimal*, DaoDecimal_New, () );
+DAO_API( DECIMAL, void, DaoDecimal_Delete, (DaoDecimal *self) );
 
-DAO_API( DAO_DEC_DLL, void, DaoDecimal_FromString, (DaoDecimal *self, DString *in, DaoProcess*) );
-DAO_API( DAO_DEC_DLL, void, DaoDecimal_ToString, (DaoDecimal *self, DString *out) );
+DAO_API( DECIMAL, void, DaoDecimal_FromString, (DaoDecimal *self, DString *in, DaoProcess*) );
+DAO_API( DECIMAL, void, DaoDecimal_ToString, (DaoDecimal *self, DString *out) );
 
-DAO_API( DAO_DEC_DLL, DaoDecimal*, DaoProcess_PutDecimal, (DaoProcess *self, double value) );
+DAO_API( DECIMAL, DaoDecimal*, DaoProcess_PutDecimal, (DaoProcess *self, double value) );
 

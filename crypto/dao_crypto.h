@@ -36,9 +36,9 @@
 #endif
 
 
-DAO_API( DAO_CRYPTO_DLL, void, DString_MD5, (DString *self, DString *md5) );
-DAO_API( DAO_CRYPTO_DLL, void, DString_SHA1, (DString *self, DString *sha1) );
-DAO_API( DAO_CRYPTO_DLL, int, DString_Encrypt, (DString *self, DString *key, int hex) );
-DAO_API( DAO_CRYPTO_DLL, int, DString_Decrypt, (DString *self, DString *key, int hex) );
-DAO_API( DAO_CRYPTO_DLL, int, DString_GetRandom, (DString *self, daoint count) );
+DAO_API( CRYPTO, void, DString_MD5, (DString *self, DString *md5) );
+DAO_API( CRYPTO, void, DString_SHA1, (DString *self, DString *sha1) );
+DAO_API( CRYPTO, int, DString_Encrypt, (DString *self, DString *key, int hex) );
+DAO_API( CRYPTO, int, DString_Decrypt, (DString *self, DString *key, int hex) );
+DAO_API( CRYPTO, int, DString_GetRandom, (DString *self, daoint count) );
 

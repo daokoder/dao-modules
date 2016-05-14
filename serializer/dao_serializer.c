@@ -41,101 +41,104 @@
 #include"daoGC.h"
 
 
+int DaoParser_FindPairToken( DaoParser *self,  uchar_t lw, uchar_t rw, int start, int stop );
+DaoType* DaoParser_ParseType( DaoParser *self, int start, int end, int *newpos, DList *types );
+
+
 #define RADIX 32
 static const char *hex_digits = "ABCDEFGHIJKLMNOP";
 static const char *mydigits = "0123456789ABCDEFGHIJKLMNOPQRSTUVW";
 
-void DaoEncodeInteger( char *p, daoint value )
+void DaoEncodeInteger( char *buffer, daoint value )
 {
 	int m;
 	if( value < 0 ){
-		*(p++) = '-';
+		*(buffer++) = '-';
 		value = - value;
 	}
-	*(p++) = 'X';
-	*p = 0;
+	*(buffer++) = 'X';
+	*buffer = 0;
 	if( value == 0 ){
-		*(p++) = '0';
-		*p = 0;
+		*(buffer++) = '0';
+		*buffer = 0;
 		return;
 	}
 	while( value ){
 		m = value % RADIX;
 		value /= RADIX;
-		*(p++) = mydigits[m];
+		*(buffer++) = mydigits[m];
 	}
-	*p = 0;
+	*buffer = 0;
 }
-daoint DaoDecodeInteger( char *p )
+daoint DaoDecodeInteger( char *buffer )
 {
 	daoint value = 0;
 	daoint power = 1;
 	int sign = 1;
-	if( *p == '-' ){
+	if( *buffer == '-' ){
 		sign = -1;
-		p ++;
+		buffer ++;
 	}
-	if( *p == 'X' ) p ++;
-	while( *p ){
-		int digit = *p;
+	if( *buffer == 'X' ) buffer ++;
+	while( *buffer ){
+		int digit = *buffer;
 		digit -= digit >= 'A' ? 'A' - 10 : '0';
 		value += digit * power;
 		power *= RADIX;
-		p ++;
+		buffer ++;
 	}
 	return value * sign;
 }
 
-void DaoEncodeDouble( char *buf, double value )
+void DaoEncodeDouble( char *buffer, double value )
 {
 	int expon, digit;
 	double prod, frac;
-	char *p = buf;
 	if( value <0.0 ){
-		*(p++) = '-';
+		*(buffer++) = '-';
 		value = -value;
 	}
-	*(p++) = 'X';
-	*p = 0;
+	*(buffer++) = 'X';
+	*buffer = 0;
 	frac = frexp( value, & expon );
 	while(1){
 		prod = frac * RADIX;
 		digit = (int) prod;
 		frac = prod - digit;
-		*(p++) = mydigits[ digit ];
+		*(buffer++) = mydigits[ digit ];
 		if( frac <= 0 ) break;
 	}
-	*(p++) = '_';
-	if( expon < 0 ) *(p++) = '_';
-	DaoEncodeInteger( p, abs( expon ) );
+	*(buffer++) = '_';
+	if( expon < 0 ) *(buffer++) = '_';
+	DaoEncodeInteger( buffer, abs( expon ) );
 	return;
 }
-double DaoDecodeDouble( char *buf )
+double DaoDecodeDouble( char *buffer )
 {
 	double frac = 0;
 	int expon, sign = 1, sign2 = 1;
-	char *p = buf;
 	double factor = 1.0 / RADIX;
 	double accum = factor;
-	if( buf[0] == '-' ){
-		p ++;
+	if( buffer[0] == '-' ){
+		buffer ++;
 		sign = -1;
 	}
-	if( *p == 'X' ) p ++;
-	while( *p && *p != '_' ){
-		int digit = *p;
+	if( *buffer == 'X' ) buffer ++;
+	while( *buffer && *buffer != '_' ){
+		int digit = *buffer;
 		digit -= digit >= 'A' ? 'A' - 10 : '0';
 		frac += accum * digit;
 		accum *= factor;
-		p ++;
+		buffer ++;
 	}
-	if( p[1] == '_' ){
+	if( buffer[1] == '_' ){
 		sign2 = -1;
-		p ++;
+		buffer ++;
 	}
-	expon = sign2 * DaoDecodeInteger( p+1 );
+	expon = sign2 * DaoDecodeInteger( buffer + 1 );
 	return ldexp( frac, expon ) * sign;
 }
+
 
 static void DaoSerializeInteger( daoint value, DString *serial )
 {
@@ -156,7 +159,644 @@ static void DaoSerializeComplex( dao_complex value, DString *serial )
 	DaoSerializeDouble( value.imag, serial );
 }
 
-static int DaoValue_Serialize2( DaoValue*, DString*, DaoNamespace*, DaoProcess*, DString*, DString*, DMap* );
+
+
+DaoType *daox_type_serializer = NULL;
+
+
+DaoSerializer* DaoSerializer_New( )
+{
+	DaoSerializer *self = (DaoSerializer*) dao_calloc( 1, sizeof(DaoSerializer) );
+	DaoCstruct_Init( (DaoCstruct*)self, daox_type_serializer );
+	self->error = 0;
+	self->nspace = NULL;
+	self->parser = NULL;
+	self->value = NULL;
+	self->types = DList_New(0);
+	self->objects = DHash_New(0,0);
+	self->serial = DString_New();
+	self->buffer = DString_New();
+	return self;
+}
+
+void DaoSerializer_Delete( DaoSerializer *self )
+{
+	DaoCstruct_Free( (DaoCstruct*) self );
+	DList_Delete( self->types );
+	DMap_Delete( self->objects );
+	DString_Delete( self->serial );
+	DString_Delete( self->buffer );
+	dao_free( self );
+}
+
+void DaoSerializer_Reset( DaoSerializer *self, DaoNamespace *ns )
+{
+	DaoGC_DecRC( self->value );
+	DString_Reset( self->serial, 0 );
+	DList_Clear( self->types );
+	DMap_Reset( self->objects );
+	if( self->nspace ){
+		if( self->parser  ) DaoVmSpace_ReleaseParser( self->nspace->vmSpace, self->parser );
+		if( self->process ) DaoVmSpace_ReleaseProcess( self->nspace->vmSpace, self->process );
+	}
+	self->nspace = ns;
+	self->parser = NULL;
+	self->process = NULL;
+	self->value = NULL;
+	self->error = 0;
+
+	if( ns == NULL ) return;
+
+	self->parser = DaoVmSpace_AcquireParser( self->nspace->vmSpace );
+	self->process = DaoVmSpace_AcquireProcess( self->nspace->vmSpace );
+}
+
+
+static void DaoSerializer_EncodeInteger( DaoSerializer *self, daoint value )
+{
+	char buf[100];
+	DaoEncodeInteger( buf, value );
+	DString_AppendChars( self->serial, buf );
+}
+static void DaoSerializer_EncodeDouble( DaoSerializer *self, double value )
+{
+	char buf[100];
+	DaoEncodeDouble( buf, value );
+	DString_AppendChars( self->serial, buf );
+}
+static void DaoSerializer_EncodeComplex( DaoSerializer *self, dao_complex value )
+{
+	DaoSerializer_EncodeDouble( self, value.real );
+	DString_AppendChar( self->serial, ' ' );
+	DaoSerializer_EncodeDouble( self, value.imag );
+}
+
+static void DaoSerializer_EncodeString( DaoSerializer *self, DaoString *value )
+{
+	DString *serial = self->serial;
+	unsigned char *chars = (unsigned char*) value->value->chars;
+	int i;
+
+	DString_AppendChar( serial, '\"' );
+	for(i=0; i<value->value->size; i++){
+		DString_AppendChar( serial, hex_digits[ chars[i] / 16 ] );
+		DString_AppendChar( serial, hex_digits[ chars[i] % 16 ] );
+	}
+	DString_AppendChar( serial, '\"' );
+}
+
+static void DaoSerializer_EncodeArray( DaoSerializer *self, DaoArray *value )
+{
+	DString *serial = self->serial;
+	int i;
+
+	DString_AppendChar( serial, '[' );
+	for(i=0; i<value->ndim; i++){
+		if( i ) DString_AppendChar( serial, ',' );
+		DaoSerializeInteger( value->dims[i], serial );
+	}
+	DString_AppendChar( serial, ']' );
+	for(i=0; i<value->size; i++){
+		if( i ) DString_AppendChar( serial, ',' );
+		switch( value->etype ){
+		case DAO_BOOLEAN : DaoSerializeInteger( value->data.b[i], serial ); break;
+		case DAO_INTEGER : DaoSerializeInteger( value->data.i[i], serial ); break;
+		case DAO_FLOAT   : DaoSerializeDouble( value->data.f[i], serial ); break;
+		case DAO_COMPLEX : DaoSerializeComplex( value->data.c[i], serial ); break;
+		}
+	}
+}
+
+static int DaoSerializer_EncodeValue( DaoSerializer *self, DaoValue *value );
+
+static void DaoSerializer_EncodeList( DaoSerializer *self, DaoList *value )
+{
+	DString *serial = self->serial;
+	DaoNamespace *ns = self->nspace;
+	int i;
+
+	for(i=0; i<value->value->size; i++){
+		DaoValue *item = value->value->items.pValue[i];
+		if( i ) DString_AppendChar( serial, ',' );
+		//if( item->type >= DAO_ARRAY ) DString_AppendChar( serial, '{' );
+		DaoSerializer_EncodeValue( self, item );
+		//if( item->type >= DAO_ARRAY ) DString_AppendChar( serial, '}' );
+	}
+}
+
+static void DaoSerializer_EncodeMap( DaoSerializer *self, DaoMap *value )
+{
+	DNode *it;
+	DString *serial = self->serial;
+	DaoNamespace *ns = self->nspace;
+	char *sep = value->value->hashing ? "->" : "=>";
+	int i = 0;
+
+	for(it=DMap_First(value->value); it; it=DMap_Next(value->value,it)){
+		if( (i++) ) DString_AppendChar( serial, ',' );
+		DaoSerializer_EncodeValue( self, it->key.pValue );
+		DString_AppendChars( serial, sep );
+		DaoSerializer_EncodeValue( self, it->value.pValue );
+	}
+}
+
+static void DaoSerializer_EncodeTuple( DaoSerializer *self, DaoTuple *value )
+{
+	DString *serial = self->serial;
+	DaoNamespace *ns = self->nspace;
+	DList *types  = value->ctype ? value->ctype->nested : NULL;
+	int i;
+
+	for(i=0; i<value->size; i++){
+		DaoType *type = NULL;
+		if( types && types->size > i ) type = types->items.pType[i];
+		if( type && type->tid == DAO_PAR_NAMED ) type = & type->aux->xType;
+		if( type && (type->tid == 0 || type->tid >= DAO_ENUM)) type = NULL;
+		if( i ) DString_AppendChar( serial, ',' );
+		DaoSerializer_EncodeValue( self, value->values[i] );
+	}
+}
+
+static int DaoSerializer_EncodeObject( DaoSerializer *self, DaoObject *value )
+{
+	DString *tname = NULL;
+	DaoValue *ret = NULL;
+	DaoValue *value1 = NULL;
+	DaoValue *value2 = NULL;
+	DaoValue *selfpar = (DaoValue*) value;
+	DString name1 = DString_WrapChars( "typename" );
+	DString name2 = DString_WrapChars( "serialize" );
+	DString *serial = self->serial;
+	DaoNamespace *ns = self->nspace;
+	DaoProcess *process = self->process;
+	int errcode1 = DaoObject_GetData( value, & name1, & value1, NULL );
+	int errcode2 = DaoObject_GetData( value, & name2, & value2, NULL );
+	char chs[64];
+
+	if( errcode2 || value2 == NULL || value2->type != DAO_ROUTINE ) return 0;
+	if( errcode1 == 0 && value1 != NULL && value1->type == DAO_ROUTINE ){
+		if( DaoProcess_Call( process, (DaoRoutine*)value1, selfpar, NULL, 0 ) ) return 0;
+		ret = process->stackValues[0];
+		if( ret->type == DAO_STRING ) tname = DString_Copy( ret->xString.value );
+	}
+	if( DaoProcess_Call( process, (DaoRoutine*)value2, selfpar, NULL, 0 ) ){
+		if( tname ) DString_Delete( tname );
+		return 0;
+	}
+	if( tname == NULL ) tname = value->defClass->className;
+
+	DString_Append( serial, tname );
+	DString_AppendChar( serial, '{' );
+	DMap_Insert( self->objects, value, value );
+	sprintf( chs, "(%p)", value );
+	DString_AppendChars( serial, chs );
+
+	DaoSerializer_EncodeValue( self, process->stackValues[0] );
+	DString_AppendChar( serial, '}' );
+	if( tname != NULL && tname != value->defClass->className ) DString_Delete( tname );
+	return 1;
+}
+
+static int DaoSerializer_EncodeCstruct( DaoSerializer *self, DaoCstruct *value )
+{
+	DString *tname = NULL;
+	DaoType *type = NULL;
+	DaoValue *ret = NULL;
+	DaoRoutine *meth1 = DaoType_FindFunctionChars( value->ctype, "typename" );
+	DaoRoutine *meth2 = DaoType_FindFunctionChars( value->ctype, "serialize" );
+	DaoNamespace *ns = self->nspace;
+	DaoProcess *process = self->process;
+	DString *serial = self->serial;
+	char chs[64];
+
+	if( meth2 == NULL ) return 0;
+	if( meth1 != NULL ){
+		if( DaoProcess_Call( process, meth1, (DaoValue*)value, NULL, 0 ) ) return 0;
+		ret = process->stackValues[0];
+		if( ret->type == DAO_STRING ) tname = DString_Copy( ret->xString.value );
+	}
+	if( DaoProcess_Call( process, meth2, (DaoValue*)value, NULL, 0 ) ){
+		if( tname ) DString_Delete( tname );
+		return 0;
+	}
+	if( tname == NULL ) tname = value->ctype->name;
+
+	DString_Append( serial, tname );
+	DString_AppendChar( serial, '{' );
+	DMap_Insert( self->objects, value, value );
+	sprintf( chs, "(%p)", value );
+	DString_AppendChars( serial, chs );
+
+	DaoSerializer_EncodeValue( self, process->stackValues[0] );
+	DString_AppendChar( serial, '}' );
+	if( tname != NULL && tname != value->ctype->name ) DString_Delete( tname );
+	return 1;
+}
+
+static int DaoSerializer_EncodeUserData( DaoSerializer *self, DaoValue *value )
+{
+	if( self->process == NULL ) return 0;
+	switch( value->type ){
+	case DAO_OBJECT  : return DaoSerializer_EncodeObject( self, (DaoObject*) value );
+	case DAO_CDATA   :
+	case DAO_CSTRUCT : return DaoSerializer_EncodeCstruct( self, (DaoCstruct*) value );
+	}
+	return 0;
+}
+
+static int DaoSerializer_EncodeValue( DaoSerializer *self, DaoValue *value )
+{
+	DString *serial = self->serial;
+	DaoNamespace *ns = self->nspace;
+	DaoProcess *process = self->process;
+	DaoType *type = DaoNamespace_GetType( ns, value );
+	char chs[64];
+	int rc = 1;
+
+	if( DMap_Find( self->objects, value ) ){
+		sprintf( chs, "@{%p}", value );
+		DString_AppendChars( serial, chs );
+		return 1;
+	}
+	switch( value->type ){
+	case DAO_OBJECT :
+	case DAO_CDATA :
+	case DAO_CSTRUCT :
+		return DaoSerializer_EncodeUserData( self, value );
+	}
+	if( type ){
+		DString_Append( serial, type->name );
+		DString_AppendChar( serial, '{' );
+	}
+	switch( value->type ){
+	case DAO_NONE :
+		break;
+	case DAO_INTEGER :
+		DaoSerializer_EncodeInteger( self, value->xInteger.value );
+		break;
+	case DAO_FLOAT :
+		DaoSerializer_EncodeDouble( self, value->xFloat.value );
+		break;
+	case DAO_COMPLEX :
+		DaoSerializer_EncodeComplex( self, value->xComplex.value );
+		break;
+	case DAO_STRING :
+		DaoSerializer_EncodeString( self, (DaoString*) value );
+		break;
+	case DAO_ENUM :
+		DaoSerializer_EncodeInteger( self, value->xEnum.value );
+		break;
+	case DAO_ARRAY :
+		DaoSerializer_EncodeArray( self, (DaoArray*) value );
+		break;
+	case DAO_LIST :
+	case DAO_MAP :
+	case DAO_TUPLE :
+		DMap_Insert( self->objects, value, value );
+		sprintf( chs, "(%p)", value );
+		DString_AppendChars( serial, chs );
+		switch( value->type ){
+		case DAO_LIST :
+			DaoSerializer_EncodeList( self, (DaoList*) value );
+			break;
+		case DAO_MAP :
+			DaoSerializer_EncodeMap( self, (DaoMap*) value );
+			break;
+		case DAO_TUPLE :
+			DaoSerializer_EncodeTuple( self, (DaoTuple*) value );
+			break;
+		}
+		break;
+	default :
+		DString_AppendChar( serial, '?' );
+		rc = 0;
+		break;
+	}
+	if( type ) DString_AppendChar( serial, '}' );
+	return rc;
+}
+
+DString* DaoSerializer_Encode( DaoSerializer *self, DaoValue *value )
+{
+	DaoSerializer_EncodeValue( self, value );
+	return self->serial;
+}
+
+
+
+
+static DaoObject* DaoSerializer_MakeObject( DaoSerializer *self, DaoClass *klass, DaoValue *param )
+{
+	DaoProcess *proc = self->process;
+	DaoRoutine *routines = klass->initRoutines;
+	DaoObject *object = DaoObject_New( klass );
+
+	DaoProcess_CacheValue( proc, (DaoValue*) object );
+	if( DaoProcess_PushCallable( proc, routines, (DaoValue*)object, & param, 1 ) ==0 ){
+		GC_Assign( & proc->topFrame->object, object );
+		if( DaoProcess_Execute( proc ) ) return object;
+	}
+	return NULL;
+}
+
+static DaoCstruct* DaoSerializer_MakeCstruct( DaoSerializer *self, DaoCtype *ctype, DaoValue *param )
+{
+	DaoValue *ret;
+	DaoProcess *proc = self->process;
+	DaoRoutine *routine = DaoType_FindFunction( ctype->cdtype, ctype->name );
+
+	if( DaoProcess_PushCallable( proc, routine, NULL, & param, 1 ) ) return NULL;
+	proc->topFrame->active = proc->firstFrame;
+	DaoProcess_SetActiveFrame( proc, proc->firstFrame ); /* return value in stackValues[0] */
+	if( DaoProcess_Execute( proc ) == 0 ) return NULL;
+	ret = proc->stackValues[0];
+	if( ret && (ret->type == DAO_CDATA || ret->type == DAO_CSTRUCT) ) return (DaoCstruct*) ret;
+	return NULL;
+}
+
+static int DaoSerializer_DecodeValue( DaoSerializer *self, int start, int end, DaoValue **value2 )
+{
+	DString *serial = self->serial;
+	DList *types = self->types;
+	DaoNamespace *ns = self->nspace;
+	DaoProcess *process = self->process;
+	DaoParser *parser = self->parser;
+	DaoToken **tokens = parser->tokens->items.pToken;
+	DaoType *it1 = NULL, *it2 = NULL, *type = NULL;
+	DaoValue *tmp = NULL;
+	DaoValue *tmp2 = NULL;
+	DaoValue *value = *value2;
+	DaoObject *object;
+	DaoCstruct *cstruct;
+	DaoArray *array;
+	DaoTuple *tuple;
+	DaoList *list;
+	DaoMap *map;
+	DList *dims;
+	DNode *node;
+	void *key = NULL;
+	char *str;
+	int i, j, k, n;
+	int minus = 0;
+	int next = start + 1;
+	int tok2 = start < end ? tokens[start+1]->type : 0;
+	int maybetype = tok2 == DTOK_COLON2 || tok2 == DTOK_LT || tok2 == DTOK_LCB;
+
+	if( tokens[start]->type == DTOK_AT && tok2 == DTOK_LCB ){
+		int rb = DaoParser_FindPairToken( parser, DTOK_LCB, DTOK_RCB, start, end );
+		if( rb < 0 ) return next;
+		sscanf( tokens[start+2]->string.chars, "%p", & key );
+		node = DMap_Find( self->objects, key );
+		if( node ) DaoValue_Copy( node->value.pValue, value2 );
+		return rb + 1;
+	}
+	if( tokens[start]->name == DTOK_ID_SYMBOL ){
+		DString *tname = DString_New();
+		while( tokens[start]->name == DTOK_ID_SYMBOL ){
+			DString_Append( tname, & tokens[start]->string );
+			start += 1;
+		}
+		type = DaoNamespace_MakeType( ns, tname->chars, DAO_ENUM, NULL, NULL, 0 );
+		DString_Delete( tname );
+		if( type == NULL ) return start;
+		if( tokens[start]->name != DTOK_LCB ) return start;
+		end = DaoParser_FindPairToken( parser, DTOK_LCB, DTOK_RCB, start, end );
+		if( end < 0 ) return start;
+		next = end + 1;
+		start += 1;
+		end -= 1;
+	}else if( tokens[start]->type == DTOK_IDENTIFIER && maybetype ){
+		type = DaoParser_ParseType( parser, start, end, & start, NULL );
+		if( type == NULL ) return next;
+		if( tokens[start]->name != DTOK_LCB ) return start;
+		end = DaoParser_FindPairToken( parser, DTOK_LCB, DTOK_RCB, start, end );
+		if( end < 0 ) return start;
+		next = end + 1;
+		start += 1;
+		end -= 1;
+	}
+	if( type == NULL ){
+		type = types->items.pType[0];
+		if( type && type->tid >= DAO_ARRAY ){
+			if( tokens[start]->name != DTOK_LCB ) return start;
+			end = DaoParser_FindPairToken( parser, DTOK_LCB, DTOK_RCB, start, end );
+			if( end < 0 ) return start;
+			next = end + 1;
+			start += 1;
+			end -= 1;
+		}
+	}
+	if( type == NULL ) return next;
+	DaoValue_Copy( type->value, value2 );
+	if( start > end ) return next;
+	if( tokens[start]->name == DTOK_SUB ){
+		minus = 1;
+		start += 1;
+		if( start > end ) return next;
+	}
+	if( type->nested && type->nested->size >0 ) it1 = type->nested->items.pType[0];
+	if( type->nested && type->nested->size >1 ) it2 = type->nested->items.pType[1];
+	if( tokens[start]->name == DTOK_LB ){
+		int rb = DaoParser_FindPairToken( parser, DTOK_LB, DTOK_RB, start, end );
+		if( rb < 0 ) return next;
+		sscanf( tokens[start+1]->string.chars, "%p", & key );
+		DMap_Insert( self->objects, key, *value2 );
+		start = rb + 1;
+	}
+	str = tokens[start]->string.chars;
+#if 0
+	printf( "type: %s %s\n", type->name->chars, str );
+	for(i=start; i<=end; i++) printf( "%s ", tokens[i]->string.chars ); printf( "\n" );
+#endif
+	value = *value2;
+	switch( type->tid ){
+	case DAO_NONE :
+		break;
+	case DAO_BOOLEAN :
+	case DAO_INTEGER :
+		value->xInteger.value = DaoDecodeInteger( str );
+		if( minus ) value->xInteger.value = - value->xInteger.value;
+		break;
+	case DAO_FLOAT :
+		value->xFloat.value = DaoDecodeDouble( str );
+		if( minus ) value->xFloat.value = - value->xFloat.value;
+		break;
+	case DAO_COMPLEX :
+		value->xComplex.value.real = DaoDecodeDouble( str );
+		if( minus ) value->xComplex.value.real = - value->xComplex.value.real;
+		if( start + 1 > end ) return start+1;
+		minus = 0;
+		if( tokens[start + 1]->name == DTOK_SUB ){
+			minus = 1;
+			start += 1;
+			if( start + 1 > end ) return start+1;
+		}
+		value->xComplex.value.imag = DaoDecodeDouble( tokens[start+1]->string.chars );
+		if( minus ) value->xComplex.value.imag = - value->xComplex.value.imag;
+		next = start + 2;
+		break;
+	case DAO_STRING :
+		n = tokens[start]->string.size - 1;
+		for(i=1; i<n; i++){
+			char c1 = str[i];
+			char c2 = str[i+1];
+			if( c1 < 'A' || c1 > 'P' ) continue;
+			DString_AppendChar( value->xString.value, (char)((c1-'A')*16 + (c2-'A')) );
+			i += 1;
+		}
+		break;
+	case DAO_ENUM :
+		value->xEnum.value = DaoDecodeInteger( str );
+		break;
+	case DAO_ARRAY :
+#ifdef DAO_WITH_NUMARRAY
+		if( tokens[start]->name != DTOK_LSB ) return next;
+		k = DaoParser_FindPairToken( parser, DTOK_LSB, DTOK_RSB, start, end );
+		if( k < 0 ) return next;
+		n = 1;
+		for(i=start+1; i<k; i++){
+			if( tokens[i]->name == DTOK_COMMA ) continue;
+			n *= DaoDecodeInteger( tokens[i]->string.chars );
+		}
+		if( n < 0 ) return next;
+		if( it1 == NULL || it1->tid == 0 || it1->tid > DAO_COMPLEX ) return next;
+		array = & value->xArray;
+		dims = DList_New(0);
+		for(i=start+1; i<k; i++){
+			if( tokens[i]->name == DTOK_COMMA ) continue;
+			j = DaoDecodeInteger( tokens[i]->string.chars );
+			DList_Append( dims, (size_t) j );
+		}
+		n = dims->size;
+		DaoArray_ResizeArray( array, dims->items.pInt, n );
+		DList_PushFront( types, it1 );
+		DList_Delete( dims );
+		n = 0;
+		for(i=k+1; i<=end; i++){
+			j = i + 1;
+			while( j <= end && tokens[j]->name != DTOK_COMMA ) j += 1;
+			DaoSerializer_DecodeValue( self, i, j-1, & tmp );
+			if( tmp != NULL ){
+				switch( it1->tid ){
+				case DAO_BOOLEAN : array->data.b[n] = tmp->xBoolean.value; break;
+				case DAO_INTEGER : array->data.i[n] = tmp->xInteger.value; break;
+				case DAO_FLOAT   : array->data.f[n] = tmp->xFloat.value; break;
+				case DAO_COMPLEX : array->data.c[n] = tmp->xComplex.value; break;
+				}
+			}
+			i = j;
+			n += 1;
+		}
+		DList_PopFront( types );
+#endif
+		break;
+	case DAO_LIST :
+		list = (DaoList*) value;
+		DList_PushFront( types, it1 );
+		n = 0;
+		for(i=start; i<=end; i++){
+			if( tokens[i]->name == DTOK_COMMA ) continue;
+			DList_Append( list->value, NULL );
+			k = DaoSerializer_DecodeValue( self, i, end, list->value->items.pValue + n );
+			i = k - 1;
+			n += 1;
+		}
+		DList_PopFront( types );
+		break;
+	case DAO_MAP :
+		map = (DaoMap*) value;
+		n = 0;
+		for(i=start; i<=end; i++){
+			if( tokens[i]->name == DTOK_COMMA ) continue;
+			DaoValue_Clear( & tmp );
+			DaoValue_Clear( & tmp2 );
+			DList_PushFront( types, it1 );
+			i = DaoSerializer_DecodeValue( self, i, end, & tmp );
+			DList_PopFront( types );
+			if( tokens[i]->name == DTOK_COMMA ) continue;
+			if( map->value->size == 0 ){
+				if( tokens[i]->name == DTOK_ARROW ){
+					DMap_Delete( map->value );
+					map->value = DHash_New( DAO_DATA_VALUE, DAO_DATA_VALUE );
+				}
+			}
+			if( tokens[i]->name == DTOK_ARROW || tokens[i]->name == DTOK_FIELD ) i += 1;
+			DList_PushFront( types, it2 );
+			i = DaoSerializer_DecodeValue( self, i, end, & tmp2 );
+			DList_PopFront( types );
+			node = DMap_Insert( map->value, (void*) tmp, (void*) tmp2 );
+			i -= 1;
+			n += 1;
+		}
+		break;
+	case DAO_TUPLE :
+		tuple = (DaoTuple*) value;
+		n = 0;
+		for(i=start; i<=end; i++){
+			if( tokens[i]->name == DTOK_COMMA ) continue;
+			it1 = NULL;
+			if( type->nested && type->nested->size > n ){
+				it1 = type->nested->items.pType[n];
+				if( it1 && it1->tid == DAO_PAR_NAMED ) it1 = & it1->aux->xType;
+			}
+			DList_PushFront( types, it1 );
+			i = DaoSerializer_DecodeValue( self, i, end, tuple->values + n );
+			DList_PopFront( types );
+			i -= 1;
+			n += 1;
+		}
+		break;
+	case DAO_OBJECT :
+		DList_PushFront( types, NULL );
+		DaoSerializer_DecodeValue( self, start, end, & tmp );
+		DList_PopFront( types );
+		if( tmp == NULL ) break;
+		object = DaoSerializer_MakeObject( self, (DaoClass*) type->aux, tmp );
+		if( object ) DaoValue_Copy( (DaoValue*) object, value2 );
+		break;
+	case DAO_CDATA :
+	case DAO_CSTRUCT :
+		DList_PushFront( types, NULL );
+		DaoSerializer_DecodeValue( self, start, end, & tmp );
+		DList_PopFront( types );
+		if( tmp == NULL ) break;
+		cstruct = DaoSerializer_MakeCstruct( self, (DaoCtype*) type->aux, tmp );
+		if( cstruct ) DaoValue_Copy( (DaoValue*) cstruct, value2 );
+		break;
+	}
+	DaoValue_Clear( & tmp );
+	DaoValue_Clear( & tmp2 );
+	return next;
+}
+
+DaoValue* DaoSerializer_Decode( DaoSerializer *self, DString *input )
+{
+	DaoRoutine *routine = NULL;
+	DaoNamespace *ns = self->nspace;
+	DaoParser *parser = self->parser;
+	DList *types = self->types;
+
+	DString_SetBytes( self->serial, input->chars, input->size );
+
+	parser->nameSpace = ns;
+	parser->vmSpace = ns->vmSpace;
+	DaoParser_LexCode( parser, self->serial->chars, 0 );
+	if( parser->tokens->size == 0 ) return NULL;
+
+	DList_PushFront( types, NULL );
+	routine = DaoRoutine_New( ns, NULL, 1 );
+	GC_IncRC( routine );
+	parser->routine = routine;
+	DaoSerializer_DecodeValue( self, 0, parser->tokens->size-1, & self->value );
+	parser->routine = NULL;
+	GC_DecRC( routine );
+	return self->value;
+}
+
+
+
+
+int DaoValue_Serialize2( DaoValue *self, DString *serial, DaoNamespace *ns, DaoProcess *proc, DString *tname, DString *buf, DMap *omap );
 
 static void DString_Serialize( DString *self, DString *serial, DString *buf )
 {
@@ -857,6 +1497,10 @@ void DaoNamespace_Restore( DaoNamespace *self, DaoProcess *proc, FILE *fin )
 	DaoVmSpace_ReleaseParser( self->vmSpace, parser );
 }
 
+
+
+
+
 static void AUX_Serialize( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DString *mbs = DaoProcess_PutChars( proc, "" );
@@ -895,15 +1539,20 @@ static void AUX_Restore( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem serializerMeths[]=
 {
-	/*! Serializes \a value to text. For a class instance to be serializeable, its class should define `serialize()` method returning instance-related data to be serialized */
+	/*! Serializes \a value to text. For a class instance to be serializeable,
+	  its class should define `serialize()` method returning instance-related
+	  data to be serialized */
 	{ AUX_Serialize,   "serialize( invar value : any )=>string" },
 
-	/*! Deserializes value from \a text. For a class instance to be deserializable, its class should provide constructor compatible with the data returned
-		by the `serialize()` method; if the latter returns a tuple, the constructor should accept parameters corresponding to the individual fields of that tuple */
+	/*! Deserializes value from \a text. For a class instance to be deserializable,
+	  its class should provide constructor compatible with the data returned by the
+	  `serialize()` method; if the latter returns a tuple, the constructor should
+	  accept parameters corresponding to the individual fields of that tuple */
 	{ AUX_Deserialize, "deserialize( text : string )=>any" },
 
-	/*! Saves the current state of the program to the file specified by \a dest. if \a limit is greater then 0, objects whose serialized size exceeds \a limit * 1000 bytes
-		are not	included in the backup */
+	/*! Saves the current state of the program to the file specified by \a dest;
+	  if \a limit is greater then 0, objects whose serialized size exceeds
+	  \a limit * 1000 bytes are not	included in the backup */
 	{ AUX_Backup,      "backup( dest = \"backup.sdo\", limit=0 )" },
 
 	/*! Restores previously saved program state from the file specified by \a source */
@@ -912,10 +1561,87 @@ static DaoFuncItem serializerMeths[]=
 };
 
 
-DAO_SERIAL_DLL int DaoSerializer_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_SERIAL_DLL int DaoSerializer_OnLoad2( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	ns = DaoVmSpace_GetNamespace( vmSpace, "std" );
 	DaoNamespace_WrapFunctions( ns, serializerMeths );
+	return 0;
+}
+
+
+
+static void SERIAL_New( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoSerializer *self = DaoSerializer_New();
+	DaoProcess_PutValue( proc, (DaoValue*) self );
+}
+static void SERIAL_Encode( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DString *serial;
+	DaoSerializer *self = (DaoSerializer*) p[0];
+
+	DaoSerializer_Reset( self, proc->activeNamespace );
+	serial = DaoSerializer_Encode( self, p[1] );
+	DaoProcess_PutString( proc, serial );
+	DaoSerializer_Reset( self, NULL );
+}
+static void SERIAL_Decode( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoValue *value;
+	DaoSerializer *self = (DaoSerializer*) p[0];
+
+	DaoSerializer_Reset( self, proc->activeNamespace );
+	value = DaoSerializer_Decode( self, p[1]->xString.value );
+	if( value == NULL ) DaoProcess_RaiseError( proc, "Deserialize", "deserialization failed" );
+	DaoProcess_PutValue( proc, value );
+	DaoSerializer_Reset( self, NULL );
+}
+
+static DaoFuncItem DaoSerializerMeths[]=
+{
+	{ SERIAL_New,  "Serializer()" },
+
+	/*! Serializes \a value to text. For a class instance to be serializeable,
+	  its class should define `serialize()` method returning instance-related
+	  data to be serialized */
+	{ SERIAL_Encode,  "encode( self: Serializer, invar value: any ) => string" },
+
+	/*! Deserializes value from \a text. For a class instance to be deserializable,
+	  its class should provide constructor compatible with the data returned by the
+	  `serialize()` method; if the latter returns a tuple, the constructor should
+	  accept parameters corresponding to the individual fields of that tuple */
+	{ SERIAL_Decode,  "decode( self: Serializer, text: string ) => any" },
+
+	{ NULL, NULL }
+};
+
+static void DaoSerializer_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+{
+	DaoSerializer *self = (DaoSerializer*) p;
+	if( self->value ) DList_Append( values, self->value );
+	if( remove ){
+		self->value = NULL;
+	}
+}
+
+DaoTypeBase DaoSerializer_Typer =
+{
+	"Serializer", NULL, NULL, (DaoFuncItem*) DaoSerializerMeths, { NULL }, { NULL },
+	(FuncPtrDel)DaoSerializer_Delete, DaoSerializer_GetGCFields
+};
+
+#undef DAO_SERIAL
+#undef DAO_SERIAL_DLL
+#define DAO_HAS_SERIAL
+#include"dao_api.h"
+
+DAO_DLL_EXPORT int DaoSerializer_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+{
+	daox_type_serializer = DaoNamespace_WrapType( ns, & DaoSerializer_Typer, DAO_CSTRUCT, 0 );
+
+#define DAO_API_INIT
+#include"dao_api.h"
+
 	return 0;
 }
 

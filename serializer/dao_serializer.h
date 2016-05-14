@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2011-2015, Limin Fu
+// Copyright (c) 2011-2016, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -27,6 +27,7 @@
 */
 
 #include"dao.h"
+#include"daoStdtype.h"
 
 #ifndef DAO_SERIAL_DLL
 #ifdef DAO_SERIAL
@@ -39,46 +40,33 @@
 #ifndef __DAO_SERIALIZER_H__
 #define __DAO_SERIALIZER_H__
 
-#define DAO_HAS_STREAM
-#include"dao_api.h"
 
-typedef struct DaoSerializer    DaoSerializer;
-typedef struct DaoDeserializer  DaoDeserializer;
+typedef struct DaoSerializer  DaoSerializer;
 
 struct DaoSerializer
 {
 	DAO_CSTRUCT_COMMON;
 
-	DaoStream  *stream;
-};
-
-struct DaoDeserializer
-{
-	DAO_CSTRUCT_COMMON;
-
-	DaoStream  *stream;
+	DaoNamespace  *nspace;
+	DaoProcess    *process;
+	DaoParser     *parser;
+	DaoValue      *value;
+	DList         *types;
+	DMap          *objects;
+	DString       *serial;
+	DString       *buffer;
+	short          error;
 };
 
 
 #endif
 
-DAO_API( DAO_SERIAL_DLL, DaoSerializer*, DaoSerializer_New, () );
-DAO_API( DAO_SERIAL_DLL, DaoDeserializer*, DaoDeserializer_New, () );
+DAO_API( SERIAL, DaoSerializer*, DaoSerializer_New, () );
+DAO_API( SERIAL, void, DaoSerializer_Delete, (DaoSerializer *self) );
+DAO_API( SERIAL, void, DaoSerializer_Reset, (DaoSerializer *self, DaoNamespace *ns) );
+DAO_API( SERIAL, DString*,  DaoSerializer_Encode, (DaoSerializer *self, DaoValue *value) );
+DAO_API( SERIAL, DaoValue*, DaoSerializer_Decode, (DaoSerializer *self, DString *input) );
 
-DAO_API( DAO_SERIAL_DLL, void, DaoSerializer_Delete, (DaoSerializer *self) );
-DAO_API( DAO_SERIAL_DLL, void, DaoDeserializer_Delete, (DaoSerializer *self) );
-
-DAO_API( DAO_SERIAL_DLL, void, DaoSerializer_SetStream, (DaoSerializer *self, DaoStream *stream) );
-DAO_API( DAO_SERIAL_DLL, void, DaoDeserializer_SetStream, (DaoSerializer *self, DaoStream *stream) );
-
-DAO_API( DAO_SERIAL_DLL, void, DaoSerializer_Write, (DaoSerializer *self, DaoValue *value) );
-DAO_API( DAO_SERIAL_DLL, DaoValue*, DaoDeserializer_Read, (DaoSerializer *self) );
-
-DAO_API( DAO_SERIAL_DLL, void, DaoSerializer_Write2,
-		(DaoSerializer *self, DaoValue *value, DaoNamespace *ns, DaoProcess *proc) );
-
-DAO_API( DAO_SERIAL_DLL, DaoValue*, DaoDeserializer_Read2,
-		(DaoSerializer *self, DaoNamespace *ns, DaoProcess *proc) );
 
 
 DAO_SERIAL_DLL int DaoValue_Serialize( DaoValue *self, DString *serial, DaoNamespace *ns, DaoProcess *proc );
