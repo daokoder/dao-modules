@@ -43,6 +43,10 @@
 
 typedef struct DaoSerializer  DaoSerializer;
 
+/*
+// The ::objects and ::cdata mappings can be exported after Encode(),
+// and imported before Decode() to deserialize into the original objects.
+*/
 struct DaoSerializer
 {
 	DAO_CSTRUCT_COMMON;
@@ -51,7 +55,9 @@ struct DaoSerializer
 	DaoProcess    *process;
 	DaoParser     *parser;
 	DaoValue      *value;
+	DList         *values;
 	DList         *types;
+	DMap          *cdata;
 	DMap          *objects;
 	DString       *serial;
 	DString       *buffer;
@@ -64,8 +70,8 @@ struct DaoSerializer
 DAO_API( SERIAL, DaoSerializer*, DaoSerializer_New, () );
 DAO_API( SERIAL, void, DaoSerializer_Delete, (DaoSerializer *self) );
 DAO_API( SERIAL, void, DaoSerializer_Reset, (DaoSerializer *self, DaoNamespace *ns) );
-DAO_API( SERIAL, DString*,  DaoSerializer_Encode, (DaoSerializer *self, DaoValue *value) );
-DAO_API( SERIAL, DaoValue*, DaoSerializer_Decode, (DaoSerializer *self, DString *input) );
+DAO_API( SERIAL, DString*, DaoSerializer_Encode, (DaoSerializer *self, DaoValue *values[], int count ) );
+DAO_API( SERIAL, DList*,   DaoSerializer_Decode, (DaoSerializer *self, DString *input) );
 
 
 
