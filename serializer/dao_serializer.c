@@ -377,6 +377,7 @@ static int DaoSerializer_EncodeCstruct( DaoSerializer *self, DaoCstruct *value )
 	DaoNamespace *ns = self->nspace;
 	DaoProcess *process = self->process;
 	DString *serial = self->serial;
+	int encode_return = 0;
 	char chs[64];
 
 	if( value->type == DAO_CDATA ){
@@ -384,7 +385,7 @@ static int DaoSerializer_EncodeCstruct( DaoSerializer *self, DaoCstruct *value )
 		DMap_Insert( self->cdata, cdata->data, value );
 	}
 
-	if( meth2 == NULL ) return 0;
+	if( meth2 == NULL ) goto Encode;
 	if( meth1 != NULL ){
 		if( DaoProcess_Call( process, meth1, (DaoValue*)value, NULL, 0 ) ) return 0;
 		ret = process->stackValues[0];
@@ -394,8 +395,11 @@ static int DaoSerializer_EncodeCstruct( DaoSerializer *self, DaoCstruct *value )
 		if( tname ) DString_Delete( tname );
 		return 0;
 	}
-	if( tname == NULL ) tname = value->ctype->name;
+	encode_return = 1;
 
+Encode:
+
+	if( tname == NULL ) tname = value->ctype->name;
 	DString_Append( serial, tname );
 	DString_AppendChar( serial, '{' );
 	DMap_Insert( self->objects, value, value );
@@ -408,7 +412,7 @@ static int DaoSerializer_EncodeCstruct( DaoSerializer *self, DaoCstruct *value )
 		DString_AppendChars( serial, chs );
 	}
 
-	DaoSerializer_EncodeValue( self, process->stackValues[0] );
+	if( encode_return ) DaoSerializer_EncodeValue( self, process->stackValues[0] );
 	DString_AppendChar( serial, '}' );
 	if( tname != NULL && tname != value->ctype->name ) DString_Delete( tname );
 	return 1;
@@ -449,6 +453,11 @@ static int DaoSerializer_EncodeValue( DaoSerializer *self, DaoValue *value )
 	case DAO_CDATA :
 	case DAO_CSTRUCT :
 		return DaoSerializer_EncodeUserData( self, value );
+	case DAO_CTYPE :
+		DString_AppendChars( serial, "class<" );
+		DString_Append( serial, type->name );
+		DString_AppendChars( serial, ">{}" );
+		return 1;
 	}
 	if( type ){
 		DString_Append( serial, type->name );
@@ -626,6 +635,10 @@ static int DaoSerializer_DecodeValue( DaoSerializer *self, int start, int end, D
 	}
 	if( type == NULL ) return next;
 	DaoValue_Copy( type->value, value2 );
+	if( type->tid == DAO_CTYPE ){
+		DaoValue_Copy( type->aux, value2 );
+		return next;
+	}
 	if( start > end ) return next;
 	if( tokens[start]->name == DTOK_SUB ){
 		minus = 1;
@@ -801,11 +814,18 @@ static int DaoSerializer_DecodeValue( DaoSerializer *self, int start, int end, D
 			if( it != NULL ){
 				DaoValue_Copy( it->value.pValue, value2 );
 				break;
+			}else if( tmp == NULL ){
+				DaoCdata *cd = DaoCdata_Wrap( type, key );
+				DaoValue_Copy( (DaoValue*) cd, value2 );
+				break;
 			}
 		}
 		if( tmp == NULL ) break;
 		cstruct = DaoSerializer_MakeCstruct( self, (DaoCtype*) type->aux, tmp );
 		if( cstruct ) DaoValue_Copy( (DaoValue*) cstruct, value2 );
+		break;
+	case DAO_CTYPE :
+		DaoValue_Copy( type->aux, value2 );
 		break;
 	case DAO_NAMESPACE :
 		DString_Reset( self->buffer, 0 );
