@@ -85,6 +85,26 @@ int DaoImage_Convert( DaoImage *self, int dep )
 }
 
 
+int DaoImage_DecodeBMP( DaoImage *self, DString *data );
+
+int DaoImage_LoadBMP( DaoImage *self, const char *file )
+{
+	DString *mbs = DString_New();
+	FILE *fin = fopen( file, "r+" );
+
+	if( fin == NULL ) goto Failed;
+	DaoFile_ReadAll( fin, mbs, 1 );
+
+	if( DaoImage_DecodeBMP( self, mbs ) == 0 ) goto Failed;
+
+Done:
+	DString_Delete( mbs );
+	return 1;
+Failed:
+	DString_Delete( mbs );
+	return 0;
+}
+
 int dao_read_int( uchar_t *data )
 {
 	return data[0] + (data[1]<<8) + (data[2]<<16) + (data[3]<<24);
@@ -94,28 +114,22 @@ short dao_read_short( uchar_t *data )
 	return data[0] + (data[1]<<8);
 }
 
-int DaoImage_LoadBMP( DaoImage *self, const char *file )
+int DaoImage_DecodeBMP( DaoImage *self, DString *buffer )
 {
-	DString *mbs = DString_New();
-	FILE *fin = fopen( file, "r+" );
+	uchar_t *data = (uchar_t*) buffer->chars;
 	int fileSize, pixelArray, pixelBytes, numBytes;
 	int i, j, width, height, pixelBits;
-	uchar_t *data;
 
-	if( fin == NULL ) goto Failed;
-	DaoFile_ReadAll( fin, mbs, 1 );
-	data = (uchar_t*) mbs->chars;
+	if( data[0x0] != 'B' || data[0x1] != 'M' ) return 0; /* Not a BMP image; */
+	if( dao_read_int( data + 0xE ) != 40 ) return 0;     /* Format not supported; */
+	if( dao_read_int( data + 0x2E ) ) return 0;          /* Palette not supported; */
 
-	if( data[0x0] != 'B' || data[0x1] != 'M' ) goto Failed; /* Not a BMP image; */
-	if( dao_read_int( data + 0xE ) != 40 ) goto Failed; /* Format not supported; */
-	if( dao_read_int( data + 0x2E ) ) goto Failed; /* Palette not supported; */
-
-	fileSize = dao_read_int( data + 0x2 );
+	fileSize   = dao_read_int( data + 0x2 );
 	pixelArray = dao_read_int( data + 0xA );
-	width = dao_read_int( data + 0x12 );
-	height = dao_read_int( data + 0x16 );
-	pixelBits = dao_read_short( data + 0x1C );
-	numBytes = dao_read_int( data + 0x22 );
+	width      = dao_read_int( data + 0x12 );
+	height     = dao_read_int( data + 0x16 );
+	pixelBits  = dao_read_short( data + 0x1C );
+	numBytes   = dao_read_int( data + 0x22 );
 
 	printf( "pixelBits : %i\n", pixelBits );
 
@@ -127,7 +141,7 @@ int DaoImage_LoadBMP( DaoImage *self, const char *file )
 	switch( pixelBits ){
 	case 24 : self->depth = DAOX_IMAGE_BIT24; break;
 	case 32 : self->depth = DAOX_IMAGE_BIT32; break;
-	default: goto Failed;
+	default: return 0;
 	}
 	DaoImage_Resize( self, width, height );
 
@@ -142,13 +156,7 @@ int DaoImage_LoadBMP( DaoImage *self, const char *file )
 			if( pixelBits == 32 ) dest[3] = src[3];
 		}
 	}
-
-Done:
-	DString_Delete( mbs );
 	return 1;
-Failed:
-	DString_Delete( mbs );
-	return 0;
 }
 
 void daox_write_int( FILE *fout, int i )
@@ -190,6 +198,53 @@ int DaoImage_SaveBMP( DaoImage *self, const char *file )
 		}
 	}
 	fclose( fout );
+	return 1;
+}
+
+void daox_encode_int( DString *buffer, int i )
+{
+	DString_AppendChar( buffer, i&0xFF );
+	DString_AppendChar( buffer, (i>>8)&0xFF );
+	DString_AppendChar( buffer, (i>>16)&0xFF );
+	DString_AppendChar( buffer, (i>>24)&0xFF );
+}
+void daox_encode_short( DString *buffer, short i )
+{
+	DString_AppendChar( buffer, i&0xFF );
+	DString_AppendChar( buffer, (i>>8)&0xFF );
+}
+
+int DaoImage_EncodeBMP( DaoImage *self, DString *buffer )
+{
+	int i, j, pixelBytes = self->buffer.stride;
+
+	DString_AppendChars( buffer, "BM" );
+	daox_encode_int( buffer, 14 + 40 + self->buffer.size * self->buffer.stride );
+	daox_encode_short( buffer, 0 );
+	daox_encode_short( buffer, 0 );
+	daox_encode_int( buffer, 14 + 40 );
+	daox_encode_int( buffer, 40 );
+	daox_encode_int( buffer, self->width );
+	daox_encode_int( buffer, self->height );
+	daox_encode_short( buffer, 1 );
+	daox_encode_short( buffer, 8*(1+self->depth) );
+	daox_encode_int( buffer, 0 );
+	daox_encode_int( buffer, self->buffer.size * self->buffer.stride );
+	daox_encode_int( buffer, 2835  );
+	daox_encode_int( buffer, 2835  );
+	daox_encode_int( buffer, 0 );
+	daox_encode_int( buffer, 0 );
+	for(i=0; i<self->height; ++i){
+		uchar_t *pix = self->buffer.data.uchars + i * self->stride;
+		for(j=0;  j<self->width;  ++j, pix += pixelBytes){
+			DString_AppendChar( buffer, pix[2] );
+			DString_AppendChar( buffer, pix[1] );
+			DString_AppendChar( buffer, pix[0] );
+			if( self->depth == DAOX_IMAGE_BIT32 ){
+				DString_AppendChar( buffer, pix[3] );
+			}
+		}
+	}
 	return 1;
 }
 
@@ -286,10 +341,11 @@ int DaoImage_LoadJPEG( DaoImage *self, const char *file )
 }
 int DaoImage_Decode( DaoImage *self, DString *data )
 {
+	if( DaoImage_DecodeBMP( self, data ) ) return 1;
 	if( DaoImage_DecodePNG( self, data ) ) return 1;
 	return DaoImage_DecodeJPEG( self, data );
 }
-int DaoImage_Encode( DaoImage *self, DString *data, int format )
+int DaoImage_EncodePNG( DaoImage *self, DString *data )
 {
 	unsigned i, pixelBytes = self->buffer.stride;
 	unsigned char *buffer = dao_malloc( self->width * self->height * pixelBytes );
@@ -316,6 +372,11 @@ int DaoImage_Encode( DaoImage *self, DString *data, int format )
 	}
 	dao_free( buffer );
 	return 1;
+}
+int DaoImage_Encode( DaoImage *self, DString *data, int format )
+{
+	if( format == 0 ) return DaoImage_EncodeBMP( self, data );
+	return DaoImage_EncodePNG( self, data );
 }
 
 void DaoImage_Export( DaoImage *self, DaoArray *matrix, float factor )
@@ -380,7 +441,13 @@ static void IMAGE_Encode( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoImage *self = (DaoImage*) p[0];
 	DString *res = DaoProcess_PutChars( proc, "" );
-	DaoImage_Encode( self, res, 0 ); // TODO: format;
+	DaoImage_Encode( self, res, p[1]->xEnum.value );
+}
+static void IMAGE_Decode( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoImage *self = (DaoImage*) p[0];
+	int ret = DaoImage_Decode( self, p[1]->xString.value );
+	DaoProcess_PutBoolean( proc, ret );
 }
 static void IMAGE_Export( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -391,13 +458,30 @@ static void IMAGE_Export( DaoProcess *proc, DaoValue *p[], int N )
 
 	DaoImage_Export( self, matrix, factor );
 }
+static void IMAGE_New2( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoImage *self = DaoImage_New();
+	DaoProcess_PutValue( proc, (DaoValue*) self );
+	DaoImage_Decode( self, p[0]->xString.value );
+}
+static void IMAGE_Serialize( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoImage *self = (DaoImage*) p[0];
+	DString *res = DaoProcess_PutChars( proc, "" );
+	DaoImage_Encode( self, res, 1 );
+}
+
 static DaoFuncItem DaoImageMeths[]=
 {
 	{ IMAGE_New,     "Image()" },
 	{ IMAGE_Load,    "Load( self: Image, file: string )" },
 	{ IMAGE_Save,    "Save( self: Image, file: string )" },
-	{ IMAGE_Encode,  "Encode( self: Image, format: enum<png> ) => string" },
+	{ IMAGE_Encode,  "Encode( self: Image, format: enum<bmp,png> ) => string" },
+	{ IMAGE_Decode,  "Decode( self: Image, data: string ) => bool" },
 	{ IMAGE_Export,  "Export( self: Image, channel: enum<red;grean;blue;alpha>, matrix: array<@T<int|float>>, factor: @T = 1 )" },
+
+	{ IMAGE_New2,       "Image( data: string )" },
+	{ IMAGE_Serialize,  "serialize( self: Image ) => string" },
 	{ NULL, NULL }
 };
 

@@ -441,6 +441,7 @@ static int DaoSerializer_EncodeValue( DaoSerializer *self, DaoValue *value )
 	DaoProcess *process = self->process;
 	DaoType *type = DaoNamespace_GetType( ns, value );
 	char chs[64];
+	int modtype;
 	int rc = 1;
 
 	if( DMap_Find( self->objects, value ) ){
@@ -503,6 +504,10 @@ static int DaoSerializer_EncodeValue( DaoSerializer *self, DaoValue *value )
 		}
 		break;
 	case DAO_NAMESPACE :
+		DString_SetChars( self->buffer, value->xNamespace.name->chars );
+		modtype = DaoVmSpace_CompleteModuleName( ns->vmSpace, self->buffer, 0 );
+		/* Do not serialize module of unknown type: */
+		if( modtype == DAO_MODULE_NONE || modtype == DAO_MODULE_ANY ) return 0;
 		DaoSerializer_EncodeNamespace( self, (DaoNamespace*) value );
 		break;
 	default :
