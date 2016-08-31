@@ -155,7 +155,7 @@ int DString_EncodeZ85( DString *self, DString *dest )
 {
 	const char *z85_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#";
 	daoint i, j;
-	uint8_t *chs = self->chars;
+	uint8_t *chs = (uint8_t*) self->chars;
 	if ( self->size%4 )
 		return 0;
 	DString_Resize( dest, self->size/4*5 );
@@ -196,7 +196,7 @@ int DString_DecodeZ85( DString *self, DString *dest, daoint *errpos )
 	if ( self->size%5 )
 		return 0;
 	DString_Resize( dest, self->size/5*4 );
-	chs = dest->chars;
+	chs = (uint8_t*) dest->chars;
 	for ( i = 0, j = 0; i < self->size; i += 5, j += 4 ){
 		uint_t val = 0;
 		int ind, k = 1;
@@ -496,7 +496,7 @@ static void DaoBinary_GetItem( DaoProcess *proc, DaoValue *p[], int N )
 		}
 		for ( i = 0; i < count; i++ ){
 			int index = offset%CHAR_BIT + i;
-			uint8_t *ptr = data + offset/CHAR_BIT + index/CHAR_BIT;
+			uint8_t *ptr = (uint8_t*) data + offset/CHAR_BIT + index/CHAR_BIT;
 			val |= (uint8_t)( *ptr << ( index%CHAR_BIT ) ) >> ( CHAR_BIT - 1 ) << ( count - i - 1 );
 		}
 		DaoProcess_PutInteger( proc, val );
@@ -557,7 +557,7 @@ static void DaoBinary_SetItem( DaoProcess *proc, DaoValue *p[], int N )
 		}
 		for ( i = 0; i < count; i++ ){
 			int index = offset%CHAR_BIT + i;
-			uint8_t *ptr = data + offset/CHAR_BIT + index/CHAR_BIT;
+			uint8_t *ptr = (uint8_t*) data + offset/CHAR_BIT + index/CHAR_BIT;
 			int pos = CHAR_BIT - index%CHAR_BIT - 1;
 			uint8_t byteval = (uint_t)( value << ( 4*CHAR_BIT - count + i ) ) >> ( 4*CHAR_BIT - 1 ) << pos;
 			*ptr = ( *ptr & ~( (uint8_t)1 << pos ) ) | byteval;
@@ -584,7 +584,7 @@ static void DaoBinary_SetItem( DaoProcess *proc, DaoValue *p[], int N )
 	}
 }
 
-static DaoFuncItem binMeths[] =
+static DaoFunctionEntry binMeths[] =
 {
 	/*! Reads \a count elements from \a source to \a dest. If \a count is zero, or greater than \a dest size,
 	 * \a dest size is assumed. Returns the number of elements actually read */
@@ -799,7 +799,7 @@ static void DaoEncoder_WriteF64( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutValue( proc, p[0] );
 }
 
-static DaoFuncItem encoderMeths[] =
+static DaoFunctionEntry daoEncoderMeths[] =
 {
 	//! Creates an encoder writing to \a sink (if omitted, new string stream is created)
 	{ DaoEncoder_Create,	"Encoder()" },
@@ -832,10 +832,29 @@ static DaoFuncItem encoderMeths[] =
 };
 
 //! Stateful binary encoder
-DaoTypeBase encoderTyper = {
-	"Encoder", NULL, NULL, encoderMeths, {NULL}, {0},
-	(FuncPtrDel)DaoXCoder_Delete, NULL
+DaoTypeCore daoEncoderCore =
+{
+	"Encoder",                                         /* name */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoEncoderMeths,                                   /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoXCoder_Delete,              /* Delete */
+	NULL                                               /* HandleGC */
 };
+
 
 static void DaoDecoder_Create( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -979,7 +998,7 @@ static void DaoDecoder_ReadF64( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutFloat( proc, value );
 }
 
-static DaoFuncItem decoderMeths[] =
+static DaoFunctionEntry daoDecoderMeths[] =
 {
 	//! Creates a decoder reading from \a source
 	{ DaoDecoder_Create,	"Decoder(source: io::Stream)" },
@@ -1011,12 +1030,31 @@ static DaoFuncItem decoderMeths[] =
 };
 
 //! Stateful binary decoder
-DaoTypeBase decoderTyper = {
-	"Decoder", NULL, NULL, decoderMeths, {NULL}, {0},
-	(FuncPtrDel)DaoXCoder_Delete, NULL
+DaoTypeCore daoDecoderCore =
+{
+	"Decoder",                                         /* name */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoDecoderMeths,                                   /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoXCoder_Delete,              /* Delete */
+	NULL                                               /* HandleGC */
 };
 
-static DaoFuncItem encodableMeths[] =
+
+static DaoFunctionEntry daoEncodableMeths[] =
 {
 	//! Serializes self using the provided \a encoder
 	{ NULL,	"encode(invar self: Encodable, encoder: Encoder)" },
@@ -1025,12 +1063,31 @@ static DaoFuncItem encodableMeths[] =
 
 //! A type which can be encoded to binary form. Use it to define conversions
 //! to specific serialization formats
-static DaoTypeBase encodableTyper = {
-	"Encodable", NULL, NULL, encodableMeths, {NULL}, {0},
-	(FuncPtrDel)NULL, NULL
+DaoTypeCore daoEncodableCore =
+{
+	"Encodable",                                       /* name */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoEncodableMeths,                                 /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Copy */
+	NULL,                                              /* Delete */
+	NULL                                               /* HandleGC */
 };
 
-static DaoFuncItem decodableMeths[] =
+
+static DaoFunctionEntry daoDecodableMeths[] =
 {
 	//! Deserializes self using the provided \a decoder
 	{ NULL,	"decode(decoder: Decoder) => Decodable" },
@@ -1039,10 +1096,29 @@ static DaoFuncItem decodableMeths[] =
 
 //! A type which can be decoded from binary form. Use it to define conversions
 //! from specific serialization formats
-static DaoTypeBase decodableTyper = {
-	"Decodable", NULL, NULL, decodableMeths, {NULL}, {0},
-	(FuncPtrDel)NULL, NULL
+DaoTypeCore daoDecodableCore =
+{
+	"Decodable",                                       /* name */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoDecodableMeths,                                 /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Copy */
+	NULL,                                              /* Delete */
+	NULL                                               /* HandleGC */
 };
+
 
 DAO_DLL int DaoBinary_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
@@ -1054,10 +1130,10 @@ DAO_DLL int DaoBinary_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 		return 1;
 	}
 	binns = DaoNamespace_GetNamespace( ns, "bin" );
-	daox_type_encoder = DaoNamespace_WrapType( binns, &encoderTyper, DAO_CDATA, 0 );
-	daox_type_decoder = DaoNamespace_WrapType( binns, &decoderTyper, DAO_CDATA, 0 );
-	DaoNamespace_WrapInterface( binns, &encodableTyper );
-	DaoNamespace_WrapInterface( binns, &decodableTyper );
+	daox_type_encoder = DaoNamespace_WrapType( binns, &daoEncoderCore, DAO_CDATA, 0 );
+	daox_type_decoder = DaoNamespace_WrapType( binns, &daoDecoderCore, DAO_CDATA, 0 );
+	DaoNamespace_WrapInterface( binns, &daoEncodableCore );
+	DaoNamespace_WrapInterface( binns, &daoDecodableCore );
 	DaoNamespace_WrapFunctions( binns, binMeths );
 	return 0;
 }

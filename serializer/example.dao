@@ -1,4 +1,16 @@
 load serializer;
+load math
+
+ser = Serializer();
+
+io.writeln( ser.encode( "abc" ) )
+io.writeln( ser.decode( ser.encode( "abc" ) ) )
+
+io.writeln( ser.encode( math ) )
+io.writeln( ser.decode( ser.encode( math ) ) )
+
+io.writeln( ser.encode( Serializer ) )
+io.writeln( ser.decode( ser.encode( Serializer ) ) )
 
 list1 = { 1.3, 2.5, 3.6 }
 list2 = {
@@ -9,16 +21,17 @@ list2 = {
 	[true, false]
 }
 
-s1 = std.serialize( list1 );
-s2 = std.serialize( list2 );
+s1 = ser.encode( list1 );
+s2 = ser.encode( list2 );
 
 io.writeln( s2 )
-io.writeln( s1, std.deserialize( s1 ) )
-io.writeln( s2, std.deserialize( s2 ) )
+io.writeln( s1, ser.decode( s1 ) )
+io.writeln( s2, ser.decode( s2 ) )
 
 map1 = { 'abc'->123, 'def'->{} }
-s3 = std.serialize( map1 );
-io.writeln( s3, std.deserialize( s3 ) )
+s3 = ser.encode( map1 );
+io.writeln( s3, ser.decode( s3 ) )
+
 
 
 class Klass
@@ -34,23 +47,24 @@ class Klass
 object = Klass( 456, 'def' );
 io.writeln( object.serialize() );
 
-ss = std.serialize( object );
+ss = ser.encode( object );
 io.writeln( ss );
-object = (Klass)std.deserialize( ss )
+object = (Klass)ser.decode( ss )[0]
 io.writeln( object, object.index, object.name );
 
-ss = std.serialize( { object } );
+ss = ser.encode( object );
 io.writeln( ss );
-objects = std.deserialize( ss )
+objects = ser.decode( ss )
 object = objects[0]
 io.writeln( objects, object.index, object.name );
 
 
 e = Exception::Error( 'serialization test' );
-ss = std.serialize( e );
+ss = ser.encode( e );
 io.writeln( ss, std.about(ss) );
-e = std.deserialize( ss )
+e = ser.decode( ss )[0]
 io.writeln( e, e.summary );
+return
 
 class MyException : Exception::Error
 {
@@ -60,8 +74,8 @@ class MyException : Exception::Error
 }
 
 e2 = MyException( 'serialization test2' );
-ss = std.serialize( { e2 } );
+ss = ser.encode( e2 );
 io.writeln( ss );
 
-e2 = std.deserialize( ss )[0]
+e2 = ser.decode( ss )[0]
 io.writeln( e2, e2.summary );

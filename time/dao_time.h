@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2011-2015, Limin Fu
+// Copyright (c) 2011-2016, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -92,7 +92,7 @@ struct DTimeSpan
 
 struct DaoTime
 {
-	DAO_CPOD_COMMON;
+	DAO_CSTRUCT_COMMON;
 
 	DTime  time;
 	short  local;
@@ -100,7 +100,7 @@ struct DaoTime
 
 struct DaoTimeSpan
 {
-	DAO_CPOD_COMMON;
+	DAO_CSTRUCT_COMMON;
 
 	DTimeSpan  span;
 };

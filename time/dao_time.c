@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2013-2015, Limin Fu
+// Copyright (c) 2013-2016, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -38,7 +38,7 @@
 #include<math.h>
 #include<time.h>
 #include"dao_time.h"
-#include"daoPlatforms.h"
+#include"daoPlatform.h"
 
 #ifdef WIN32
 #define tzset _tzset
@@ -649,13 +649,13 @@ int DTimeSpan_Compare( DTimeSpan first, DTimeSpan second )
 
 DaoTime* DaoTime_New()
 {
-	DaoTime *self = (DaoTime*) DaoCpod_New( daox_type_time, sizeof(DaoTime) );
+	DaoTime *self = (DaoTime*) DaoCstruct_New( daox_type_time, sizeof(DaoTime) );
 	return self;
 }
 
 void DaoTime_Delete( DaoTime *self )
 {
-	DaoCpod_Delete( (DaoCpod*) self );
+	DaoCstruct_Delete( (DaoCstruct*) self );
 }
 
 int DaoTime_Now( DaoTime *self )
@@ -680,12 +680,12 @@ DaoType* DaoTime_Type()
 
 DaoTimeSpan* DaoTimeSpan_New()
 {
-	DaoTimeSpan *self = (DaoTimeSpan*) DaoCpod_New( daox_type_span, sizeof(DaoTimeSpan) );
+	DaoTimeSpan *self = (DaoTimeSpan*) DaoCstruct_New( daox_type_span, sizeof(DaoTimeSpan) );
 	return self;
 }
 void DaoTimeSpan_Delete( DaoTimeSpan *self )
 {
-	DaoCpod_Delete( (DaoCpod*) self );
+	DaoCstruct_Delete( (DaoCstruct*) self );
 }
 DaoType* DaoTimeSpan_Type()
 {
@@ -1498,7 +1498,7 @@ static void TIME_DayDiff( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutInteger( proc, DTime_ToJulianDay( btime ) - DTime_ToJulianDay( atime ) );
 }
 
-static DaoFuncItem timeMeths[] =
+static DaoFunctionEntry daoDateTimeMeths[] =
 {
 	/*! \c Returns the number of seconds elapsed since 2000-1-1, 00:00:00 UTC */
 	{ TIME_Value,   ".value(invar self: DateTime) => float" },
@@ -1568,12 +1568,50 @@ static DaoFuncItem timeMeths[] =
 	{ NULL, NULL }
 };
 
-/*! Represents date and time information */
-DaoTypeBase timeTyper =
+
+DaoValue* DaoTime_Copy( DaoValue *self, DaoValue *target )
 {
-	"DateTime", NULL, NULL, timeMeths, {NULL}, {0},
-	(FuncPtrDel)DaoTime_Delete, NULL
+	DaoTime *src = (DaoTime*) self;
+	DaoTime *dest = (DaoTime*) target;
+	if( target ){
+		if( src ){
+			dest->time = src->time;
+			dest->local = src->local;
+		}
+		return target;
+	}
+	dest = DaoTime_New();
+	if( src ){
+		dest->time = src->time;
+		dest->local = src->local;
+	}
+	return (DaoValue*) dest;
+}
+
+
+DaoTypeCore daoDateTimeCore =
+{
+	"DateTime",                                        /* name */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoDateTimeMeths,                                  /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	DaoTime_Copy,                                      /* Copy */
+	(DaoDeleteFunction) DaoTime_Delete,                /* Delete */
+	                                                   /* HandleGC */
 };
+
 
 
 static int SPAN_SetFields( DTimeSpan *span, DaoProcess *proc, DaoValue *p[], int N )
@@ -1889,7 +1927,7 @@ NumericError:
 	DaoProcess_RaiseError( proc, "Value", "Invalid number" );
 }
 
-static DaoFuncItem spanMeths[] =
+static DaoFunctionEntry daoTimeSpanMeths[] =
 {
 	{ SPAN_New,
 		/*
@@ -1930,14 +1968,47 @@ static DaoFuncItem spanMeths[] =
 	{ NULL, NULL }
 };
 
-DaoTypeBase spanTyper =
+DaoValue* DaoTimeSpan_Copy( DaoValue *self, DaoValue *target )
 {
-	"TimeSpan", NULL, NULL, spanMeths, {NULL}, {0},
-	(FuncPtrDel)DaoTimeSpan_Delete, NULL
+	DaoTimeSpan *src = (DaoTimeSpan*) self;
+	DaoTimeSpan *dest = (DaoTimeSpan*) target;
+	if( target ){
+		if( src ) dest->span = src->span;
+		return target;
+	}
+	dest = DaoTimeSpan_New();
+	if( src ) dest->span = src->span;
+	return (DaoValue*) dest;
+}
+
+
+// TODO: Binary;
+DaoTypeCore daoTimeSpanCore =
+{
+	"TimeSpan",                                        /* name */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoTimeSpanMeths,                                  /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	DaoTimeSpan_Copy,                                  /* Copy */
+	(DaoDeleteFunction) DaoTimeSpan_Delete,            /* Delete */
+	                                                   /* HandleGC */
 };
 
 
-static DaoFuncItem timeFuncs[] =
+
+static DaoFunctionEntry timeFuncs[] =
 {
 	/*! Returns current datetime of the given \a kind */
 	{ TIME_Now,  "now(kind: enum<local,utc> = $local) => DateTime" },
@@ -1975,7 +2046,8 @@ static DaoFuncItem timeFuncs[] =
 
 DaoTime* DaoProcess_PutTime( DaoProcess *self, DTime time, int local )
 {
-	DaoTime *res = (DaoTime*) DaoProcess_PutCpod( self, daox_type_time, sizeof(DaoTime) );
+	DaoTime *res = (DaoTime*) DaoProcess_PutCstruct( self, daox_type_time );
+	printf( "DaoProcess_PutTime: %p %p\n", res, daox_type_time );
 
 	if( res == NULL ) return NULL;
 
@@ -1990,7 +2062,7 @@ DaoTime* DaoProcess_PutTime( DaoProcess *self, DTime time, int local )
 
 DaoTime* DaoProcess_NewTime( DaoProcess *self, DTime time, int local )
 {
-	DaoTime *res = (DaoTime*) DaoProcess_NewCpod( self, daox_type_time, sizeof(DaoTime) );
+	DaoTime *res = (DaoTime*) DaoProcess_NewCstruct( self, daox_type_time );
 	if ( !DTime_IsValid( time ) ){
 		DaoProcess_RaiseError( self, timeerr, "Invalid datetime" );
 		return NULL;
@@ -2003,7 +2075,7 @@ DaoTime* DaoProcess_NewTime( DaoProcess *self, DTime time, int local )
 
 DaoTimeSpan* DaoProcess_PutTimeSpan( DaoProcess *self, DTimeSpan span )
 {
-	DaoTimeSpan *res = (DaoTimeSpan*) DaoProcess_PutCpod( self, daox_type_span, sizeof(DaoTimeSpan) );
+	DaoTimeSpan *res = (DaoTimeSpan*) DaoProcess_PutCstruct( self, daox_type_span );
 
 	if( res == NULL ) return NULL;
 
@@ -2013,7 +2085,7 @@ DaoTimeSpan* DaoProcess_PutTimeSpan( DaoProcess *self, DTimeSpan span )
 
 DaoTimeSpan* DaoProcess_NewTimeSpan( DaoProcess *self, DTimeSpan span )
 {
-	DaoTimeSpan *res = (DaoTimeSpan*) DaoProcess_NewCpod( self, daox_type_span, sizeof(DaoTimeSpan) );
+	DaoTimeSpan *res = (DaoTimeSpan*) DaoProcess_NewCstruct( self, daox_type_span );
 	res->span = span;
 	return res;
 }
@@ -2035,8 +2107,8 @@ DAO_DLL_EXPORT int DaoTime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	epoch2000_useconds = epoch2000_days * 24 * 3600 * 1E6;
 	epoch1970_seconds = DTime_ToJulianDay( epoch1970 ) * 24 * 3600;
 
-	daox_type_time = DaoNamespace_WrapType( timens, &timeTyper, DAO_CPOD,0 );
-	daox_type_span = DaoNamespace_WrapType( timens, &spanTyper, DAO_CPOD,0 );
+	daox_type_time = DaoNamespace_WrapType( timens, & daoDateTimeCore, DAO_CSTRUCT, 0 );
+	daox_type_span = DaoNamespace_WrapType( timens, & daoTimeSpanCore, DAO_CSTRUCT, 0 );
 	DaoNamespace_WrapFunctions( timens, timeFuncs );
 
 #define DAO_API_INIT

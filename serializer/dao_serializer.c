@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2011-2015, Limin Fu
+// Copyright (c) 2011-2016, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -314,7 +314,7 @@ static void DaoSerializer_EncodeTuple( DaoSerializer *self, DaoTuple *value )
 {
 	DString *serial = self->serial;
 	DaoNamespace *ns = self->nspace;
-	DList *types  = value->ctype ? value->ctype->nested : NULL;
+	DList *types  = value->ctype ? value->ctype->args : NULL;
 	int i;
 
 	for(i=0; i<value->size; i++){
@@ -555,7 +555,7 @@ static DaoCstruct* DaoSerializer_MakeCstruct( DaoSerializer *self, DaoCtype *cty
 {
 	DaoValue *ret;
 	DaoProcess *proc = self->process;
-	DaoRoutine *routine = DaoType_FindFunction( ctype->cdtype, ctype->name );
+	DaoRoutine *routine = DaoType_FindFunction( ctype->valueType, ctype->name );
 
 	if( DaoProcess_PushCallable( proc, routine, NULL, & param, 1 ) ) return NULL;
 	proc->topFrame->active = proc->firstFrame;
@@ -650,8 +650,8 @@ static int DaoSerializer_DecodeValue( DaoSerializer *self, int start, int end, D
 		start += 1;
 		if( start > end ) return next;
 	}
-	if( type->nested && type->nested->size >0 ) it1 = type->nested->items.pType[0];
-	if( type->nested && type->nested->size >1 ) it2 = type->nested->items.pType[1];
+	if( type->args && type->args->size >0 ) it1 = type->args->items.pType[0];
+	if( type->args && type->args->size >1 ) it2 = type->args->items.pType[1];
 	if( tokens[start]->name == DTOK_LB ){
 		int rb = DaoParser_FindPairToken( parser, DTOK_LB, DTOK_RB, start, end );
 		if( rb < 0 ) return next;
@@ -784,8 +784,8 @@ static int DaoSerializer_DecodeValue( DaoSerializer *self, int start, int end, D
 		for(i=start; i<=end; i++){
 			if( tokens[i]->name == DTOK_COMMA ) continue;
 			it1 = NULL;
-			if( type->nested && type->nested->size > n ){
-				it1 = type->nested->items.pType[n];
+			if( type->args && type->args->size > n ){
+				it1 = type->args->items.pType[n];
 				if( it1 && it1->tid == DAO_PAR_NAMED ) it1 = & it1->aux->xType;
 			}
 			DList_PushFront( types, it1 );
@@ -932,7 +932,7 @@ static int DaoList_Serialize( DaoList *self, DString *serial, DaoNamespace *ns, 
 {
 	DaoType *type = self->ctype;
 	int i, rc = 1;
-	if( type->nested && type->nested->size ) type = type->nested->items.pType[0];
+	if( type->args && type->args->size ) type = type->args->items.pType[0];
 	if( type && type->noncyclic == 0 && (type->tid == 0 || type->tid >= DAO_ENUM)) type = NULL;
 	for(i=0; i<self->value->size; i++){
 		DaoType *it = NULL;
@@ -952,8 +952,8 @@ static int DaoMap_Serialize( DaoMap *self, DString *serial, DaoNamespace *ns, Da
 	DNode *node;
 	char *sep = self->value->hashing ? ":" : "=>";
 	int i = 0, rc = 1;
-	if( type->nested && type->nested->size >0 ) keytype = type->nested->items.pType[0];
-	if( type->nested && type->nested->size >1 ) valtype = type->nested->items.pType[1];
+	if( type->args && type->args->size >0 ) keytype = type->args->items.pType[0];
+	if( type->args && type->args->size >1 ) valtype = type->args->items.pType[1];
 	if( keytype && (keytype->tid == 0 || keytype->tid >= DAO_ENUM)) keytype = NULL;
 	if( valtype && (valtype->tid == 0 || valtype->tid >= DAO_ENUM)) valtype = NULL;
 	for(node=DMap_First(self->value); node; node=DMap_Next(self->value,node)){
@@ -969,12 +969,12 @@ static int DaoMap_Serialize( DaoMap *self, DString *serial, DaoNamespace *ns, Da
 }
 static int DaoTuple_Serialize( DaoTuple *self, DString *serial, DaoNamespace *ns, DaoProcess *proc, DString *buf, DMap *omap )
 {
-	DList *nested = self->ctype ? self->ctype->nested : NULL;
+	DList *args = self->ctype ? self->ctype->args : NULL;
 	int i, rc = 1;
 	for(i=0; i<self->size; i++){
 		DaoType *type = NULL;
 		DaoType *it = NULL;
-		if( nested && nested->size > i ) type = nested->items.pType[i];
+		if( args && args->size > i ) type = args->items.pType[i];
 		if( type && type->tid == DAO_PAR_NAMED ) type = & type->aux->xType;
 		if( type && (type->tid == 0 || type->tid >= DAO_ENUM)) type = NULL;
 		if( type == NULL ) it = DaoNamespace_GetType( ns, self->values[i] );
@@ -1253,8 +1253,8 @@ static int DaoParser_Deserialize( DaoParser *self, int start, int end, DaoValue 
 		start += 1;
 		if( start > end ) return next;
 	}
-	if( type->nested && type->nested->size >0 ) it1 = type->nested->items.pType[0];
-	if( type->nested && type->nested->size >1 ) it2 = type->nested->items.pType[1];
+	if( type->args && type->args->size >0 ) it1 = type->args->items.pType[0];
+	if( type->args && type->args->size >1 ) it2 = type->args->items.pType[1];
 	if( tokens[start]->name == DTOK_LB ){
 		int rb = DaoParser_FindPairToken( self, DTOK_LB, DTOK_RB, start, end );
 		if( rb < 0 ) return next;
@@ -1392,8 +1392,8 @@ static int DaoParser_Deserialize( DaoParser *self, int start, int end, DaoValue 
 		for(i=start; i<=end; i++){
 			if( tokens[i]->name == DTOK_COMMA ) continue;
 			it1 = NULL;
-			if( type->nested && type->nested->size > n ){
-				it1 = type->nested->items.pType[n];
+			if( type->args && type->args->size > n ){
+				it1 = type->args->items.pType[n];
 				if( it1 && it1->tid == DAO_PAR_NAMED ) it1 = & it1->aux->xType;
 			}
 			DList_PushFront( types, it1 );
@@ -1629,7 +1629,7 @@ static void AUX_Restore( DaoProcess *proc, DaoValue *p[], int N )
 	fclose( fin );
 }
 
-static DaoFuncItem serializerMeths[]=
+static DaoFunctionEntry serializerMeths[]=
 {
 	/*! Serializes \a value to text. For a class instance to be serializeable,
 	  its class should define `serialize()` method returning instance-related
@@ -1690,7 +1690,7 @@ static void SERIAL_Decode( DaoProcess *proc, DaoValue *p[], int N )
 	DaoSerializer_Reset( self, NULL );
 }
 
-static DaoFuncItem DaoSerializerMeths[]=
+static DaoFunctionEntry daoSerializerMeths[]=
 {
 	{ SERIAL_New,  "Serializer()" },
 
@@ -1708,7 +1708,7 @@ static DaoFuncItem DaoSerializerMeths[]=
 	{ NULL, NULL }
 };
 
-static void DaoSerializer_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+static void DaoSerializer_HandleGC( DaoValue *p, DList *values, DList *lists, DList *maps, int remove )
 {
 	DaoSerializer *self = (DaoSerializer*) p;
 	DList_Append( lists, self->values );
@@ -1718,11 +1718,29 @@ static void DaoSerializer_GetGCFields( void *p, DList *values, DList *lists, DLi
 	}
 }
 
-DaoTypeBase DaoSerializer_Typer =
+DaoTypeCore daoSerializerCore =
 {
-	"Serializer", NULL, NULL, (DaoFuncItem*) DaoSerializerMeths, { NULL }, { NULL },
-	(FuncPtrDel)DaoSerializer_Delete, DaoSerializer_GetGCFields
+	"Serializer",                                      /* name */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoSerializerMeths,                                /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoSerializer_Delete,          /* Delete */
+	DaoSerializer_HandleGC                             /* HandleGC */
 };
+
 
 #undef DAO_SERIAL
 #undef DAO_SERIAL_DLL
@@ -1731,7 +1749,7 @@ DaoTypeBase DaoSerializer_Typer =
 
 DAO_DLL_EXPORT int DaoSerializer_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	daox_type_serializer = DaoNamespace_WrapType( ns, & DaoSerializer_Typer, DAO_CSTRUCT, 0 );
+	daox_type_serializer = DaoNamespace_WrapType( ns, & daoSerializerCore, DAO_CSTRUCT, 0 );
 
 #define DAO_API_INIT
 #include"dao_api.h"
