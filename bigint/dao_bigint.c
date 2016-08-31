@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2014, Limin Fu
+// Copyright (c) 2014-2016, Limin Fu
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without modification,
@@ -1398,15 +1398,7 @@ static void DaoxBigInt_SetItem( DaoValue *self, DaoProcess *proc, DaoValue *ids[
 	default : DaoProcess_RaiseError( proc, "Index", "not supported" );
 	}
 }
-static DaoTypeCore bigintCore=
-{
-	NULL,
-	DaoValue_GetField,
-	DaoValue_SetField,
-	DaoxBigInt_GetItem,
-	DaoxBigInt_SetItem,
-	DaoValue_Print
-};
+
 static void BIGINT_New1( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxBigInt *self = DaoxBigInt_New();
@@ -1946,7 +1938,7 @@ static void BIGINT_CastToString( DaoProcess *proc, DaoValue *p[], int n )
 	DString *res = DaoProcess_PutChars( proc, "" );
 	DaoxBigInt_Print( self, res );
 }
-static DaoFuncItem bigintMeths[]=
+static DaoFunctionEntry daoBigIntMeths[]=
 {
 	{ BIGINT_New1, "BigInt( value: int, base = 10 ) => BigInt" },
 	{ BIGINT_New2, "BigInt( value: string, base = 10 ) => BigInt" },
@@ -2043,17 +2035,71 @@ static DaoFuncItem bigintMeths[]=
 
 	{ NULL, NULL },
 };
-DaoTypeBase bigintTyper =
+
+
+static void DaoxBigInt_CorePrint( DaoValue *self, DaoStream *stream, DMap *cycmap, DaoProcess *proc )
 {
-	"BigInt", NULL, NULL, (DaoFuncItem*) bigintMeths, {0}, {0},
-	(FuncPtrDel)DaoxBigInt_Delete, NULL
+	DaoxBigInt *pod = (DaoxBigInt*) self;
+	DString *buffer = DString_New();
+
+	DaoxBigInt_Print( pod, buffer );
+	DaoStream_WriteString( stream, buffer );
+	DString_Delete( buffer );
+}
+
+int DaoxBigInt_CoreCompare( DaoValue *self, DaoValue *other, DMap *cycmap )
+{
+	return DaoxBigInt_Compare( (DaoxBigInt*) self, (DaoxBigInt*) other );
+}
+
+size_t DaoxBigInt_Hash( DaoValue *self )
+{
+	DaoxBigInt *pod = (DaoxBigInt*) self;
+	return Dao_Hash( pod->data, pod->size, 0 );
+}
+
+DaoValue* DaoxBigInt_CoreCopy( DaoValue *self, DaoValue *target )
+{
+	DaoxBigInt *src = (DaoxBigInt*) self;
+	DaoxBigInt *dest = (DaoxBigInt*) target;
+	if( target ){
+		if( src ) DaoxBigInt_Copy( dest, src );
+		return target;
+	}
+	dest = DaoxBigInt_New();
+	if( src ) DaoxBigInt_Copy( dest, src );
+	return (DaoValue*) dest;
+}
+
+static DaoTypeCore daoBigIntCore =
+{
+	"BigInt",                                              /* name */
+	{ NULL },                                              /* bases */
+	NULL,                                                  /* numbers */
+	daoBigIntMeths,                                        /* methods */
+	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
+	DaoCstruct_CheckSetField,    DaoCstruct_DoSetField,    /* SetField */
+	DaoCstruct_CheckGetItem,     DaoCstruct_DoGetItem,     /* GetItem */
+	DaoCstruct_CheckSetItem,     DaoCstruct_DoSetItem,     /* SetItem */
+	DaoCstruct_CheckUnary,       DaoCstruct_DoUnary,       /* Unary */
+	DaoCstruct_CheckBinary,      DaoCstruct_DoBinary,      /* Binary */
+	DaoCstruct_CheckConversion,  DaoCstruct_DoConversion,  /* Conversion */
+	NULL,                        NULL,                     /* ForEach */
+	DaoxBigInt_CorePrint,                                  /* Print */
+	NULL,                                                  /* Slice */
+	DaoxBigInt_CoreCompare,                                /* Compare */
+	DaoxBigInt_Hash,                                       /* Hash */
+	DaoxBigInt_CoreCopy,                                   /* Copy */
+	(DaoDeleteFunction) DaoxBigInt_Delete,                 /* Delete */
+	NULL                                                   /* HandleGC */
 };
+
 
 DAO_DLL int DaoBigint_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 #ifdef DAO_WITH_THREAD
 	DMutex_Init( & mutex_long_sharing ); /* TODO: destroy; */
 #endif
-	daox_type_bigint = DaoNamespace_WrapType( ns, & bigintTyper, DAO_CSTRUCT, DAO_CTYPE_INVAR );
+	daox_type_bigint = DaoNamespace_WrapType( ns, & daoBigIntCore, DAO_CSTRUCT, 0 );
 	return 0;
 }

@@ -1701,7 +1701,7 @@ static void DaoxHelper_Delete( DaoxHelper *self )
 	DaoCstruct_Free( (DaoCstruct*) self );
 	dao_free( self );
 }
-static void DaoxHelper_GetGCFields( void *p, DList *v, DList *arrays, DList *m, int rm )
+static void DaoxHelper_HandleGC( DaoValue *p, DList *v, DList *arrays, DList *m, int rm )
 {
 	DaoxHelper *self = (DaoxHelper*) p;
 	DList_Append( arrays, self->nslist );
@@ -1745,6 +1745,9 @@ static DaoxHelpEntry* DaoxHelper_GetEntry( DaoxHelper *self, DaoxHelp *help, Dao
 	DMap_Insert( self->entries, name, entry );
 	return entry;
 }
+
+static DaoNamespace* DaoVmSpace_LoadHelp( DaoVmSpace *self, const char *file );
+
 static void DaoxHelper_Load( DaoxHelper *self, const char *lang )
 {
 	DaoNamespace *mod;
@@ -1754,17 +1757,17 @@ static void DaoxHelper_Load( DaoxHelper *self, const char *lang )
 	DString_SetChars( fname, "help_" );
 	DString_AppendChars( fname, lang );
 	DString_AppendChars( fname, "/help_dao" );
-	DaoVmSpace_Load( dao_vmspace, fname->chars );
+	DaoVmSpace_LoadHelp( dao_vmspace, fname->chars );
 
 	DString_SetChars( fname, "help_" );
 	DString_AppendChars( fname, lang );
 	DString_AppendChars( fname, "/help_daovm" );
-	DaoVmSpace_Load( dao_vmspace, fname->chars );
+	DaoVmSpace_LoadHelp( dao_vmspace, fname->chars );
 
 	DString_SetChars( fname, "help_" );
 	DString_AppendChars( fname, lang );
 	DString_AppendChars( fname, "/help_help" );
-	mod = DaoVmSpace_Load( dao_vmspace, fname->chars );
+	mod = DaoVmSpace_LoadHelp( dao_vmspace, fname->chars );
 	if( mod ){
 		DaoValue *value = DaoNamespace_FindData( mod, "help_message" );
 		if( value ) DaoNamespace_AddValue( dao_help_namespace, "help_message", value, NULL );
@@ -1773,17 +1776,17 @@ static void DaoxHelper_Load( DaoxHelper *self, const char *lang )
 	DString_SetChars( fname, "help_" );
 	DString_AppendChars( fname, lang );
 	DString_AppendChars( fname, "/help_tool" );
-	DaoVmSpace_Load( dao_vmspace, fname->chars );
+	DaoVmSpace_LoadHelp( dao_vmspace, fname->chars );
 
 	DString_SetChars( fname, "help_" );
 	DString_AppendChars( fname, lang );
 	DString_AppendChars( fname, "/help_module" );
-	DaoVmSpace_Load( dao_vmspace, fname->chars );
+	DaoVmSpace_LoadHelp( dao_vmspace, fname->chars );
 
 	DString_SetChars( fname, "help_" );
 	DString_AppendChars( fname, lang );
 	DString_AppendChars( fname, "/help_misc" );
-	DaoVmSpace_Load( dao_vmspace, fname->chars );
+	DaoVmSpace_LoadHelp( dao_vmspace, fname->chars );
 
 	DString_Delete( fname );
 }
@@ -1923,7 +1926,7 @@ static DaoxHelp* HELP_GetHelp( DaoProcess *proc, DString *entry_name )
 		DString_SetChars( name2, "help_" );
 		DString_Append( name2, name );
 		DString_Change( name2, "%W", "_", 0 );
-		NS = DaoVmSpace_Load( proc->vmSpace, name2->chars );
+		NS = DaoVmSpace_LoadHelp( proc->vmSpace, name2->chars );
 		if( NS ) break;
 		pos = DString_RFindChar( name, '.', -1 );
 		if( pos < 0 ) break;
@@ -2057,7 +2060,7 @@ static void HELP_Load( DaoProcess *proc, DaoValue *p[], int N )
 {
 	char *file = DaoValue_TryGetChars( p[0] );
 	DaoStream *stdio = proc->stdioStream;
-	DaoNamespace *NS = DaoVmSpace_Load( proc->vmSpace, file );
+	DaoNamespace *NS = DaoVmSpace_LoadHelp( proc->vmSpace, file );
 	if( stdio == NULL ) stdio = proc->vmSpace->stdioStream;
 	if( NS == NULL ){
 		DaoStream_WriteChars( stdio, "Failed to load help file \"" );
@@ -2180,7 +2183,7 @@ static void HELP_Export( DaoProcess *proc, DaoValue *p[], int N )
 }
 
 
-static DaoFuncItem helpMeths[]=
+static DaoFunctionEntry daoHelpMeths[]=
 {
 	{ HELP_Help1,     "help()" },
 	{ HELP_Help2,     "help( keyword: string, run = 0 )" },
@@ -2196,10 +2199,28 @@ static DaoFuncItem helpMeths[]=
 	{ NULL, NULL }
 };
 
-static DaoTypeBase helpTyper =
+
+DaoTypeCore daoHelpCore =
 {
-	"help", NULL, NULL, helpMeths, {0}, {0},
-	(FuncPtrDel) DaoxHelper_Delete, DaoxHelper_GetGCFields
+	"help",                                            /* name */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoHelpMeths,                                      /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxHelper_Delete,             /* Delete */
+	DaoxHelper_HandleGC                                /* HandleGC */
 };
 
 static DString* dao_verbatim_content( DString *VT )
@@ -2291,19 +2312,80 @@ static int dao_help_license( DaoNamespace *NS, DString *mode, DString *verbatim,
 	return dao_string_delete( code, 0 );
 }
 
-DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+
+static void HandleVerbatim( DaoNamespace *NS, DString *verbatim, int line )
+{
+	const char *pat = "^ @{1,2} %[ %s* %w+ %s* ( %( %s* (|%w+) %s* %) | %])";
+	int (*inliner)(DaoNamespace*,DString*,DString*,DString*,int) = NULL;
+	DString *buffer = DString_New();
+	DString *buffer2 = DString_New();
+	daoint pstart = 0, pend = verbatim->size-1;
+
+	if( DString_Match( verbatim, pat, & pstart, & pend ) ){ /* code inlining */
+		daoint lb = DString_FindChar( verbatim, '(', 0 );
+		if( lb > pend ) lb = DAO_NULLPOS;
+
+		if( lb != DAO_NULLPOS ){
+			daoint rb = DString_FindChar( verbatim, ')', 0 );
+			DString_SetBytes( buffer, verbatim->chars + 2, lb - 2 );
+			DString_SetBytes( buffer2, verbatim->chars + lb + 1, rb - lb - 1 );
+			DString_Trim( buffer2, 1, 1, 0 );
+		}else{
+			daoint rb = DString_FindChar( verbatim, ']', 0 );
+			DString_SetBytes( buffer, verbatim->chars + 2, rb - 2 );
+			DString_Clear( buffer2 );
+		}
+		DString_Trim( buffer, 1, 1, 0 );
+		if( strcmp( buffer->chars, "name" ) == 0 ){
+			inliner = dao_help_name;
+		}else if( strcmp( buffer->chars, "title" ) == 0 ){
+			inliner = dao_help_title;
+		}else if( strcmp( buffer->chars, "text" ) == 0 ){
+			inliner = dao_help_text;
+		}else if( strcmp( buffer->chars, "code" ) == 0 ){
+			inliner = dao_help_code;
+		}else if( strcmp( buffer->chars, "author" ) == 0 ){
+			inliner = dao_help_author;
+		}else if( strcmp( buffer->chars, "license" ) == 0 ){
+			inliner = dao_help_license;
+		}
+		DString_Clear( buffer );
+		if( inliner ) inliner( NS, buffer2, verbatim, buffer, line );
+	}
+	DString_Delete( buffer );
+	DString_Delete( buffer2 );
+}
+
+static void ExtractVerbatim( DaoNamespace *NS )
+{
+	int j;
+	for(j=1; j<NS->namespaces->size; ++j){
+		ExtractVerbatim( NS->namespaces->items.pNS[j] );
+	}
+	if( NS->mainRoutine == NULL ) return;
+	for(j=0; j<NS->mainRoutine->body->source->size; ++j){
+		DaoToken *token = NS->mainRoutine->body->source->items.pToken[j];
+		if( token->type != DTOK_VERBATIM ) continue;
+		HandleVerbatim( NS, & token->string, token->line );
+	}
+}
+
+static DaoNamespace* DaoVmSpace_LoadHelp( DaoVmSpace *self, const char *file )
+{
+	DaoNamespace *NS = DaoVmSpace_Load( self, file );
+
+	if( NS ) ExtractVerbatim( NS );
+	return NS;
+}
+
+
+DAO_DLL int DaoHelp_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	dao_vmspace = vmSpace;
-	DaoNamespace_AddCodeInliner( ns, "name", dao_help_name );
-	DaoNamespace_AddCodeInliner( ns, "title", dao_help_title );
-	DaoNamespace_AddCodeInliner( ns, "text", dao_help_text );
-	DaoNamespace_AddCodeInliner( ns, "code", dao_help_code );
-	DaoNamespace_AddCodeInliner( ns, "author", dao_help_author );
-	DaoNamespace_AddCodeInliner( ns, "license", dao_help_license );
 
 	daox_helpers = DaoMap_New(0);
 	dao_help_namespace = ns;
-	daox_type_helper = DaoNamespace_WrapType( ns, & helpTyper, DAO_CSTRUCT, 0 );
+	daox_type_helper = DaoNamespace_WrapType( ns, & daoHelpCore, DAO_CSTRUCT, 0 );
 	DaoNamespace_AddValue( ns, "__helpers__", (DaoValue*)daox_helpers, "map<string,help>" );
 	daox_helper = DaoxHelper_New();
 	DaoMap_InsertChars( daox_helpers, "en", (DaoValue*) daox_helper );

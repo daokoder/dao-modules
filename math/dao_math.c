@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2011,2012, Limin Fu
+// Copyright (c) 2011-2016, Limin Fu
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without modification,
@@ -315,7 +315,7 @@ static void LONG_Sqrt( DaoProcess *proc, DaoValue *p[], int N )
 #endif
 
 
-static DaoFuncItem mathMeths[]=
+static DaoFunctionEntry mathMeths[]=
 {
 #if 0
 	{ MATH_abs,       "abs( p: float )=>float" },
@@ -374,7 +374,7 @@ static DaoFuncItem mathMeths[]=
 	{ NULL, NULL }
 };
 
-DaoNumItem mathConsts[] =
+DaoNumberEntry mathConsts[] =
 {
 	{ "E",        DAO_FLOAT, M_E },
 	{ "LOG2E",    DAO_FLOAT, M_LOG2E },

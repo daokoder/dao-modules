@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2015, Limin Fu
+// Copyright (c) 2015,2016, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -62,12 +62,12 @@ DaoType* DaoDecimal_Type()
 
 DaoDecimal* DaoDecimal_New()
 {
-	DaoDecimal *self = (DaoDecimal*) DaoCpod_New( dao_type_decimal, sizeof(DaoDecimal) );
+	DaoDecimal *self = (DaoDecimal*) DaoCstruct_New( dao_type_decimal, sizeof(DaoDecimal) );
 	return self;
 }
 void DaoDecimal_Delete( DaoDecimal *self )
 {
-	DaoCpod_Delete( (DaoCpod*) self );
+	DaoCstruct_Delete( (DaoCstruct*) self );
 }
 
 static void DecQuad_FromValue( decQuad *self, DaoValue *value, decContext *ctx )
@@ -100,8 +100,8 @@ void DaoDecimal_ToString(DaoDecimal *self, DString *out )
 DaoDecimal* DaoProcess_PutDecimal( DaoProcess *self, double value )
 {
 	decContext *ctx = DaoProcess_GetDecimalContext( self );
-	DaoCpod *cpod = DaoProcess_PutCpod( self, dao_type_decimal, sizeof(DaoDecimal) );
-	DaoDecimal *res = (DaoDecimal*) cpod;
+	DaoCstruct *obj = DaoProcess_PutCstruct( self, dao_type_decimal );
+	DaoDecimal *res = (DaoDecimal*) obj;
 	char buffer[64];
 
 	if( res == NULL ) return NULL;
@@ -136,7 +136,7 @@ static void DEC_ToString( DaoProcess *proc, DaoValue *p[], int N )
 static decQuad DEC_GetDecimal( DaoValue *value, DaoProcess *proc )
 {
 	decQuad quad;
-	if( value->type == DAO_CPOD ){
+	if( value->type == DAO_CSTRUCT ){
 		DaoDecimal *dec = (DaoDecimal*) value;
 		quad = dec->value;
 	}else{
@@ -307,7 +307,7 @@ static void DEC_BITRIT( DaoProcess *proc, DaoValue *p[], int N )
 	decQuadShift( & C->value, & A->value, & Q, ctx );
 }
 
-static DaoFuncItem decimalMeths[] =
+static DaoFunctionEntry daoDecimalMeths[] =
 {
 	{ DEC_FromNumber,  "Decimal( value = 0.0 )" },
 	{ DEC_FromString,  "Decimal( value: string )" },
@@ -339,10 +339,69 @@ static DaoFuncItem decimalMeths[] =
 	{ NULL, NULL }
 };
 
-DaoTypeBase decimalTyper =
+
+static void DaoDecimal_Print( DaoValue *self, DaoStream *stream, DMap *cycmap, DaoProcess *proc )
 {
-	"Decimal", NULL, NULL, decimalMeths, {NULL}, {0},
-	(FuncPtrDel)DaoDecimal_Delete, NULL
+	DaoDecimal *pod = (DaoDecimal*) self;
+	char buffer[DECQUAD_String];
+
+	decQuadToString( & pod->value, buffer );
+	DaoStream_WriteChars( stream, buffer );
+}
+
+int DaoDecimal_Compare( DaoValue *self, DaoValue *other, DMap *cycmap )
+{
+	decContext context;
+	DaoDecimal *left = (DaoDecimal*) self;
+	DaoDecimal *right = (DaoDecimal*) other;
+	decContext *ctx = decContextDefault( & context, DEC_INIT_DECQUAD );
+	decQuad Q;
+	decQuadCompare( & Q, & left->value, & right->value, ctx );
+	return decQuadToInt32( & Q, ctx, DEC_ROUND_HALF_UP );
+}
+
+size_t DaoDecimal_Hash( DaoValue *self )
+{
+	DaoDecimal *pod = (DaoDecimal*) self;
+	return Dao_Hash( & pod->value, sizeof(pod->value), 0 );
+}
+
+DaoValue* DaoDecimal_Copy( DaoValue *self, DaoValue *target )
+{
+	DaoDecimal *src = (DaoDecimal*) self;
+	DaoDecimal *dest = (DaoDecimal*) target;
+	if( target ){
+		if( src ) dest->value = src->value;
+		return target;
+	}
+	dest = DaoDecimal_New();
+	if( src ) dest->value = src->value;
+	return (DaoValue*) dest;
+}
+
+
+/* TODO: Unary, Binary and Conversion; */
+static DaoTypeCore daoDecimalCore =
+{
+	"Decimal",                                             /* name */
+	{ NULL },                                              /* bases */
+	NULL,                                                  /* numbers */
+	daoDecimalMeths,                                       /* methods */
+	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
+	DaoCstruct_CheckSetField,    DaoCstruct_DoSetField,    /* SetField */
+	DaoCstruct_CheckGetItem,     DaoCstruct_DoGetItem,     /* GetItem */
+	DaoCstruct_CheckSetItem,     DaoCstruct_DoSetItem,     /* SetItem */
+	DaoCstruct_CheckUnary,       DaoCstruct_DoUnary,       /* Unary */
+	DaoCstruct_CheckBinary,      DaoCstruct_DoBinary,      /* Binary */
+	DaoCstruct_CheckConversion,  DaoCstruct_DoConversion,  /* Conversion */
+	NULL,                        NULL,                     /* ForEach */
+	DaoDecimal_Print,                                      /* Print */
+	NULL,                                                  /* Slice */
+	DaoDecimal_Compare,                                    /* Compare */
+	DaoDecimal_Hash,                                       /* Hash */
+	DaoDecimal_Copy,                                       /* Copy */
+	(DaoDeleteFunction) DaoCstruct_Delete,                 /* Delete */
+	NULL                                                   /* HandleGC */
 };
 
 
@@ -359,7 +418,7 @@ DAO_DLL_EXPORT int DaoDecimal_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 
 	decContextTestEndian(0);
 
-	dao_type_decimal = DaoNamespace_WrapType( mathns, &decimalTyper, DAO_CPOD, 0 );
+	dao_type_decimal = DaoNamespace_WrapType( mathns, & daoDecimalCore, DAO_CSTRUCT, 0 );
 
 #define DAO_API_INIT
 #include"dao_api.h"

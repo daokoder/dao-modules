@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2015, Limin Fu
+// Copyright (c) 2015,2016, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -203,7 +203,7 @@ static void GEN_GetNormal2( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutFloat( proc, mean + stdev * random );
 }
 
-static DaoFuncItem DaoRandGeneratorMeths[]=
+static DaoFunctionEntry daoRandGeneratorMeths[]=
 {
 	{ GEN_New,             "Generator( seed = 0 )" },
 
@@ -222,10 +222,27 @@ static DaoFuncItem DaoRandGeneratorMeths[]=
 	{ NULL, NULL }
 };
 
-DaoTypeBase DaoRandGenerator_Typer =
+DaoTypeCore daoRandGeneratorCore =
 {
-	"Generator", NULL, NULL, (DaoFuncItem*) DaoRandGeneratorMeths, { NULL }, { NULL },
-	(FuncPtrDel)DaoRandGenWrapper_Delete, NULL
+	"Generator",                                       /* name */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoRandGeneratorMeths,                             /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoRandGenWrapper_Delete,      /* Delete */
+	NULL                                               /* HandleGC */
 };
 
 
@@ -284,7 +301,7 @@ static void RAND_Rand2( DaoProcess *proc, DaoValue *p[], int N )
 // used to swap the buffer states between the process private buffer
 // and the buffer of the parameter generator.
 */
-static DaoFuncItem randomMeths[]=
+static DaoFunctionEntry randomMeths[]=
 {
 	{ RAND_Swap,      "swap( randgen: Generator )" },
 	{ RAND_SRand,     "srand( seed: int )" },
@@ -305,7 +322,7 @@ DaoType *daox_type_rand_generator = NULL;
 DAO_DLL_EXPORT int DaoRandom_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *randomns = DaoNamespace_GetNamespace( ns, "random" );
-	daox_type_rand_generator = DaoNamespace_WrapType( randomns, & DaoRandGenerator_Typer, DAO_CDATA, 0 );
+	daox_type_rand_generator = DaoNamespace_WrapType( randomns, & daoRandGeneratorCore, DAO_CDATA, 0 );
 	DaoNamespace_WrapFunctions( randomns, randomMeths );
 
 #define DAO_API_INIT

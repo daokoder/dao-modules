@@ -69,23 +69,19 @@ Key features:
 
 Other interesting features:
 @[list]
---@[green]Syntax macro:@[green]
-
-  Dao supports user-defined syntax by syntax macros, which can be expressed
-  in a form similar to Backus-Naur Form (BNF). Dao allows syntax macros to be
-  attached with "language" names, and provides a mechanism to avoid unexpected
-  interference with the standard syntax.
-
 --@[green]Object-Oriented Programming (OOP):@[green]
 
   Object-Oriented Programming support in Dao is class based. Dao classes are
   similar to C++ classes in several ways with a few new features.
 
---@[green]Abstract interface:@[green]
+--@[green]Abstract and concrete interface:@[green]
 
-  An abstract interface is type that defines a set of abstract methods for
+  An abstract interface defines a set of abstract methods for
   static type checking. A combination of interfaces and classes could support
   more flexible software design by both compositions and inheritances.
+  An concrete interface defines a set of implemented methods for a particular
+  abstract interface and attaches itself to a target type such that the target
+  type can be used as if it conforms to that abstract interface.
 
 --@[green]Deferred block and exception handling by defer-recover:@[green]
 
@@ -98,17 +94,12 @@ Other interesting features:
   Code section/block method is an alternative to functional methods in other
   languages such as Python. It is syntactically similar to Ruby Code Block.
 
---@[green]Typed function decorator:@[green]
-
-  Function decorators are functions that modify the behavior of other functions.
-  Dao function decorators support static type checking.
-
 --@[green]Anonymous function:@[green]
 
   Anonymous functions and closures can be created anywhere in a program.
   Their definition is very similar to the normal functions.
 
---@[green]Mixin class, class decorator and aspect class:@[green]
+--@[green]Mixin class:@[green]
 
   Mixin class supports composing new classes without inheritance.
   Class decorator supports compiling time modification of classes,
@@ -136,20 +127,13 @@ Other interesting features:
   Module support for coroutine makes collaborative multithreading simple,
   and allows static type checking across the yielding and resuming boundary.
 
-@[comment]
---@[green]Auxiliary methods:@[green]
-
-  Any type can be attached with auxiliary methods that do not actually belong
-  to the type, but can be invoked as its member methods.
-  --@[green]Customized for-in iteration;@[green]
-@[comment]
+--@[green]Customized for-in iteration;@[green]
 --@[green]Built-in multi-dimensional numeric array;@[green]
 --@[green]Built-in support for string pattern matching;@[green]
 --@[green]Built-in hash map type;@[green]
 --@[green]Template-like C data type;@[green]
 --@[green]Standard help system;@[green]
 --@[green]Data serialization;@[green]
---@[green]Mixed programming with embedded C/C++ codes;@[green]
 @[list]
 
 @[text]

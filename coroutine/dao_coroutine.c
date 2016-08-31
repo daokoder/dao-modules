@@ -2,7 +2,7 @@
 // Dao Coroutine Module
 // http://www.daovm.net
 //
-// Copyright (c) 2013, Limin Fu
+// Copyright (c) 2013-2016, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -187,7 +187,7 @@ static void COROUT_Status( DaoProcess *proc, DaoValue *p[], int N )
 }
 
 
-static DaoFuncItem coroutineMeths[]=
+static DaoFunctionEntry daoCoroutineMeths[]=
 {
 	{ COROUT_New,    "Coroutine<@RESUME,@SUSPEND>()" },
 	{ COROUT_Start,  "start( self: Coroutine<@RESUME,@SUSPEND>, rout: routine, ... ) => @SUSPEND" },
@@ -199,22 +199,40 @@ static DaoFuncItem coroutineMeths[]=
 	{ NULL, NULL },
 };
 
-static void DaoxCoroutine_GC( void *p, DList *values, DList *as, DList *maps, int remove )
+static void DaoxCoroutine_HandleGC( DaoValue *p, DList *values, DList *as, DList *maps, int remove )
 {
 	DaoxCoroutine *self = (DaoxCoroutine*) p;
 	DList_Append( values, self->process );
 	if( remove ) self->process = NULL;
 }
 
-DaoTypeBase coroutineTyper =
+
+DaoTypeCore daoCoroutineCore =
 {
-	"Coroutine<@RESUME,@SUSPEND>", NULL, NULL, (DaoFuncItem*) coroutineMeths, {0}, {0},
-	(FuncPtrDel)DaoxCoroutine_Delete, DaoxCoroutine_GC
+	"Coroutine<@RESUME,@SUSPEND>",                     /* name */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoCoroutineMeths,                                 /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxCoroutine_Delete,          /* Delete */
+	DaoxCoroutine_HandleGC                             /* HandleGC */
 };
 
 
 DAO_DLL int DaoCoroutine_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	daox_type_coroutine = DaoNamespace_WrapType( ns, & coroutineTyper, DAO_CSTRUCT, 0 );
+	daox_type_coroutine = DaoNamespace_WrapType( ns, & daoCoroutineCore, DAO_CSTRUCT, 0 );
 	return 0;
 }

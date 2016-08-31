@@ -63,7 +63,7 @@ dframe2d[1:5,:3].ScanColumns { [value,column]
 
 # Create a 3D matrix:
 matrix3d = array<float>(3){ [i] matrix + i }
-matrix3d.permute( [ 2, 1, 0 ] )
+matrix3d.permute( 2, 1, 0 )
 
 # Create 3D dataframe:
 dframe3d = DataFrame( matrix3d )
