@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2015, Limin Fu
+// Copyright (c) 2015-2016, Limin Fu
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without modification,
@@ -33,12 +33,17 @@
 #include "dao.h"
 #include "daoValue.h"
 
-typedef struct DaoHttpHeader DaoHttpHeader;
-typedef struct DaoHttpRequest DaoHttpRequest;
-typedef struct DaoHttpResponse DaoHttpResponse;
-typedef struct DaoChunkDecoder DaoChunkDecoder;
+typedef struct DaoHttpHeader    DaoHttpHeader;
+typedef struct DaoHttpRequest   DaoHttpRequest;
+typedef struct DaoHttpResponse  DaoHttpResponse;
+typedef struct DaoChunkDecoder  DaoChunkDecoder;
 
-#define DAO_HTTP_HEADER_COMMON DString *version; DMap *headers; DList *cookies; daoint size
+#define DAO_HTTP_HEADER_COMMON \
+	DAO_CSTRUCT_COMMON; \
+	DString *version; \
+	DMap *headers; \
+	DList *cookies; \
+	daoint size
 
 typedef enum {
 	Http_Get = 0,
@@ -52,16 +57,19 @@ typedef enum {
 	Http_Patch
 } http_meth_t;
 
-struct DaoHttpHeader {
+struct DaoHttpHeader
+{
 	DAO_HTTP_HEADER_COMMON;
 };
 
-struct DaoHttpRequest {
+struct DaoHttpRequest
+{
 	DAO_HTTP_HEADER_COMMON;
 	DString *method, *uri;
 };
 
-struct DaoHttpResponse {
+struct DaoHttpResponse 
+{
 	DAO_HTTP_HEADER_COMMON;
 	DString *reason;
 	daoint code;
@@ -89,7 +97,10 @@ typedef enum {
 	Status_Finished
 } chunk_status_t;
 
-struct DaoChunkDecoder {
+struct DaoChunkDecoder
+{
+	DAO_CSTRUCT_COMMON;
+
 	chunk_status_t status;
 	daoint pending;
 	DString *part;

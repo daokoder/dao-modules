@@ -471,7 +471,7 @@ static void IMAGE_Serialize( DaoProcess *proc, DaoValue *p[], int N )
 	DaoImage_Encode( self, res, 1 );
 }
 
-static DaoFuncItem DaoImageMeths[]=
+static DaoFunctionEntry daoImageMeths[]=
 {
 	{ IMAGE_New,     "Image()" },
 	{ IMAGE_Load,    "Load( self: Image, file: string )" },
@@ -485,10 +485,30 @@ static DaoFuncItem DaoImageMeths[]=
 	{ NULL, NULL }
 };
 
-DaoTypeBase DaoImage_Typer =
+
+DaoTypeCore daoImageCore =
 {
-	"Image", NULL, NULL, (DaoFuncItem*) DaoImageMeths, { NULL }, { NULL },
-	(FuncPtrDel)DaoImage_Delete, NULL
+	"Image",                                           /* name */
+	sizeof(DaoImage),                                  /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoImageMeths,                                     /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoImage_Delete,               /* Delete */
+	NULL                                               /* HandleGC */
 };
 
 #undef DAO_IMAGE
@@ -498,7 +518,7 @@ DaoTypeBase DaoImage_Typer =
 
 DAO_DLL_EXPORT int DaoImage_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	daox_type_image = DaoNamespace_WrapType( ns, & DaoImage_Typer, DAO_CSTRUCT, 0 );
+	daox_type_image = DaoNamespace_WrapType( ns, & daoImageCore, DAO_CSTRUCT, 0 );
 
 #define DAO_API_INIT
 #include"dao_api.h"

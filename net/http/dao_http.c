@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2015, Limin Fu
+// Copyright (c) 2015-2016, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -46,14 +46,15 @@ static DaoType *daox_type_chunkDecoder = NULL;
 
 DaoHttpRequest* DaoHttpRequest_New()
 {
-	DaoHttpRequest *res = (DaoHttpRequest*)dao_malloc( sizeof(DaoHttpRequest) );
-	res->method = DString_New();
-	res->uri = DString_New();
-	res->version = DString_New();
-	res->headers = DMap_New( DAO_DATA_STRING, DAO_DATA_STRING );
-	res->cookies = DList_New( DAO_DATA_STRING );
-	res->size = 0;
-	return res;
+	DaoCstruct *cstruct = DaoCstruct_New( daox_type_request, sizeof(DaoHttpRequest) );
+	DaoHttpRequest *self = (DaoHttpRequest*) cstruct;
+	self->method = DString_New();
+	self->uri = DString_New();
+	self->version = DString_New();
+	self->headers = DMap_New( DAO_DATA_STRING, DAO_DATA_STRING );
+	self->cookies = DList_New( DAO_DATA_STRING );
+	self->size = 0;
+	return self;
 }
 
 void DaoHttpRequest_Delete( DaoHttpRequest *self )
@@ -63,19 +64,20 @@ void DaoHttpRequest_Delete( DaoHttpRequest *self )
 	DString_Delete( self->version );
 	DMap_Delete( self->headers );
 	DList_Delete( self->cookies );
-	dao_free( self );
+	DaoCstruct_Delete( (DaoCstruct*) self );
 }
 
 DaoHttpResponse* DaoHttpResponse_New()
 {
-	DaoHttpResponse *res = (DaoHttpResponse*)dao_malloc( sizeof(DaoHttpResponse) );
-	res->version = DString_New();
-	res->reason = DString_New();
-	res->headers = DMap_New( DAO_DATA_STRING, DAO_DATA_STRING );
-	res->cookies = DList_New( DAO_DATA_STRING );
-	res->code = 0;
-	res->size = 0;
-	return res;
+	DaoCstruct *cstruct = DaoCstruct_New( daox_type_response, sizeof(DaoHttpResponse) );
+	DaoHttpResponse *self = (DaoHttpResponse*) cstruct;
+	self->version = DString_New();
+	self->reason = DString_New();
+	self->headers = DMap_New( DAO_DATA_STRING, DAO_DATA_STRING );
+	self->cookies = DList_New( DAO_DATA_STRING );
+	self->code = 0;
+	self->size = 0;
+	return self;
 }
 
 void DaoHttpResponse_Delete( DaoHttpResponse *self )
@@ -84,7 +86,7 @@ void DaoHttpResponse_Delete( DaoHttpResponse *self )
 	DString_Delete( self->reason );
 	DList_Delete( self->cookies );
 	DMap_Delete( self->headers );
-	dao_free( self );
+	DaoCstruct_Delete( (DaoCstruct*) self );
 }
 
 const char* ParseHttpVersion( const char *context, DString *version )
@@ -552,11 +554,11 @@ void ParseSetCookie( DaoProcess *proc, DString *str, DaoMap *cookies )
 		const char *start = cp + 1;
 		int len;
 		DaoTuple *tup;
-		DaoType *type = cookies->ctype->nested->items.pType[1];
+		DaoType *type = cookies->ctype->args->items.pType[1];
 		DaoNone *none = DaoNone_New();
 		DString_SetBytes( name, str->chars, cp - str->chars );
 		for ( ++cp; *cp && *cp != ';'; ++cp ); // pair-params boundary
-		tup = DaoTuple_Create( type, type->nested->size, 1 );
+		tup = DaoTuple_Create( type, type->args->size, 1 );
 		DaoTuple_SetItem( tup, (DaoValue*)none, 1 );
 		DString_SetBytes( tup->values[0]->xString.value, start, cp - start );
 		while ( *cp == ';' ){ // extract params
@@ -650,19 +652,19 @@ void ParseCookie( DString *str, DaoMap *cookies )
 
 static void DaoHttpHeader_Version( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpHeader *self = (DaoHttpHeader*) p[0];
 	DaoProcess_PutString( proc, self->version );
 }
 
 static void DaoHttpHeader_Size( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpHeader *self = (DaoHttpHeader*) p[0];
 	DaoProcess_PutInteger( proc, self->size );
 }
 
 static void DaoHttpHeader_Field( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpHeader *self = (DaoHttpHeader*) p[0];
 	DString *field = p[1]->xString.value;
 	DNode *node;
 	DString_ToLower( field );
@@ -694,7 +696,7 @@ DaoTuple* PutMimeValue( DaoProcess *proc, DMap *headers, const char *field )
 		DaoTuple *res = DaoProcess_PutTuple( proc, 2 );
 		if ( !res->values[1] ){
 			DaoMap *map = DaoMap_New( 0 );
-			DaoMap_SetType( map, &res->ctype->nested->items.pType[1]->aux->xType );
+			DaoMap_SetType( map, &res->ctype->args->items.pType[1]->aux->xType );
 			DaoTuple_SetItem( res, (DaoValue*)map, 1 );
 		}
 		res->values[0]->xString.value->size = 0;
@@ -707,25 +709,25 @@ DaoTuple* PutMimeValue( DaoProcess *proc, DMap *headers, const char *field )
 
 static void DaoHttpHeader_TransEnc( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpHeader *self = (DaoHttpHeader*) p[0];
 	PutListValue( proc, self->headers, "transfer-encoding" );
 }
 
 static void DaoHttpHeader_ContEnc( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpHeader *self = (DaoHttpHeader*) p[0];
 	PutListValue( proc, self->headers, "content-encoding" );
 }
 
 static void DaoHttpHeader_ContLang( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpHeader *self = (DaoHttpHeader*) p[0];
 	PutListValue( proc, self->headers, "content-language" );
 }
 
 static void DaoHttpHeader_CacheCtrl( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpHeader *self = (DaoHttpHeader*) p[0];
 	PutListValue( proc, self->headers, "cache-control" );
 }
 
@@ -750,19 +752,19 @@ void PutIntValue( DaoProcess *proc, DMap *headers, const char *field )
 
 static void DaoHttpHeader_ContLen( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpHeader *self = (DaoHttpHeader*) p[0];
 	PutIntValue( proc, self->headers, "content-length" );
 }
 
 static void DaoHttpHeader_Via( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpHeader *self = (DaoHttpHeader*) p[0];
 	PutListValue( proc, self->headers, "via" );
 }
 
 static void DaoHttpHeader_Connection( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpHeader *self = (DaoHttpHeader*) p[0];
 	daoint i;
 	DaoList *res = PutListValue( proc, self->headers, "connection" );
 	// connection options are case-insensitive
@@ -773,25 +775,25 @@ static void DaoHttpHeader_Connection( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoHttpHeader_Upgrade( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpHeader *self = (DaoHttpHeader*) p[0];
 	PutListValue( proc, self->headers, "upgrade" );
 }
 
 static void DaoHttpHeader_Trailer( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpHeader *self = (DaoHttpHeader*) p[0];
 	PutListValue( proc, self->headers, "trailer" );
 }
 
 static void DaoHttpHeader_TE( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpHeader *self = (DaoHttpHeader*) p[0];
 	PutListValue( proc, self->headers, "te" );
 }
 
 static void DaoHttpHeader_ContType( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpHeader *self = (DaoHttpHeader*) p[0];
 	PutMimeValue( proc, self->headers, "content-type" );
 }
 
@@ -817,17 +819,17 @@ void PutDateValue( DaoProcess *proc, DMap *headers, const char *field )
 
 static void DaoHttpHeader_ContLoc( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpHeader *self = (DaoHttpHeader*) p[0];
 	PutStringValue( proc, self->headers, "content-location" );
 }
 
 static void DaoHttpHeader_Date( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpHeader *self = (DaoHttpHeader*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpHeader *self = (DaoHttpHeader*) p[0];
 	PutDateValue( proc, self->headers, "date" );
 }
 
-static DaoFuncItem headerMeths[] =
+static DaoFunctionEntry daoHeaderMeths[] =
 {
 	//! HTTP version number
 	{ DaoHttpHeader_Version,	".version(self: Header) => string" },
@@ -860,105 +862,126 @@ static DaoFuncItem headerMeths[] =
 };
 
 //! Encapsulates shared properties of HTTP request and response
-DaoTypeBase headerTyper = {
-	"Header", NULL, NULL, headerMeths, {NULL}, {0},
-	(FuncPtrDel)NULL, NULL
+DaoTypeCore daoHeaderCore =
+{
+	"Header",                                          /* name */
+	0,                                                 /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoHeaderMeths,                                    /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	DaoCstruct_CheckGetItem,   DaoCstruct_DoGetItem,   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	NULL,                                              /* Delete */
+	NULL                                               /* HandleGC */
 };
+
 
 static void DaoHttpRequest_Uri( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpRequest *self = (DaoHttpRequest*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpRequest *self = (DaoHttpRequest*) p[0];
 	DaoProcess_PutString( proc, self->uri );
 }
 
 static void DaoHttpRequest_Method( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpRequest *self = (DaoHttpRequest*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpRequest *self = (DaoHttpRequest*) p[0];
 	DaoProcess_PutString( proc, self->method );
 }
 
 static void DaoHttpRequest_Host( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpRequest *self = (DaoHttpRequest*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpRequest *self = (DaoHttpRequest*) p[0];
 	PutStringValue( proc, self->headers, "host" );
 }
 
 static void DaoHttpRequest_Expect( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpRequest *self = (DaoHttpRequest*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpRequest *self = (DaoHttpRequest*) p[0];
 	PutStringValue( proc, self->headers, "expect" );
 }
 
 static void DaoHttpRequest_From( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpRequest *self = (DaoHttpRequest*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpRequest *self = (DaoHttpRequest*) p[0];
 	PutStringValue( proc, self->headers, "from" );
 }
 
 static void DaoHttpRequest_Referer( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpRequest *self = (DaoHttpRequest*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpRequest *self = (DaoHttpRequest*) p[0];
 	PutStringValue( proc, self->headers, "referer" );
 }
 
 static void DaoHttpRequest_UserAgent( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpRequest *self = (DaoHttpRequest*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpRequest *self = (DaoHttpRequest*) p[0];
 	PutStringValue( proc, self->headers, "user-agent" );
 }
 
 static void DaoHttpRequest_Auth( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpRequest *self = (DaoHttpRequest*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpRequest *self = (DaoHttpRequest*) p[0];
 	PutStringValue( proc, self->headers, "authorization" );
 }
 
 static void DaoHttpRequest_ProxyAuth( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpRequest *self = (DaoHttpRequest*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpRequest *self = (DaoHttpRequest*) p[0];
 	PutStringValue( proc, self->headers, "proxy-authorization" );
 }
 
 static void DaoHttpRequest_Accept( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpRequest *self = (DaoHttpRequest*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpRequest *self = (DaoHttpRequest*) p[0];
 	PutListValue( proc, self->headers, "accept" );
 }
 
 static void DaoHttpRequest_AcceptChar( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpRequest *self = (DaoHttpRequest*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpRequest *self = (DaoHttpRequest*) p[0];
 	PutListValue( proc, self->headers, "accept-charset" );
 }
 
 static void DaoHttpRequest_AcceptEnc( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpRequest *self = (DaoHttpRequest*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpRequest *self = (DaoHttpRequest*) p[0];
 	PutListValue( proc, self->headers, "accept-encoding" );
 }
 
 static void DaoHttpRequest_AcceptLang( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpRequest *self = (DaoHttpRequest*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpRequest *self = (DaoHttpRequest*) p[0];
 	PutListValue( proc, self->headers, "accept-language" );
 }
 
 static void DaoHttpRequest_MaxForw( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpRequest *self = (DaoHttpRequest*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpRequest *self = (DaoHttpRequest*) p[0];
 	PutIntValue( proc, self->headers, "max-forwards" );
 }
 
 static void DaoHttpRequest_Cookies( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpRequest *self = (DaoHttpRequest*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpRequest *self = (DaoHttpRequest*) p[0];
 	DaoMap *res = DaoProcess_PutMap( proc, 1 );
 	daoint i;
 	for ( i = 0; i < self->cookies->size; ++i )
 		ParseCookie( self->cookies->items.pString[i], res );
 }
 
-static DaoFuncItem requestMeths[] =
+static DaoFunctionEntry daoRequestHeaderMeths[] =
 {
 	//! Requested URI
 	{ DaoHttpRequest_Uri,		".uri(self: RequestHeader) => string" },
@@ -986,50 +1009,71 @@ static DaoFuncItem requestMeths[] =
 };
 
 //! HTTP request header
-DaoTypeBase requestTyper = {
-	"RequestHeader", NULL, NULL, requestMeths, {&headerTyper}, {0},
-	(FuncPtrDel)DaoHttpRequest_Delete, NULL
+DaoTypeCore daoRequestHeaderCore =
+{
+	"RequestHeader",                                   /* name */
+	sizeof(DaoHttpRequest),                            /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoRequestHeaderMeths,                             /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	DaoCstruct_CheckGetItem,   DaoCstruct_DoGetItem,   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoHttpRequest_Delete,         /* Delete */
+	NULL                                               /* HandleGC */
 };
+
 
 static void DaoHttpResponse_Code( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpResponse *self = (DaoHttpResponse*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpResponse *self = (DaoHttpResponse*) p[0];
 	DaoProcess_PutInteger( proc, self->code );
 }
 
 static void DaoHttpResponse_Reason( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpResponse *self = (DaoHttpResponse*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpResponse *self = (DaoHttpResponse*) p[0];
 	DaoProcess_PutString( proc, self->reason );
 }
 
 static void DaoHttpResponse_Location( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpResponse *self = (DaoHttpResponse*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpResponse *self = (DaoHttpResponse*) p[0];
 	PutStringValue( proc, self->headers, "location" );
 }
 
 static void DaoHttpResponse_RetryAfter( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpResponse *self = (DaoHttpResponse*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpResponse *self = (DaoHttpResponse*) p[0];
 	PutStringValue( proc, self->headers, "retry-after" );
 }
 
 static void DaoHttpResponse_Server( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpResponse *self = (DaoHttpResponse*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpResponse *self = (DaoHttpResponse*) p[0];
 	PutStringValue( proc, self->headers, "server" );
 }
 
 static void DaoHttpResponse_Expires( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpResponse *self = (DaoHttpResponse*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpResponse *self = (DaoHttpResponse*) p[0];
 	PutDateValue( proc, self->headers, "expires" );
 }
 
 static void DaoHttpResponse_Vary( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpResponse *self = (DaoHttpResponse*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpResponse *self = (DaoHttpResponse*) p[0];
 	DString field = DString_WrapChars( "vary" );
 	DNode *node = DMap_Find( self->headers, &field );
 	if ( node ){
@@ -1045,38 +1089,38 @@ static void DaoHttpResponse_Vary( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoHttpResponse_Allow( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpResponse *self = (DaoHttpResponse*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpResponse *self = (DaoHttpResponse*) p[0];
 	PutListValue( proc, self->headers, "allow" );
 }
 
 static void DaoHttpResponse_WwwAuth( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpResponse *self = (DaoHttpResponse*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpResponse *self = (DaoHttpResponse*) p[0];
 	PutListValue( proc, self->headers, "www-authenticate" );
 }
 
 static void DaoHttpResponse_ProxyAuth( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpResponse *self = (DaoHttpResponse*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpResponse *self = (DaoHttpResponse*) p[0];
 	PutListValue( proc, self->headers, "proxy-authenticate" );
 }
 
 static void DaoHttpResponse_Age( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpResponse *self = (DaoHttpResponse*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpResponse *self = (DaoHttpResponse*) p[0];
 	PutIntValue( proc, self->headers, "age" );
 }
 
 static void DaoHttpResponse_Cookies( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoHttpResponse *self = (DaoHttpResponse*)DaoValue_TryGetCdata( p[0] );
+	DaoHttpResponse *self = (DaoHttpResponse*) p[0];
 	DaoMap *res = DaoProcess_PutMap( proc, 1 );
 	daoint i;
 	for ( i = 0; i < self->cookies->size; ++i )
 		ParseSetCookie( proc, self->cookies->items.pString[i], res );
 }
 
-static DaoFuncItem responseMeths[] =
+static DaoFunctionEntry daoResponseHeaderMeths[] =
 {
 	//! Status code
 	{ DaoHttpResponse_Code,			".code(self: ResponseHeader) => int" },
@@ -1102,10 +1146,31 @@ static DaoFuncItem responseMeths[] =
 };
 
 //! HTTP response header
-DaoTypeBase responseTyper = {
-	"ResponseHeader", NULL, NULL, responseMeths, {&headerTyper}, {0},
-	(FuncPtrDel)DaoHttpResponse_Delete, NULL
+DaoTypeCore daoResponseHeaderCore =
+{
+	"ResponseHeader",                                  /* name */
+	sizeof(DaoHttpResponse),                                 /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoResponseHeaderMeths,                            /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	DaoCstruct_CheckGetItem,   DaoCstruct_DoGetItem,   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoHttpResponse_Delete,        /* Delete */
+	NULL                                               /* HandleGC */
 };
+
 
 void GetParsingErrorMsg( http_err_t error, char *buffer, size_t size )
 {
@@ -1132,7 +1197,7 @@ static void HTTP_AcceptRequest( DaoProcess *proc, DaoValue *p[], int N )
 		DaoHttpRequest *res = DaoHttpRequest_New();
 		http_err_t err = DaoHttpRequest_Parse( res, msg, end );
 		if ( !err )
-			DaoProcess_PutCdata( proc, res, daox_type_request );
+			 DaoProcess_PutValue( proc, (DaoValue*) res );
 		else {
 			char errbuf[512];
 			int len = snprintf( errbuf, sizeof(errbuf), "Failed to parse request: " );
@@ -1153,7 +1218,7 @@ static void HTTP_AcceptResponse( DaoProcess *proc, DaoValue *p[], int N )
 		DaoHttpResponse *res = DaoHttpResponse_New();
 		http_err_t err = DaoHttpResponse_Parse( res, msg, end );
 		if ( !err )
-			DaoProcess_PutCdata( proc, res, daox_type_response );
+			 DaoProcess_PutValue( proc, (DaoValue*) res );
 		else {
 			char errbuf[512];
 			int len = snprintf( errbuf, sizeof(errbuf), "Failed to parse response: " );
@@ -1212,7 +1277,7 @@ void AppendFieldValue( DaoValue *value, DString *dest )
 		if ( 1 ){
 			const char *dnames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
 			const char *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-			DaoTime *t = (DaoTime*)&value->xCpod;
+			DaoTime *t = (DaoTime*) value;
 			DTime ts = t->time;
 			char buf[100];
 			if ( t->local )
@@ -1358,25 +1423,32 @@ static void HTTP_InitResponse( DaoProcess *proc, DaoValue *p[], int N )
 	DString_AppendChars( resp, "\r\n" );
 }
 
-static void DaoChunkDecoder_Create( DaoProcess *proc, DaoValue *p[], int N )
+DaoChunkDecoder* DaoChunkDecoder_New()
 {
-	DaoChunkDecoder *res = (DaoChunkDecoder*)dao_malloc(sizeof(DaoChunkDecoder));
-	res->status = Status_Idle;
-	res->pending = 0;
-	res->part = DString_New();
-	res->last = 0;
-	DaoProcess_PutCdata( proc, res, daox_type_chunkDecoder );
+	DaoCstruct *cstruct = DaoCstruct_New( daox_type_chunkDecoder, sizeof(DaoChunkDecoder) );
+	DaoChunkDecoder *self = (DaoChunkDecoder*) cstruct;
+	self->status = Status_Idle;
+	self->pending = 0;
+	self->part = DString_New();
+	self->last = 0;
+	return self;
 }
 
 void DaoChunkDecoder_Delete( DaoChunkDecoder *self )
 {
 	DString_Delete( self->part );
-	dao_free( self );
+	DaoCstruct_Delete( (DaoCstruct*) self );
+}
+
+static void DaoChunkDecoder_Create( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoChunkDecoder *self = DaoChunkDecoder_New();
+	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 
 static void DaoChunkDecoder_Status( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoChunkDecoder *self = (DaoChunkDecoder*)DaoValue_TryGetCdata( p[0] );
+	DaoChunkDecoder *self = (DaoChunkDecoder*) p[0];
 	const char *symbol = "";
 	switch ( self->status ){
 	case Status_Idle:				symbol = "idle"; break;
@@ -1390,7 +1462,7 @@ static void DaoChunkDecoder_Status( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoChunkDecoder_Count( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoChunkDecoder *self = (DaoChunkDecoder*)DaoValue_TryGetCdata( p[0] );
+	DaoChunkDecoder *self = (DaoChunkDecoder*) p[0];
 	DaoProcess_PutInteger( proc, self->pending );
 }
 
@@ -1407,7 +1479,7 @@ int CheckTrail( const char *str, int expected )
 
 static void DaoChunkDecoder_Decode( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoChunkDecoder *self = (DaoChunkDecoder*)DaoValue_TryGetCdata( p[0] );
+	DaoChunkDecoder *self = (DaoChunkDecoder*) p[0];
 	DString *msg = p[1]->xString.value;
 	daoint start = p[2]->xInteger.value;
 	DString *data = DaoProcess_PutChars( proc, "" );
@@ -1505,14 +1577,14 @@ static void DaoChunkDecoder_Decode( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoChunkDecoder_Reset( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoChunkDecoder *self = (DaoChunkDecoder*)DaoValue_TryGetCdata( p[0] );
+	DaoChunkDecoder *self = (DaoChunkDecoder*) p[0];
 	DString_Clear( self->part );
 	self->pending = 0;
 	self->status = Status_Idle;
 	self->last = 0;
 }
 
-static DaoFuncItem chunkDecoderMeths[] =
+static DaoFunctionEntry daoChunkDecoderMeths[] =
 {
 	//! Creates idle-state decoder
 	{ DaoChunkDecoder_Create,	"ChunkDecoder()" },
@@ -1538,10 +1610,32 @@ static DaoFuncItem chunkDecoderMeths[] =
 };
 
 //! Statefule decoder for chunked encoding
-DaoTypeBase chunkDecoderTyper = {
-	"ChunkDecoder", NULL, NULL, chunkDecoderMeths, {NULL}, {0},
-	(FuncPtrDel)DaoChunkDecoder_Delete, NULL
+DaoTypeCore daoChunkDecoderCore =
+{
+	"ChunkDecoder",                                    /* name */
+	sizeof(DaoChunkDecoder),                           /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoChunkDecoderMeths,                              /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	DaoCstruct_CheckGetItem,   DaoCstruct_DoGetItem,   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoChunkDecoder_Delete,        /* Delete */
+	NULL                                               /* HandleGC */
 };
+
+
 
 static void HTTP_ParseDate( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1638,16 +1732,16 @@ http_err_t ParseMultipartForm( DString *form, DString *boundary, DaoMap *parts )
 	value = val->value;
 	fname = DString_New();
 	while ( 1 ){
-		DaoType *type = parts->ctype->nested->items.pType[1];
-		DaoTuple *tup = DaoTuple_Create( type, type->nested->size, 1 );
+		DaoType *type = parts->ctype->args->items.pType[1];
+		DaoTuple *tup = DaoTuple_Create( type, type->args->size, 1 );
 		int idx = 2; // to remove compiling warning;
 		if ( !tup->values[idx] ){
 			DaoTuple *mime;
-			type = &tup->ctype->nested->items.pType[idx]->aux->xType;
-			mime = DaoTuple_Create( type, type->nested->size, 1 );
+			type = &tup->ctype->args->items.pType[idx]->aux->xType;
+			mime = DaoTuple_Create( type, type->args->size, 1 );
 			if ( !mime->values[1] ){
 				DaoMap *map = DaoMap_New( 0 );
-				DaoMap_SetType( map, &mime->ctype->nested->items.pType[1]->aux->xType );
+				DaoMap_SetType( map, &mime->ctype->args->items.pType[1]->aux->xType );
 				DaoTuple_SetItem( mime, (DaoValue*)map, 1 );
 			}
 			DaoTuple_SetItem( tup, (DaoValue*)mime, 2 );
@@ -1783,7 +1877,7 @@ static void HTTP_ParseMultiForm( DaoProcess *proc, DaoValue *p[], int N )
 	}
 }
 
-static DaoFuncItem httpMeths[] =
+static DaoFunctionEntry httpMeths[] =
 {
 	//! Returns HTTP request or response header read from \a message. If \a message does not
 	//! contain a complete header (terminated by '\r\n'), returns \c none
@@ -1827,10 +1921,10 @@ DAO_DLL int DaoHttp_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace *httpns = DaoVmSpace_GetNamespace( vmSpace, "http" );
 	DaoNamespace_AddConstValue( ns, "http", (DaoValue*)httpns );
 	DaoNamespace_AddParent( httpns, ns );
-	daox_type_header = DaoNamespace_WrapType( httpns, &headerTyper, DAO_CDATA, DAO_CTYPE_INVAR );
-	daox_type_request = DaoNamespace_WrapType( httpns, &requestTyper, DAO_CDATA, DAO_CTYPE_INVAR );
-	daox_type_response = DaoNamespace_WrapType( httpns, &responseTyper, DAO_CDATA, DAO_CTYPE_INVAR );
-	daox_type_chunkDecoder = DaoNamespace_WrapType( httpns, &chunkDecoderTyper, DAO_CDATA, 0 );
+	daox_type_header = DaoNamespace_WrapType( httpns, &daoHeaderCore, DAO_CSTRUCT, 0 );
+	daox_type_request = DaoNamespace_WrapType( httpns, &daoRequestHeaderCore, DAO_CSTRUCT, 0 );
+	daox_type_response = DaoNamespace_WrapType( httpns, &daoResponseHeaderCore, DAO_CSTRUCT, 0 );
+	daox_type_chunkDecoder = DaoNamespace_WrapType( httpns, &daoChunkDecoderCore, DAO_CSTRUCT, 0 );
 	DaoNamespace_DefineType( httpns, "tuple<name: string, params: map<string,string>>", "MediaType" );
 	DaoNamespace_WrapFunctions( httpns, httpMeths );
 	return 0;

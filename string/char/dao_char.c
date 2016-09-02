@@ -28,6 +28,7 @@
 // 2014-05: Danilov Aleksey, initial implementation.
 
 #include <ctype.h>
+#include <string.h>
 
 #include"dao.h"
 #include"daoValue.h"
@@ -243,7 +244,7 @@ static void DaoChar_Check( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutBoolean( proc, res != 0 );
 }
 
-static DaoFuncItem charMeths[]=
+static DaoFunctionEntry charMeths[]=
 {
 	/*! Returns Unicode \a codepoint converted to string with the given \a encoding. In case of invalid code point, 0 is returned */
 	{ DaoChar_CPToStr,		"decode(codepoint: int, encoding: enum<utf8,local> = $utf8) => string" },

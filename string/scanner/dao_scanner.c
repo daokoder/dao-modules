@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2014, Limin Fu
+// Copyright (c) 2014-2016, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -33,7 +33,8 @@ static DaoType *daox_type_scanner = NULL;
 
 DaoScanner* DaoScanner_New()
 {
-	DaoScanner *self = (DaoScanner*)dao_malloc( sizeof(DaoScanner) );
+	DaoCstruct *cstruct = DaoCstruct_New( daox_type_scanner, sizeof(DaoScanner) );
+	DaoScanner *self = (DaoScanner*) cstruct;
 	self->regex = NULL;
 	self->context = NULL;
 	self->pos = 0;
@@ -44,9 +45,8 @@ DaoScanner* DaoScanner_New()
 
 void DaoScanner_Delete( DaoScanner *self )
 {
-	if ( self->context )
-		DString_Delete( self->context );
-	dao_free( self );
+	if ( self->context ) DString_Delete( self->context );
+	DaoCstruct_Delete( (DaoCstruct*) self );
 }
 
 static void DaoScanner_Create( DaoProcess *proc, DaoValue *p[], int N )
@@ -58,24 +58,24 @@ static void DaoScanner_Create( DaoProcess *proc, DaoValue *p[], int N )
 	self->pos = ( pos > str->size )? str->size : pos;
 	self->context = DString_New();
 	DString_Assign( self->context, str );
-	DaoProcess_PutCdata( proc, self, daox_type_scanner );
+	DaoProcess_PutValue( proc, self );
 }
 
 static void DaoScanner_Context( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
+	DaoScanner *self = (DaoScanner*) p[0];
 	DaoProcess_PutString( proc, self->context );
 }
 
 static void DaoScanner_Position( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
+	DaoScanner *self = (DaoScanner*) p[0];
 	DaoProcess_PutInteger( proc, self->pos );
 }
 
 static void DaoScanner_SetPos( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
+	DaoScanner *self = (DaoScanner*) p[0];
 	dao_integer pos = p[1]->xInteger.value;
 	if ( pos < 0 )
 		pos = self->context->size + pos;
@@ -84,19 +84,19 @@ static void DaoScanner_SetPos( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoScanner_Rest( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
+	DaoScanner *self = (DaoScanner*) p[0];
 	DaoProcess_PutInteger( proc, self->context->size - self->pos );
 }
 
 static void DaoScanner_Append( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
+	DaoScanner *self = (DaoScanner*) p[0];
 	DString_Append( self->context, p[1]->xString.value );
 }
 
 static void DaoScanner_FetchPeek( DaoProcess *proc, DaoValue *p[], int fetch )
 {
-	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
+	DaoScanner *self = (DaoScanner*) p[0];
 	dao_integer count = p[1]->xInteger.value;
 	DString *sub;
 	if ( count < 0 ){
@@ -127,7 +127,7 @@ static void DaoScanner_Peek( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoScanner_ScanSeek( DaoProcess *proc, DaoValue *p[], int seek )
 {
-	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
+	DaoScanner *self = (DaoScanner*) p[0];
 	DString *pt = p[1]->xString.value;
 	int del = 0;
 	daoint res = 0;
@@ -172,7 +172,7 @@ static void DaoScanner_Seek( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoScanner_Matched( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
+	DaoScanner *self = (DaoScanner*) p[0];
 	dao_integer group = p[1]->xInteger.value;
 	DString *res = DString_New();
 	if ( self->regex && self->start >= 0 ){
@@ -190,7 +190,7 @@ static void DaoScanner_Matched( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoScanner_MatchedAt( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
+	DaoScanner *self = (DaoScanner*) p[0];
 	dao_integer group = p[1]->xInteger.value;
 	if ( self->regex && self->start >= 0 ){
 		DaoTuple *res = DaoProcess_PutTuple( proc, 2 );
@@ -214,7 +214,7 @@ static void DaoScanner_MatchedAt( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoScanner_Line( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
+	DaoScanner *self = (DaoScanner*) p[0];
 	daoint res = 1, i;
 	for ( i = 0; i < self->pos; i++ )
 		if ( self->context->chars[i] == '\n' )
@@ -224,7 +224,7 @@ static void DaoScanner_Line( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoScanner_Follows( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
+	DaoScanner *self = (DaoScanner*) p[0];
 	DaoRegex *reg;
 	DString *pt = p[1]->xString.value;
 	int del = 0;
@@ -253,7 +253,7 @@ static void DaoScanner_Follows( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoScanner_Precedes( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoScanner *self = (DaoScanner*)DaoValue_TryGetCdata( p[0] );
+	DaoScanner *self = (DaoScanner*) p[0];
 	DaoRegex *reg;
 	DString *pt = p[1]->xString.value;
 	int del = 0;
@@ -280,7 +280,7 @@ static void DaoScanner_Precedes( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutBoolean( proc, res );
 }
 
-static DaoFuncItem scannerMeths[] =
+static DaoFunctionEntry daoScannerMeths[] =
 {
 	/*! Constructs scanner operating on string \a context starting at position \a pos */
 	{ DaoScanner_Create,	"Scanner(context: string, pos = 0) => Scanner" },
@@ -330,15 +330,35 @@ static DaoFuncItem scannerMeths[] =
 };
 
 /*! Provides way to successively process textual data using Dao string patterns */
-DaoTypeBase scannerTyper = {
-	"Scanner", NULL, NULL, scannerMeths, {NULL}, {0},
-	(FuncPtrDel)DaoScanner_Delete, NULL
+DaoTypeCore daoScannerCore =
+{
+	"Scanner",                                         /* name */
+	sizeof(DaoScanner),                                /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoScannerMeths,                                   /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	DaoCstruct_CheckSetField,  DaoCstruct_DoSetField,  /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoScanner_Delete,             /* Delete */
+	NULL                                               /* HandleGC */
 };
 
 DAO_DLL int DaoScanner_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *strns = DaoVmSpace_GetNamespace( vmSpace, "str" );
 	DaoNamespace_AddConstValue( ns, "str", (DaoValue*)strns );
-	daox_type_scanner = DaoNamespace_WrapType( strns, &scannerTyper, DAO_CDATA, 0 );
+	daox_type_scanner = DaoNamespace_WrapType( strns, & daoScannerCore, DAO_CSTRUCT, 0 );
 	return 0;
 }

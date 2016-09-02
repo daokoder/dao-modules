@@ -434,7 +434,7 @@ static void DaoCrypto_Random( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, "Crypto", "Failed to fetch data from system random number generator" );
 }
 
-static DaoFuncItem cryptoMeths[] =
+static DaoFunctionEntry cryptoMeths[] =
 {
 	/*! Returns hash integer of \a str */
 	{ DaoCrypto_HashInt,	"hash(str: string) => int" },

@@ -34,7 +34,10 @@
 #ifndef __DAO_SCANNER_H__
 #define __DAO_SCANNER_H__
 
-struct DaoScanner {
+struct DaoScanner
+{
+	DAO_CSTRUCT_COMMON;
+
 	DString *context;
 	DaoRegex *regex;
 	daoint pos, start, end;

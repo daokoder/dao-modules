@@ -719,7 +719,7 @@ static void DaoFormat( DaoProcess *proc, DaoValue *p[], int N )
 	DString_Delete( str );
 }
 
-static DaoFuncItem formatMeths[] =
+static DaoFunctionEntry formatMeths[] =
 {
 	/*! Returns the string constructed from \a template and specified arguments. For the description of the grammar and possible use,
 	 * see *format.dao* */

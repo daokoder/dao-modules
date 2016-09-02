@@ -662,13 +662,13 @@ static int DaoNetwork_SendDao( int sockfd, sockaddr_in *addr, DaoValue *value, D
 static DaoType* DaoType_GetFieldType( DaoType *self, int i )
 {
 	DaoType *itype = NULL;
-	if( i < self->nested->size ){
-		itype = self->nested->items.pType[i];
+	if( i < self->args->size ){
+		itype = self->args->items.pType[i];
 		if( itype->tid >= DAO_PAR_NAMED && itype->tid < DAO_PAR_VALIST ){
 			itype = (DaoType*) itype->aux;
 		}
 	}else if( self->variadic ){
-		itype = (DaoType*) self->nested->items.pType[self->nested->size-1]->aux;
+		itype = (DaoType*) self->args->items.pType[self->args->size-1]->aux;
 	}
 	return itype;
 }
@@ -715,7 +715,7 @@ static int DaoNetwork_SendList( int sockfd, sockaddr_in *addr, DaoList *list, Da
 	if( packet.subtype ){
 		if( DaoNetwork_SendString( sockfd, addr, list->ctype->name ) == -1 ) return -1;
 	}
-	itype = list->ctype->nested->items.pType[0];
+	itype = list->ctype->args->items.pType[0];
 	for(i=0; i<list->value->size; ++i){
 		if( DaoNetwork_SendDao( sockfd, addr, list->value->items.pValue[i], itype ) == -1 ){
 			return -1;
@@ -740,8 +740,8 @@ static int DaoNetwork_SendMap( int sockfd, sockaddr_in *addr, DaoMap *map, DaoTy
 	if( packet.subtype ){
 		if( DaoNetwork_SendString( sockfd, addr, map->ctype->name ) == -1 ) return -1;
 	}
-	keytype = map->ctype->nested->items.pType[0];
-	valtype = map->ctype->nested->items.pType[1];
+	keytype = map->ctype->args->items.pType[0];
+	valtype = map->ctype->args->items.pType[1];
 	for(it=DMap_First(map->value); it; it=DMap_Next(map->value,it)){
 		if( DaoNetwork_SendDao( sockfd, addr, it->key.pValue, keytype ) == -1 ) return -1;
 		if( DaoNetwork_SendDao( sockfd, addr, it->value.pValue, valtype ) == -1 ) return -1;
@@ -926,7 +926,7 @@ static DaoValue* DaoNetwork_ReceiveDao( int sockfd, sockaddr_in *addr,  DaoNetOb
 		list = DaoProcess_NewList( proc );
 		DaoList_SetType( list, type );
 		for(i=0; i<size; ++i){
-			obuffer->type = type->nested->items.pType[0];
+			obuffer->type = type->args->items.pType[0];
 			value = DaoNetwork_ReceiveDao( sockfd, addr, obuffer );
 			if( value == NULL ) return NULL; // TODO;
 			DList_Append( list->value, value );
@@ -945,10 +945,10 @@ static DaoValue* DaoNetwork_ReceiveDao( int sockfd, sockaddr_in *addr,  DaoNetOb
 		DaoMap_SetType( map, type );
 		for(i=0; i<size; ++i){
 			DaoValue *key, *value;
-			obuffer->type = type->nested->items.pType[0];
+			obuffer->type = type->args->items.pType[0];
 			key = DaoNetwork_ReceiveDao( sockfd, addr, obuffer );
 			if( key == NULL ) return NULL; // TODO;
-			obuffer->type = type->nested->items.pType[1];
+			obuffer->type = type->args->items.pType[1];
 			value = DaoNetwork_ReceiveDao( sockfd, addr, obuffer );
 			if( value == NULL ) return NULL; // TODO;
 			DMap_Insert( map->value, key, value );
@@ -1006,31 +1006,37 @@ enum {
 	Proto_UDP = SOCK_DGRAM
 };
 
-typedef int socket_proto;
+typedef int   socket_proto;
 typedef short socket_state;
-typedef struct DaoSocket DaoSocket;
-typedef struct DaoIpv4Addr DaoIpv4Addr;
-typedef struct DaoSocketAddr DaoSocketAddr;
+
+typedef struct DaoSocket      DaoSocket;
+typedef struct DaoIpv4Addr    DaoIpv4Addr;
+typedef struct DaoSocketAddr  DaoSocketAddr;
 
 struct DaoSocket
 {
+	DAO_CSTRUCT_COMMON;
+
 	int id;
 	socket_state state;
 	shutdown_flag shutflag;
 };
 
-struct DaoIpv4Addr {
-	DAO_CPOD_COMMON;
+struct DaoIpv4Addr
+{
+	DAO_CSTRUCT_COMMON;
 
 	uint8_t octets[4];
 };
 
-struct DaoSocketAddr {
+struct DaoSocketAddr
+{
+	DAO_CSTRUCT_COMMON;
+
 	uint8_t ip[4];
 	port_t port;
 };
 
-extern DaoTypeBase socketTyper;
 DaoType *daox_type_socket = NULL;
 DaoType *daox_type_tcpstream = NULL;
 DaoType *daox_type_tcplistener = NULL;
@@ -1040,16 +1046,29 @@ DaoType *daox_type_sockaddr = NULL;
 
 DaoIpv4Addr* DaoIpv4Addr_New()
 {
-	return (DaoIpv4Addr*)DaoCpod_New( daox_type_ipv4addr, sizeof(DaoIpv4Addr) );
+	return (DaoIpv4Addr*)DaoCstruct_New( daox_type_ipv4addr, sizeof(DaoIpv4Addr) );
 }
 
-static DaoSocket* DaoSocket_New(  )
+void DaoIpv4Addr_Delete( DaoIpv4Addr *self )
 {
-	DaoSocket *self = dao_malloc( sizeof(DaoSocket) );
+	DaoCstruct_Delete( (DaoCstruct*) self );
+}
+
+
+static DaoSocket* DaoSocket_New( DaoType *type )
+{
+	DaoSocket *self = (DaoSocket*) DaoCstruct_New( type, sizeof(DaoSocket) );
 	self->id = -1;
 	self->state = Socket_Closed;
 	self->shutflag = Shutdown_None;
 	return self;
+}
+
+static void DaoSocket_Copy( DaoSocket *self, DaoSocket *other )
+{
+	self->id = other->id;
+	self->state = other->state;
+	self->shutflag = other->shutflag;
 }
 
 static int DaoSocket_Shutdown( DaoSocket *self, shutdown_flag flag )
@@ -1075,8 +1094,21 @@ static void DaoSocket_Close( DaoSocket *self )
 static void DaoSocket_Delete( DaoSocket *self )
 {
 	DaoSocket_Close( self );
-	dao_free( self );
+	DaoCstruct_Delete( (DaoCstruct*) self );
 }
+
+
+DaoSocketAddr* DaoSocketAddr_New()
+{
+	return (DaoSocketAddr*)DaoCstruct_New( daox_type_sockaddr, sizeof(DaoSocketAddr) );
+}
+
+void DaoSocketAddr_Delete( DaoSocketAddr *self )
+{
+	DaoCstruct_Delete( (DaoCstruct*) self );
+}
+
+
 
 int GetIpAddr( const char *str, ipv4_t *ip )
 {
@@ -1159,7 +1191,7 @@ static int DaoSocket_Connect( DaoSocket *self, ipv4_t ip, port_t port )
 static void DaoSocket_Lib_Shutdown( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
-	DaoSocket* self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	DaoSocket* self = (DaoSocket*) par[0];
 	if ( self->state != Socket_Connected )
 		DaoProcess_RaiseError( proc, neterr, "Socket not connected" );
 	else if ( DaoSocket_Shutdown( self, par[1]->xEnum.value ) != 0 ){
@@ -1170,7 +1202,7 @@ static void DaoSocket_Lib_Shutdown( DaoProcess *proc, DaoValue *par[], int N  )
 
 static void DaoSocket_Lib_Close( DaoProcess *proc, DaoValue *par[], int N  )
 {
-	DaoSocket_Close( (DaoSocket*)DaoValue_TryGetCdata( par[0] ) );
+	DaoSocket_Close( (DaoSocket*) par[0] );
 }
 
 int CheckPort( DaoProcess *proc, dao_integer port )
@@ -1189,7 +1221,7 @@ int ExtractAddr( DaoProcess *proc, DaoValue *param, ipv4_t *ip, port_t *port )
 			return 0;
 	}
 	else {
-		DaoSocketAddr *addr = (DaoSocketAddr*)DaoValue_TryGetCdata( param );
+		DaoSocketAddr *addr = (DaoSocketAddr*) param;
 		*ip = *(ipv4_t*)addr->ip;
 		*port = addr->port;
 	}
@@ -1199,7 +1231,7 @@ int ExtractAddr( DaoProcess *proc, DaoValue *param, ipv4_t *ip, port_t *port )
 static void DaoSocket_Lib_Listen( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	DaoSocket *self = (DaoSocket*) par[0];
 	ipv4_t ip;
 	port_t port;
 	dao_integer backlog = par[2]->xInteger.value;
@@ -1219,7 +1251,7 @@ static void DaoSocket_Lib_Listen( DaoProcess *proc, DaoValue *par[], int N  )
 static void DaoSocket_Lib_Bind( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	DaoSocket *self = (DaoSocket*) par[0];
 	ipv4_t ip;
 	port_t port;
 	if ( !ExtractAddr( proc, par[1], &ip, &port ) )
@@ -1233,7 +1265,7 @@ static void DaoSocket_Lib_Bind( DaoProcess *proc, DaoValue *par[], int N  )
 static void DaoSocket_Lib_Accept( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	DaoSocket *self = (DaoSocket*) par[0];
 	DaoTuple *tup = DaoProcess_PutTuple( proc, 2 );
 	DaoSocket *sock;
 	DaoSocketAddr *addr;
@@ -1241,10 +1273,10 @@ static void DaoSocket_Lib_Accept( DaoProcess *proc, DaoValue *par[], int N  )
 		DaoProcess_RaiseError( proc, neterr, "The socket is not in the listening state" );
 		return;
 	}
-	sock = DaoSocket_New(  );
-	addr = (DaoSocketAddr*)dao_malloc( sizeof(DaoSocketAddr) );
-	DaoTuple_SetItem( tup, (DaoValue*)DaoProcess_NewCdata( proc, daox_type_tcpstream, sock, 1 ), 0 );
-	DaoTuple_SetItem( tup, (DaoValue*)DaoProcess_NewCdata( proc, daox_type_sockaddr, addr, 1 ), 1 );
+	sock = DaoSocket_New( daox_type_tcpstream );
+	addr = DaoSocketAddr_New();
+	DaoTuple_SetItem( tup, (DaoValue*) sock, 0 );
+	DaoTuple_SetItem( tup, (DaoValue*) addr, 1 );
 	sock->id = DaoNetwork_Accept( self->id, (ipv4_t*)addr->ip, &addr->port );
 	if( sock->id == -1 ){
 		GetErrorMessage( errbuf, GetError() );
@@ -1257,7 +1289,7 @@ static void DaoSocket_Lib_Accept( DaoProcess *proc, DaoValue *par[], int N  )
 static void DaoSocket_Lib_Connect( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	DaoSocket *self = (DaoSocket*) par[0];
 	ipv4_t ip;
 	port_t port;
 	if ( !ExtractAddr( proc, par[1], &ip, &port ) )
@@ -1271,7 +1303,7 @@ static void DaoSocket_Lib_Connect( DaoProcess *proc, DaoValue *par[], int N  )
 static void DaoSocket_Lib_Send( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	DaoSocket *self = (DaoSocket*) par[0];
 	if( self->state != Socket_Connected ){
 		DaoProcess_RaiseError( proc, neterr, "The socket is not connected" );
 		return;
@@ -1292,7 +1324,7 @@ static void DaoSocket_Lib_Send( DaoProcess *proc, DaoValue *par[], int N  )
 
 static void DaoSocket_Lib_SendFile( DaoProcess *proc, DaoValue *par[], int N  )
 {
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	DaoSocket *self = (DaoSocket*) par[0];
 	DString *fname = par[1]->xString.value;
 #ifdef LINUX
 	struct stat finfo;
@@ -1355,7 +1387,7 @@ Error:
 static void DaoSocket_Lib_Receive( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	DaoSocket *self = (DaoSocket*) par[0];
 	if( self->state != Socket_Connected ){
 		DaoProcess_RaiseError( proc, neterr, "The socket is not connected" );
 		return;
@@ -1370,7 +1402,7 @@ static void DaoSocket_Lib_Receive( DaoProcess *proc, DaoValue *par[], int N  )
 static void DaoSocket_Lib_ReceiveAll( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	DaoSocket *self = (DaoSocket*) par[0];
 	daoint count = par[1]->xInteger.value;
 	DString *prep = par[2]->xString.value;
 	DString *res;
@@ -1420,7 +1452,7 @@ static void DaoSocket_Lib_Serialize( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
 	int n;
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	DaoSocket *self = (DaoSocket*) par[0];
 	if( self->state != Socket_Connected ){
 		DaoProcess_RaiseError( proc, neterr, "The socket is not connected" );
 		return;
@@ -1436,7 +1468,7 @@ static void DaoSocket_Lib_Serialize( DaoProcess *proc, DaoValue *par[], int N  )
 static void DaoSocket_Lib_Deserialize( DaoProcess *proc, DaoValue *par[], int N  )
 {
 	char errbuf[MAX_ERRMSG];
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	DaoSocket *self = (DaoSocket*) par[0];
 	DaoNetObjBuffer obuffer = {NULL};
 	DaoValue *value;
 	if( self->state != Socket_Connected ){
@@ -1456,13 +1488,13 @@ static void DaoSocket_Lib_Deserialize( DaoProcess *proc, DaoValue *par[], int N 
 
 static void DaoSocket_Lib_Id( DaoProcess *proc, DaoValue *par[], int N  )
 {
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	DaoSocket *self = (DaoSocket*) par[0];
 	DaoProcess_PutInteger( proc, self->id );
 }
 
 static void DaoSocket_Lib_State( DaoProcess *proc, DaoValue *par[], int N  )
 {
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	DaoSocket *self = (DaoSocket*) par[0];
 	char buffer[10];
 	switch( self->state ){
 	case Socket_Closed:    strcpy( buffer, "closed" ); break;
@@ -1475,7 +1507,7 @@ static void DaoSocket_Lib_State( DaoProcess *proc, DaoValue *par[], int N  )
 
 static void DaoSocket_Lib_GetPeerName( DaoProcess *proc, DaoValue *par[], int N  )
 {
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	DaoSocket *self = (DaoSocket*) par[0];
 	DaoSocketAddr *saddr;
 	char errbuf[MAX_ERRMSG];
 	struct sockaddr_in addr;
@@ -1489,15 +1521,15 @@ static void DaoSocket_Lib_GetPeerName( DaoProcess *proc, DaoValue *par[], int N 
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 		return;
 	}
-	saddr = (DaoSocketAddr*)dao_malloc( sizeof(DaoSocketAddr) );
+	saddr = DaoSocketAddr_New();
 	*(ipv4_t*)saddr->ip = addr.sin_addr.s_addr;
 	saddr->port = ntohs( addr.sin_port );
-	DaoProcess_PutCdata( proc, saddr, daox_type_sockaddr );
+	DaoProcess_PutValue( proc, (DaoValue*) saddr );
 }
 
 static void DaoSocket_Lib_GetSockName( DaoProcess *proc, DaoValue *par[], int N  )
 {
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	DaoSocket *self = (DaoSocket*) par[0];
 	DaoSocketAddr *saddr;
 	char errbuf[MAX_ERRMSG];
 	struct sockaddr_in addr;
@@ -1507,15 +1539,15 @@ static void DaoSocket_Lib_GetSockName( DaoProcess *proc, DaoValue *par[], int N 
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 		return;
 	}
-	saddr = (DaoSocketAddr*)dao_malloc( sizeof(DaoSocketAddr) );
+	saddr = DaoSocketAddr_New();
 	*(ipv4_t*)saddr->ip = addr.sin_addr.s_addr;
 	saddr->port = ntohs( addr.sin_port );
-	DaoProcess_PutCdata( proc, saddr, daox_type_sockaddr );
+	DaoProcess_PutValue( proc, (DaoValue*) saddr );
 }
 
 static void DaoSocket_Lib_Check( DaoProcess *proc, DaoValue *par[], int N  )
 {
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( par[0] );
+	DaoSocket *self = (DaoSocket*) par[0];
 	int res = 0, open = ( self->state == Socket_Bound || self->state == Socket_Connected );
 	switch ( par[1]->xEnum.value ){
 	case 0:	res = open && !( self->shutflag & Shutdown_Receive ); break;
@@ -1528,7 +1560,7 @@ static void DaoSocket_Lib_Check( DaoProcess *proc, DaoValue *par[], int N  )
 
 static void DaoSocket_Lib_For( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	DaoSocket *self = (DaoSocket*) p[0];
 	DaoTuple *iter = &p[1]->xTuple;
 	if ( self->state != Socket_Listening ){
 		DaoProcess_RaiseError( proc, neterr, "The socket not in the listening state" );
@@ -1556,14 +1588,14 @@ struct in_addr* GetAddr( DaoProcess *proc, DaoValue *param, struct hostent **he 
 		return (struct in_addr *)(*he)->h_addr;
 	}
 	else {
-		DaoIpv4Addr *ip = (DaoIpv4Addr*)DaoValue_TryGetCdata( param );
+		DaoIpv4Addr *ip = (DaoIpv4Addr*) param;
 		return (struct in_addr*)ip->octets;
 	}
 }
 
 static void DaoSocket_Lib_SendTo( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	DaoSocket *self = (DaoSocket*) p[0];
 	ipv4_t ip;
 	port_t port;
 	if ( !ExtractAddr( proc, p[1], &ip, &port ) )
@@ -1577,7 +1609,7 @@ static void DaoSocket_Lib_SendTo( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoSocket_Lib_ReceiveFrom( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	DaoSocket *self = (DaoSocket*) p[0];
 	DaoSocketAddr *saddr;
 	DaoTuple *tup = DaoProcess_PutTuple( proc, 2 );
 	struct sockaddr_in addr;
@@ -1585,8 +1617,8 @@ static void DaoSocket_Lib_ReceiveFrom( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, neterr, "The socket is not bound" );
 		return;
 	}
-	saddr = (DaoSocketAddr*)dao_malloc( sizeof(DaoSocketAddr) );
-	DaoTuple_SetItem( tup, (DaoValue*)DaoProcess_NewCdata( proc, daox_type_sockaddr, saddr, 1 ), 0 );
+	saddr = DaoSocketAddr_New();
+	DaoTuple_SetItem( tup, (DaoValue*) saddr, 0 );
 	if ( DaoNetwork_ReceiveFrom( self->id, &addr, tup->values[1]->xString.value, p[1]->xInteger.value ) == -1 ){
 		char errbuf[MAX_ERRMSG];
 		GetErrorMessage( errbuf, GetError() );
@@ -1629,7 +1661,7 @@ int SetSockOpt( DaoProcess *proc, DaoSocket *sock, int opt, int value )
 
 static void DaoSocket_Lib_KeepAlive( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	DaoSocket *self = (DaoSocket*) p[0];
 	int value;
 	if ( GetSockOpt( proc, self, SO_KEEPALIVE, &value ) )
 		DaoProcess_PutBoolean( proc, value );
@@ -1637,14 +1669,14 @@ static void DaoSocket_Lib_KeepAlive( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoSocket_Lib_SetKeepAlive( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	DaoSocket *self = (DaoSocket*) p[0];
 	int value = p[1]->xBoolean.value;
 	SetSockOpt( proc, self, SO_KEEPALIVE, value );
 }
 
 static void DaoSocket_Lib_NoDelay( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	DaoSocket *self = (DaoSocket*) p[0];
 	int value;
 	socklen_t size = sizeof(value);
 	if ( self->state == Socket_Closed ){
@@ -1662,7 +1694,7 @@ static void DaoSocket_Lib_NoDelay( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoSocket_Lib_SetNoDelay( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	DaoSocket *self = (DaoSocket*) p[0];
 	int value = p[1]->xBoolean.value;
 	if ( self->state == Socket_Closed ){
 		DaoProcess_RaiseError( proc, neterr, "The socket is closed" );
@@ -1677,7 +1709,7 @@ static void DaoSocket_Lib_SetNoDelay( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoSocket_Lib_Broadcast( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	DaoSocket *self = (DaoSocket*) p[0];
 	int value;
 	if ( GetSockOpt( proc, self, SO_BROADCAST, &value ) )
 		DaoProcess_PutBoolean( proc, value );
@@ -1685,7 +1717,7 @@ static void DaoSocket_Lib_Broadcast( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoSocket_Lib_SetBroadcast( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	DaoSocket *self = (DaoSocket*) p[0];
 	int value = p[1]->xBoolean.value;
 	SetSockOpt( proc, self, SO_BROADCAST, value );
 }
@@ -1729,7 +1761,7 @@ int SetIPSockOpt( DaoProcess *proc, DaoSocket *sock, int opt, numsockopt_t value
 
 static void DaoSocket_Lib_MultiLoop( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	DaoSocket *self = (DaoSocket*) p[0];
 	numsockopt_t value;
 	if ( GetIPSockOpt( proc, self, IP_MULTICAST_LOOP, &value ) )
 		DaoProcess_PutBoolean( proc, value );
@@ -1737,14 +1769,14 @@ static void DaoSocket_Lib_MultiLoop( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoSocket_Lib_SetMultiLoop( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	DaoSocket *self = (DaoSocket*) p[0];
 	numsockopt_t value = p[1]->xBoolean.value;
 	SetIPSockOpt( proc, self, IP_MULTICAST_LOOP, value );
 }
 
 void MultiGroupOperation( DaoProcess *proc, DaoValue *p[], int N, int add )
 {
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	DaoSocket *self = (DaoSocket*) p[0];
 	struct ip_mreq value;
 	struct in_addr *paddr;
 	struct hostent *he;
@@ -1774,7 +1806,7 @@ static void DaoSocket_Lib_LeaveMultiGroup( DaoProcess *proc, DaoValue *p[], int 
 
 static void DaoSocket_Lib_MultiTTL( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	DaoSocket *self = (DaoSocket*) p[0];
 	numsockopt_t value;
 	if ( GetIPSockOpt( proc, self, IP_MULTICAST_TTL, &value ) )
 		DaoProcess_PutBoolean( proc, value );
@@ -1782,7 +1814,7 @@ static void DaoSocket_Lib_MultiTTL( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoSocket_Lib_SetMultiTTL( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	DaoSocket *self = (DaoSocket*) p[0];
 	numsockopt_t value;
 	value = p[1]->xInteger.value;
 	SetIPSockOpt( proc, self, IP_MULTICAST_TTL, value );
@@ -1790,7 +1822,7 @@ static void DaoSocket_Lib_SetMultiTTL( DaoProcess *proc, DaoValue *p[], int N )
 
 static void TTLOperation( DaoProcess *proc, DaoValue *p[], int N, int get )
 {
-	DaoSocket *self = (DaoSocket*)DaoValue_TryGetCdata( p[0] );
+	DaoSocket *self = (DaoSocket*) p[0];
 #ifdef WIN32
 	DWORD value;
 #else
@@ -1822,7 +1854,7 @@ static void DaoSocket_Lib_SetTTL( DaoProcess *proc, DaoValue *p[], int N )
 	TTLOperation( proc, p, N, 0 );
 }
 
-static DaoFuncItem socketMeths[] =
+static DaoFunctionEntry daoSocketMeths[] =
 {
 	/*! Address to which the socket is bound */
 	{  DaoSocket_Lib_GetSockName,   ".localAddr( invar self: Socket ) => SocketAddr" },
@@ -1838,12 +1870,35 @@ static DaoFuncItem socketMeths[] =
 	{ NULL, NULL }
 };
 
+
 //! Abstract socket type
-DaoTypeBase socketTyper = {
-	"Socket", NULL, NULL, socketMeths, {0}, {0}, (FuncPtrDel)DaoSocket_Delete, NULL
+DaoTypeCore daoSocketCore =
+{
+	"Socket",                                          /* name */
+	sizeof(DaoSocket),                                 /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoSocketMeths,                                    /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	DaoCstruct_HashPOD,                                /* Hash */
+	DaoCstruct_CreatePOD,                              /* Create */
+	DaoCstruct_CopyPOD,                                /* Copy */
+	(DaoDeleteFunction) DaoSocket_Delete,              /* Delete */
+	NULL                                               /* HandleGC */
 };
 
-static DaoFuncItem TcpStreamMeths[] =
+
+static DaoFunctionEntry daoTcpStreamMeths[] =
 {
 	/*! Connects to address \a addr which may be either a 'host:port' string or \c SocketAddr */
 	{ DaoSocket_Lib_Connect,		"connect( self: TcpStream, addr: string|SocketAddr )" },
@@ -1895,12 +1950,37 @@ static DaoFuncItem TcpStreamMeths[] =
 	{ NULL, NULL }
 };
 
+
+
 //! Connected TCP socket
-DaoTypeBase TcpStreamTyper = {
-	"TcpStream", NULL, NULL, TcpStreamMeths, {&socketTyper, NULL}, {0}, (FuncPtrDel)DaoSocket_Delete, NULL
+DaoTypeCore daoTcpStreamCore =
+{
+	"TcpStream",                                       /* name */
+	sizeof(DaoSocket),                                 /* size */
+	{ & daoSocketCore, NULL },                         /* bases */
+	NULL,                                              /* numbers */
+	daoTcpStreamMeths,                                 /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	DaoCstruct_HashPOD,                                /* Hash */
+	DaoCstruct_CreatePOD,                              /* Create */
+	DaoCstruct_CopyPOD,                                /* Copy */
+	(DaoDeleteFunction) DaoSocket_Delete,              /* Delete */
+	NULL                                               /* HandleGC */
 };
 
-static DaoFuncItem TcpListenerMeths[] =
+
+
+static DaoFunctionEntry daoTcpListenerMeths[] =
 {
 	/*! Binds the socket to address \a addr (either a 'host:port' string or \c SocketAddr) using \a binding option (see \c net.listen() for its description).
 	 * Sets the socket into the listening state using \a backLog as the maximum size of the queue of pending connections
@@ -1911,17 +1991,42 @@ static DaoFuncItem TcpListenerMeths[] =
 	{ DaoSocket_Lib_Accept,			"accept( self: TcpListener ) => tuple<stream: TcpStream, addr: SocketAddr>" },
 
 	//! Equivalient to an infinite loop calling \c accept() on each iteration
-	{ DaoSocket_Lib_For,			"for( self: TcpListener, iterator: ForIterator )" },
-	{ DaoSocket_Lib_Get,			"[]( self: TcpListener, index: ForIterator ) => tuple<stream: TcpStream, addr: SocketAddr>" },
+	{ DaoSocket_Lib_For,			"for( self: TcpListener, iterator: tuple<bool,int> )" },
+	{ DaoSocket_Lib_Get,			"[]( self: TcpListener, index: tuple<bool,int> ) => tuple<stream: TcpStream, addr: SocketAddr>" },
 	{ NULL, NULL }
 };
 
+
+
 //! Listening TCP socket
-DaoTypeBase TcpListenerTyper = {
-	"TcpListener", NULL, NULL, TcpListenerMeths, {&socketTyper, NULL}, {0}, (FuncPtrDel)DaoSocket_Delete, NULL
+DaoTypeCore daoTcpListenerCore =
+{
+	"TcpListener",                                     /* name */
+	sizeof(DaoSocket),                                 /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoTcpListenerMeths,                               /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	DaoCstruct_CheckGetItem,   DaoCstruct_DoGetItem,   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	DaoCstruct_CheckForEach,   DaoCstruct_DoForEach,   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	DaoCstruct_HashPOD,                                /* Hash */
+	DaoCstruct_CreatePOD,                              /* Create */
+	DaoCstruct_CopyPOD,                                /* Copy */
+	(DaoDeleteFunction) DaoSocket_Delete,              /* Delete */
+	NULL                                               /* HandleGC */
 };
 
-static DaoFuncItem UdpSocketMeths[] =
+
+
+static DaoFunctionEntry daoUdpSocketMeths[] =
 {
 	/*! Binds the socket to address \a addr (either a 'host:port' string or \c SocketAddr) using \a binding option (see \c net.listen() for its description) */
 	{ DaoSocket_Lib_Bind,			"bind( self: UdpSocket, addr: string|SocketAddr, binding: enum<exclusive,reused> = $exclusive )" },
@@ -1956,19 +2061,39 @@ static DaoFuncItem UdpSocketMeths[] =
 	{ NULL, NULL }
 };
 
+
 //! UDP socket
-DaoTypeBase UdpSocketTyper = {
-	"UdpSocket", NULL, NULL, UdpSocketMeths, {&socketTyper, NULL}, {0}, (FuncPtrDel)DaoSocket_Delete, NULL
+DaoTypeCore daoUdpSocketCore =
+{
+	"UdpSocket",                                       /* name */
+	sizeof(DaoSocket),                                 /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoUdpSocketMeths,                                 /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	DaoCstruct_HashPOD,                                /* Hash */
+	DaoCstruct_CreatePOD,                              /* Create */
+	DaoCstruct_CopyPOD,                                /* Copy */
+	(DaoDeleteFunction) DaoSocket_Delete,              /* Delete */
+	NULL                                               /* HandleGC */
 };
 
-void DaoIpv4Addr_Delete( DaoIpv4Addr *self )
-{
-	dao_free( self );
-}
+
+
 
 static void DaoIpv4Addr_Create( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoIpv4Addr *res = (DaoIpv4Addr*)DaoProcess_PutCpod( proc, daox_type_ipv4addr, sizeof(DaoIpv4Addr) );
+	DaoIpv4Addr *res = (DaoIpv4Addr*) DaoProcess_PutCstruct( proc, daox_type_ipv4addr );
 	if ( p[0]->type == DAO_STRING ){
 		DString *str = p[0]->xString.value;
 		if ( !str->size ){
@@ -2089,14 +2214,14 @@ void IPv4_Add( DaoIpv4Addr *self, int32_t value, DaoIpv4Addr *res )
 static void DaoIpv4Addr_Lib_Add( DaoProcess *proc, DaoValue *p[], int N  )
 {
 	DaoIpv4Addr *self = (DaoIpv4Addr*)p[0];
-	DaoIpv4Addr *res = (DaoIpv4Addr*)DaoProcess_PutCpod( proc, daox_type_ipv4addr, sizeof(DaoIpv4Addr) );
+	DaoIpv4Addr *res = (DaoIpv4Addr*) DaoProcess_PutCstruct( proc, daox_type_ipv4addr );
 	IPv4_Add( self, p[1]->xInteger.value, res );
 }
 
 static void DaoIpv4Addr_Lib_Sub( DaoProcess *proc, DaoValue *p[], int N  )
 {
 	DaoIpv4Addr *self = (DaoIpv4Addr*)p[0];
-	DaoIpv4Addr *res = (DaoIpv4Addr*)DaoProcess_PutCpod( proc, daox_type_ipv4addr, sizeof(DaoIpv4Addr) );
+	DaoIpv4Addr *res = (DaoIpv4Addr*) DaoProcess_PutCstruct( proc, daox_type_ipv4addr );
 	IPv4_Add( self, -p[1]->xInteger.value, res );
 }
 
@@ -2109,7 +2234,7 @@ static void DaoIpv4Addr_Octets( DaoProcess *proc, DaoValue *p[], int N  )
 		tup->values[i]->xInteger.value = self->octets[i];
 }
 
-static DaoFuncItem Ipv4AddrMeths[] =
+static DaoFunctionEntry daoIpv4AddrMeths[] =
 {
 	//! Creates IPv4 address from dotted string \a value or given the individual octets \a a, \a b, \a c and \a d
 	{ DaoIpv4Addr_Create,	"Ipv4Addr(value: string)" },
@@ -2140,18 +2265,39 @@ static DaoFuncItem Ipv4AddrMeths[] =
 	{ NULL, NULL }
 };
 
-DaoTypeBase Ipv4AddrTyper = {
-	"Ipv4Addr", NULL, NULL, Ipv4AddrMeths, {0}, {0}, (FuncPtrDel)DaoIpv4Addr_Delete, NULL
+
+DaoTypeCore daoIpv4AddrCore =
+{
+	"Ipv4Addr",                                        /* name */
+	sizeof(DaoIpv4Addr),                               /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoIpv4AddrMeths,                                  /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	DaoCstruct_HashPOD,                                /* Hash */
+	DaoCstruct_CreatePOD,                              /* Create */
+	DaoCstruct_CopyPOD,                                /* Copy */
+	(DaoDeleteFunction) DaoIpv4Addr_Delete,            /* Delete */
+	NULL                                               /* HandleGC */
 };
 
-void DaoSocketAddr_Delete( DaoSocketAddr *self )
-{
-	dao_free( self );
-}
+
+
+
 
 static void DaoSocketAddr_Create( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoSocketAddr *addr = (DaoSocketAddr*)dao_malloc( sizeof(DaoSocketAddr) );
+	DaoSocketAddr *addr = DaoSocketAddr_New();
 	if ( p[0]->type == DAO_STRING ){
 		if ( !ParseAddr( proc, p[0]->xString.value, (ipv4_t*)addr->ip, &addr->port, 1 ) ){
 			dao_free( addr );
@@ -2168,12 +2314,12 @@ static void DaoSocketAddr_Create( DaoProcess *proc, DaoValue *p[], int N )
 		*(ipv4_t*)addr->ip = *(ipv4_t*)ip->octets;
 		addr->port = port;
 	}
-	DaoProcess_PutCdata( proc, addr, daox_type_sockaddr );
+	DaoProcess_PutValue( proc, (DaoValue*) addr );
 }
 
 static void DaoSocketAddr_ToString( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoSocketAddr *self = (DaoSocketAddr*)DaoValue_TryGetCdata( p[0] );
+	DaoSocketAddr *self = (DaoSocketAddr*) p[0];
 	char buf[25];
 	snprintf( buf, sizeof(buf), "%i.%i.%i.%i:%i", (int)self->ip[0], (int)self->ip[1], (int)self->ip[2], (int)self->ip[3], (int)self->port );
 	DaoProcess_PutChars( proc, buf );
@@ -2181,32 +2327,32 @@ static void DaoSocketAddr_ToString( DaoProcess *proc, DaoValue *p[], int N  )
 
 static void DaoSocketAddr_Eq( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoSocketAddr *a = (DaoSocketAddr*)DaoValue_TryGetCdata( p[0] );
-	DaoSocketAddr *b = (DaoSocketAddr*)DaoValue_TryGetCdata( p[1] );
+	DaoSocketAddr *a = (DaoSocketAddr*) p[0];
+	DaoSocketAddr *b = (DaoSocketAddr*) p[1];
 	DaoProcess_PutBoolean( proc, memcmp( a->ip, b->ip, 4 ) == 0 && a->port == b->port );
 }
 
 static void DaoSocketAddr_Neq( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoSocketAddr *a = (DaoSocketAddr*)DaoValue_TryGetCdata( p[0] );
-	DaoSocketAddr *b = (DaoSocketAddr*)DaoValue_TryGetCdata( p[1] );
+	DaoSocketAddr *a = (DaoSocketAddr*) p[0];
+	DaoSocketAddr *b = (DaoSocketAddr*) p[1];
 	DaoProcess_PutBoolean( proc, memcmp( a->ip, b->ip, 4 ) != 0 || a->port != b->port );
 }
 
 static void DaoSocketAddr_IP( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoSocketAddr *self = (DaoSocketAddr*)DaoValue_TryGetCdata( p[0] );
-	DaoIpv4Addr *ip = (DaoIpv4Addr*)DaoProcess_PutCpod( proc, daox_type_ipv4addr, sizeof(DaoIpv4Addr) );
+	DaoSocketAddr *self = (DaoSocketAddr*) p[0];
+	DaoIpv4Addr *ip = (DaoIpv4Addr*) DaoProcess_PutCstruct( proc, daox_type_ipv4addr );
 	*(ipv4_t*)ip->octets = *(ipv4_t*)self->ip;
 }
 
 static void DaoSocketAddr_Port( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoSocketAddr *self = (DaoSocketAddr*)DaoValue_TryGetCdata( p[0] );
+	DaoSocketAddr *self = (DaoSocketAddr*) p[0];
 	DaoProcess_PutInteger( proc, self->port );
 }
 
-static DaoFuncItem sockaddrMeths[] =
+static DaoFunctionEntry daoSocketAddrMeths[] =
 {
 	//! Creates socket address given 'host:port' \a value (if the host part is empty, '0.0.0.0' is assumed)
 	{ DaoSocketAddr_Create,		"SocketAddr(value: string)" },
@@ -2232,9 +2378,33 @@ static DaoFuncItem sockaddrMeths[] =
 	{ NULL, NULL }
 };
 
-DaoTypeBase sockaddrTyper = {
-	"SocketAddr", NULL, NULL, sockaddrMeths, {0}, {0}, (FuncPtrDel)DaoSocketAddr_Delete, NULL
+
+DaoTypeCore daoSocketAddrCore =
+{
+	"SocketAddr",                                      /* name */
+	sizeof(DaoSocketAddr),                             /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoSocketAddrMeths,                                /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	DaoCstruct_HashPOD,                                /* Hash */
+	DaoCstruct_CreatePOD,                              /* Create */
+	DaoCstruct_CopyPOD,                                /* Copy */
+	(DaoDeleteFunction) DaoSocketAddr_Delete,          /* Delete */
+	NULL                                               /* HandleGC */
 };
+
+
 
 static void DaoNetLib_Listen( DaoProcess *proc, DaoValue *par[], int N  )
 {
@@ -2249,7 +2419,7 @@ static void DaoNetLib_Listen( DaoProcess *proc, DaoValue *par[], int N  )
 		DaoProcess_RaiseError( proc, "Param", "Invalid backlog value" );
 		return;
 	}
-	sock = DaoSocket_New();
+	sock = DaoSocket_New( daox_type_tcplistener );
 	if( DaoSocket_Bind( sock, Proto_TCP, ip, port, par[2]->xEnum.value == 1 ) == -1 || DaoNetwork_Listen( sock->id, backlog ) == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
@@ -2257,7 +2427,7 @@ static void DaoNetLib_Listen( DaoProcess *proc, DaoValue *par[], int N  )
 		return;
 	}
 	sock->state = Socket_Listening;
-	DaoProcess_PutCdata( proc, (void*)sock, daox_type_tcplistener );
+	DaoProcess_PutValue( proc, (DaoValue*) sock );
 }
 static void DaoNetLib_Bind( DaoProcess *proc, DaoValue *par[], int N  )
 {
@@ -2267,18 +2437,18 @@ static void DaoNetLib_Bind( DaoProcess *proc, DaoValue *par[], int N  )
 	port_t port;
 	if ( !ExtractAddr( proc, par[0], &ip, &port ) )
 		return;
-	sock = DaoSocket_New();
+	sock = DaoSocket_New( daox_type_udpsocket );
 	if( DaoSocket_Bind( sock, Proto_UDP, ip, port, par[1]->xEnum.value == 1) == -1 ){
 		GetErrorMessage( errbuf, GetError() );
 		DaoProcess_RaiseError( proc, neterr, errbuf );
 		DaoSocket_Delete( sock );
 		return;
 	}
-	DaoProcess_PutCdata( proc, (void*)sock, daox_type_udpsocket );
+	DaoProcess_PutValue( proc, (DaoValue*) sock );
 }
 static void DaoNetLib_Connect( DaoProcess *proc, DaoValue *p[], int N  )
 {
-	DaoSocket *sock = DaoSocket_New(  );
+	DaoSocket *sock = DaoSocket_New( daox_type_tcpstream );
 	ipv4_t ip;
 	port_t port;
 	if ( !ExtractAddr( proc, p[0], &ip, &port ) )
@@ -2290,7 +2460,7 @@ static void DaoNetLib_Connect( DaoProcess *proc, DaoValue *p[], int N  )
 		DaoSocket_Delete( sock );
 	}
 	else
-		DaoProcess_PutCdata( proc, sock, daox_type_tcpstream );
+		DaoProcess_PutValue( proc, (DaoValue*) sock );
 }
 static void DaoNetLib_GetHost( DaoProcess *proc, DaoValue *par[], int N  )
 {
@@ -2341,7 +2511,7 @@ static void DaoNetLib_GetHost( DaoProcess *proc, DaoValue *par[], int N  )
 			p ++;
 		}
 		while ( *q ){
-			DaoIpv4Addr *ip = (DaoIpv4Addr*)DaoProcess_NewCpod( proc, daox_type_ipv4addr, sizeof(DaoIpv4Addr) );
+			DaoIpv4Addr *ip = (DaoIpv4Addr*)DaoProcess_NewCstruct( proc, daox_type_ipv4addr );
 			*(ipv4_t*)ip->octets = ( (struct in_addr*)(*q) )->s_addr;
 			DaoList_Append( &tup->values[2]->xList, (DaoValue*)ip );
 			q ++;
@@ -2396,7 +2566,7 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 	FD_ZERO( &set2 );
 	for( i = 0; i < DaoList_Size( list1 ); i++ ){
 		value = DaoList_GetItem( list1, i );
-		fd = value->type == DAO_INTEGER? value->xInteger.value : ( (DaoSocket*)DaoValue_TryGetCdata( value ) )->id;
+		fd = value->type == DAO_INTEGER? value->xInteger.value : ((DaoSocket*)value)->id;
 		if( fd < 0 ){
 			DaoProcess_RaiseError( proc, "Param", "The read list contains a closed socket (or an invalid fd)" );
 			return;
@@ -2405,7 +2575,7 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 	}
 	for( i = 0; i < DaoList_Size( list2 ); i++ ){
 		value = DaoList_GetItem( list2, i );
-		fd = value->type == DAO_INTEGER? value->xInteger.value : ( (DaoSocket*)DaoValue_TryGetCdata( value ) )->id;
+		fd = value->type == DAO_INTEGER? value->xInteger.value : ((DaoSocket*)value)->id;
 		if( fd < 0 ){
 			DaoProcess_RaiseError( proc, "Param", "The write list contains a closed socket (or an invalid fd)" );
 			return;
@@ -2433,21 +2603,21 @@ static void DaoNetLib_Select( DaoProcess *proc, DaoValue *par[], int N  )
 		reslist = DaoValue_CastList( DaoTuple_GetItem( tuple, 0 ) );
 		for( i = 0; i < DaoList_Size( list1 ); i++ ){
 			value = DaoList_GetItem( list1, i );
-			fd = value->type == DAO_INTEGER? value->xInteger.value : ( (DaoSocket*)DaoValue_TryGetCdata( value ) )->id;
+			fd = value->type == DAO_INTEGER? value->xInteger.value : ((DaoSocket*)value)->id;
 			if( FD_ISSET( fd, &set1 ) )
 				DaoList_PushBack( reslist, value );
 		}
 		reslist = DaoValue_CastList( DaoTuple_GetItem( tuple, 1 ) );
 		for( i = 0; i < DaoList_Size( list2 ); i++ ){
 			value = DaoList_GetItem( list2, i );
-			fd = value->type == DAO_INTEGER? value->xInteger.value : ( (DaoSocket*)DaoValue_TryGetCdata( value ) )->id;
+			fd = value->type == DAO_INTEGER? value->xInteger.value : ((DaoSocket*)value)->id;
 			if( FD_ISSET( fd, &set2 ) )
 				DaoList_PushBack( reslist, value );
 		}
 	}
 }
 
-static DaoFuncItem netMeths[] =
+static DaoFunctionEntry netMeths[] =
 {
 	/*! Returns new TCP listener bound to address \a addr (either a 'host:port' string or \c SocketAddr) with \a binding option used to regulate the
 	 * possibility of address rebinding. The socket is put in the listening state using \a backLog as the maximum size of the queue of pending connections
@@ -2484,7 +2654,7 @@ static DaoFuncItem netMeths[] =
 	{ NULL, NULL }
 };
 
-DaoNumItem netConsts[] =
+DaoNumberEntry netConsts[] =
 {
 	/*! Largest possible backLog value for TcpListener::listen() */
 	{ "MAX_BACKLOG", DAO_INTEGER, SOMAXCONN },
@@ -2529,12 +2699,12 @@ DAO_DLL int DaoNet_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace *netns = DaoNamespace_GetNamespace( ns, "net" );
 	DaoNamespace_DefineType( netns, SimpleTypes"|"ArrayTypes"|"ContainerTypes, "Object" );
 	DaoNamespace_AddConstNumbers( netns, netConsts );
-	daox_type_ipv4addr = DaoNamespace_WrapType( netns, & Ipv4AddrTyper, DAO_CPOD, DAO_CTYPE_INVAR );
-	daox_type_sockaddr = DaoNamespace_WrapType( netns, & sockaddrTyper, DAO_CDATA, DAO_CTYPE_INVAR );
-	daox_type_socket = DaoNamespace_WrapType( netns, & socketTyper, DAO_CDATA, 0 );
-	daox_type_tcpstream = DaoNamespace_WrapType( netns, & TcpStreamTyper, DAO_CDATA, 0 );
-	daox_type_tcplistener = DaoNamespace_WrapType( netns, & TcpListenerTyper, DAO_CDATA, 0 );
-	daox_type_udpsocket = DaoNamespace_WrapType( netns, & UdpSocketTyper, DAO_CDATA, 0 );
+	daox_type_ipv4addr = DaoNamespace_WrapType( netns, & daoIpv4AddrCore, DAO_CSTRUCT, 0 );
+	daox_type_sockaddr = DaoNamespace_WrapType( netns, & daoSocketAddrCore, DAO_CSTRUCT, 0 );
+	daox_type_socket = DaoNamespace_WrapType( netns, & daoSocketCore, DAO_CSTRUCT, 0 );
+	daox_type_tcpstream = DaoNamespace_WrapType( netns, & daoTcpStreamCore, DAO_CSTRUCT, 0 );
+	daox_type_tcplistener = DaoNamespace_WrapType( netns, & daoTcpListenerCore, DAO_CSTRUCT, 0 );
+	daox_type_udpsocket = DaoNamespace_WrapType( netns, & daoUdpSocketCore, DAO_CSTRUCT, 0 );
 	DaoNamespace_WrapFunctions( netns, netMeths );
 	DaoNetwork_Init( vmSpace, ns );
 	return 0;
