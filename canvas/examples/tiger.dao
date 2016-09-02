@@ -58,4 +58,5 @@ routine main( save : string, width = 1200, height = 900 )
 	painter = Painter();
 	painter.RenderToImage( canvas, image, width, height );
 	image.Save( save );
+	return 0
 }

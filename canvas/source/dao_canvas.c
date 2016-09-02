@@ -42,7 +42,6 @@ DaoxGradient* DaoxGradient_New( int type )
 	case DAOX_GRADIENT_BASE : ctype = daox_type_gradient; break;
 	case DAOX_GRADIENT_LINEAR : ctype = daox_type_linear_gradient; break;
 	case DAOX_GRADIENT_RADIAL : ctype = daox_type_radial_gradient; break;
-	case DAOX_GRADIENT_PATH : ctype = daox_type_path_gradient; break;
 	}
 	DaoCstruct_Init( (DaoCstruct*)self, ctype );
 	self->stops = DArray_New( sizeof(float) );

@@ -194,40 +194,84 @@ static void FONT_Open( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxFont *self = (DaoxFont*) p[0];
 	DaoProcess_PutInteger( proc, DaoxFont_Open( self, DaoValue_TryGetChars( p[1] ) ) );
 }
-static DaoFuncItem DaoxFontMeths[]=
+static DaoFunctionEntry daoFontMeths[]=
 {
 	{ FONT_New,     "Font( file = \"\" )" },
 	{ FONT_Open,    "Open( self: Font, file: string ) => int" },
 	{ NULL, NULL }
 };
 
-static void DaoxFont_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+static void DaoxFont_HandleGC( DaoValue *p, DList *values, DList *lists, DList *maps, int remove )
 {
 	DaoxFont *self = (DaoxFont*) p;
 	DList_Append( maps, self->glyphs );
 }
-DaoTypeBase DaoxFont_Typer =
+
+DaoTypeCore daoFontCore =
 {
-	"Font", NULL, NULL, (DaoFuncItem*) DaoxFontMeths, { NULL }, { NULL },
-	(FuncPtrDel)DaoxFont_Delete, DaoxFont_GetGCFields
+	"Font",                                            /* name */
+	sizeof(DaoxFont),                                  /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoFontMeths,                                      /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxFont_Delete,               /* Delete */
+	DaoxFont_HandleGC                                  /* HandleGC */
 };
 
-static DaoFuncItem DaoxGlyphMeths[]=
+
+
+static DaoFunctionEntry daoGlyphMeths[]=
 {
 	{ NULL, NULL }
 };
 
-static void DaoxGlyph_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+static void DaoxGlyph_HandleGC( DaoValue *p, DList *values, DList *lists, DList *maps, int remove )
 {
 	DaoxGlyph *self = (DaoxGlyph*) p;
 	if( self->shape ) DList_Append( values, self->shape );
 	if( remove ) self->shape = NULL;
 }
-DaoTypeBase DaoxGlyph_Typer =
+
+DaoTypeCore daoGlyphCore =
 {
-	"Glyph", NULL, NULL, (DaoFuncItem*) DaoxGlyphMeths, { NULL }, { NULL },
-	(FuncPtrDel)DaoxGlyph_Delete, DaoxGlyph_GetGCFields
+	"Glyph",                                           /* name */
+	sizeof(DaoxGlyph),                                 /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoGlyphMeths,                                     /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxGlyph_Delete,              /* Delete */
+	DaoxGlyph_HandleGC                                 /* HandleGC */
 };
+
+
 
 DaoType* daox_type_font = NULL;
 DaoType* daox_type_glyph = NULL;
@@ -246,8 +290,8 @@ DAO_CANVAS_DLL int DaoFont_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoxFont *font;
 
-	daox_type_font = DaoNamespace_WrapType( ns, & DaoxFont_Typer, DAO_CSTRUCT, 0 );
-	daox_type_glyph = DaoNamespace_WrapType( ns, & DaoxGlyph_Typer, DAO_CSTRUCT, 0 );
+	daox_type_font = DaoNamespace_WrapType( ns, & daoFontCore, DAO_CSTRUCT, 0 );
+	daox_type_glyph = DaoNamespace_WrapType( ns, & daoGlyphCore, DAO_CSTRUCT, 0 );
 	
 	daox_default_font = font = DaoxFont_New();
 	DaoNamespace_AddConstValue( ns, "DefaultFont", (DaoValue*) font );

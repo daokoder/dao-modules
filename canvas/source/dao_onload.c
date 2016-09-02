@@ -185,7 +185,7 @@ static void PATH_CubicAbsTo2( DaoProcess *proc, DaoValue *p[], int N )
 	PATH_CubicTo2( proc, p, N );
 }
 
-static DaoFuncItem DaoxPathMeths[]=
+static DaoFunctionEntry daoPathMeths[]=
 {
 	{ PATH_New,    "Path() => Path" },
 
@@ -218,14 +218,34 @@ static DaoFuncItem DaoxPathMeths[]=
 	{ PATH_Close,     "Close( self: Path ) => Path" },
 	{ NULL, NULL }
 };
-DaoTypeBase DaoxPath_Typer =
+
+DaoTypeCore daoPathCore =
 {
-	"Path", NULL, NULL, (DaoFuncItem*) DaoxPathMeths, { NULL }, { NULL },
-	(FuncPtrDel)DaoxPath_Delete, NULL
+	"Path",                                            /* name */
+	sizeof(DaoxPath),                                  /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoPathMeths,                                      /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxPath_Delete,               /* Delete */
+	NULL                                               /* HandleGC */
 };
 
 
-static void DaoxPathMesh_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+static void DaoxPathMesh_HandleGC( DaoValue *p, DList *values, DList *lists, DList *maps, int remove )
 {
 	DaoxPathMesh *self = (DaoxPathMesh*) p;
 	if( self->path ) DList_Append( values, self->path );
@@ -235,14 +255,35 @@ static void DaoxPathMesh_GetGCFields( void *p, DList *values, DList *lists, DLis
 		self->stroke = NULL;
 	}
 }
-DaoTypeBase DaoxPathMesh_Typer =
+
+DaoTypeCore daoPathMeshCore =
 {
-	"PathMesh", NULL, NULL, NULL, { NULL }, { NULL },
-	(FuncPtrDel)DaoxPathMesh_Delete, DaoxPathMesh_GetGCFields
+	"PathMesh",                                        /* name */
+	sizeof(DaoxPathMesh),                              /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	NULL,                                              /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxPathMesh_Delete,           /* Delete */
+	DaoxPathMesh_HandleGC                              /* HandleGC */
 };
 
 
-static void DaoxPathCache_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+
+static void DaoxPathCache_HandleGC( DaoValue *p, DList *values, DList *lists, DList *maps, int remove )
 {
 	DNode *it;
 	DaoxPathCache *self = (DaoxPathCache*) p;
@@ -253,10 +294,30 @@ static void DaoxPathCache_GetGCFields( void *p, DList *values, DList *lists, DLi
 		DList_Append( lists, it->value.pVoid );
 	}
 }
-DaoTypeBase DaoxPathCache_Typer =
+
+DaoTypeCore daoPathCacheCore =
 {
-	"PathCache", NULL, NULL, NULL, { NULL }, { NULL },
-	(FuncPtrDel)DaoxPathCache_Delete, DaoxPathCache_GetGCFields
+	"PathCache",                                       /* name */
+	sizeof(DaoxPathCache),                             /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	NULL,                                              /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxPathCache_Delete,          /* Delete */
+	DaoxPathCache_HandleGC                             /* HandleGC */
 };
 
 
@@ -291,18 +352,39 @@ static void GRAD_AddStops( DaoProcess *proc, DaoValue *p[], int N )
 	}
 }
 
-static DaoFuncItem DaoxGradientMeths[]=
+static DaoFunctionEntry daoGradientMeths[]=
 {
 	{ GRAD_AddStop,  "AddStop( self: ColorGradient, at: float, color: Color ) => ColorGradient" },
 	{ GRAD_AddStops,  "AddStops( self: ColorGradient, stops: list<tuple<at:float,color:Color>> ) => ColorGradient" },
 	{ NULL, NULL }
 };
 
-DaoTypeBase DaoxGradient_Typer =
+
+DaoTypeCore daoGradientCore =
 {
-	"ColorGradient", NULL, NULL, (DaoFuncItem*) DaoxGradientMeths, {NULL}, {NULL},
-	(FuncPtrDel)DaoxGradient_Delete, NULL
+	"ColorGradient",                                   /* name */
+	sizeof(DaoxGradient),                              /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoGradientMeths,                                  /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxGradient_Delete,           /* Delete */
+	NULL                                               /* HandleGC */
 };
+
 
 
 static void LGRAD_SetStart( DaoProcess *proc, DaoValue *p[], int N )
@@ -318,19 +400,39 @@ static void LGRAD_SetEnd( DaoProcess *proc, DaoValue *p[], int N )
 	self->points[1].y = p[2]->xFloat.value;
 }
 
-static DaoFuncItem DaoxLinearGradientMeths[]=
+static DaoFunctionEntry daoLinearGradientMeths[]=
 {
 	{ LGRAD_SetStart,  "SetStart( self: LinearGradient, x: float, y: float )" },
 	{ LGRAD_SetEnd,    "SetEnd( self: LinearGradient, x: float, y: float )" },
 	{ NULL, NULL }
 };
 
-DaoTypeBase DaoxLinearGradient_Typer =
+
+DaoTypeCore daoLinearGradientCore =
 {
-	"LinearGradient", NULL, NULL, (DaoFuncItem*) DaoxLinearGradientMeths,
-	{ & DaoxGradient_Typer, NULL }, {NULL},
-	(FuncPtrDel)DaoxGradient_Delete, NULL
+	"LinearGradient",                                  /* name */
+	sizeof(DaoxGradient),                              /* size */
+	{ & daoGradientCore, NULL },                       /* bases */
+	NULL,                                              /* numbers */
+	daoLinearGradientMeths,                            /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxGradient_Delete,           /* Delete */
+	NULL                                               /* HandleGC */
 };
+
 
 
 static void RGRAD_SetRadius( DaoProcess *proc, DaoValue *p[], int N )
@@ -339,7 +441,7 @@ static void RGRAD_SetRadius( DaoProcess *proc, DaoValue *p[], int N )
 	self->radius = p[1]->xFloat.value;
 }
 
-static DaoFuncItem DaoxRadialGradientMeths[]=
+static DaoFunctionEntry daoRadialGradientMeths[]=
 {
 	{ LGRAD_SetStart,  "SetCenter( self: RadialGradient, x: float, y: float )" },
 	{ LGRAD_SetEnd,    "SetFocus( self: RadialGradient, x: float, y: float )" },
@@ -347,29 +449,33 @@ static DaoFuncItem DaoxRadialGradientMeths[]=
 	{ NULL, NULL }
 };
 
-DaoTypeBase DaoxRadialGradient_Typer =
+
+DaoTypeCore daoRadialGradientCore =
 {
-	"RadialGradient", NULL, NULL, (DaoFuncItem*) DaoxRadialGradientMeths,
-	{ & DaoxGradient_Typer, NULL }, {NULL},
-	(FuncPtrDel)DaoxGradient_Delete, NULL
+	"RadialGradient",                                  /* name */
+	sizeof(DaoxGradient),                              /* size */
+	{ & daoGradientCore, NULL },                       /* bases */
+	NULL,                                              /* numbers */
+	daoRadialGradientMeths,                            /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxGradient_Delete,           /* Delete */
+	NULL                                               /* HandleGC */
 };
 
 
-static void PGRAD_AddStop( DaoProcess *proc, DaoValue *p[], int N )
-{
-}
-
-static DaoFuncItem DaoxPathGradientMeths[]=
-{
-	{ NULL, NULL }
-};
-
-DaoTypeBase DaoxPathGradient_Typer =
-{
-	"PathGradient", NULL, NULL, (DaoFuncItem*) DaoxPathGradientMeths,
-	{ & DaoxGradient_Typer, NULL}, {NULL},
-	(FuncPtrDel)DaoxGradient_Delete, NULL
-};
 
 
 
@@ -439,10 +545,6 @@ static void BRUSH_SetRadialGradient( DaoProcess *proc, DaoValue *p[], int N )
 {
 	BRUSH_SetFillGradient( proc, p, N, DAOX_GRADIENT_RADIAL );
 }
-static void BRUSH_SetPathGradient( DaoProcess *proc, DaoValue *p[], int N )
-{
-	BRUSH_SetFillGradient( proc, p, N, DAOX_GRADIENT_PATH );
-}
 static void BRUSH_SetFont( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxBrush *self = (DaoxBrush*) p[0];
@@ -451,7 +553,7 @@ static void BRUSH_SetFont( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 
-static DaoFuncItem DaoxBrushMeths[]=
+static DaoFunctionEntry daoBrushMeths[]=
 {
 	{ BRUSH_SetStrokeWidth,  "SetStrokeWidth( self: Brush, width = 1.0 ) => Brush" },
 
@@ -470,13 +572,11 @@ static DaoFuncItem DaoxBrushMeths[]=
 
 	{ BRUSH_SetRadialGradient, "SetRadialGradient( self: Brush ) => RadialGradient" },
 
-	//{ BRUSH_SetPathGradient,   "SetPathGradient( self: Brush ) => PathGradient" },
-
 	{ BRUSH_SetFont,      "SetFont( self: Brush, font: Font, size = 12.0 ) => Brush" },
 	{ NULL, NULL }
 };
 
-static void DaoxBrush_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+static void DaoxBrush_HandleGC( DaoValue *p, DList *values, DList *lists, DList *maps, int remove )
 {
 	DaoxBrush *self = (DaoxBrush*) p;
 	if( self->strokeGradient ) DList_Append( values, self->strokeGradient );
@@ -491,12 +591,31 @@ static void DaoxBrush_GetGCFields( void *p, DList *values, DList *lists, DList *
 	}
 }
 
-DaoTypeBase DaoxBrush_Typer =
-{
-	"Brush", NULL, NULL, (DaoFuncItem*) DaoxBrushMeths, {NULL}, {NULL},
-	(FuncPtrDel)DaoxBrush_Delete, DaoxBrush_GetGCFields
-};
 
+DaoTypeCore daoBrushCore =
+{
+	"Brush",                                           /* name */
+	sizeof(DaoxBrush),                                 /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoBrushMeths,                                     /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxBrush_Delete,              /* Delete */
+	DaoxBrush_HandleGC                                 /* HandleGC */
+};
 
 
 
@@ -548,7 +667,7 @@ static void ITEM_Move( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 
-static void DaoxCanvasNode_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+static void DaoxCanvasNode_HandleGC( DaoValue *p, DList *values, DList *lists, DList *maps, int remove )
 {
 	DaoxCanvasNode *self = (DaoxCanvasNode*) p;
 	if( self->children ) DList_Append( lists, self->children );
@@ -564,7 +683,7 @@ static void DaoxCanvasNode_GetGCFields( void *p, DList *values, DList *lists, DL
 	}
 }
 
-static DaoFuncItem DaoxCanvasNodeMeths[]=
+static DaoFunctionEntry daoCanvasNodeMeths[]=
 {
 	{ ITEM_SetVisible,
 		"SetVisible( self: CanvasNode, visible = true )"
@@ -581,10 +700,30 @@ static DaoFuncItem DaoxCanvasNodeMeths[]=
 	{ NULL, NULL }
 };
 
-DaoTypeBase DaoxCanvasNode_Typer =
+
+DaoTypeCore daoCanvasNodeCore =
 {
-	"CanvasNode", NULL, NULL, (DaoFuncItem*) DaoxCanvasNodeMeths, {NULL}, {NULL},
-	(FuncPtrDel)DaoxCanvasNode_Delete, DaoxCanvasNode_GetGCFields
+	"CanvasNode",                                      /* name */
+	sizeof(DaoxCanvasNode),                            /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoCanvasNodeMeths,                                /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxCanvasNode_Delete,         /* Delete */
+	DaoxCanvasNode_HandleGC                            /* HandleGC */
 };
 
 
@@ -608,17 +747,36 @@ static void LINE_Set( DaoProcess *proc, DaoValue *p[], int N )
 	LINE_SetData( self, p + 1 );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
-static DaoFuncItem DaoxCanvasLineMeths[]=
+static DaoFunctionEntry daoCanvasLineMeths[]=
 {
 	{ LINE_Set, "Set( self: CanvasLine, x1 = 0.0, y1 = 0.0, x2 = 1.0, y2 = 1.0 ) => CanvasLine" },
 	{ NULL, NULL }
 };
 
-DaoTypeBase DaoxCanvasLine_Typer =
+
+DaoTypeCore daoCanvasLineCore =
 {
-	"CanvasLine", NULL, NULL, (DaoFuncItem*) DaoxCanvasLineMeths,
-	{ & DaoxCanvasNode_Typer, NULL }, { NULL },
-	(FuncPtrDel)DaoxCanvasNode_Delete, DaoxCanvasNode_GetGCFields
+	"CanvasLine",                                      /* name */
+	sizeof(DaoxCanvasLine),                            /* size */
+	{ & daoCanvasNodeCore, NULL },                     /* bases */
+	NULL,                                              /* numbers */
+	daoCanvasLineMeths,                                /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxCanvasNode_Delete,         /* Delete */
+	DaoxCanvasNode_HandleGC                            /* HandleGC */
 };
 
 
@@ -643,17 +801,36 @@ static void RECT_Set( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 #endif
-static DaoFuncItem DaoxCanvasRectMeths[]=
+static DaoFunctionEntry daoCanvasRectMeths[]=
 {
 	//{ RECT_Set,   "Set( self: CanvasRect, x1 = 0.0, y1 = 0.0, x2 = 1.0, y2 = 1.0 ) => CanvasRect" },
 	{ NULL, NULL }
 };
 
-DaoTypeBase DaoxCanvasRect_Typer =
+
+DaoTypeCore daoCanvasRectCore =
 {
-	"CanvasRect", NULL, NULL, (DaoFuncItem*) DaoxCanvasRectMeths,
-	{ & DaoxCanvasNode_Typer, NULL }, { NULL },
-	(FuncPtrDel)DaoxCanvasNode_Delete, DaoxCanvasNode_GetGCFields
+	"CanvasRect",                                      /* name */
+	sizeof(DaoxCanvasRect),                            /* size */
+	{ & daoCanvasNodeCore, NULL },                     /* bases */
+	NULL,                                              /* numbers */
+	daoCanvasRectMeths,                                /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxCanvasNode_Delete,         /* Delete */
+	DaoxCanvasNode_HandleGC                            /* HandleGC */
 };
 
 
@@ -671,17 +848,36 @@ static void CIRCLE_Set( DaoProcess *proc, DaoValue *p[], int N )
 	CIRCLE_SetData( self, p + 1 );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
-static DaoFuncItem DaoxCanvasCircleMeths[]=
+static DaoFunctionEntry daoCanvasCircleMeths[]=
 {
 	{ CIRCLE_Set,  "Set( self: CanvasCircle, cx = 0.0, cy = 0.0, r = 1.0 ) => CanvasCircle" },
 	{ NULL, NULL }
 };
 
-DaoTypeBase DaoxCanvasCircle_Typer =
+
+DaoTypeCore daoCanvasCircleCore =
 {
-	"CanvasCircle", NULL, NULL, (DaoFuncItem*) DaoxCanvasCircleMeths,
-	{ & DaoxCanvasNode_Typer, NULL }, { NULL },
-	(FuncPtrDel)DaoxCanvasNode_Delete, DaoxCanvasNode_GetGCFields
+	"CanvasCircle",                                    /* name */
+	sizeof(DaoxCanvasCircle),                          /* size */
+	{ & daoCanvasNodeCore, NULL },                     /* bases */
+	NULL,                                              /* numbers */
+	daoCanvasCircleMeths,                              /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxCanvasNode_Delete,         /* Delete */
+	DaoxCanvasNode_HandleGC                            /* HandleGC */
 };
 
 
@@ -702,63 +898,137 @@ static void ELLIPSE_Set( DaoProcess *proc, DaoValue *p[], int N )
 	ELLIPSE_SetData( self, p + 1 );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
-static DaoFuncItem DaoxCanvasEllipseMeths[]=
+static DaoFunctionEntry daoCanvasEllipseMeths[]=
 {
 	{ ELLIPSE_Set,  "Set( self: CanvasEllipse, cx = 0.0, cy = 0.0, rx = 1.0, ry = 1.0 ) => CanvasEllipse" },
 	{ NULL, NULL }
 };
 
-DaoTypeBase DaoxCanvasEllipse_Typer =
+
+DaoTypeCore daoCanvasEllipseCore =
 {
-	"CanvasEllipse", NULL, NULL, (DaoFuncItem*) DaoxCanvasEllipseMeths,
-	{ & DaoxCanvasNode_Typer, NULL }, { NULL },
-	(FuncPtrDel)DaoxCanvasNode_Delete, DaoxCanvasNode_GetGCFields
+	"CanvasEllipse",                                   /* name */
+	sizeof(DaoxCanvasEllipse),                         /* size */
+	{ & daoCanvasNodeCore, NULL },                     /* bases */
+	NULL,                                              /* numbers */
+	daoCanvasEllipseMeths,                             /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxCanvasNode_Delete,         /* Delete */
+	DaoxCanvasNode_HandleGC                            /* HandleGC */
 };
 
 
 
 
-static DaoFuncItem DaoxCanvasPathMeths[]=
-{
-#if 0
-#endif
-	{ NULL, NULL }
-};
-
-DaoTypeBase DaoxCanvasPath_Typer =
-{
-	"CanvasPath", NULL, NULL, (DaoFuncItem*) DaoxCanvasPathMeths,
-	{ & DaoxCanvasNode_Typer, NULL }, { NULL },
-	(FuncPtrDel)DaoxCanvasNode_Delete, DaoxCanvasNode_GetGCFields
-};
-
-
-
-
-static DaoFuncItem DaoxCanvasTextMeths[]=
-{
-	{ NULL, NULL }
-};
-
-DaoTypeBase DaoxCanvasText_Typer =
-{
-	"CanvasText", NULL, NULL, (DaoFuncItem*) DaoxCanvasTextMeths,
-	{ & DaoxCanvasNode_Typer, NULL }, { NULL },
-	(FuncPtrDel)DaoxCanvasNode_Delete, DaoxCanvasNode_GetGCFields
-};
-
-
-
-static DaoFuncItem DaoxCanvasImageMeths[]=
+static DaoFunctionEntry daoCanvasPathMeths[]=
 {
 	{ NULL, NULL }
 };
 
-DaoTypeBase DaoxCanvasImage_Typer =
+
+DaoTypeCore daoCanvasPathCore =
 {
-	"CanvasImage", NULL, NULL, (DaoFuncItem*) DaoxCanvasImageMeths,
-	{ & DaoxCanvasNode_Typer, NULL }, { NULL },
-	(FuncPtrDel)DaoxCanvasNode_Delete, DaoxCanvasNode_GetGCFields
+	"CanvasPath",                                      /* name */
+	sizeof(DaoxCanvasPath),                            /* size */
+	{ & daoCanvasNodeCore, NULL },                     /* bases */
+	NULL,                                              /* numbers */
+	daoCanvasPathMeths,                                /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxCanvasNode_Delete,         /* Delete */
+	DaoxCanvasNode_HandleGC                            /* HandleGC */
+};
+
+
+
+
+static DaoFunctionEntry daoCanvasTextMeths[]=
+{
+	{ NULL, NULL }
+};
+
+
+DaoTypeCore daoCanvasTextCore =
+{
+	"CanvasText",                                      /* name */
+	sizeof(DaoxCanvasText),                            /* size */
+	{ & daoCanvasNodeCore, NULL },                     /* bases */
+	NULL,                                              /* numbers */
+	daoCanvasTextMeths,                                /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxCanvasNode_Delete,         /* Delete */
+	DaoxCanvasNode_HandleGC                            /* HandleGC */
+};
+
+
+
+static DaoFunctionEntry daoCanvasImageMeths[]=
+{
+	{ NULL, NULL }
+};
+
+
+DaoTypeCore daoCanvasImageCore =
+{
+	"CanvasImage",                                     /* name */
+	sizeof(DaoxCanvasImage),                           /* size */
+	{ & daoCanvasNodeCore, NULL },                     /* bases */
+	NULL,                                              /* numbers */
+	daoCanvasImageMeths,                               /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxCanvasNode_Delete,         /* Delete */
+	DaoxCanvasNode_HandleGC                            /* HandleGC */
 };
 
 
@@ -898,7 +1168,7 @@ static void CANVAS_PopBrush( DaoProcess *proc, DaoValue *p[], int N )
 
 
 
-static DaoFuncItem DaoxCanvasMeths[]=
+static DaoFunctionEntry daoCanvasMeths[]=
 {
 	{ CANVAS_New,         "Canvas()" },
 
@@ -932,7 +1202,7 @@ static DaoFuncItem DaoxCanvasMeths[]=
 };
 
 
-static void DaoxCanvas_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+static void DaoxCanvas_HandleGC( DaoValue *p, DList *values, DList *lists, DList *maps, int remove )
 {
 	DaoxCanvas *self = (DaoxCanvas*) p;
 	DList_Append( lists, self->nodes );
@@ -943,10 +1213,30 @@ static void DaoxCanvas_GetGCFields( void *p, DList *values, DList *lists, DList 
 	if( remove ) self->pathCache = NULL;
 }
 
-DaoTypeBase DaoxCanvas_Typer =
+
+DaoTypeCore daoCanvasCore =
 {
-	"Canvas", NULL, NULL, (DaoFuncItem*) DaoxCanvasMeths, { NULL }, {NULL},
-	(FuncPtrDel)DaoxCanvas_Delete, DaoxCanvas_GetGCFields
+	"Canvas",                                          /* name */
+	sizeof(DaoxCanvas),                                /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoCanvasMeths,                                    /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxCanvas_Delete,             /* Delete */
+	DaoxCanvas_HandleGC                                /* HandleGC */
 };
 
 
@@ -971,21 +1261,41 @@ static void PAINTER_Paint( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxCanvas *canvas = (DaoxCanvas*) p[1];
 	DaoxPainter_Paint( self, canvas, canvas->viewport );
 }
-static DaoFuncItem DaoxPainterMeths[]=
+static DaoFunctionEntry daoPainterMeths[]=
 {
 	{ PAINTER_New,            "Painter()" },
 	{ PAINTER_RenderToImage,  "RenderToImage( self: Painter, canvas: Canvas, image: Image, width: int, height: int )" },
 	{ PAINTER_Paint,  "Paint( self: Painter, canvas: Canvas )" },
 	{ NULL, NULL }
 };
-static void DaoxPainter_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+static void DaoxPainter_HandleGC( DaoValue *p, DList *values, DList *lists, DList *maps, int remove )
 {
 	DaoxPainter *self = (DaoxPainter*) p;
 }
-DaoTypeBase DaoxPainter_Typer =
+
+DaoTypeCore daoPainterCore =
 {
-	"Painter", NULL, NULL, (DaoFuncItem*) DaoxPainterMeths, {0}, {0},
-	(FuncPtrDel)DaoxPainter_Delete, DaoxPainter_GetGCFields
+	"Painter",                                         /* name */
+	sizeof(DaoxPainter),                               /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoPainterMeths,                                   /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxPainter_Delete,            /* Delete */
+	DaoxPainter_HandleGC                               /* HandleGC */
 };
 
 
@@ -998,7 +1308,6 @@ DaoType *daox_type_path_cache = NULL;
 DaoType *daox_type_gradient = NULL;
 DaoType *daox_type_linear_gradient = NULL;
 DaoType *daox_type_radial_gradient = NULL;
-DaoType *daox_type_path_gradient = NULL;
 DaoType *daox_type_brush = NULL;
 DaoType *daox_type_canvas = NULL;
 
@@ -1027,27 +1336,26 @@ DAO_CANVAS_DLL int DaoCanvas_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 
 	DaoNamespace_DefineType( ns, "tuple<red:float,green:float,blue:float,alpha:float>", "Color" );
 
-	daox_type_path = DaoNamespace_WrapType( ns, & DaoxPath_Typer, DAO_CSTRUCT, 0 );
-	daox_type_path_mesh = DaoNamespace_WrapType( ns, & DaoxPathMesh_Typer, DAO_CSTRUCT, 0 );
-	daox_type_path_cache = DaoNamespace_WrapType( ns, & DaoxPathCache_Typer, DAO_CSTRUCT, 0 );
+	daox_type_path = DaoNamespace_WrapType( ns, & daoPathCore, DAO_CSTRUCT, 0 );
+	daox_type_path_mesh = DaoNamespace_WrapType( ns, & daoPathMeshCore, DAO_CSTRUCT, 0 );
+	daox_type_path_cache = DaoNamespace_WrapType( ns, & daoPathCacheCore, DAO_CSTRUCT, 0 );
 
-	daox_type_gradient = DaoNamespace_WrapType( ns, & DaoxGradient_Typer, DAO_CSTRUCT, 0 );
-	daox_type_linear_gradient = DaoNamespace_WrapType( ns, & DaoxLinearGradient_Typer, DAO_CSTRUCT, 0 );
-	daox_type_radial_gradient = DaoNamespace_WrapType( ns, & DaoxRadialGradient_Typer, DAO_CSTRUCT, 0 );
-	daox_type_path_gradient = DaoNamespace_WrapType( ns, & DaoxPathGradient_Typer, DAO_CSTRUCT, 0 );
+	daox_type_gradient = DaoNamespace_WrapType( ns, & daoGradientCore, DAO_CSTRUCT, 0 );
+	daox_type_linear_gradient = DaoNamespace_WrapType( ns, & daoLinearGradientCore, DAO_CSTRUCT, 0 );
+	daox_type_radial_gradient = DaoNamespace_WrapType( ns, & daoRadialGradientCore, DAO_CSTRUCT, 0 );
 
-	daox_type_brush = DaoNamespace_WrapType( ns, & DaoxBrush_Typer, DAO_CSTRUCT, 0 );
-	daox_type_canvas_node = DaoNamespace_WrapType( ns, & DaoxCanvasNode_Typer, DAO_CSTRUCT, 0 );
-	daox_type_canvas_line = DaoNamespace_WrapType( ns, & DaoxCanvasLine_Typer, DAO_CSTRUCT, 0 );
-	daox_type_canvas_rect = DaoNamespace_WrapType( ns, & DaoxCanvasRect_Typer, DAO_CSTRUCT, 0 );
-	daox_type_canvas_circle = DaoNamespace_WrapType( ns, & DaoxCanvasCircle_Typer, DAO_CSTRUCT, 0 );
-	daox_type_canvas_ellipse = DaoNamespace_WrapType( ns, & DaoxCanvasEllipse_Typer, DAO_CSTRUCT, 0 );
-	daox_type_canvas_path = DaoNamespace_WrapType( ns, & DaoxCanvasPath_Typer, DAO_CSTRUCT, 0 );
-	daox_type_canvas_text = DaoNamespace_WrapType( ns, & DaoxCanvasText_Typer, DAO_CSTRUCT, 0 );
-	daox_type_canvas_image = DaoNamespace_WrapType( ns, & DaoxCanvasImage_Typer, DAO_CSTRUCT, 0 );
+	daox_type_brush = DaoNamespace_WrapType( ns, & daoBrushCore, DAO_CSTRUCT, 0 );
+	daox_type_canvas_node = DaoNamespace_WrapType( ns, & daoCanvasNodeCore, DAO_CSTRUCT, 0 );
+	daox_type_canvas_line = DaoNamespace_WrapType( ns, & daoCanvasLineCore, DAO_CSTRUCT, 0 );
+	daox_type_canvas_rect = DaoNamespace_WrapType( ns, & daoCanvasRectCore, DAO_CSTRUCT, 0 );
+	daox_type_canvas_circle = DaoNamespace_WrapType( ns, & daoCanvasCircleCore, DAO_CSTRUCT, 0 );
+	daox_type_canvas_ellipse = DaoNamespace_WrapType( ns, & daoCanvasEllipseCore, DAO_CSTRUCT, 0 );
+	daox_type_canvas_path = DaoNamespace_WrapType( ns, & daoCanvasPathCore, DAO_CSTRUCT, 0 );
+	daox_type_canvas_text = DaoNamespace_WrapType( ns, & daoCanvasTextCore, DAO_CSTRUCT, 0 );
+	daox_type_canvas_image = DaoNamespace_WrapType( ns, & daoCanvasImageCore, DAO_CSTRUCT, 0 );
 
-	daox_type_canvas = DaoNamespace_WrapType( ns, & DaoxCanvas_Typer, DAO_CSTRUCT, 0 );
-	daox_type_painter = DaoNamespace_WrapType( ns, & DaoxPainter_Typer, DAO_CSTRUCT, 0 );
+	daox_type_canvas = DaoNamespace_WrapType( ns, & daoCanvasCore, DAO_CSTRUCT, 0 );
+	daox_type_painter = DaoNamespace_WrapType( ns, & daoPainterCore, DAO_CSTRUCT, 0 );
 
 	return 0;
 }
