@@ -284,7 +284,7 @@ static void UNIX_Unblock( DaoProcess *proc, DaoValue *p[], int N )
 	SetSignalMask( proc, p, 0 );
 }
 
-static DaoFuncItem unixMeths[] =
+static DaoFunctionEntry unixMeths[] =
 {
 	//! Sets the specified \a signals to be suppressed; when on of them is catched by the process, its ID will be written to the returned
 	//! signal pipe (which exists in single instance per process)
@@ -348,7 +348,7 @@ static void SIGPIPE_Fetch( DaoProcess *proc, DaoValue *p[], int N )
 	}
 }
 
-static DaoFuncItem sigpipeMeths[] =
+static DaoFunctionEntry daoSignalPipeMeths[] =
 {
 	//! File descriptor for the read end
 	{ SIGPIPE_Fd,	"fd(invar self: SignalPipe) => int" },
@@ -358,17 +358,45 @@ static DaoFuncItem sigpipeMeths[] =
 	{ NULL, NULL }
 };
 
+
+static void DaoSignalPipe_CoreDelete( DaoValue *self )
+{
+	DaoSignalPipe_Delete( (DaoSignalPipe*) self->xCdata.data );
+	DaoCstruct_Delete( (DaoCstruct*) self );
+}
+
 //! Pipe from which signals sent to the process can be fetched
-static DaoTypeBase sigpipeTyper = {
-	"SignalPipe", NULL, NULL, sigpipeMeths, {NULL}, {0},
-	(FuncPtrDel)DaoSignalPipe_Delete, NULL
+DaoTypeCore daoSignalPipeCore =
+{
+	"SignalPipe",                                          /* name */
+	sizeof(DaoSignalPipe),                                 /* size */
+	{ NULL },                                              /* bases */
+	NULL,                                                  /* numbers */
+	daoSignalPipeMeths,                                    /* methods */
+	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
+	DaoCstruct_CheckSetField,    DaoCstruct_DoSetField,    /* SetField */
+	DaoCstruct_CheckGetItem,     DaoCstruct_DoGetItem,     /* GetItem */
+	NULL,                        NULL,                     /* SetItem */
+	NULL,                        NULL,                     /* Unary */
+	NULL,                        NULL,                     /* Binary */
+	DaoCstruct_CheckConversion,  DaoCstruct_DoConversion,  /* Conversion */
+	NULL,                        NULL,                     /* ForEach */
+	NULL,                                                  /* Print */
+	NULL,                                                  /* Slice */
+	NULL,                                                  /* Compare */
+	NULL,                                                  /* Hash */
+	NULL,                                                  /* Create */
+	NULL,                                                  /* Copy */
+	(DaoDeleteFunction) DaoSignalPipe_CoreDelete,          /* Delete */
+	NULL                                                   /* HandleGC */
 };
+
 
 DAO_DLL int DaoUnix_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *osns = DaoVmSpace_GetNamespace( vmSpace, "os" );
 	DaoNamespace_AddConstValue( ns, "os", (DaoValue*)osns );
-	daox_type_sigpipe = DaoNamespace_WrapType( osns, &sigpipeTyper, DAO_CDATA, 0 );
+	daox_type_sigpipe = DaoNamespace_WrapType( osns, &daoSignalPipeCore, DAO_CDATA, 0 );
 	DaoNamespace_DefineType( osns, "enum<sigint;sigterm;sigquit;sighup;sigchld;sigusr1;sigusr2;sigpipe>", "SignalSet" );
 	DaoNamespace_DefineType( osns, "enum<in;out;error;hup;none>", "PollEvent" );
 	DaoNamespace_DefineType( osns, "tuple<fd: int, events: tuple<monitored: PollEvent, occurred: PollEvent>>", "PollFd" );

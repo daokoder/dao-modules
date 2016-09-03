@@ -494,7 +494,7 @@ DaoTypeCore daoImageCore =
 	NULL,                                              /* numbers */
 	daoImageMeths,                                     /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
-	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* SetField */
 	NULL,                      NULL,                   /* GetItem */
 	NULL,                      NULL,                   /* SetItem */
 	NULL,                      NULL,                   /* Unary */

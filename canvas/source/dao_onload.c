@@ -600,7 +600,7 @@ DaoTypeCore daoBrushCore =
 	NULL,                                              /* numbers */
 	daoBrushMeths,                                     /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
-	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* SetField */
 	NULL,                      NULL,                   /* GetItem */
 	NULL,                      NULL,                   /* SetItem */
 	NULL,                      NULL,                   /* Unary */
@@ -709,7 +709,7 @@ DaoTypeCore daoCanvasNodeCore =
 	NULL,                                              /* numbers */
 	daoCanvasNodeMeths,                                /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
-	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* SetField */
 	NULL,                      NULL,                   /* GetItem */
 	NULL,                      NULL,                   /* SetItem */
 	NULL,                      NULL,                   /* Unary */
@@ -762,7 +762,7 @@ DaoTypeCore daoCanvasLineCore =
 	NULL,                                              /* numbers */
 	daoCanvasLineMeths,                                /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
-	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* SetField */
 	NULL,                      NULL,                   /* GetItem */
 	NULL,                      NULL,                   /* SetItem */
 	NULL,                      NULL,                   /* Unary */
@@ -816,7 +816,7 @@ DaoTypeCore daoCanvasRectCore =
 	NULL,                                              /* numbers */
 	daoCanvasRectMeths,                                /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
-	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* SetField */
 	NULL,                      NULL,                   /* GetItem */
 	NULL,                      NULL,                   /* SetItem */
 	NULL,                      NULL,                   /* Unary */
@@ -863,7 +863,7 @@ DaoTypeCore daoCanvasCircleCore =
 	NULL,                                              /* numbers */
 	daoCanvasCircleMeths,                              /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
-	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* SetField */
 	NULL,                      NULL,                   /* GetItem */
 	NULL,                      NULL,                   /* SetItem */
 	NULL,                      NULL,                   /* Unary */
@@ -913,7 +913,7 @@ DaoTypeCore daoCanvasEllipseCore =
 	NULL,                                              /* numbers */
 	daoCanvasEllipseMeths,                             /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
-	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* SetField */
 	NULL,                      NULL,                   /* GetItem */
 	NULL,                      NULL,                   /* SetItem */
 	NULL,                      NULL,                   /* Unary */
@@ -947,7 +947,7 @@ DaoTypeCore daoCanvasPathCore =
 	NULL,                                              /* numbers */
 	daoCanvasPathMeths,                                /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
-	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* SetField */
 	NULL,                      NULL,                   /* GetItem */
 	NULL,                      NULL,                   /* SetItem */
 	NULL,                      NULL,                   /* Unary */
@@ -981,7 +981,7 @@ DaoTypeCore daoCanvasTextCore =
 	NULL,                                              /* numbers */
 	daoCanvasTextMeths,                                /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
-	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* SetField */
 	NULL,                      NULL,                   /* GetItem */
 	NULL,                      NULL,                   /* SetItem */
 	NULL,                      NULL,                   /* Unary */
@@ -1014,7 +1014,7 @@ DaoTypeCore daoCanvasImageCore =
 	NULL,                                              /* numbers */
 	daoCanvasImageMeths,                               /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
-	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* SetField */
 	NULL,                      NULL,                   /* GetItem */
 	NULL,                      NULL,                   /* SetItem */
 	NULL,                      NULL,                   /* Unary */
@@ -1222,7 +1222,7 @@ DaoTypeCore daoCanvasCore =
 	NULL,                                              /* numbers */
 	daoCanvasMeths,                                    /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
-	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* SetField */
 	NULL,                      NULL,                   /* GetItem */
 	NULL,                      NULL,                   /* SetItem */
 	NULL,                      NULL,                   /* Unary */
@@ -1281,7 +1281,7 @@ DaoTypeCore daoPainterCore =
 	NULL,                                              /* numbers */
 	daoPainterMeths,                                   /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
-	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* SetField */
 	NULL,                      NULL,                   /* GetItem */
 	NULL,                      NULL,                   /* SetItem */
 	NULL,                      NULL,                   /* Unary */

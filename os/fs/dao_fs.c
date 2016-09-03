@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2011-2014, Limin Fu
+// Copyright (c) 2011-2016, Limin Fu
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without modification,
@@ -1520,7 +1520,7 @@ static void FS_Mkdir( DaoProcess *proc, DaoValue *p[], int N )
 	FreeTChars( path );
 }
 
-static DaoFuncItem entryMeths[] =
+static DaoFunctionEntry daoEntryMeths[] =
 {
 	/*! Full path */
 	{ FSNode_Path,		".path(invar self: Entry) => string" },
@@ -1567,7 +1567,7 @@ static DaoFuncItem entryMeths[] =
 	{ NULL, NULL }
 };
 
-static DaoFuncItem fileMeths[] =
+static DaoFunctionEntry daoFileMeths[] =
 {
 	/*! Size of the file in bytes */
 	{ FSNode_Size,		".size(invar self: File) => int" },
@@ -1584,7 +1584,7 @@ static DaoFuncItem fileMeths[] =
 	{ NULL, NULL }
 };
 
-static DaoFuncItem dirMeths[] =
+static DaoFunctionEntry daoDirMeths[] =
 {
 	/*! Creates new file given relative \a path and returns its \c File object */
 	{ FSNode_Makefile,	"newFile(self: Dir, path: string) => File" },
@@ -1629,19 +1629,93 @@ static DaoFuncItem dirMeths[] =
  * \note On Windows, all path strings are assumed to be encoded in UTF-8, and are implicitly converted to UTF-16 in order to support
  * Unicode file names on this platform.
  */
-DaoTypeBase entryTyper = {
-	"Entry", NULL, NULL, entryMeths, {NULL}, {0}, (FuncPtrDel)DInode_Delete, NULL
+
+static void DInode_CoreDelete( DaoValue *self )
+{
+	DInode_Delete( (DInode*) self->xCdata.data );
+	DaoCstruct_Delete( (DaoCstruct*) self );
+}
+
+DaoTypeCore daoEntryCore =
+{
+	"Entry",                                               /* name */
+	sizeof(DInode),                                        /* size */
+	{ NULL },                                              /* bases */
+	NULL,                                                  /* numbers */
+	daoEntryMeths,                                         /* methods */
+	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
+	DaoCstruct_CheckSetField,    DaoCstruct_DoSetField,    /* SetField */
+	DaoCstruct_CheckGetItem,     DaoCstruct_DoGetItem,     /* GetItem */
+	NULL,                        NULL,                     /* SetItem */
+	NULL,                        NULL,                     /* Unary */
+	NULL,                        NULL,                     /* Binary */
+	DaoCstruct_CheckConversion,  DaoCstruct_DoConversion,  /* Conversion */
+	NULL,                        NULL,                     /* ForEach */
+	NULL,                                                  /* Print */
+	NULL,                                                  /* Slice */
+	NULL,                                                  /* Compare */
+	NULL,                                                  /* Hash */
+	NULL,                                                  /* Create */
+	NULL,                                                  /* Copy */
+	(DaoDeleteFunction) DInode_CoreDelete,                 /* Delete */
+	NULL                                                   /* HandleGC */
 };
 
-DaoTypeBase fileTyper = {
-	"File", NULL, NULL, fileMeths, {&entryTyper, NULL}, {0}, (FuncPtrDel)DInode_Delete, NULL
+
+DaoTypeCore daoFileCore =
+{
+	"File",                                                /* name */
+	sizeof(DInode),                                        /* size */
+	{ & daoEntryCore, NULL },                              /* bases */
+	NULL,                                                  /* numbers */
+	daoFileMeths,                                          /* methods */
+	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
+	DaoCstruct_CheckSetField,    DaoCstruct_DoSetField,    /* SetField */
+	DaoCstruct_CheckGetItem,     DaoCstruct_DoGetItem,     /* GetItem */
+	NULL,                        NULL,                     /* SetItem */
+	NULL,                        NULL,                     /* Unary */
+	NULL,                        NULL,                     /* Binary */
+	DaoCstruct_CheckConversion,  DaoCstruct_DoConversion,  /* Conversion */
+	NULL,                        NULL,                     /* ForEach */
+	NULL,                                                  /* Print */
+	NULL,                                                  /* Slice */
+	NULL,                                                  /* Compare */
+	NULL,                                                  /* Hash */
+	NULL,                                                  /* Create */
+	NULL,                                                  /* Copy */
+	(DaoDeleteFunction) DInode_CoreDelete,                 /* Delete */
+	NULL                                                   /* HandleGC */
 };
 
-DaoTypeBase dirTyper = {
-	"Dir", NULL, NULL, dirMeths, {&entryTyper, NULL}, {0}, (FuncPtrDel)DInode_Delete, NULL
+
+DaoTypeCore daoDirCore =
+{
+	"Dir",                                                 /* name */
+	sizeof(DInode),                                        /* size */
+	{ & daoEntryCore, NULL },                              /* bases */
+	NULL,                                                  /* numbers */
+	daoDirMeths,                                           /* methods */
+	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
+	DaoCstruct_CheckSetField,    DaoCstruct_DoSetField,    /* SetField */
+	DaoCstruct_CheckGetItem,     DaoCstruct_DoGetItem,     /* GetItem */
+	NULL,                        NULL,                     /* SetItem */
+	NULL,                        NULL,                     /* Unary */
+	NULL,                        NULL,                     /* Binary */
+	DaoCstruct_CheckConversion,  DaoCstruct_DoConversion,  /* Conversion */
+	NULL,                        NULL,                     /* ForEach */
+	NULL,                                                  /* Print */
+	NULL,                                                  /* Slice */
+	NULL,                                                  /* Compare */
+	NULL,                                                  /* Hash */
+	NULL,                                                  /* Create */
+	NULL,                                                  /* Copy */
+	(DaoDeleteFunction) DInode_CoreDelete,                 /* Delete */
+	NULL                                                   /* HandleGC */
 };
 
-static DaoFuncItem fsMeths[] =
+
+
+static DaoFunctionEntry fsMeths[] =
 {
 	/*! Returns new \c Entry bound to \a path of file or directory */
 	{ FSNode_New,	"entry(path: string) => Entry" },
@@ -1698,9 +1772,9 @@ DAO_DLL int DaoFS_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	FS_INIT();
 	fsns = DaoNamespace_GetNamespace( ns, "fs" );
 	DaoNamespace_AddParent( fsns, ns );
-	daox_type_entry = DaoNamespace_WrapType( fsns, & entryTyper, DAO_CDATA, 0 );
-	daox_type_file = DaoNamespace_WrapType( fsns, & fileTyper, DAO_CDATA, 0 );
-	daox_type_dir = DaoNamespace_WrapType( fsns, & dirTyper, DAO_CDATA, 0 );
+	daox_type_entry = DaoNamespace_WrapType( fsns, & daoEntryCore, DAO_CDATA, 0 );
+	daox_type_file = DaoNamespace_WrapType( fsns, & daoFileCore, DAO_CDATA, 0 );
+	daox_type_dir = DaoNamespace_WrapType( fsns, & daoDirCore, DAO_CDATA, 0 );
 	DaoNamespace_WrapFunctions( fsns, fsMeths );
 	return 0;
 }

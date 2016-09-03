@@ -290,7 +290,7 @@ static void OS_Null( DaoProcess *proc, DaoValue *p[], int N )
 	}
 }
 
-static DaoFuncItem sysMeths[]=
+static DaoFunctionEntry sysMeths[]=
 {
 	/*! Executes the given \a command via system shell and returns the resulting exit code */
 	{ OS_Shell,     "run( command: string ) => int" },
@@ -327,7 +327,7 @@ static DaoFuncItem sysMeths[]=
 	{ NULL, NULL }
 };
 
-DaoNumItem sysConsts[] =
+DaoNumberEntry sysConsts[] =
 {
 	/*! Maxumum number of bytes which can be atomically written to a device */
 #ifdef WIN32

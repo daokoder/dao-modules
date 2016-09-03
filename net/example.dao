@@ -1,6 +1,6 @@
 
 load net;
-#load os;
+load os;
 
 class Server
 {
@@ -47,6 +47,6 @@ class Client
 
 server = Server()
 server.Start() !!
-#os.sleep(1);
+os.sleep(1);
 client = Client()
 client.Start() !!

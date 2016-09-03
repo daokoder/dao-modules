@@ -551,7 +551,7 @@ static void DaoPipe_GetClose( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutBoolean( proc, self->autoclose );
 }
 
-static DaoFuncItem pipeMeths[] =
+static DaoFunctionEntry daoPipeMeths[] =
 {
 	/*! ID of the read and write ends of the pipe (file descriptors on Unix, handles on Windows) */
 	{ DaoPipe_Id,		".fd(invar self: Pipe) => tuple<read: int, write: int>" },
@@ -590,10 +590,36 @@ static DaoFuncItem pipeMeths[] =
 	{ NULL, NULL }
 };
 
+static void DaoPipe_CoreDelete( DaoValue *self )
+{
+	DaoPipe_Delete( (DaoPipe*) self->xCdata.data );
+	DaoCstruct_Delete( (DaoCstruct*) self );
+}
+
 /*! Represents pipe to be used for inter-process communication, implements `io::Device` */
-static DaoTypeBase pipeTyper = {
-	"Pipe", NULL, NULL, pipeMeths, {NULL}, {0},
-	(FuncPtrDel)DaoPipe_Delete, NULL
+DaoTypeCore daoPipeCore =
+{
+	"Pipe",                                                /* name */
+	sizeof(DaoPipe),                                       /* size */
+	{ NULL },                                              /* bases */
+	NULL,                                                  /* numbers */
+	daoPipeMeths,                                          /* methods */
+	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
+	DaoCstruct_CheckSetField,    DaoCstruct_DoSetField,    /* SetField */
+	NULL,                        NULL,                     /* GetItem */
+	NULL,                        NULL,                     /* SetItem */
+	NULL,                        NULL,                     /* Unary */
+	NULL,                        NULL,                     /* Binary */
+	NULL,                        NULL,                     /* Conversion */
+	NULL,                        NULL,                     /* ForEach */
+	NULL,                                                  /* Print */
+	NULL,                                                  /* Slice */
+	NULL,                                                  /* Compare */
+	NULL,                                                  /* Hash */
+	NULL,                                                  /* Create */
+	NULL,                                                  /* Copy */
+	(DaoDeleteFunction) DaoPipe_CoreDelete,                /* Delete */
+	NULL                                                   /* HandleGC */
 };
 
 #ifdef DAO_WITH_THREAD
@@ -1274,7 +1300,7 @@ static void DaoOSProcess_Stderr( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_PutValue( proc, self->errpipe );
 }
 
-static DaoFuncItem procMeths[] =
+static DaoFunctionEntry daoOSProcessMeths[] =
 {
 	/*! PID (0 if the process exited) */
 	{ DaoOSProcess_Id,		".id(invar self: Process) => int" },
@@ -1325,11 +1351,38 @@ static DaoFuncItem procMeths[] =
 	{ NULL, NULL }
 };
 
+
+static void DaoOSProcess_CoreDelete( DaoValue *self )
+{
+	DaoOSProcess_Delete( (DaoOSProcess*) self->xCdata.data );
+	DaoCstruct_Delete( (DaoCstruct*) self );
+}
+
 /*! Represents child process. All child processes are automatically tracked by single background tasklet, which automatically
  * updates `Process` objects associated with the sub-processes */
-static DaoTypeBase procTyper = {
-	"Process", NULL, NULL, procMeths, {NULL}, {0},
-	(FuncPtrDel)DaoOSProcess_Delete, NULL
+DaoTypeCore daoOSProcessCore =
+{
+	"Process",                                             /* name */
+	sizeof(DaoOSProcess),                                  /* size */
+	{ NULL },                                              /* bases */
+	NULL,                                                  /* numbers */
+	daoOSProcessMeths,                                     /* methods */
+	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
+	DaoCstruct_CheckSetField,    DaoCstruct_DoSetField,    /* SetField */
+	NULL,                        NULL,                     /* GetItem */
+	NULL,                        NULL,                     /* SetItem */
+	NULL,                        NULL,                     /* Unary */
+	NULL,                        NULL,                     /* Binary */
+	NULL,                        NULL,                     /* Conversion */
+	NULL,                        NULL,                     /* ForEach */
+	NULL,                                                  /* Print */
+	NULL,                                                  /* Slice */
+	NULL,                                                  /* Compare */
+	NULL,                                                  /* Hash */
+	NULL,                                                  /* Create */
+	NULL,                                                  /* Copy */
+	(DaoDeleteFunction) DaoOSProcess_CoreDelete,           /* Delete */
+	NULL                                                   /* HandleGC */
 };
 
 static void OS_Wait( DaoProcess *proc, DaoValue *p[], int N )
@@ -1645,7 +1698,7 @@ static void OS_Open( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_PutCdata( proc, pipe, daox_type_pipe );
 }
 
-static DaoFuncItem osMeths[] =
+static DaoFunctionEntry daoOsMeths[] =
 {
 #ifdef DAO_WITH_THREAD
 	/*! Creates new child process executing the file specified by \a path with the \a arguments (if given). \a path may omit the
@@ -1730,16 +1783,16 @@ DAO_DLL int DaoProcess_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace *streamns = DaoVmSpace_LinkModule( vmSpace, ns, "stream" );
 	DaoNamespace *osns = DaoVmSpace_GetNamespace( vmSpace, "os" );
 	DaoNamespace_AddConstValue( ns, "os", (DaoValue*)osns );
-	daox_type_pipe = DaoNamespace_WrapType( osns, &pipeTyper, DAO_CDATA, 0 );
+	daox_type_pipe = DaoNamespace_WrapType( osns, &daoPipeCore, DAO_CDATA, 0 );
 
 #ifdef DAO_WITH_THREAD
 	DMutex_Init( &proc_mtx );
-	daox_type_process = DaoNamespace_WrapType( osns, &procTyper, DAO_CDATA, 0 );
+	daox_type_process = DaoNamespace_WrapType( osns, &daoOSProcessCore, DAO_CDATA, 0 );
 #else
 	DaoStream_WriteChars( vmSpace->errorStream, "WARNING: Module \"os.process\" is incomplete without Dao threading support!\n" );
 #endif
 
-	DaoNamespace_WrapFunctions( osns, osMeths );
+	DaoNamespace_WrapFunctions( osns, daoOsMeths );
 
 #ifdef WIN32
 	exec_event = CreateEvent( NULL, TRUE, FALSE, NULL );

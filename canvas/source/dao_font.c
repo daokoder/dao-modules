@@ -215,7 +215,7 @@ DaoTypeCore daoFontCore =
 	NULL,                                              /* numbers */
 	daoFontMeths,                                      /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
-	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* SetField */
 	NULL,                      NULL,                   /* GetItem */
 	NULL,                      NULL,                   /* SetItem */
 	NULL,                      NULL,                   /* Unary */
@@ -254,7 +254,7 @@ DaoTypeCore daoGlyphCore =
 	NULL,                                              /* numbers */
 	daoGlyphMeths,                                     /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
-	NULL,                      NULL,                   /* GetField */
+	NULL,                      NULL,                   /* SetField */
 	NULL,                      NULL,                   /* GetItem */
 	NULL,                      NULL,                   /* SetItem */
 	NULL,                      NULL,                   /* Unary */
