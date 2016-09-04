@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2011-2014, Limin Fu
+// Copyright (c) 2011-2016, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -109,6 +109,26 @@ void DSema_SetValue( DSema *self, int n )
 
 
 
+DaoMutex* DaoMutex_New()
+{
+	DaoMutex* self = (DaoMutex*) dao_calloc( 1, sizeof(DaoMutex) );
+	DaoCstruct_Init( (DaoCstruct*) self, dao_type_mutex );
+	DMutex_Init( & self->myMutex );
+	return self;
+}
+void DaoMutex_Lock( DaoMutex *self )
+{
+	DMutex_Lock( & self->myMutex );
+}
+void DaoMutex_Unlock( DaoMutex *self )
+{
+	DMutex_Unlock( & self->myMutex );
+}
+int DaoMutex_TryLock( DaoMutex *self )
+{
+	return DMutex_TryLock( & self->myMutex );
+}
+
 static void DaoMutex_Lib_Mutex( DaoProcess *proc, DaoValue *par[], int N )
 {
 	DaoMutex *mutex = DaoMutex_New();
@@ -139,7 +159,7 @@ static void DaoMutex_Lib_Protect( DaoProcess *proc, DaoValue *p[], int n )
 	DaoMutex_Unlock( self );
 	DaoProcess_PopFrame( proc );
 }
-static DaoFuncItem mutexMeths[] =
+static DaoFunctionEntry daoMutexMeths[] =
 {
 	{ DaoMutex_Lib_Mutex,     "Mutex() => Mutex" },
 	{ DaoMutex_Lib_Lock,      "lock( self: Mutex )" },
@@ -155,72 +175,35 @@ static void DaoMutex_Delete( DaoMutex *self )
 	dao_free( self );
 }
 
-DaoTypeBase mutexTyper =
+
+DaoTypeCore daoMutexCore =
 {
-	"Mutex", NULL, NULL, (DaoFuncItem*) mutexMeths, {0}, {0},
-	(FuncPtrDel) DaoMutex_Delete, NULL
+	"Mutex",                                           /* name */
+	sizeof(DaoMutex),                                  /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoMutexMeths,                                     /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoMutex_Delete,               /* Delete */
+	NULL                                               /* HandleGC */
 };
 
-DaoMutex* DaoMutex_New()
-{
-	DaoMutex* self = (DaoMutex*) dao_calloc( 1, sizeof(DaoMutex) );
-	DaoCstruct_Init( (DaoCstruct*) self, dao_type_mutex );
-	DMutex_Init( & self->myMutex );
-	return self;
-}
-void DaoMutex_Lock( DaoMutex *self )
-{
-	DMutex_Lock( & self->myMutex );
-}
-void DaoMutex_Unlock( DaoMutex *self )
-{
-	DMutex_Unlock( & self->myMutex );
-}
-int DaoMutex_TryLock( DaoMutex *self )
-{
-	return DMutex_TryLock( & self->myMutex );
-}
+
+
 /* Condition variable */
-static void DaoCondV_Lib_CondVar( DaoProcess *proc, DaoValue *par[], int N )
-{
-	DaoProcess_PutValue( proc, (DaoValue*)DaoCondVar_New() );
-}
-static void DaoCondV_Lib_Wait( DaoProcess *proc, DaoValue *par[], int N )
-{
-	DaoCondVar *self = (DaoCondVar*) par[0];
-	DaoMutex *mutex = (DaoMutex*) par[1];
-	dao_float timeout = par[2]->xFloat.value;
-	int res = 1;
-	if ( timeout < 0 )
-		DCondVar_Wait( & self->myCondVar, & mutex->myMutex );
-	else
-		res = DCondVar_TimedWait( & self->myCondVar, & mutex->myMutex, timeout ) == 0;
-	DaoProcess_PutBoolean( proc, res );
-}
-static void DaoCondV_Lib_Signal( DaoProcess *proc, DaoValue *par[], int N )
-{
-	DaoCondVar *self = (DaoCondVar*) par[0];
-	DCondVar_Signal( & self->myCondVar );
-}
-static void DaoCondV_Lib_BroadCast( DaoProcess *proc, DaoValue *par[], int N )
-{
-	DaoCondVar *self = (DaoCondVar*) par[0];
-	DCondVar_BroadCast( & self->myCondVar );
-}
-static DaoFuncItem condvMeths[] =
-{
-	{ DaoCondV_Lib_CondVar,   "Condition() => Condition" },
-	{ DaoCondV_Lib_Wait,      "wait( self: Condition, mtx: Mutex, timeout = -1.0 ) => bool" },
-	{ DaoCondV_Lib_Signal,    "signal( self: Condition )" },
-	{ DaoCondV_Lib_BroadCast, "broadcast( self: Condition )" },
-	{ NULL, NULL }
-};
-
-DaoTypeBase condvTyper =
-{
-	"Condition", NULL, NULL, (DaoFuncItem*) condvMeths, {0}, {0},
-	(FuncPtrDel) DaoCondVar_Delete, NULL
-};
 DaoCondVar* DaoCondVar_New()
 {
 	DaoCondVar* self = (DaoCondVar*) dao_calloc( 1, sizeof(DaoCondVar) );
@@ -252,7 +235,104 @@ void DaoCondVar_BroadCast( DaoCondVar *self )
 {
 	DCondVar_BroadCast( & self->myCondVar );
 }
+
+static void DaoCondV_Lib_CondVar( DaoProcess *proc, DaoValue *par[], int N )
+{
+	DaoProcess_PutValue( proc, (DaoValue*)DaoCondVar_New() );
+}
+static void DaoCondV_Lib_Wait( DaoProcess *proc, DaoValue *par[], int N )
+{
+	DaoCondVar *self = (DaoCondVar*) par[0];
+	DaoMutex *mutex = (DaoMutex*) par[1];
+	dao_float timeout = par[2]->xFloat.value;
+	int res = 1;
+	if ( timeout < 0 )
+		DCondVar_Wait( & self->myCondVar, & mutex->myMutex );
+	else
+		res = DCondVar_TimedWait( & self->myCondVar, & mutex->myMutex, timeout ) == 0;
+	DaoProcess_PutBoolean( proc, res );
+}
+static void DaoCondV_Lib_Signal( DaoProcess *proc, DaoValue *par[], int N )
+{
+	DaoCondVar *self = (DaoCondVar*) par[0];
+	DCondVar_Signal( & self->myCondVar );
+}
+static void DaoCondV_Lib_BroadCast( DaoProcess *proc, DaoValue *par[], int N )
+{
+	DaoCondVar *self = (DaoCondVar*) par[0];
+	DCondVar_BroadCast( & self->myCondVar );
+}
+static DaoFunctionEntry daoCondVarMeths[] =
+{
+	{ DaoCondV_Lib_CondVar,   "Condition() => Condition" },
+	{ DaoCondV_Lib_Wait,      "wait( self: Condition, mtx: Mutex, timeout = -1.0 ) => bool" },
+	{ DaoCondV_Lib_Signal,    "signal( self: Condition )" },
+	{ DaoCondV_Lib_BroadCast, "broadcast( self: Condition )" },
+	{ NULL, NULL }
+};
+
+
+
+DaoTypeCore daoCondVarCore =
+{
+	"Condition",                                       /* name */
+	sizeof(DaoCondVar),                                /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoCondVarMeths,                                   /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoCondVar_Delete,             /* Delete */
+	NULL                                               /* HandleGC */
+};
+
+
 /* Semaphore */
+
+DaoSema* DaoSema_New( int n )
+{
+	DaoSema* self = (DaoSema*) dao_calloc( 1, sizeof(DaoSema) );
+	DaoCstruct_Init( (DaoCstruct*) self, dao_type_sema );
+	DSema_Init( & self->mySema, ( n < 0 )? 0 : n );
+	return self;
+}
+void DaoSema_Delete( DaoSema *self )
+{
+	DaoCstruct_Free( (DaoCstruct*) self );
+	DSema_Destroy( & self->mySema );
+	dao_free( self );
+}
+
+void DaoSema_Wait( DaoSema *self )
+{
+	DSema_Wait( & self->mySema );
+}
+void DaoSema_Post( DaoSema *self )
+{
+	DSema_Post( & self->mySema );
+}
+
+void DaoSema_SetValue( DaoSema *self, int n )
+{
+	DSema_SetValue( & self->mySema, ( n < 0 )? 0 : n );
+}
+int  DaoSema_GetValue( DaoSema *self )
+{
+	return DSema_GetValue( & self->mySema );
+}
+
 static void DaoSema_Lib_Sema( DaoProcess *proc, DaoValue *par[], int N )
 {
 	DaoProcess_PutValue( proc, (DaoValue*)DaoSema_New( par[0]->xInteger.value ) );
@@ -287,7 +367,7 @@ static void DaoSema_Lib_Protect( DaoProcess *proc, DaoValue *p[], int n )
 	DSema_Post( & self->mySema );
 	DaoProcess_PopFrame( proc );
 }
-static DaoFuncItem semaMeths[] =
+static DaoFunctionEntry daoSemaMeths[] =
 {
 	{ DaoSema_Lib_Sema,      "Semaphore( value = 0 ) => Semaphore" },
 	{ DaoSema_Lib_Wait,      "wait( self: Semaphore )" },
@@ -297,47 +377,36 @@ static DaoFuncItem semaMeths[] =
 	{ DaoSema_Lib_Protect,   "protect( self: Semaphore )[]" },
 	{ NULL, NULL }
 };
-DaoTypeBase semaTyper =
+
+
+DaoTypeCore daoSemaCore =
 {
-	"Semaphore", NULL, NULL, (DaoFuncItem*) semaMeths, {0}, {0},
-	(FuncPtrDel) DaoSema_Delete, NULL
+	"Semaphore",                                       /* name */
+	sizeof(DaoSema),                                   /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoSemaMeths,                                      /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoSema_Delete,                /* Delete */
+	NULL                                               /* HandleGC */
 };
-DaoSema* DaoSema_New( int n )
-{
-	DaoSema* self = (DaoSema*) dao_calloc( 1, sizeof(DaoSema) );
-	DaoCstruct_Init( (DaoCstruct*) self, dao_type_sema );
-	DSema_Init( & self->mySema, ( n < 0 )? 0 : n );
-	return self;
-}
-void DaoSema_Delete( DaoSema *self )
-{
-	DaoCstruct_Free( (DaoCstruct*) self );
-	DSema_Destroy( & self->mySema );
-	dao_free( self );
-}
-
-void DaoSema_Wait( DaoSema *self )
-{
-	DSema_Wait( & self->mySema );
-}
-void DaoSema_Post( DaoSema *self )
-{
-	DSema_Post( & self->mySema );
-}
-
-void DaoSema_SetValue( DaoSema *self, int n )
-{
-	DSema_SetValue( & self->mySema, ( n < 0 )? 0 : n );
-}
-int  DaoSema_GetValue( DaoSema *self )
-{
-	return DSema_GetValue( & self->mySema );
-}
 
 
 
 
-extern DaoTypeBase stateTyper;
 
 DaoState* DaoState_New( DaoType *type, DaoValue *state )
 {
@@ -363,7 +432,7 @@ void DaoState_Delete( DaoState *self )
 	DaoCstruct_Free( (DaoCstruct*)self );
 	dao_free( self );
 }
-static void DaoState_GetGCFields( void *p, DList *values, DList *arrays, DList *maps, int remove )
+static void DaoState_HandleGC( DaoValue *p, DList *values, DList *arrays, DList *maps, int remove )
 {
 	DaoState *self = (DaoState*)p;
 	if( self->state ){
@@ -372,7 +441,6 @@ static void DaoState_GetGCFields( void *p, DList *values, DList *arrays, DList *
 	}
 }
 
-extern DaoTypeBase stateTyper;
 
 static void DaoState_Create( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -537,7 +605,7 @@ static void DaoState_Waitlist( DaoProcess *proc, DaoValue *p[], int N )
 	DaoMutex_Unlock( self->lock );
 }
 
-static DaoFuncItem stateMeths[] =
+static DaoFunctionEntry daoStateMeths[] =
 {
 	/*! Constructs state object containing the given \a value */
 	{ DaoState_Create,   "State<@T>( value: @T )" },
@@ -569,12 +637,32 @@ static DaoFuncItem stateMeths[] =
 
 /*! Represents state of an object or process in multithreaded environment. Uses the semantics of atomic operations to concurrently access and modify
  * the underlying data. Provides the ability to wait until a specific value is set by another thread, abstracting over conditional variables */
-DaoTypeBase stateTyper = {
-	"State<@T>", NULL, NULL, stateMeths, {NULL}, {0},
-	(FuncPtrDel)DaoState_Delete, DaoState_GetGCFields
+DaoTypeCore daoStateCore =
+{
+	"State<@T>",                                       /* name */
+	sizeof(DaoState),                                  /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoStateMeths,                                     /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoState_Delete,               /* Delete */
+	DaoState_HandleGC                                  /* HandleGC */
 };
 
-extern DaoTypeBase queueTyper;
+
 
 DaoQueue* DaoQueue_New( DaoType *type, int capacity )
 {
@@ -611,7 +699,7 @@ void DaoQueue_Delete( DaoQueue *self )
 	dao_free( self );
 }
 
-static void DaoQueue_GetGCFields( void *p, DList *values, DList *arrays, DList *maps, int remove )
+static void DaoQueue_HandleGC( DaoValue *p, DList *values, DList *arrays, DList *maps, int remove )
 {
 	DaoQueue *self = (DaoQueue*)p;
 	if ( remove )
@@ -821,7 +909,7 @@ static void DaoQueue_Join( DaoProcess *proc, DaoValue *p[], int N )
 	DaoMutex_Unlock( self->mtx );
 }
 
-static DaoFuncItem queueMeths[] =
+static DaoFunctionEntry daoQueueMeths[] =
 {
 	/*! Constructs the queue given the maximum \a capacity */
 	{ DaoQueue_Create,   "Queue<@T>( capacity = 0 )" },
@@ -855,10 +943,31 @@ static DaoFuncItem queueMeths[] =
 };
 
 /*! Synchronized queue. Unlike mt::channel, does not deep-copies the data and has no constraints on the type of the elements */
-DaoTypeBase queueTyper = {
-	"Queue<@T>", NULL, NULL, queueMeths, {NULL}, {0},
-	(FuncPtrDel)DaoQueue_Delete, DaoQueue_GetGCFields
+DaoTypeCore daoQueueCore =
+{
+	"Queue<@T>",                                       /* name */
+	sizeof(DaoQueue),                                  /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoQueueMeths,                                     /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoQueue_Delete,               /* Delete */
+	DaoQueue_HandleGC                                  /* HandleGC */
 };
+
 
 DaoGuard* DaoGuard_New( DaoType *type, DaoValue *value )
 {
@@ -882,7 +991,7 @@ void DaoGuard_Delete( DaoGuard *self )
 	DaoCstruct_Free( (DaoCstruct*)self );
 	dao_free( self );
 }
-static void DaoGuard_GetGCFields( void *p, DList *values, DList *arrays, DList *maps, int remove )
+static void DaoGuard_HandleGC( DaoValue *p, DList *values, DList *arrays, DList *maps, int remove )
 {
 	DaoGuard *self = (DaoGuard*)p;
 	if ( self->value ){
@@ -891,7 +1000,6 @@ static void DaoGuard_GetGCFields( void *p, DList *values, DList *arrays, DList *
 	}
 }
 
-extern DaoTypeBase guardTyper;
 
 static void DaoGuard_Create( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -947,36 +1055,57 @@ static void DaoGuard_Acquire( DaoProcess *proc, DaoValue *p[], int N )
 	DaoMutex_Unlock( self->lock );
 }
 
-static DaoFuncItem guardMeths[] =
+static DaoFunctionEntry daoGuardMeths[] =
 {
 	/*! Constructs guard object with the given \a value */
-	{ DaoGuard_Create,	"guard<@T>(value: @T)" },
+	{ DaoGuard_Create,	"Guard<@T>(value: @T)" },
 
 	/*! Grants non-exclusive read-only access to the guarded \a value. Returns the result of the code section.
 	 * \note Multiple tasks are allowed to concurrently peek the data */
-	{ DaoGuard_Peek,	"peek(invar self: guard<@T>)[value: invar<@T> => @V] => @V" },
+	{ DaoGuard_Peek,	"peek(invar self: Guard<@T>)[value: invar<@T> => @V] => @V" },
 
 	/*! Grants exclusive read/write access to the guarded \a value. Sets the value to the result of the code section if it is not \c none.
 	 * \note Only a single task may acquire the data; no other task is allowed to peek the data in the meantime */
-	{ DaoGuard_Acquire,	"acquire(self: guard<@T>)[value: @T => @T|none]" },
-	{ DaoGuard_Acquire,	"acquire(self: guard<invar<@T>>)[value: invar<@T>]" },
+	{ DaoGuard_Acquire,	"acquire(self: Guard<@T>)[value: @T => @T|none]" },
+	{ DaoGuard_Acquire,	"acquire(self: Guard<invar<@T>>)[value: invar<@T>]" },
 	{ NULL, NULL }
 };
 
-DaoTypeBase guardTyper = {
-	"guard<@T>", NULL, NULL, guardMeths, {NULL}, {0},
-	(FuncPtrDel)DaoGuard_Delete, DaoGuard_GetGCFields
+
+DaoTypeCore daoGuardCore =
+{
+	"Guard<@T>",                                       /* name */
+	sizeof(DaoGuard),                                  /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoGuardMeths,                                     /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoGuard_Delete,               /* Delete */
+	DaoGuard_HandleGC                                  /* HandleGC */
 };
 
 DAO_DLL int DaoSync_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *mtns = DaoVmSpace_GetNamespace( vmSpace, "mt" );
-	dao_type_mutex   = DaoNamespace_WrapType( mtns, & mutexTyper, DAO_CSTRUCT, 0 );
-	dao_type_condvar = DaoNamespace_WrapType( mtns, & condvTyper, DAO_CSTRUCT, 0 );
-	dao_type_sema    = DaoNamespace_WrapType( mtns, & semaTyper, DAO_CSTRUCT, 0 );
-	daox_type_DaoState = DaoNamespace_WrapType( mtns, &stateTyper, DAO_CSTRUCT, 0 );
-	daox_type_DaoQueue = DaoNamespace_WrapType( mtns, &queueTyper, DAO_CSTRUCT, 0 );
-	daox_type_DaoGuard = DaoNamespace_WrapType( mtns, &guardTyper, DAO_CSTRUCT, 0 );
+	dao_type_mutex   = DaoNamespace_WrapType( mtns, & daoMutexCore, DAO_CSTRUCT, 0 );
+	dao_type_condvar = DaoNamespace_WrapType( mtns, & daoCondVarCore, DAO_CSTRUCT, 0 );
+	dao_type_sema    = DaoNamespace_WrapType( mtns, & daoSemaCore, DAO_CSTRUCT, 0 );
+	daox_type_DaoState = DaoNamespace_WrapType( mtns, &daoStateCore, DAO_CSTRUCT, 0 );
+	daox_type_DaoQueue = DaoNamespace_WrapType( mtns, &daoQueueCore, DAO_CSTRUCT, 0 );
+	daox_type_DaoGuard = DaoNamespace_WrapType( mtns, &daoGuardCore, DAO_CSTRUCT, 0 );
 	return 0;
 }
 

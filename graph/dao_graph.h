@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2011,2012, Limin Fu
+// Copyright (c) 2011-2016, Limin Fu
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without modification,
@@ -62,10 +62,6 @@ typedef struct DaoxEdgeMF  DaoxEdgeMF;
 typedef struct DaoxNodeAP  DaoxNodeAP;
 typedef struct DaoxEdgeAP  DaoxEdgeAP;
 
-
-DAO_DLL DaoTypeBase DaoxNode_Typer;
-DAO_DLL DaoTypeBase DaoxEdge_Typer;
-DAO_DLL DaoTypeBase DaoxGraph_Typer;
 
 struct DaoxNode
 {
@@ -147,7 +143,6 @@ struct DaoxGraphData
 	DAO_CSTRUCT_COMMON;
 	DAOX_GRAPH_DATA;
 };
-DAO_DLL DaoTypeBase DaoxGraphData_Typer;
 DAO_DLL DaoType *daox_graph_data_type;
 
 DAO_DLL void DaoxGraphData_Init( DaoxGraphData *self, DaoType *type );

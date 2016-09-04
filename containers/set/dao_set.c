@@ -806,7 +806,7 @@ static void DaoSet_Associate( DaoProcess *proc, DaoValue *p[], int npar )
 	DaoProcess_PopFrame( proc );
 }
 
-static DaoFuncItem setMeths[] =
+static DaoFunctionEntry setMeths[] =
 {
 	//! Constructs new tree- or hash-based set depending on \a kind
 	{ DaoSet_Create,	"Set<@T>(kind: enum<tree,hash> = $tree)" },

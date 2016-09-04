@@ -563,7 +563,7 @@ static void DaoStat_Skewness( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutFloat( proc, Moment( arr, 0, mean ) );
 }
 
-static DaoFuncItem statMeths[] =
+static DaoFunctionEntry statMeths[] =
 {
 	/*! Returns arithmetic mean of \a data.
 	 * E[X] = Σx / N */

@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2011,2012, Limin Fu
+// Copyright (c) 2011-2016, Limin Fu
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without modification,
@@ -49,7 +49,7 @@ void DaoxNode_Delete( DaoxNode *self )
 }
 void DaoxNode_SetValue( DaoxNode *self, DaoValue *value )
 {
-	DaoValue_Move( value, & self->value, self->ctype->nested->items.pType[1] );
+	DaoValue_Move( value, & self->value, self->ctype->args->items.pType[1] );
 }
 
 DaoxEdge* DaoxEdge_New( DaoxGraph *graph )
@@ -67,7 +67,7 @@ void DaoxEdge_Delete( DaoxEdge *self )
 }
 void DaoxEdge_SetValue( DaoxEdge *self, DaoValue *value )
 {
-	DaoValue_Move( value, & self->value, self->ctype->nested->items.pType[1] );
+	DaoValue_Move( value, & self->value, self->ctype->args->items.pType[1] );
 }
 
 DaoxGraph* DaoxGraph_New( DaoType *type, int directed )
@@ -80,8 +80,8 @@ DaoxGraph* DaoxGraph_New( DaoType *type, int directed )
 	self->nodeType = NULL;
 	self->edgeType = NULL;
 	if( type ){
-		DaoType **types = type->nested->items.pType;
-		daoint count = type->nested->size;
+		DaoType **types = type->args->items.pType;
+		daoint count = type->args->size;
 		self->nodeType = DaoType_Specialize( daox_node_template_type, types, count );
 		self->edgeType = DaoType_Specialize( daox_edge_template_type, types, count );
 		GC_IncRC( self->nodeType );
@@ -122,7 +122,7 @@ DaoxEdge* DaoxGraph_AddEdge( DaoxGraph *self, DaoxNode *first, DaoxNode *second 
 	return edge;
 }
 
-static void DaoxGraph_GetGCFields( void *p, DList *values, DList *arrays, DList *maps, int remove )
+static void DaoxGraph_HandleGC( DaoValue *p, DList *values, DList *arrays, DList *maps, int remove )
 {
 	daoint i, n;
 	DaoxGraph *self = (DaoxGraph*) p;
@@ -556,7 +556,7 @@ static void GRAPH_FindEdges( DaoProcess *proc, DaoValue *p[], int N )
 }
 
 
-static DaoFuncItem DaoxNodeMeths[]=
+static DaoFunctionEntry DaoxNodeMeths[]=
 {
 	{ NODE_GetWeight, "GetWeight( self: Node<@N,@E> ) => float" },
 	{ NODE_SetWeight, "SetWeight( self: Node<@N,@E>, weight: float )" },
@@ -569,13 +569,34 @@ static DaoFuncItem DaoxNodeMeths[]=
 	{ NULL, NULL }
 };
 
-DaoTypeBase DaoxNode_Typer =
+
+DaoTypeCore daoNodeCore =
 {
-	"Node<@N=none,@E=none>", NULL, NULL, (DaoFuncItem*) DaoxNodeMeths, {0}, {0},
-	(FuncPtrDel)DaoxNode_Delete, NULL
+	"Node<@N=none,@E=none>",                           /* name */
+	sizeof(DaoxNode),                                  /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	DaoxNodeMeths,                                     /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxNode_Delete,               /* Delete */
+	NULL                                               /* HandleGC */
 };
 
-static DaoFuncItem DaoxEdgeMeths[]=
+
+static DaoFunctionEntry DaoxEdgeMeths[]=
 {
 	{ EDGE_GetWeight, "GetWeight( self: Edge<@N,@E> ) => float" },
 	{ EDGE_SetWeight, "SetWeight( self: Edge<@N,@E>, weight: float )" },
@@ -585,14 +606,34 @@ static DaoFuncItem DaoxEdgeMeths[]=
 	{ NULL, NULL }
 };
 
-DaoTypeBase DaoxEdge_Typer =
+
+DaoTypeCore daoEdgeCore =
 {
-	"Edge<@N=none,@E=none>", NULL, NULL, (DaoFuncItem*) DaoxEdgeMeths, {0}, {0},
-	(FuncPtrDel)DaoxEdge_Delete, NULL
+	"Edge<@N=none,@E=none>",                           /* name */
+	sizeof(DaoxEdge),                                  /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	DaoxEdgeMeths,                                     /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxEdge_Delete,               /* Delete */
+	NULL                                               /* HandleGC */
 };
 
 
-static DaoFuncItem DaoxGraphMeths[]=
+static DaoFunctionEntry DaoxGraphMeths[]=
 {
 	/* allocaters must have names identical second the typer name: */
 	{ GRAPH_Graph,    "Graph<@N,@E>( dir: enum<undirected,directed>=$undirected )" },
@@ -624,10 +665,29 @@ static DaoFuncItem DaoxGraphMeths[]=
 /* @N: type of user data for nodes; */
 /* @E: type of user data for edges; */
 
-DaoTypeBase DaoxGraph_Typer =
+DaoTypeCore daoGraphCore =
 {
-	"Graph<@N=none,@E=none>", NULL, NULL, (DaoFuncItem*) DaoxGraphMeths, {0}, {0},
-	(FuncPtrDel)DaoxGraph_Delete, DaoxGraph_GetGCFields
+	"Graph<@N=none,@E=none>",                          /* name */
+	sizeof(DaoxGraph),                                 /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	DaoxGraphMeths,                                    /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxGraph_Delete,              /* Delete */
+	DaoxGraph_HandleGC                              /* HandleGC */
 };
 
 
@@ -640,21 +700,6 @@ DaoTypeBase DaoxGraph_Typer =
 /*****************************************************************/
 /*****************************************************************/
 
-static void GD_GetGraph( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxGraphData *self = (DaoxGraphData*) p[0];
-	DaoProcess_PutValue( proc, self->graph ? (DaoValue*) self->graph : DaoValue_MakeNone() );
-}
-static DaoFuncItem DaoxGraphDataMeths[]=
-{
-	{ GD_GetGraph, "GetGraph( self: GraphData ) => none|Graph<any,any>" },
-	{ NULL, NULL }
-};
-
-DaoTypeBase DaoxGraphData_Typer =
-{
-	"GraphData", NULL, NULL, (DaoFuncItem*) DaoxGraphDataMeths, {0}, {0}, NULL, NULL
-};
 
 void DaoxGraphData_Init( DaoxGraphData *self, DaoType *type )
 {
@@ -706,7 +751,7 @@ void DaoxGraphData_Reset( DaoxGraphData *self, DaoxGraph *graph, int nodeSize, i
 		edge->X.Void = data;
 	}
 }
-void DaoxGraphData_GetGCFields( void *p, DList *values, DList *arrays, DList *maps, int remove )
+void DaoxGraphData_HandleGC( DaoValue *p, DList *values, DList *arrays, DList *maps, int remove )
 {
 	DaoxGraphData *self = (DaoxGraphData*) p;
 	if( self->graph ) DList_Append( values, self->graph );
@@ -719,6 +764,44 @@ int DaoxGraphData_IsAssociated( DaoxGraphData *self, DaoxGraph *graph, DaoProces
 	return 0;
 }
 
+static void GD_GetGraph( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphData *self = (DaoxGraphData*) p[0];
+	DaoProcess_PutValue( proc, self->graph ? (DaoValue*) self->graph : DaoValue_MakeNone() );
+}
+static DaoFunctionEntry DaoxGraphDataMeths[]=
+{
+	{ GD_GetGraph, "GetGraph( self: GraphData ) => none|Graph<any,any>" },
+	{ NULL, NULL }
+};
+
+
+DaoTypeCore daoGraphDataCore =
+{
+	"GraphData",                                       /* name */
+	0,                                                 /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	DaoxGraphDataMeths,                                /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	NULL,                                              /* Delete */
+	DaoxGraphData_HandleGC                             /* HandleGC */
+};
+
+
 
 
 /*****************************************************************/
@@ -729,70 +812,7 @@ int DaoxGraphData_IsAssociated( DaoxGraphData *self, DaoxGraph *graph, DaoProces
 /*****************************************************************/
 /*****************************************************************/
 
-static void GMF_New( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxGraphMaxFlow* GMF = DaoxGraphMaxFlow_New();
-	DaoProcess_PutValue( proc, (DaoValue*) GMF );
-}
-static void GMF_Init( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxGraphMaxFlow *self = (DaoxGraphMaxFlow*) p[0];
-	DaoxGraph *graph = (DaoxGraph*) p[1];
-	DaoxGraphMaxFlow_Init( self, graph );
-}
-static void GMF_Compute( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxGraphMaxFlow *self = (DaoxGraphMaxFlow*) p[0];
-	DaoxNode *source = (DaoxNode*) p[1];
-	DaoxNode *sink = (DaoxNode*) p[2];
-	if( DaoxGraphData_IsAssociated( (DaoxGraphData*)self, source->graph, proc ) == 0 ) return;
-	if( DaoxGraphData_IsAssociated( (DaoxGraphData*)self, sink->graph, proc ) == 0 ) return;
-	int error = DaoxGraphMaxFlow_Compute( self, source, sink );
-	DaoProcess_PutInteger( proc, error );
-}
-static void GMF_SetCapacity( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxGraphMaxFlow *self = (DaoxGraphMaxFlow*) p[0];
-	DaoxEdge *edge = (DaoxEdge*) p[1];
-	if( DaoxGraphData_IsAssociated( (DaoxGraphData*)self, edge->graph, proc ) == 0 ) return;
-	edge->X.MF->capacity = p[2]->xFloat.value;
-}
-static void GMF_GetCapacity( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxGraphMaxFlow *self = (DaoxGraphMaxFlow*) p[0];
-	DaoxEdge *edge = (DaoxEdge*) p[1];
-	if( DaoxGraphData_IsAssociated( (DaoxGraphData*)self, edge->graph, proc ) == 0 ) return;
-	DaoProcess_PutFloat( proc, edge->X.MF->capacity );
-}
-static void GMF_GetEdgeFlow( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxGraphMaxFlow *self = (DaoxGraphMaxFlow*) p[0];
-	DaoxEdge *edge = (DaoxEdge*) p[1];
-	if( DaoxGraphData_IsAssociated( (DaoxGraphData*)self, edge->graph, proc ) == 0 ) return;
-	DaoProcess_PutFloat( proc, edge->X.MF->flow_fw );
-}
-static void GMF_GetGraphFlow( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxGraphMaxFlow *self = (DaoxGraphMaxFlow*) p[0];
-	DaoProcess_PutFloat( proc, self->maxflow );
-}
-static DaoFuncItem DaoxGraphMFMeths[]=
-{
-	{ GMF_New,     "GraphMaxFlow()" },
-	{ GMF_Init,    "Init( self: GraphMaxFlow, graph: Graph<@N,@E> )" },
-	{ GMF_Compute, "Compute( self: GraphMaxFlow, source: Node<@N,@E>, sink: Node<@N,@E> ) => int" },
-	{ GMF_SetCapacity, "SetCapacity( self: GraphMaxFlow, edge: Edge<@N,@E>, capacity: float )" },
-	{ GMF_GetCapacity, "GetCapacity( self: GraphMaxFlow, edge: Edge<@N,@E> ) => float" },
-	{ GMF_GetEdgeFlow,  "GetFlow( self: GraphMaxFlow, edge: Edge<@N,@E> ) => float" },
-	{ GMF_GetGraphFlow, "GetFlow( self: GraphMaxFlow ) => float" },
-	{ NULL, NULL }
-};
 
-DaoTypeBase DaoxGraphMaxFlow_Typer =
-{
-	"GraphMaxFlow", NULL, NULL, (DaoFuncItem*) DaoxGraphMFMeths, {0}, {0},
-	(FuncPtrDel)DaoxGraphMaxFlow_Delete, DaoxGraphData_GetGCFields
-};
 
 DaoxGraphMaxFlow* DaoxGraphMaxFlow_New()
 {
@@ -956,6 +976,91 @@ static double DaoxGraph_MaxFlow_PRTF_Float( DaoxGraph *self, DaoxNode *source, D
 }
 
 
+static void GMF_New( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphMaxFlow* GMF = DaoxGraphMaxFlow_New();
+	DaoProcess_PutValue( proc, (DaoValue*) GMF );
+}
+static void GMF_Init( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphMaxFlow *self = (DaoxGraphMaxFlow*) p[0];
+	DaoxGraph *graph = (DaoxGraph*) p[1];
+	DaoxGraphMaxFlow_Init( self, graph );
+}
+static void GMF_Compute( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphMaxFlow *self = (DaoxGraphMaxFlow*) p[0];
+	DaoxNode *source = (DaoxNode*) p[1];
+	DaoxNode *sink = (DaoxNode*) p[2];
+	if( DaoxGraphData_IsAssociated( (DaoxGraphData*)self, source->graph, proc ) == 0 ) return;
+	if( DaoxGraphData_IsAssociated( (DaoxGraphData*)self, sink->graph, proc ) == 0 ) return;
+	int error = DaoxGraphMaxFlow_Compute( self, source, sink );
+	DaoProcess_PutInteger( proc, error );
+}
+static void GMF_SetCapacity( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphMaxFlow *self = (DaoxGraphMaxFlow*) p[0];
+	DaoxEdge *edge = (DaoxEdge*) p[1];
+	if( DaoxGraphData_IsAssociated( (DaoxGraphData*)self, edge->graph, proc ) == 0 ) return;
+	edge->X.MF->capacity = p[2]->xFloat.value;
+}
+static void GMF_GetCapacity( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphMaxFlow *self = (DaoxGraphMaxFlow*) p[0];
+	DaoxEdge *edge = (DaoxEdge*) p[1];
+	if( DaoxGraphData_IsAssociated( (DaoxGraphData*)self, edge->graph, proc ) == 0 ) return;
+	DaoProcess_PutFloat( proc, edge->X.MF->capacity );
+}
+static void GMF_GetEdgeFlow( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphMaxFlow *self = (DaoxGraphMaxFlow*) p[0];
+	DaoxEdge *edge = (DaoxEdge*) p[1];
+	if( DaoxGraphData_IsAssociated( (DaoxGraphData*)self, edge->graph, proc ) == 0 ) return;
+	DaoProcess_PutFloat( proc, edge->X.MF->flow_fw );
+}
+static void GMF_GetGraphFlow( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxGraphMaxFlow *self = (DaoxGraphMaxFlow*) p[0];
+	DaoProcess_PutFloat( proc, self->maxflow );
+}
+static DaoFunctionEntry DaoxGraphMFMeths[]=
+{
+	{ GMF_New,     "GraphMaxFlow()" },
+	{ GMF_Init,    "Init( self: GraphMaxFlow, graph: Graph<@N,@E> )" },
+	{ GMF_Compute, "Compute( self: GraphMaxFlow, source: Node<@N,@E>, sink: Node<@N,@E> ) => int" },
+	{ GMF_SetCapacity, "SetCapacity( self: GraphMaxFlow, edge: Edge<@N,@E>, capacity: float )" },
+	{ GMF_GetCapacity, "GetCapacity( self: GraphMaxFlow, edge: Edge<@N,@E> ) => float" },
+	{ GMF_GetEdgeFlow,  "GetFlow( self: GraphMaxFlow, edge: Edge<@N,@E> ) => float" },
+	{ GMF_GetGraphFlow, "GetFlow( self: GraphMaxFlow ) => float" },
+	{ NULL, NULL }
+};
+
+
+DaoTypeCore daoGraphMaxFlowCore =
+{
+	"GraphMaxFlow",                                    /* name */
+	sizeof(DaoxGraphMaxFlow),                          /* size */
+	{ & daoGraphDataCore, NULL },                      /* bases */
+	NULL,                                              /* numbers */
+	DaoxGraphMFMeths,                                  /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxGraphMaxFlow_Delete,       /* Delete */
+	DaoxGraphData_HandleGC                             /* HandleGC */
+};
+
 
 
 DaoType *daox_node_template_type = NULL;
@@ -966,10 +1071,10 @@ DaoType *daox_graph_maxflow_type = NULL;
 
 DAO_DLL int DaoGraph_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	daox_node_template_type = DaoNamespace_WrapType( ns, & DaoxNode_Typer, DAO_CSTRUCT, 0 );
-	daox_edge_template_type = DaoNamespace_WrapType( ns, & DaoxEdge_Typer, DAO_CSTRUCT, 0 );
-	daox_graph_template_type = DaoNamespace_WrapType( ns, & DaoxGraph_Typer, DAO_CSTRUCT, 0 );
-	daox_graph_data_type    = DaoNamespace_WrapType( ns, & DaoxGraphData_Typer, DAO_CSTRUCT, 0 );
-	daox_graph_maxflow_type = DaoNamespace_WrapType( ns, & DaoxGraphMaxFlow_Typer, DAO_CSTRUCT, 0 );
+	daox_node_template_type = DaoNamespace_WrapType( ns, & daoNodeCore, DAO_CSTRUCT, 0 );
+	daox_edge_template_type = DaoNamespace_WrapType( ns, & daoEdgeCore, DAO_CSTRUCT, 0 );
+	daox_graph_template_type = DaoNamespace_WrapType( ns, & daoGraphCore, DAO_CSTRUCT, 0 );
+	daox_graph_data_type    = DaoNamespace_WrapType( ns, & daoGraphDataCore, DAO_CSTRUCT, 0 );
+	daox_graph_maxflow_type = DaoNamespace_WrapType( ns, & daoGraphMaxFlowCore, DAO_CSTRUCT, 0 );
 	return 0;
 }

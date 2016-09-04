@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2014, Limin Fu
+// Copyright (c) 2015,2016, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -1461,7 +1461,7 @@ static void DaoXMLDocument_Serialize( DaoProcess *proc, DaoValue *p[], int N )
 	DaoXMLElement_Serialize( self->root, 0, xml );
 }
 
-static DaoFuncItem xmlDocMeths[] =
+static DaoFunctionEntry xmlDocMeths[] =
 {
 	/*! Constructs new XML document with \a root as its root element */
 	{ DaoXMLDocument_Create,			"Document(invar root: Element) => Document" },
@@ -1499,9 +1499,36 @@ static DaoFuncItem xmlDocMeths[] =
 };
 
 /*! XML document */
-DaoTypeBase xmlDocTyper = {
-	"Document", NULL, NULL, xmlDocMeths, {NULL}, {0},
-	(FuncPtrDel)DaoXMLDocument_Delete, NULL
+
+static void DaoXMLDocument_CoreDelete( DaoValue *self )
+{
+	DaoXMLDocument_Delete( (DaoXMLDocument*) self->xCdata.data );
+	DaoCstruct_Delete( (DaoCstruct*) self );
+}
+
+DaoTypeCore daoDocumentCore =
+{
+	"Document",                                            /* name */
+	sizeof(DaoXMLDocument),                                /* size */
+	{ NULL },                                              /* bases */
+	NULL,                                                  /* numbers */
+	xmlDocMeths,                                           /* methods */
+	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
+	DaoCstruct_CheckSetField,    DaoCstruct_DoSetField,    /* SetField */
+	NULL,                        NULL,                     /* GetItem */
+	NULL,                        NULL,                     /* SetItem */
+	NULL,                        NULL,                     /* Unary */
+	NULL,                        NULL,                     /* Binary */
+	NULL,                        NULL,                     /* Conversion */
+	NULL,                        NULL,                     /* ForEach */
+	NULL,                                                  /* Print */
+	NULL,                                                  /* Slice */
+	NULL,                                                  /* Compare */
+	NULL,                                                  /* Hash */
+	NULL,                                                  /* Create */
+	NULL,                                                  /* Copy */
+	(DaoDeleteFunction) DaoXMLDocument_CoreDelete,         /* Delete */
+	NULL                                                   /* HandleGC */
 };
 
 void RaiseValidationError( DaoProcess *proc, xml_error error, daoint pos )
@@ -1605,7 +1632,7 @@ static void DaoXMLInstruction_Create( DaoProcess *proc, DaoValue *p[], int N )
 		DaoXMLInstruction_Delete( res );
 }
 
-static DaoFuncItem xmlInstMeths[] =
+static DaoFunctionEntry xmlInstMeths[] =
 {
 	/*! Constructs XML processing instruction given its \a name and \a data */
 	{ DaoXMLInstruction_Create,		"Instruction(name: string, data = '') => Instruction" },
@@ -1621,10 +1648,38 @@ static DaoFuncItem xmlInstMeths[] =
 };
 
 /*! XML processing instruction */
-DaoTypeBase xmlInstTyper = {
-	"Instruction", NULL, NULL, xmlInstMeths, {NULL}, {0},
-	(FuncPtrDel)DaoXMLNode_Delete, NULL
+
+static void DaoXMLNode_CoreDelete( DaoValue *self )
+{
+	DaoXMLNode_Delete( (DaoXMLNode*) self->xCdata.data );
+	DaoCstruct_Delete( (DaoCstruct*) self );
+}
+
+DaoTypeCore daoInstructionCore =
+{
+	"Instruction",                                         /* name */
+	sizeof(DaoXMLNode),                                    /* size */
+	{ NULL },                                              /* bases */
+	NULL,                                                  /* numbers */
+	xmlInstMeths,                                          /* methods */
+	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
+	DaoCstruct_CheckSetField,    DaoCstruct_DoSetField,    /* SetField */
+	NULL,                        NULL,                     /* GetItem */
+	NULL,                        NULL,                     /* SetItem */
+	NULL,                        NULL,                     /* Unary */
+	NULL,                        NULL,                     /* Binary */
+	NULL,                        NULL,                     /* Conversion */
+	NULL,                        NULL,                     /* ForEach */
+	NULL,                                                  /* Print */
+	NULL,                                                  /* Slice */
+	NULL,                                                  /* Compare */
+	NULL,                                                  /* Hash */
+	NULL,                                                  /* Create */
+	NULL,                                                  /* Copy */
+	(DaoDeleteFunction) DaoXMLNode_CoreDelete,             /* Delete */
+	NULL                                                   /* HandleGC */
 };
+
 
 static void DaoXMLElement_GetTag( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1957,10 +2012,10 @@ static void DaoXMLElement_MapAttribs( DaoProcess *proc, DaoValue *p[], int N )
 	if ( !self->attribs || !self->attribs->size )
 		DaoProcess_RaiseError( proc, xmlerr, "Element has no attributes" );
 	else {
-		DaoTuple *tup = DaoProcess_PutTuple( proc, p[1]->xType.nested->size );
+		DaoTuple *tup = DaoProcess_PutTuple( proc, p[1]->xType.args->size );
 		int i;
 		for ( i = 0; i < tup->size; i++ ){
-			DaoType *stp = tup->ctype->nested->items.pType[i];
+			DaoType *stp = tup->ctype->args->items.pType[i];
 			DString *key = DString_New();
 			DNode *node;
 			if ( tup->values[i] == NULL ){
@@ -2235,7 +2290,7 @@ int MapContent( DaoProcess *proc, DaoXMLElement *el, DaoTuple *tup, DString *pat
 	}
 	for ( i = 0; i < tup->size; i++ ){
 		daoint j;
-		DaoType *stp = tup->ctype->nested->items.pType[i];
+		DaoType *stp = tup->ctype->args->items.pType[i];
 		DString *tag, *data;
 		if ( stp->tid != DAO_PAR_NAMED ){
 			DaoProcess_RaiseError( proc, "Type", "Tuple type contains unnamed items" );
@@ -2330,9 +2385,9 @@ int InitTuple( DaoProcess *proc, DaoTuple *tup )
 	int i;
 	for ( i = 0; i < tup->size; i++ ){
 		if ( !tup->values[i] ){
-			DaoType *ntype = tup->ctype->nested->items.pType[i];
-			if ( ntype->tid == DAO_PAR_NAMED && ntype->aux->xType.nested && ntype->aux->xType.tid == DAO_TUPLE ){
-				tup->values[i] = (DaoValue*)DaoTuple_Create( &ntype->aux->xType, ntype->aux->xType.nested->size, 1 );
+			DaoType *ntype = tup->ctype->args->items.pType[i];
+			if ( ntype->tid == DAO_PAR_NAMED && ntype->aux->xType.args && ntype->aux->xType.tid == DAO_TUPLE ){
+				tup->values[i] = (DaoValue*)DaoTuple_Create( &ntype->aux->xType, ntype->aux->xType.args->size, 1 );
 				if ( !InitTuple( proc, &tup->values[i]->xTuple ) )
 					return 0;
 			}
@@ -2353,7 +2408,7 @@ int InitTuple( DaoProcess *proc, DaoTuple *tup )
 static void DaoXMLElement_MapChildren( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoXMLElement *self = (DaoXMLElement*)DaoValue_TryGetCdata( p[0] );
-	DaoTuple *tup = DaoProcess_PutTuple( proc, p[1]->xType.nested->size );
+	DaoTuple *tup = DaoProcess_PutTuple( proc, p[1]->xType.args->size );
 	if ( InitTuple( proc, tup ) ){
 		DString *path = DString_New();
 		MapContent( proc, self, tup, path );
@@ -2390,7 +2445,7 @@ int WriteContent( DaoProcess *proc, DaoXMLElement *dest, DString *tag, DaoValue 
 		DString *subpath = DString_Copy( path );
 		daoint i;
 		for ( i = 0; i < tup->size; i++ ){
-			DaoType *stp = tup->ctype->nested->items.pType[i];
+			DaoType *stp = tup->ctype->args->items.pType[i];
 			DString *etag;
 			if ( stp->tid != DAO_PAR_NAMED ){
 				char buf[200];
@@ -2513,7 +2568,7 @@ static void DaoXMLElement_Map( DaoProcess *proc, DaoValue *p[], int N )
 		DaoXMLElement_MapChildren( proc, par, 2 );
 }
 
-static DaoFuncItem xmlElemMeths[] =
+static DaoFunctionEntry xmlElemMeths[] =
 {
 	/*! Constructs XML element with the given \a tag; if \a tag ends with '/', empty element ('<tag .../>') is created.
 	 * Element attributes may be provided as name-value pairs via additional named parameters */
@@ -2607,10 +2662,32 @@ static DaoFuncItem xmlElemMeths[] =
 };
 
 /*! XML element */
-DaoTypeBase xmlElemTyper = {
-	"Element", NULL, NULL, xmlElemMeths, {NULL}, {0},
-	(FuncPtrDel)DaoXMLNode_Delete, NULL
+
+DaoTypeCore daoElementCore =
+{
+	"Element",                                           /* name */
+	sizeof(DaoXMLNode),                                  /* size */
+	{ NULL },                                            /* bases */
+	NULL,                                                /* numbers */
+	xmlElemMeths,                                        /* methods */
+	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,  /* GetField */
+	DaoCstruct_CheckSetField,    DaoCstruct_DoSetField,  /* SetField */
+	DaoCstruct_CheckGetItem,     DaoCstruct_DoGetItem,   /* GetItem */
+	DaoCstruct_CheckSetItem,     DaoCstruct_DoSetItem,   /* SetItem */
+	NULL,                        NULL,                   /* Unary */
+	NULL,                        NULL,                   /* Binary */
+	NULL,                        NULL,                   /* Conversion */
+	NULL,                        NULL,                   /* ForEach */
+	NULL,                                                /* Print */
+	NULL,                                                /* Slice */
+	NULL,                                                /* Compare */
+	NULL,                                                /* Hash */
+	NULL,                                                /* Create */
+	NULL,                                                /* Copy */
+	(DaoDeleteFunction) DaoXMLNode_CoreDelete,           /* Delete */
+	NULL                                                 /* HandleGC */
 };
+
 
 static void DaoXMLCharData_GetKind( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -2685,7 +2762,7 @@ static void DaoXMLCharData_Append( DaoProcess *proc, DaoValue *p[], int N )
 		DString_Append( &self->data, data );
 }
 
-static DaoFuncItem xmlCdataMeths[] =
+static DaoFunctionEntry xmlCdataMeths[] =
 {
 	/*! Constructs XML character data containing \a data. Data representation form depends on \a kind and can be either plain text
 	 * or CDATA section */
@@ -2708,10 +2785,32 @@ static DaoFuncItem xmlCdataMeths[] =
 };
 
 /*! XML character data */
-DaoTypeBase xmlCdataTyper = {
-	"CharData", NULL, NULL, xmlCdataMeths, {NULL}, {0},
-	(FuncPtrDel)DaoXMLNode_Delete, NULL
+
+DaoTypeCore daoCharDataCore =
+{
+	"CharData",                                            /* name */
+	sizeof(DaoXMLNode),                                    /* size */
+	{ NULL },                                              /* bases */
+	NULL,                                                  /* numbers */
+	xmlCdataMeths,                                         /* methods */
+	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
+	DaoCstruct_CheckSetField,    DaoCstruct_DoSetField,    /* SetField */
+	NULL,                        NULL,                     /* GetItem */
+	NULL,                        NULL,                     /* SetItem */
+	NULL,                        NULL,                     /* Unary */
+	NULL,                        NULL,                     /* Binary */
+	NULL,                        NULL,                     /* Conversion */
+	NULL,                        NULL,                     /* ForEach */
+	NULL,                                                  /* Print */
+	NULL,                                                  /* Slice */
+	NULL,                                                  /* Compare */
+	NULL,                                                  /* Hash */
+	NULL,                                                  /* Create */
+	NULL,                                                  /* Copy */
+	(DaoDeleteFunction) DaoXMLNode_CoreDelete,             /* Delete */
+	NULL                                                   /* HandleGC */
 };
+
 
 daoint FindInvalidXMLChar( DString *str )
 {
@@ -3196,7 +3295,7 @@ static void DaoXMLWriter_Doctype( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutValue( proc, p[0] );
 }
 
-static DaoFuncItem xmlWriterMeths[] =
+static DaoFunctionEntry xmlWriterMeths[] =
 {
 	/*! Creates XML writer which writes to stream \a dest */
 	{ DaoXMLWriter_Create,	"Writer(dest: io::Stream) => Writer" },
@@ -3247,18 +3346,46 @@ static DaoFuncItem xmlWriterMeths[] =
 };
 
 /*! Writable stream of XML data */
-DaoTypeBase xmlWriterTyper = {
-	"Writer", NULL, NULL, xmlWriterMeths, {NULL}, {0},
-	(FuncPtrDel)DaoXMLWriter_Delete, NULL
+
+static void DaoXMLWriter_CoreDelete( DaoValue *self )
+{
+	DaoXMLWriter_Delete( (DaoXMLWriter*) self->xCdata.data );
+	DaoCstruct_Delete( (DaoCstruct*) self );
+}
+
+DaoTypeCore daoWriterCore =
+{
+	"Writer",                                              /* name */
+	sizeof(DaoXMLWriter),                                  /* size */
+	{ NULL },                                              /* bases */
+	NULL,                                                  /* numbers */
+	xmlWriterMeths,                                        /* methods */
+	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
+	DaoCstruct_CheckSetField,    DaoCstruct_DoSetField,    /* SetField */
+	NULL,                        NULL,                     /* GetItem */
+	NULL,                        NULL,                     /* SetItem */
+	NULL,                        NULL,                     /* Unary */
+	NULL,                        NULL,                     /* Binary */
+	NULL,                        NULL,                     /* Conversion */
+	NULL,                        NULL,                     /* ForEach */
+	NULL,                                                  /* Print */
+	NULL,                                                  /* Slice */
+	NULL,                                                  /* Compare */
+	NULL,                                                  /* Hash */
+	NULL,                                                  /* Create */
+	NULL,                                                  /* Copy */
+	(DaoDeleteFunction) DaoXMLWriter_CoreDelete,           /* Delete */
+	NULL                                                   /* HandleGC */
 };
 
-static DaoFuncItem xmlMeths[] = {
+
+static DaoFunctionEntry xmlMeths[] = {
 	/*! Returns XML document parsed from \a str */
 	{ DaoXMLDocument_FromString,	"parse(str: string) => xml::Document" },
 	{ NULL, NULL }
 };
 
-static DaoFuncItem encodableMeths[] =
+static DaoFunctionEntry encodableMeths[] =
 {
 	//! Serializes self to an XML element
 	{ NULL,	"encode(invar self: Encodable) => Element" },
@@ -3266,12 +3393,33 @@ static DaoFuncItem encodableMeths[] =
 };
 
 //! A type which can be encoded to XML
-DaoTypeBase encodableTyper = {
-	"Encodable", NULL, NULL, encodableMeths, {NULL}, {0},
-	(FuncPtrDel)NULL, NULL
+
+DaoTypeCore daoEncodableCore =
+{
+	"Encodable",             /* name */
+	0,                       /* size */
+	{ NULL },                /* bases */
+	NULL,                    /* numbers */
+	encodableMeths,          /* methods */
+	NULL,  NULL,             /* GetField */
+	NULL,  NULL,             /* SetField */
+	NULL,  NULL,             /* GetItem */
+	NULL,  NULL,             /* SetItem */
+	NULL,  NULL,             /* Unary */
+	NULL,  NULL,             /* Binary */
+	NULL,  NULL,             /* Conversion */
+	NULL,  NULL,             /* ForEach */
+	NULL,                    /* Print */
+	NULL,                    /* Slice */
+	NULL,                    /* Compare */
+	NULL,                    /* Hash */
+	NULL,                    /* Create */
+	NULL,                    /* Copy */
+	NULL,                    /* Delete */
+	NULL                     /* HandleGC */
 };
 
-static DaoFuncItem decodableMeths[] =
+static DaoFunctionEntry decodableMeths[] =
 {
 	//! Deserializes self from the provided XML \a data
 	{ NULL,	"decode(invar data: Element) => Decodable" },
@@ -3279,23 +3427,45 @@ static DaoFuncItem decodableMeths[] =
 };
 
 //! A type which can be decoded from XML
-DaoTypeBase decodableTyper = {
-	"Decodable", NULL, NULL, decodableMeths, {NULL}, {0},
-	(FuncPtrDel)NULL, NULL
+
+DaoTypeCore daoDecodableCore =
+{
+	"Decodable",             /* name */
+	0,                       /* size */
+	{ NULL },                /* bases */
+	NULL,                    /* numbers */
+	encodableMeths,          /* methods */
+	NULL,  NULL,             /* GetField */
+	NULL,  NULL,             /* SetField */
+	NULL,  NULL,             /* GetItem */
+	NULL,  NULL,             /* SetItem */
+	NULL,  NULL,             /* Unary */
+	NULL,  NULL,             /* Binary */
+	NULL,  NULL,             /* Conversion */
+	NULL,  NULL,             /* ForEach */
+	NULL,                    /* Print */
+	NULL,                    /* Slice */
+	NULL,                    /* Compare */
+	NULL,                    /* Hash */
+	NULL,                    /* Create */
+	NULL,                    /* Copy */
+	NULL,                    /* Delete */
+	NULL                     /* HandleGC */
 };
+
 
 DAO_DLL int DaoXML_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *xmlns;
 	DMutex_Init( &xmlmtx );
 	xmlns = DaoNamespace_GetNamespace( ns, "xml" );
-	daox_type_xmlinst = DaoNamespace_WrapType( xmlns, &xmlInstTyper, DAO_CDATA, 0 );
-	daox_type_xmlcdata = DaoNamespace_WrapType( xmlns, &xmlCdataTyper, DAO_CDATA, 0 );
-	daox_type_xmlelem = DaoNamespace_WrapType( xmlns, &xmlElemTyper, DAO_CDATA, 0 );
-	daox_type_xmldoc = DaoNamespace_WrapType( xmlns, &xmlDocTyper, DAO_CDATA, 0 );
-	daox_type_xmlwriter = DaoNamespace_WrapType( xmlns, &xmlWriterTyper, DAO_CDATA, 0 );
-	DaoNamespace_WrapInterface( xmlns, &encodableTyper );
-	DaoNamespace_WrapInterface( xmlns, &decodableTyper );
+	daox_type_xmlinst = DaoNamespace_WrapType( xmlns, &daoInstructionCore, DAO_CDATA, 0 );
+	daox_type_xmlcdata = DaoNamespace_WrapType( xmlns, &daoCharDataCore, DAO_CDATA, 0 );
+	daox_type_xmlelem = DaoNamespace_WrapType( xmlns, &daoElementCore, DAO_CDATA, 0 );
+	daox_type_xmldoc = DaoNamespace_WrapType( xmlns, &daoDocumentCore, DAO_CDATA, 0 );
+	daox_type_xmlwriter = DaoNamespace_WrapType( xmlns, &daoWriterCore, DAO_CDATA, 0 );
+	DaoNamespace_WrapInterface( xmlns, &daoEncodableCore );
+	DaoNamespace_WrapInterface( xmlns, &daoDecodableCore );
 	DaoNamespace_WrapFunctions( xmlns, xmlMeths );
 	return 0;
 }
