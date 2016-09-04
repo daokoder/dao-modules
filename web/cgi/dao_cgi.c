@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2006-2013, Limin Fu
+// Copyright (c) 2006-2016, Limin Fu
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without modification,
@@ -316,7 +316,7 @@ void DaoCGI_SendFile( DaoProcess *proc, DaoValue *p[], int N )
 	DString_Delete( mbs );
 }
 
-static DaoFuncItem cgiMeths[]=
+static DaoFunctionEntry cgiMeths[]=
 {
 	{ DaoCGI_RandomString,  "random_string( n: int, alnum=1 )=>string" },
 	{ DaoCGI_SendFile,  "sendfile( file: string, mime='text/plain', notfound='' )=>string" },

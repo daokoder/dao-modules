@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2011-2014, Limin Fu
+// Copyright (c) 2011-2016, Limin Fu
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without modification,
@@ -539,7 +539,7 @@ static void JSON_Deserialize( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, jsonerr, "JSON data does not form a single structure" );
 }
 
-static DaoFuncItem jsonMeths[] =
+static DaoFunctionEntry jsonMeths[] =
 {
 	/*! Serializes \a data to JSON and returns the resulting string. When \a style is \c $pretty, the output includes
 	 * newlines and	indentation for readability, otherwise the result is put on single line.
@@ -574,7 +574,7 @@ static DaoFuncItem jsonMeths[] =
 	{ NULL, NULL }
 };
 
-static DaoFuncItem encodableMeths[] =
+static DaoFunctionEntry daoEncodableMeths[] =
 {
 	//! Serializes self to JSON data
 	{ NULL,	"encode(invar self: Encodable) => Data" },
@@ -583,12 +583,33 @@ static DaoFuncItem encodableMeths[] =
 
 //! A type which can be encoded to JSON data. Use it in conjunction with \c Marshallable
 //! to define serialization of custom data structures to JSON
-static DaoTypeBase encodableTyper = {
-	"Encodable", NULL, NULL, encodableMeths, {NULL}, {0},
-	(FuncPtrDel)NULL, NULL
+DaoTypeCore daoEncodableCore =
+{
+	"Encodable",                                       /* name */
+	0,                                                 /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoEncodableMeths,                                 /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	NULL,                                              /* Delete */
+	NULL                                               /* HandleGC */
 };
 
-static DaoFuncItem decodableMeths[] =
+
+static DaoFunctionEntry daoDecodableMeths[] =
 {
 	//! Deserializes self from the provided JSON \a data
 	{ NULL,	"decode(invar data: Data) => Decodable" },
@@ -597,12 +618,33 @@ static DaoFuncItem decodableMeths[] =
 
 //! A type which can be decoded from JSON data. Use it in conjunction with \c Unmarshallable
 //! to define deserialization of custom data structures from JSON
-static DaoTypeBase decodableTyper = {
-	"Decodable", NULL, NULL, decodableMeths, {NULL}, {0},
-	(FuncPtrDel)NULL, NULL
+DaoTypeCore daoDecodableCore =
+{
+	"Decodable",                                       /* name */
+	0,                                                 /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoDecodableMeths,                                 /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	NULL,                                              /* Delete */
+	NULL                                               /* HandleGC */
 };
 
-static DaoFuncItem marshallableMeths[] =
+
+static DaoFunctionEntry daoMarshallableMeths[] =
 {
 	//! Serializes self to JSON document
 	{ NULL,	"marshal(invar self: Marshallable) => Object|Array" },
@@ -610,12 +652,33 @@ static DaoFuncItem marshallableMeths[] =
 };
 
 //! A type which can be marshalled to a JSON document
-DaoTypeBase marshallableTyper = {
-	"Marshallable", NULL, NULL, marshallableMeths, {NULL}, {0},
-	(FuncPtrDel)NULL, NULL
+DaoTypeCore daoMarshallableCore =
+{
+	"Marshallable",                                    /* name */
+	0,                                                 /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoMarshallableMeths,                              /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	NULL,                                              /* Delete */
+	NULL                                               /* HandleGC */
 };
 
-static DaoFuncItem unmarshallableMeths[] =
+
+static DaoFunctionEntry daoUnmarshallableMeths[] =
 {
 	//! Deserializes self from the given JSON \a document
 	{ NULL,	"unmarshal(invar document: Object|Array) => Unmarshallable" },
@@ -623,10 +686,31 @@ static DaoFuncItem unmarshallableMeths[] =
 };
 
 //! A type which can be unmarshalled from a JSON document
-DaoTypeBase unmarshallableTyper = {
-	"Unmarshallable", NULL, NULL, unmarshallableMeths, {NULL}, {0},
-	(FuncPtrDel)NULL, NULL
+DaoTypeCore daoUnmarshallableCore =
+{
+	"Unmarshallable",                                  /* name */
+	0,                                                 /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoUnmarshallableMeths,                            /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	NULL,                                              /* Delete */
+	NULL                                               /* HandleGC */
 };
+
 
 DAO_DLL int DaoJson_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
@@ -635,10 +719,10 @@ DAO_DLL int DaoJson_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace_DefineType( jsonns, "none|bool|int|float|string|list<Data>|map<string,Data>", "Data" );
 	json_list_type = DaoNamespace_DefineType( jsonns, "list<Data>", "Array" );
 	json_map_type = DaoNamespace_DefineType( jsonns, "map<string,Data>", "Object" );
-	DaoNamespace_WrapInterface( jsonns, &encodableTyper );
-	DaoNamespace_WrapInterface( jsonns, &decodableTyper );
-	DaoNamespace_WrapInterface( jsonns, &marshallableTyper );
-	DaoNamespace_WrapInterface( jsonns, &unmarshallableTyper );
+	DaoNamespace_WrapInterface( jsonns, &daoEncodableCore );
+	DaoNamespace_WrapInterface( jsonns, &daoDecodableCore );
+	DaoNamespace_WrapInterface( jsonns, &daoMarshallableCore );
+	DaoNamespace_WrapInterface( jsonns, &daoUnmarshallableCore );
 	DaoNamespace_WrapFunctions( jsonns, jsonMeths );
 	return 0;
 }

@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2015, Limin Fu
+// Copyright (c) 2015-2016, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -833,7 +833,7 @@ static void MIME_UpdateDB( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutInteger( proc, DaoMime_UpdateDB( stream ) );
 }
 
-static DaoFuncItem mimeFuncs[] =
+static DaoFunctionEntry mimeFuncs[] =
 {
 	/*! Returns list of MIME type defined for the given \a target which may be a file name or an extension.
 	 * If no appropriate MIME type was found, empty list is returned

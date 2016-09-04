@@ -1,7 +1,7 @@
 /*
 // Webdao: A Lightweight Web Application Framework for Dao
 //
-// Copyright (c) 2013-2015, Limin Fu
+// Copyright (c) 2013-2016, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -483,7 +483,7 @@ static void DaoxSession_Delete( DaoxSession *self )
 	DaoCstruct_Free( (DaoCstruct*) self );
 	dao_free( self );
 }
-static void DaoxSession_GetGCFields( void *p, DList *vs, DList *as, DList *maps, int rm )
+static void DaoxSession_HandleGC( DaoValue *p, DList *vs, DList *as, DList *maps, int rm )
 {
 	DaoxSession *self = (DaoxSession*) p;
 	DList_Append( maps, self->variables );
@@ -523,7 +523,7 @@ static void DaoxCache_Delete( DaoxCache *self )
 	DaoCstruct_Free( (DaoCstruct*) self );
 	dao_free( self );
 }
-static void DaoxCache_GetGCFields( void *p, DList *vs, DList *as, DList *maps, int rm )
+static void DaoxCache_HandleGC( DaoValue *p, DList *vs, DList *as, DList *maps, int rm )
 {
 	DaoxCache *self = (DaoxCache*) p;
 	DList_Append( maps, self->variables );
@@ -635,7 +635,7 @@ static void DaoxServer_Delete( DaoxServer *self )
 	DaoCstruct_Free( (DaoCstruct*) self );
 	dao_free( self );
 }
-static void DaoxServer_GetGCFields( void *p, DList *vs, DList *arrays, DList *maps, int rm )
+static void DaoxServer_HandleGC( DaoValue *p, DList *vs, DList *arrays, DList *maps, int rm )
 {
 	DaoxServer *self = (DaoxServer*) p;
 	DList_Append( arrays, self->allRequests );
@@ -987,7 +987,7 @@ static void REQ_SETF_HttpFile( DaoProcess *proc, DaoValue *p[], int N )
 	GC_Assign( & request->http_file, p[1] );
 }
 
-static DaoFuncItem RequestMeths[] =
+static DaoFunctionEntry daoRequestMeths[] =
 {
 	{ REQ_GETF_Host,       ".Host( self: Request ) => string" },
 	{ REQ_GETF_URI,        ".URI( self: Request ) => string" },
@@ -1004,11 +1004,32 @@ static DaoFuncItem RequestMeths[] =
 	{ NULL, NULL }
 };
 
-static DaoTypeBase RequestTyper =
+
+DaoTypeCore daoRequestCore =
 {
-	"Request", NULL, NULL, RequestMeths, {0}, {0},
-	(FuncPtrDel) DaoxRequest_Delete, NULL
+	"Request",                                         /* name */
+	sizeof(DaoxRequest),                               /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoRequestMeths,                                   /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	DaoCstruct_CheckSetField,  DaoCstruct_DoSetField,  /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxRequest_Delete,            /* Delete */
+	NULL                                               /* HandleGC */
 };
+
 
 
 static void RES_SetCookie( DaoProcess *proc, DaoValue *p[], int N )
@@ -1070,7 +1091,7 @@ static void RES_RespondError( DaoProcess *proc, DaoValue *p[], int N )
 	mg_printf( response->connection, "</pre></body></html>" );
 }
 
-static DaoFuncItem ResponseMeths[] =
+static DaoFunctionEntry daoResponseMeths[] =
 {
 	{ RES_SetCookie, "SetCookie( self: Response, name: string, value: string, path='', expire=3600 )" },
 	{ RES_WriteHeader, "WriteHeader( self: Response, status = 200, headers: map<string,string> = {=>} )" },
@@ -1080,10 +1101,30 @@ static DaoFuncItem ResponseMeths[] =
 	{ NULL, NULL }
 };
 
-static DaoTypeBase ResponseTyper =
+
+DaoTypeCore daoResponseCore =
 {
-	"Response", NULL, NULL, ResponseMeths, {0}, {0},
-	(FuncPtrDel) DaoxResponse_Delete, NULL
+	"Response",                                        /* name */
+	sizeof(DaoxResponse),                              /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoResponseMeths,                                  /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxResponse_Delete,           /* Delete */
+	NULL                                               /* HandleGC */
 };
 
 
@@ -1117,7 +1158,7 @@ static void SES_SetTimeout( DaoProcess *proc, DaoValue *p[], int N )
 	session->timestamp.value.real = time(NULL) + session->expire;
 }
 
-static DaoFuncItem SessionMeths[] =
+static DaoFunctionEntry daoSessionMeths[] =
 {
 	{ SES_GetVar,     "GetVariable( self: Session, name: string ) => any" },
 	{ SES_SetVar,     "SetVariable( self: Session, name: string, value: any )" },
@@ -1125,10 +1166,30 @@ static DaoFuncItem SessionMeths[] =
 	{ NULL, NULL }
 };
 
-static DaoTypeBase SessionTyper =
+
+DaoTypeCore daoSessionCore =
 {
-	"Session", NULL, NULL, SessionMeths, {0}, {0},
-	(FuncPtrDel) DaoxSession_Delete, DaoxSession_GetGCFields
+	"Session",                                         /* name */
+	sizeof(DaoxSession),                               /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoSessionMeths,                                   /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxSession_Delete,            /* Delete */
+	DaoxSession_HandleGC                               /* HandleGC */
 };
 
 
@@ -1152,17 +1213,37 @@ static void CACHE_SetVar( DaoProcess *proc, DaoValue *p[], int N )
 	DMap_Insert( cache->variables, key, p[2] );
 }
 
-static DaoFuncItem CacheMeths[] =
+static DaoFunctionEntry daoCacheMeths[] =
 {
 	{ CACHE_GetVar,     "GetVariable( self: Cache, name: string ) => any" },
 	{ CACHE_SetVar,     "SetVariable( self: Cache, name: string, value: any )" },
 	{ NULL, NULL }
 };
 
-static DaoTypeBase CacheTyper =
+
+DaoTypeCore daoCacheCore =
 {
-	"Cache", NULL, NULL, CacheMeths, {0}, {0},
-	(FuncPtrDel) DaoxCache_Delete, DaoxCache_GetGCFields
+	"Cache",                                           /* name */
+	sizeof(DaoxCache),                                 /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoCacheMeths,                                     /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxCache_Delete,              /* Delete */
+	DaoxCache_HandleGC                                 /* HandleGC */
 };
 
 
@@ -1370,7 +1451,7 @@ static void SERVER_Stop( DaoProcess *proc, DaoValue *p[], int N )
 	if( self->context ) mg_stop( self->context );
 }
 
-static DaoFuncItem ServerMeths[] =
+static DaoFunctionEntry daoServerMeths[] =
 {
 	{ SERVER_New,        "Server( docroot = '' )" },
 	{ SERVER_GetDocRoot, ".DocumentRoot( self: Server )" },
@@ -1383,10 +1464,30 @@ static DaoFuncItem ServerMeths[] =
 	{ NULL, NULL }
 };
 
-static DaoTypeBase ServerTyper =
+
+DaoTypeCore daoServerCore =
 {
-	"Server", NULL, NULL, ServerMeths, {0}, {0},
-	(FuncPtrDel) DaoxServer_Delete, DaoxServer_GetGCFields
+	"Server",                                          /* name */
+	sizeof(DaoxServer),                                /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoServerMeths,                                    /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	DaoCstruct_CheckSetField,  DaoCstruct_DoSetField,  /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxServer_Delete,             /* Delete */
+	DaoxServer_HandleGC                                /* HandleGC */
 };
 
 
@@ -1486,7 +1587,7 @@ static void CLIENT_Post( DaoProcess *proc, DaoValue *p[], int N )
 	CLIENT_SendRequest( proc, p, p[1]->xString.value, p[2]->xString.value );
 }
 
-static DaoFuncItem ClientMeths[] =
+static DaoFunctionEntry daoClientMeths[] =
 {
 	{ CLIENT_Get,	"Get( url: string ) => string" },
 	{ CLIENT_Get,	"Get( url: string )[data: string]" },
@@ -1495,9 +1596,30 @@ static DaoFuncItem ClientMeths[] =
 	{ NULL, NULL }
 };
 
-static DaoTypeBase ClientTyper =
+
+DaoTypeCore daoClientCore =
 {
-	"Client", NULL, NULL, ClientMeths, {0}, {0}, (FuncPtrDel) NULL, NULL
+	"Client",                                          /* name */
+	0,                                                 /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	daoClientMeths,                                    /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	NULL,                                              /* Delete */
+	NULL                                               /* HandleGC */
 };
 
 
@@ -1506,12 +1628,12 @@ DAO_DLL int DaoHttp_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace *streamns = DaoVmSpace_LinkModule( vmSpace, ns, "stream" );
 	DaoNamespace *httpns = DaoNamespace_GetNamespace( ns, "http" );
 
-	daox_type_request = DaoNamespace_WrapType( httpns, & RequestTyper, DAO_CSTRUCT, 0 );
-	daox_type_response = DaoNamespace_WrapType( httpns, & ResponseTyper, DAO_CSTRUCT, 0 );
-	daox_type_session = DaoNamespace_WrapType( httpns, & SessionTyper, DAO_CSTRUCT, 0 );
-	daox_type_cache = DaoNamespace_WrapType( httpns, & CacheTyper, DAO_CSTRUCT, 0 );
-	daox_type_server = DaoNamespace_WrapType( httpns, & ServerTyper, DAO_CSTRUCT, 0 );
-	daox_type_client = DaoNamespace_WrapType( httpns, & ClientTyper, DAO_CSTRUCT, 0 );
+	daox_type_request = DaoNamespace_WrapType( httpns, & daoRequestCore, DAO_CSTRUCT, 0 );
+	daox_type_response = DaoNamespace_WrapType( httpns, & daoResponseCore, DAO_CSTRUCT, 0 );
+	daox_type_session = DaoNamespace_WrapType( httpns, & daoSessionCore, DAO_CSTRUCT, 0 );
+	daox_type_cache = DaoNamespace_WrapType( httpns, & daoCacheCore, DAO_CSTRUCT, 0 );
+	daox_type_server = DaoNamespace_WrapType( httpns, & daoServerCore, DAO_CSTRUCT, 0 );
+	daox_type_client = DaoNamespace_WrapType( httpns, & daoClientCore, DAO_CSTRUCT, 0 );
 	daox_type_keyvalue = DaoNamespace_ParseType( httpns, "map<string,string>" );
 	daox_type_namestream = DaoNamespace_DefineType( httpns,
 			"tuple<file:string,size:int,data:io::FileStream>", "HttpUpload" );

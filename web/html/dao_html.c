@@ -404,7 +404,7 @@ const char *html_target_attr =
 const char *html_formtarget_attr =
 	"tuple<enum<formtarget>, enum<blank,self,parent,top>|string>";
 
-static DaoFuncItem htmlMeths[] =
+static DaoFunctionEntry htmlMeths[] =
 {
 	/*! Returns HTML 5 document composed from content specified in the code section. Includes '<!DOCTYPE html>' and 'html' tag with
 	 * the specified attributes */
@@ -1434,7 +1434,7 @@ static void NODE_EachSub( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PopFrame( proc );
 }
 
-static DaoFuncItem DaoxHtmlNodeMeths[]=
+static DaoFunctionEntry DaoxHtmlNodeMeths[]=
 {
 	{ NODE_ID,      ".( self: Node, id: string ) => Node|none" },
 	{ NODE_SetID,   ".=( self: Node, id: string, node: Node|none )" },
@@ -1456,17 +1456,37 @@ static DaoFuncItem DaoxHtmlNodeMeths[]=
 	{ NULL, NULL }
 };
 
-static void DaoxHtmlNode_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int rm )
+static void DaoxHtmlNode_HandleGC( DaoValue *p, DList *values, DList *lists, DList *maps, int rm )
 {
 	DaoxHtmlNode *self = (DaoxHtmlNode*) p;
 	DList_Append( values, self->document );
 	if( rm ) self->document = NULL;
 }
 
-DaoTypeBase DaoxHtmlNode_Typer =
+
+DaoTypeCore daoHtmlNodeCore =
 {
-	"Node", NULL, NULL, (DaoFuncItem*) DaoxHtmlNodeMeths, { NULL }, { NULL },
-	(FuncPtrDel)DaoxHtmlNode_Delete, DaoxHtmlNode_GetGCFields
+	"Node",                                            /* name */
+	sizeof(DaoxHtmlNode),                              /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	DaoxHtmlNodeMeths,                                 /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	DaoCstruct_CheckSetField,  DaoCstruct_DoSetField,  /* SetField */
+	DaoCstruct_CheckGetItem,   DaoCstruct_DoGetItem,   /* GetItem */
+	DaoCstruct_CheckSetItem,   DaoCstruct_DoSetItem,   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxHtmlNode_Delete,           /* Delete */
+	DaoxHtmlNode_HandleGC                              /* HandleGC */
 };
 
 
@@ -1496,7 +1516,7 @@ static void DOC_GetContent( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutValue( proc, (DaoValue*) self->output->root->userdata );
 }
 
-static DaoFuncItem DaoxHtmlDocumentMeths[]=
+static DaoFunctionEntry DaoxHtmlDocumentMeths[]=
 {
 	{ DOC_New,          "Document( source = '' )" },
 	{ DOC_Parse,        "Parse( self: Document, source: string ) => Node" },
@@ -1506,16 +1526,36 @@ static DaoFuncItem DaoxHtmlDocumentMeths[]=
 	{ NULL, NULL }
 };
 
-static void DaoxHtmlDocument_GetGCFields( void *p, DList *vs, DList *lists, DList *maps, int rm )
+static void DaoxHtmlDocument_HandleGC( DaoValue *p, DList *vs, DList *lists, DList *maps, int rm )
 {
 	DaoxHtmlDocument *self = (DaoxHtmlDocument*) p;
 	DList_Append( lists, self->allWrappers );
 }
 
-DaoTypeBase DaoxHtmlDocument_Typer =
+
+DaoTypeCore daoHtmlDocumentCore =
 {
-	"Document", NULL, NULL, (DaoFuncItem*) DaoxHtmlDocumentMeths, { NULL }, { NULL },
-	(FuncPtrDel)DaoxHtmlDocument_Delete, DaoxHtmlDocument_GetGCFields
+	"Document",                                        /* name */
+	sizeof(DaoxHtmlDocument),                          /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	DaoxHtmlDocumentMeths,                             /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxHtmlDocument_Delete,       /* Delete */
+	DaoxHtmlDocument_HandleGC                          /* HandleGC */
 };
 
 
@@ -1524,8 +1564,8 @@ DAO_DLL int DaoHtml_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *htmlns = DaoNamespace_GetNamespace( ns, "html" );
 
-	daox_type_html_node = DaoNamespace_WrapType( htmlns, & DaoxHtmlNode_Typer, DAO_CSTRUCT, 0 );
-	daox_type_html_document = DaoNamespace_WrapType( htmlns, & DaoxHtmlDocument_Typer, DAO_CSTRUCT, 0 );
+	daox_type_html_node = DaoNamespace_WrapType( htmlns, & daoHtmlNodeCore, DAO_CSTRUCT, 0 );
+	daox_type_html_document = DaoNamespace_WrapType( htmlns, & daoHtmlDocumentCore, DAO_CSTRUCT, 0 );
 
 	DaoNamespace_DefineType( htmlns, html_global_attr, "GlobalAttr" );
 	DaoNamespace_DefineType( htmlns, html_step_attr, "Step" );
