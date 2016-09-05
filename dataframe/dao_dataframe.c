@@ -2,7 +2,7 @@
 // Dao DataFrame Module
 // http://www.daovm.net
 //
-// Copyright (c) 2013,2014, Limin Fu
+// Copyright (c) 2013-2016, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -107,7 +107,6 @@ void DaoxDataColumn_Reset( DaoxDataColumn *self, daoint size )
 		for(i=self->cells->size; i<size; ++i){
 			if( datatype == DAO_STRING ){
 				DString_Init( self->cells->data.strings + i );
-				DString *s = & self->cells->data.strings[i];
 			}else if( datatype == 0 ){
 				self->cells->data.values[i] = NULL;
 			}
@@ -136,7 +135,7 @@ void DaoxDataColumn_SetCell( DaoxDataColumn *self, daoint i, DaoValue *value )
 		switch( self->vatype->tid ){
 		default :
 			GC_DecRC( self->cells->data.values[i] );
-			self->cells->data.values[i] = value;
+			self->cells->data.values[i] = NULL;
 			break;
 		case DAO_INTEGER : self->cells->data.daoints[i]   = 0; break;
 		case DAO_FLOAT   : self->cells->data.doubles[i]   = 0.0; break;
@@ -157,12 +156,12 @@ void DaoxDataColumn_SetCell( DaoxDataColumn *self, daoint i, DaoValue *value )
 }
 DaoValue* DaoxDataColumn_GetCell( DaoxDataColumn *self, daoint i, DaoValue *value )
 {
-	value->xNone.type = self->vatype->tid;
+	DaoValue_Init( value, self->vatype->tid );
 	switch( self->vatype->tid ){
 	case DAO_INTEGER : value->xInteger.value = self->cells->data.daoints[i]; break;
-	case DAO_FLOAT   : value->xFloat.value  = self->cells->data.doubles[i]; break;
+	case DAO_FLOAT   : value->xFloat.value   = self->cells->data.doubles[i]; break;
 	case DAO_COMPLEX : value->xComplex.value = self->cells->data.complexes[i]; break;
-	case DAO_STRING  : value->xString.value   = & self->cells->data.strings[i]; break;
+	case DAO_STRING  : value->xString.value  = & self->cells->data.strings[i]; break;
 	default : value = self->cells->data.values[i]; break;
 	}
 	return value;
@@ -189,7 +188,7 @@ static int DaoxDataColumn_GetPrintWidth( DaoxDataColumn *self, int max )
 	return width;
 }
 
-static void DaoxDataColumn_GetGCFields( void *p, DList *values, DList *a, DList *m, int rm )
+static void DaoxDataColumn_HandleGC( DaoValue *p, DList *values, DList *a, DList *m, int rm )
 {
 	DaoxDataColumn *self = (DaoxDataColumn*) p;
 	if( self->vatype ) DList_Append( values, self->vatype );
@@ -199,10 +198,30 @@ static void DaoxDataColumn_GetGCFields( void *p, DList *values, DList *a, DList 
 	}
 }
 
-DaoTypeBase datacolumnTyper =
+
+DaoTypeCore daoDataColumnCore =
 {
-	"DataColumn", NULL, NULL, NULL, {0}, {0},
-	(FuncPtrDel)DaoxDataColumn_Delete, DaoxDataColumn_GetGCFields
+	"DataColumn",                               /* name */
+	sizeof(DaoxDataColumn),                     /* size */
+	{ NULL },                                   /* bases */
+	NULL,                                       /* numbers */
+	NULL,                                       /* methods */
+	NULL,  NULL,                                /* GetField */
+	NULL,  NULL,                                /* SetField */
+	NULL,  NULL,                                /* GetItem */
+	NULL,  NULL,                                /* SetItem */
+	NULL,  NULL,                                /* Unary */
+	NULL,  NULL,                                /* Binary */
+	NULL,  NULL,                                /* Conversion */
+	NULL,  NULL,                                /* ForEach */
+	NULL,                                       /* Print */
+	NULL,                                       /* Slice */
+	NULL,                                       /* Compare */
+	NULL,                                       /* Hash */
+	NULL,                                       /* Create */
+	NULL,                                       /* Copy */
+	(DaoDeleteFunction) DaoxDataColumn_Delete,  /* Delete */
+	DaoxDataColumn_HandleGC                     /* HandleGC */
 };
 
 
@@ -452,9 +471,13 @@ static void DaoxDataFrame_SliceFrom( DaoxDataFrame *self, DaoxDataFrame *orig, D
 				deps->data.daoints[kk] = k;
 				if( datatype == 0 ){ /* DaoValue */
 					DaoValue *value = source->cells->data.values[id2];
-					GC_IncRC( value );
+					GC_Assign( target->cells->data.values + id3, value );
+				}else if( datatype == DAO_STRING ){
+					DString *value = & source->cells->data.strings[id2];
+					DString_Assign( target->cells->data.strings + id3, value );
+				}else{
+					memcpy( des, src, source->cells->stride );
 				}
-				memcpy( des, src, source->cells->stride );
 			}
 		}
 	}
@@ -504,15 +527,15 @@ void DaoxDataFrame_Decode( DaoxDataFrame *self, DString *input )
 
 
 
-static int SliceRange( DArray *slices, daoint N, daoint first, daoint last )
+static int SliceRange( DArray *slices, daoint N, daoint first, daoint end )
 {
 	daoint *start = DArray_PushDaoInt( slices, 0 );
 	daoint *count = DArray_PushDaoInt( slices, 0 );
 	if( first < 0 ) first += N;
-	if( last < 0 ) last += N;
-	if( first < 0 || first >= N || last < 0 || last >= N ) return 0;
+	if( end < 0 ) end += N;
+	if( first < 0 || first >= N || end < 0 || end > N ) return 0;
 	*start = first;
-	if( first <= last ) *count = last - first + 1;
+	if( first < end ) *count = end - first;
 	return 1;
 }
 static int SliceRange2( DArray *slices, daoint N, daoint first, daoint count )
@@ -533,7 +556,7 @@ static void MakeSlice( DaoProcess *proc, DaoValue *pid, daoint N, DArray *slice 
 		SliceRange2( slice, N, 0, N );
 		return;
 	}
-	switch( pid->type ){
+	switch( pid->xBase.subtype ){
 	case DAO_INTEGER :
 	case DAO_FLOAT :
 		{
@@ -545,7 +568,7 @@ static void MakeSlice( DaoProcess *proc, DaoValue *pid, daoint N, DArray *slice 
 		{
 			break;
 		}
-	case DAO_TUPLE :
+	case DAO_RANGE :
 		{
 			DaoValue **data = pid->xTuple.values;
 			if( data[0]->type == DAO_INTEGER && data[1]->type == DAO_INTEGER ){
@@ -556,7 +579,7 @@ static void MakeSlice( DaoProcess *proc, DaoValue *pid, daoint N, DArray *slice 
 				rc = SliceRange2( slice, N, 0, N );
 			}else if( data[0]->type <= DAO_FLOAT && data[1]->type == DAO_NONE ){
 				from = DaoValue_GetInteger( data[0] );
-				rc = SliceRange( slice, N, from, -1 );
+				rc = SliceRange( slice, N, from, N );
 			}else if( data[0]->type == DAO_NONE && data[1]->type <= DAO_FLOAT ){
 				to = DaoValue_GetInteger( data[1] );
 				rc = SliceRange( slice, N, 0, to );
@@ -599,7 +622,7 @@ static void DaoArray_MakeFullSlice( DaoArray *self, DArray *slices )
 		DArray_PushDaoInt( slices, 1 );
 	}
 }
-static int DaoDataFrame_MakeSlice( DaoxDataFrame *self, DaoProcess *proc, DaoValue *idx[], int N, DArray *slices )
+static int DaoxDataFrame_MakeSlice( DaoxDataFrame *self, DaoProcess *proc, DaoValue *idx[], int N, DArray *slices )
 {
 	daoint *dims = self->dims;
 	daoint i, D = 3, S = 1;
@@ -1012,8 +1035,8 @@ static void FRAME_AddListCol( DaoProcess *proc, DaoValue *p[], int N )
 	DaoType *etype = DaoType_GetCommonType( DAO_ANY, 0 );
 	daoint i, M = self->dims[0] * self->dims[2];
 
-	if( list->ctype && list->ctype->nested->size ){
-		DaoType *tp = list->ctype->nested->items.pType[0];
+	if( list->ctype && list->ctype->args->size ){
+		DaoType *tp = list->ctype->args->items.pType[0];
 		if( tp != NULL && !(tp->tid & DAO_ANY) ) etype = tp;
 	}
 
@@ -1078,7 +1101,7 @@ static void FRAME_GETMI( DaoProcess *proc, DaoValue *p[], int N )
 	}else{
 		df = DaoProcess_MakeReturnDataFrame( proc );
 		DaoxDataFrame_PrepareSlices( df );
-		DaoDataFrame_MakeSlice( self, proc, p+1, N-1, df->slices );
+		DaoxDataFrame_MakeSlice( self, proc, p+1, N-1, df->slices );
 		GC_Assign( & df->original, self );
 		DaoProcess_PutValue( proc, (DaoValue*) df );
 	}
@@ -1104,8 +1127,9 @@ static void FRAME_SETMI( DaoProcess *proc, DaoValue *p[], int N )
 		DaoxDataFrame df2 = *self;
 		df = (DaoxDataFrame*) DaoValue_CastCstruct( value, daox_type_dataframe );
 		DaoxDataFrame_PrepareSlices( self );
-		DaoDataFrame_MakeSlice( self, proc, p+2, N-2, self->slices );
+		DaoxDataFrame_MakeSlice( self, proc, p+2, N-2, self->slices );
 		df2.original = self;
+		df2.slices = self->slices;
 		if( value->type == DAO_ARRAY ){
 			DaoArray *array = (DaoArray*) value;
 			rc = DaoxDataFrame_UpdateByArray( & df2, array, DVM_MOVE );
@@ -1166,7 +1190,7 @@ static void FRAME_PRINT( DaoProcess *proc, DaoValue *p[], int n )
 	if( stream == NULL ) stream = casting ? sstream2 : proc->vmSpace->stdioStream;
 	if( self->original == NULL ){
 		DaoxDataFrame_PrepareSlices( self );
-		DaoDataFrame_MakeSlice( self, proc, nulls, 3, self->slices );
+		DaoxDataFrame_MakeSlice( self, proc, nulls, 3, self->slices );
 		original = self;
 	}
 	N = DaoSlice_GetSize( self->slices, 0 );
@@ -1242,7 +1266,7 @@ static void FRAME_PRINT( DaoProcess *proc, DaoValue *p[], int n )
 				CheckPrintWidth( com.imag, & max, & min, & dec );
 				break;
 			case DAO_STRING :
-				if( cells->data.strings[i].size > max ) max = cells->data.strings[i].size;
+				if( cells->data.strings[ii].size > max ) max = cells->data.strings[ii].size;
 				break;
 			default :
 				break;
@@ -1406,7 +1430,7 @@ static void FRAME_PRINT( DaoProcess *proc, DaoValue *p[], int n )
 					int width = clabwidth->data.ints[s];
 					daoint jj = DaoSlice_GetIndex( self->slices, 2, s );
 					DaoxDataColumn *col = (DaoxDataColumn*) original->columns->items.pVoid[jj];
-					DaoValue *value = DaoxDataColumn_GetCell( col, i, & valueBuffer );
+					DaoValue *value = DaoxDataColumn_GetCell( col, ii, & valueBuffer );
 
 					DaoStream_WriteChars( stream, "  " );
 					if( value == NULL ){
@@ -1436,7 +1460,7 @@ static void FRAME_PRINT( DaoProcess *proc, DaoValue *p[], int n )
 						snprintf( buf, width, fmt, com.real, com.imag );
 					}else{
 						DString_Reset( sstream->buffer, 0 );
-						DaoValue_Print( value, proc, sstream, NULL );
+						DaoValue_Print( value, sstream, NULL, proc );
 						DString_Reset( label, 0 );
 						DString_Append( label, sstream->buffer );
 						if( label->size > width ) DString_Reset( label, width );
@@ -1484,7 +1508,7 @@ static void FRAME_CellsCodeSection( DaoProcess *proc, DaoValue *p[], int npar, i
 
 	if( self->original == NULL ){
 		DaoxDataFrame_PrepareSlices( self );
-		DaoDataFrame_MakeSlice( self, proc, nulls, 3, self->slices );
+		DaoxDataFrame_MakeSlice( self, proc, nulls, 3, self->slices );
 		original = self;
 	}
 
@@ -1544,7 +1568,7 @@ static void FRAME_RowsCodeSection( DaoProcess *proc, DaoValue *p[], int npar, in
 
 	if( self->original == NULL ){
 		DaoxDataFrame_PrepareSlices( self );
-		DaoDataFrame_MakeSlice( self, proc, nulls, 3, self->slices );
+		DaoxDataFrame_MakeSlice( self, proc, nulls, 3, self->slices );
 		original = self;
 	}
 
@@ -1615,7 +1639,7 @@ static void FRAME_ColsCodeSection( DaoProcess *proc, DaoValue *p[], int npar, in
 
 	if( self->original == NULL ){
 		DaoxDataFrame_PrepareSlices( self );
-		DaoDataFrame_MakeSlice( self, proc, nulls, 3, self->slices );
+		DaoxDataFrame_MakeSlice( self, proc, nulls, 3, self->slices );
 		original = self;
 	}
 
@@ -1766,7 +1790,7 @@ static void FRAME_SLICED( DaoProcess *proc, DaoValue *p[], int npar )
 }
 
 
-static DaoFuncItem dataframeMeths[]=
+static DaoFunctionEntry daoDataFrameMeths[]=
 {
 	{ FRAME_New,         "DataFrame()=>DataFrame" },
 	{ FRAME_NewMatrix,   "DataFrame( mat: array<@T> )=>DataFrame" },
@@ -1817,12 +1841,86 @@ static DaoFuncItem dataframeMeths[]=
 	{ FRAME_BitOrArray,   "|=( self: DataFrame, other: array<@T> )" },
 	{ FRAME_BitXorArray,  "^=( self: DataFrame, other: array<@T> )" },
 
-	{ FRAME_SLICED,  "__SLICED__" },
-
 	{ NULL, NULL },
 };
 
-static void DaoxDataFrame_GetGCFields( void *p, DList *values, DList *arrays, DList *m, int rm )
+static DaoType* DaoxDataFrame_CheckBinary( DaoType *self, DaoVmCode *op, DaoType *args[2], DaoRoutine *ctx )
+{
+#if 0
+	return DaoCstruct_CheckBinary( self, op, args, ctx );
+#endif
+
+	if( op->c != op->a ) return NULL;
+
+	switch( op->code ){
+	case DVM_ADD : case DVM_SUB :
+	case DVM_MUL : case DVM_DIV :
+	case DVM_MOD :
+	//case DVM_POW :
+	case DVM_BITAND : case DVM_BITOR  : case DVM_BITXOR :
+	//case DVM_BITLFT : case DVM_BITRIT :
+	//case DVM_AND : case DVM_OR :
+	//case DVM_LT  : case DVM_LE :
+	//case DVM_EQ  : case DVM_NE :
+	//case DVM_IN :
+		break;
+	default: return NULL;
+	}
+
+	if( DaoType_ChildOf( args[1], self ) ) return self;
+	if( args[1]->tid == DAO_ARRAY ) return self;
+	return NULL;
+}
+
+DaoValue* DaoxDataFrame_DoBinary( DaoValue *self, DaoVmCode *op, DaoValue *args[2], DaoProcess *proc )
+{
+	DaoxDataFrame *frame = (DaoxDataFrame*) self;
+	DaoCstruct *B;
+
+#if 0
+	return DaoCstruct_DoBinary( self, op, args, proc );
+#endif
+
+	if( op->c != op->a ) return NULL;
+
+	switch( op->code ){
+	case DVM_ADD : case DVM_SUB :
+	case DVM_MUL : case DVM_DIV :
+	case DVM_MOD :
+	case DVM_BITAND : case DVM_BITOR  : case DVM_BITXOR :
+		break;
+	default: return NULL;
+	}
+	if( args[1]->type == DAO_ARRAY ){
+		int rc = DaoxDataFrame_UpdateByArray( frame, (DaoArray*) args[1], op->code );
+		if( rc == DAOX_DF_WRONG_SHAP ){
+			DaoProcess_RaiseError( proc, "Index", "Invalid shape" );
+		}else if( rc == DAOX_DF_WRONG_VALUE ){
+			DaoProcess_RaiseError( proc, "Value", "Invalid value" );
+		}
+		return self;
+	}
+
+	B = DaoValue_CastCstruct( args[1], daox_type_dataframe );
+	if( B != NULL ){
+		int rc = DaoxDataFrame_UpdateByFrame( frame, (DaoxDataFrame*) B, op->code );
+		if( rc == DAOX_DF_WRONG_SHAP ){
+			DaoProcess_RaiseError( proc, "Index", "Invalid shape" );
+		}else if( rc == DAOX_DF_WRONG_VALUE ){
+			DaoProcess_RaiseError( proc, "Value", "Invalid value" );
+		}
+		return self;
+	}
+	return NULL;
+}
+
+
+static void DaoxDataFrame_CoreSlice( DaoValue *self )
+{
+	DaoxDataFrame_Sliced( (DaoxDataFrame*) self );
+}
+
+static void DaoxDataFrame_HandleGC( DaoValue *p, DList *values, DList *arrays, DList *m, int rm )
 {
 	DaoxDataFrame *self = (DaoxDataFrame*) p;
 	DList_Append( arrays, self->columns );
@@ -1831,17 +1929,38 @@ static void DaoxDataFrame_GetGCFields( void *p, DList *values, DList *arrays, DL
 	if( rm ) self->original = NULL;
 }
 
-DaoTypeBase dataframeTyper =
+
+DaoTypeCore daoDataFrameCore =
 {
-	"DataFrame", NULL, NULL, (DaoFuncItem*) dataframeMeths, {0}, {0},
-	(FuncPtrDel)DaoxDataFrame_Delete, DaoxDataFrame_GetGCFields
+	"DataFrame",                                           /* name */
+	sizeof(DaoxDataFrame),                                 /* size */
+	{ NULL },                                              /* bases */
+	NULL,                                                  /* numbers */
+	daoDataFrameMeths,                                     /* methods */
+	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
+	DaoCstruct_CheckSetField,    DaoCstruct_DoSetField,    /* SetField */
+	DaoCstruct_CheckGetItem,     DaoCstruct_DoGetItem,     /* GetItem */
+	DaoCstruct_CheckSetItem,     DaoCstruct_DoSetItem,     /* SetItem */
+	DaoCstruct_CheckUnary,       DaoCstruct_DoUnary,       /* Unary */
+	DaoxDataFrame_CheckBinary,   DaoxDataFrame_DoBinary,   /* Binary */
+	DaoCstruct_CheckConversion,  DaoCstruct_DoConversion,  /* Conversion */
+	NULL,                        NULL,                     /* ForEach */
+	NULL,                                                  /* Print */
+	DaoxDataFrame_CoreSlice,                               /* Slice */
+	NULL,                                                  /* Compare */
+	NULL,                                                  /* Hash */
+	NULL,                                                  /* Create */
+	NULL,                                                  /* Copy */
+	(DaoDeleteFunction) DaoxDataFrame_Delete,              /* Delete */
+	DaoxDataFrame_HandleGC                                 /* HandleGC */
 };
+
 
 
 DAO_DLL int DaoDataframe_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	daox_type_datacolumn = DaoNamespace_WrapType( ns, & datacolumnTyper, DAO_CSTRUCT, 0 );
-	daox_type_dataframe = DaoNamespace_WrapType( ns, & dataframeTyper, DAO_CSTRUCT, 0 );
+	daox_type_datacolumn = DaoNamespace_WrapType( ns, & daoDataColumnCore, DAO_CSTRUCT, 0 );
+	daox_type_dataframe = DaoNamespace_WrapType( ns, & daoDataFrameCore, DAO_CSTRUCT, 0 );
 	DaoNamespace_DefineType( ns, "enum<row,column,depth>", "DataFrame_DimType" );
 	DaoNamespace_DefineType( ns, "none|int|string|tuple<none,none>|tuple<int,int>|tuple<string,string>|tuple<int|string,none>|tuple<none,int|string>", "DataFrame_IndexType" );
 	return 0;

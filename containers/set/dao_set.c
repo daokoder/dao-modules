@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2015, Limin Fu
+// Copyright (c) 2015,2016, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -29,6 +29,7 @@
 // 2015-06, Aleksey Danilov: initial implementation
 
 #include "dao_set.h"
+#include "daoVmcode.h"
 
 static DaoType *daox_type_set = NULL;
 
@@ -52,7 +53,7 @@ void DaoSet_Modify( DaoSet *self ){
 	self->modcount++;
 }
 
-static void DaoSet_GetGCFields( void *p, DList *values, DList *arrays, DList *maps, int remove )
+static void DaoSet_HandleGC( DaoValue *p, DList *values, DList *arrays, DList *maps, int remove )
 {
 	DaoSet *self = (DaoSet*)p;
 	DNode *node;
@@ -403,7 +404,7 @@ void DaoSet_Cartesian( DaoSet *a, DaoSet *b, DaoSet *res )
 		return;
 	for ( node1 = DMap_First( a->map ); node1; node1 = DMap_Next( a->map, node1 ) )
 		for ( node2 = DMap_First( b->map ); node2; node2 = DMap_Next( b->map, node2 ) ){
-			DaoTuple *tup = DaoTuple_Create( res->ctype->nested->items.pType[0], 2, 1 );
+			DaoTuple *tup = DaoTuple_Create( res->ctype->args->items.pType[0], 2, 1 );
 			DaoTuple_SetItem( tup, node1->key.pValue, 0 );
 			DaoTuple_SetItem( tup, node2->key.pValue, 1 );
 			DMap_Insert( res->map, tup, NULL );
@@ -418,7 +419,7 @@ void DaoSet_CartesianList( DaoSet *a, DaoList *b, DaoSet *res )
 		return;
 	for ( node1 = DMap_First( a->map ); node1; node1 = DMap_Next( a->map, node1 ) )
 		for ( i = 0; i < b->value->size; i++ ){
-			DaoTuple *tup = DaoTuple_Create( res->ctype->nested->items.pType[0], 2, 1 );
+			DaoTuple *tup = DaoTuple_Create( res->ctype->args->items.pType[0], 2, 1 );
 			DaoTuple_SetItem( tup, node1->key.pValue, 0 );
 			DaoTuple_SetItem( tup, DaoList_GetItem( b, i ), 1 );
 			DMap_Insert( res->map, tup, NULL );
@@ -469,7 +470,7 @@ static void DaoSet_ToString( DaoProcess *proc, DaoValue *p[], int N )
 			first = 0;
 		else
 			DaoStream_WriteChars( stream, ", " );
-		DaoValue_Print( node->key.pValue, proc, stream, NULL );
+		DaoValue_Print( node->key.pValue, stream, NULL, proc );
 	}
 	DaoStream_WriteChars( stream, " }" );
 	DaoProcess_PutString( proc, stream->buffer );
@@ -758,7 +759,7 @@ static void DaoSet_Functional2( DaoProcess *proc, DaoValue *p[], int npar, int m
 			DMap_Insert( set3->map, res, NULL );
 			break;
 		case DVM_FUNCT_ASSOCIATE :
-			DaoMap_Insert2( map, res->xTuple.values[0], res->xTuple.values[1], proc );
+			DaoMap_Insert( map, res->xTuple.values[0], res->xTuple.values[1] );
 			break;
 		}
 		if ( set2 )
@@ -801,12 +802,12 @@ static void DaoSet_Associate( DaoProcess *proc, DaoValue *p[], int npar )
 		res = proc->stackValues[0];
 		if ( res->type == DAO_NONE )
 			continue;
-		DaoMap_Insert2( map, res->xTuple.values[0], res->xTuple.values[1], proc );
+		DaoMap_Insert( map, res->xTuple.values[0], res->xTuple.values[1] );
 	}
 	DaoProcess_PopFrame( proc );
 }
 
-static DaoFunctionEntry setMeths[] =
+static DaoFunctionEntry daoSetMeths[] =
 {
 	//! Constructs new tree- or hash-based set depending on \a kind
 	{ DaoSet_Create,	"Set<@T>(kind: enum<tree,hash> = $tree)" },
@@ -911,14 +912,81 @@ static DaoFunctionEntry setMeths[] =
  *
  * \note For set operations involving two sets and producing a new set, the kind of the resulting set is determined by the
  * left operand */
-DaoTypeBase setTyper = {
-	"Set<@T>", NULL, NULL, setMeths, {NULL}, {0},
-	(FuncPtrDel)DaoSet_Delete, DaoSet_GetGCFields
+
+
+static DaoType* DaoSet_CheckUnary( DaoType *type, DaoVmCode *op, DaoRoutine *ctx )
+{
+	if( op->code == DVM_SIZE ) return dao_type_int;
+	return NULL;
+}
+
+static DaoValue* DaoSet_DoUnary( DaoValue *value, DaoVmCode *op, DaoProcess *proc )
+{
+	DaoSet *self = (DaoSet*) value;
+	if( op->code == DVM_SIZE ) DaoProcess_PutInteger( proc, self->map->size );
+	return NULL;
+}
+
+static DaoType* DaoSet_CheckBinary( DaoType *self, DaoVmCode *op, DaoType *args[2], DaoRoutine *ctx )
+{
+	return DaoCstruct_CheckBinary( self, op, args, ctx );
+
+#if 0
+	// TODO
+	switch( op->code ){
+	case DVM_ADD : case DVM_SUB : case DVM_MUL :
+	case DVM_BITAND : case DVM_BITOR  : case DVM_BITXOR :
+		if( self != args[0] ) return NULL;
+		if( args[1]->tid == DAO_CSTRUCT ){
+		}else if( args[1]->tid == DAO_LIST ){
+		}else{
+			return NULL;
+		}
+		break;
+	case DVM_EQ : case DVM_NE :
+	case DVM_IN :
+		break;
+	default: return NULL;
+	}
+	return NULL;
+#endif
+}
+
+DaoValue* DaoSet_DoBinary( DaoValue *self, DaoVmCode *op, DaoValue *args[2], DaoProcess *proc )
+{
+	return DaoCstruct_DoBinary( self, op, args, proc );
+}
+
+
+DaoTypeCore daoSetCore =
+{
+	"Set<@T>",                                             /* name */
+	sizeof(DaoSet),                                        /* size */
+	{ NULL },                                              /* bases */
+	NULL,                                                  /* numbers */
+	daoSetMeths,                                           /* methods */
+	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
+	DaoCstruct_CheckSetField,    DaoCstruct_DoSetField,    /* SetField */
+	DaoCstruct_CheckGetItem,     DaoCstruct_DoGetItem,     /* GetItem */
+	DaoCstruct_CheckSetItem,     DaoCstruct_DoSetItem,     /* SetItem */
+	DaoSet_CheckUnary,           DaoSet_DoUnary,           /* Unary */
+	DaoSet_CheckBinary,          DaoSet_DoBinary,          /* Binary */
+	DaoCstruct_CheckConversion,  DaoCstruct_DoConversion,  /* Conversion */
+	NULL,                        NULL,                     /* ForEach */
+	NULL,                                                  /* Print */
+	NULL,                                                  /* Slice */
+	NULL,                                                  /* Compare */
+	NULL,                                                  /* Hash */
+	NULL,                                                  /* Create */
+	NULL,                                                  /* Copy */
+	(DaoDeleteFunction) DaoSet_Delete,                     /* Delete */
+	DaoSet_HandleGC                                        /* HandleGC */
 };
+
 
 DAO_DLL int DaoSet_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *stdns = DaoVmSpace_GetNamespace( vmSpace, "std" );
-	daox_type_set = DaoNamespace_WrapType( stdns, &setTyper, DAO_CSTRUCT, 0 );
+	daox_type_set = DaoNamespace_WrapType( stdns, & daoSetCore, DAO_CSTRUCT, 0 );
 	return 0;
 }

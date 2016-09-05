@@ -35,7 +35,7 @@ col2 = array<int>(9){ [i] [100*i] }
 io.writeln( col, col2 )
 
 # Update one column:
-dframe2d[1:9,2] += col
+dframe2d[1:10,2] += col
 
 # Add the first column to the second:
 dframe2d[:,1] += dframe2d[:,0]
