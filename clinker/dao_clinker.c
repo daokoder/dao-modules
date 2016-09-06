@@ -1,7 +1,7 @@
 
 /* DaoClinker:
  * Running time wrapping of C functions loaded from dynamic linking library.
- * Copyright (C) 2008-2013, Limin Fu (daokoder@gmail.com).
+ * Copyright (C) 2008-2016, Limin Fu (daokoder@gmail.com).
  */
 
 #include"string.h"
@@ -16,7 +16,7 @@
 #include"daoVmspace.h"
 #include"daoNamespace.h"
 #include"daoParser.h"
-#include"daoPlatforms.h"
+#include"daoPlatform.h"
 #include"daoGC.h"
 
 #include"ffi.h"
@@ -87,7 +87,7 @@ union IntArgument
 static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoRoutine *func = proc->topFrame->routine;
-	DaoType *routype, *tp, *itp, **nested;
+	DaoType *routype, *tp, *itp, **itypes;
 	DaoArray *array;
 	DaoCstruct *cstruct;
 	DaoCdata *cdata;
@@ -111,11 +111,11 @@ static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	//printf( "ffiData = %p\n", func->ffiData );
 	routype = func->routType;
-	nested = routype->nested->items.pType;
+	itypes = routype->args->items.pType;
 	memset( args, 0, func->parCount * sizeof(void*) );
 	for(i=0; i<func->parCount; i++){
-		if( i >= routype->nested->size ) continue;
-		tp = nested[i];
+		if( i >= routype->args->size ) continue;
+		tp = itypes[i];
 		//printf( "%i  %i  %s\n", i, tp->tid, tp->name->chars );
 		if( tp->tid == DAO_PAR_NAMED || tp->tid == DAO_PAR_DEFAULT ) tp = (DaoType*) tp->aux;
 		switch( tp->tid ){
@@ -147,7 +147,7 @@ static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 			args[i] = & p[i]->xString.value->chars;
 			break;
 		case DAO_ARRAY :
-			itp = tp->nested->size ? tp->nested->items.pType[0] : NULL;
+			itp = tp->args->size ? tp->args->items.pType[0] : NULL;
 			array = (DaoArray*) p[i];
 			if( itp == NULL ) break;
 			switch( itp->tid ){
@@ -216,8 +216,8 @@ static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 	ffi_call( & ffi->cif, ffi->fptr, ret, args );
 	if( tp && tp->tid == DAO_STRING ) DaoProcess_PutChars( proc, bytes );
 	for(i=0; i<func->parCount; i++){
-		if( i >= routype->nested->size ) continue;
-		tp = nested[i];
+		if( i >= routype->args->size ) continue;
+		tp = itypes[i];
 		if( tp->tid == DAO_PAR_NAMED || tp->tid == DAO_PAR_DEFAULT ) tp = (DaoType*) tp->aux;
 		switch( tp->tid ){
 		case DAO_STRING :
@@ -225,7 +225,7 @@ static void DaoCLoader_Execute( DaoProcess *proc, DaoValue *p[], int N )
 			p[i]->xString.value->bufSize = p[i]->xString.value->size + 1;
 			break;
 		case DAO_ARRAY :
-			itp = tp->nested->size ? tp->nested->items.pType[0] : NULL;
+			itp = tp->args->size ? tp->args->items.pType[0] : NULL;
 			array = (DaoArray*) p[i];
 			if( itp == NULL ) break;
 			switch( itp->tid ){
@@ -297,12 +297,12 @@ static void DaoCLoader_Load( DaoProcess *proc, DaoValue *p[], int N )
 	DaoList *tpnames = (DaoList*) p[2];
 	DaoVmSpace *vms = proc->vmSpace;
 	DaoNamespace *ns;
-	DaoType *routype, *tp, **nested;
+	DaoType *routype, *tp, **args;
 	DaoRoutine *func, *dummy;
 	DaoValue *value;
 	DaoParser *parser;
 	DaoParser *defparser;
-	DaoTypeBase *typer;
+	DaoTypeCore *core;
 	DaoFFI *ffi;
 	void *handle, *fptr;
 	char *chs;
@@ -359,9 +359,11 @@ static void DaoCLoader_Load( DaoProcess *proc, DaoValue *p[], int N )
 		str = DaoValue_TryGetString( DaoList_GetItem( tpnames, i ) );
 		value = DaoNamespace_GetData( ns, str );
 		if( value != NULL ) continue; /* warn XXX */
-		typer = calloc( 1, sizeof(DaoTypeBase) );
-		typer->name = str->chars;
-		DaoNamespace_WrapType( ns, typer, DAO_CDATA, 0 );
+		core = calloc( 1, sizeof(DaoTypeCore) + strlen(str->chars) + 1 );
+		core->name = (char*) (core + 1);
+		strcpy( (char*) core->name, str->chars );
+		DaoNamespace_WrapType( ns, core, DAO_CDATA, 0 );
+		DList_Append( vms->typeCores, core );
 	}
 	for(i=0; i<funames->value->size; i++){
 		str = DaoValue_TryGetString( DaoList_GetItem( funames, i ) );
@@ -370,7 +372,7 @@ static void DaoCLoader_Load( DaoProcess *proc, DaoValue *p[], int N )
 		if( func == NULL ) continue;
 
 		routype = func->routType;
-		nested = routype->nested->items.pType;
+		args = routype->args->items.pType;
 		func->pFunc = DaoCLoader_Execute;
 		fptr = Dao_GetSymbolAddress( handle, func->routName->chars );
 		if( fptr == NULL ){
@@ -381,7 +383,7 @@ static void DaoCLoader_Load( DaoProcess *proc, DaoValue *p[], int N )
 		ffi = DaoFFI_New();
 		ffi->fptr = fptr;
 		for(j=0; j<func->parCount; j++){
-			tp = nested[j];
+			tp = args[j];
 			if( tp->tid ==DAO_PAR_NAMED || tp->tid ==DAO_PAR_DEFAULT ) tp = (DaoType*) tp->aux;
 			ffi->args[j] = ConvertType( tp );
 		}
@@ -401,8 +403,30 @@ static void DaoCLoader_Load( DaoProcess *proc, DaoValue *p[], int N )
 }
 
 
-DaoTypeBase DaoFFI_Typer =
-{ "FFI", NULL, NULL, NULL, {0}, {0}, (FuncPtrDel) DaoFFI_Delete, NULL };
+DaoTypeCore daoFFICore =
+{
+	"FFI",                              /* name */
+	sizeof(DaoFFI),                     /* size */
+	{ NULL },                           /* bases */
+	NULL,                               /* numbers */
+	NULL,                               /* methods */
+	NULL,  NULL,                        /* GetField */
+	NULL,  NULL,                        /* SetField */
+	NULL,  NULL,                        /* GetItem */
+	NULL,  NULL,                        /* SetItem */
+	NULL,  NULL,                        /* Unary */
+	NULL,  NULL,                        /* Binary */
+	NULL,  NULL,                        /* Conversion */
+	NULL,  NULL,                        /* ForEach */
+	NULL,                               /* Print */
+	NULL,                               /* Slice */
+	NULL,                               /* Compare */
+	NULL,                               /* Hash */
+	NULL,                               /* Create */
+	NULL,                               /* Copy */
+	(DaoDeleteFunction) DaoFFI_Delete,  /* Delete */
+	NULL                                /* HandleGC */
+};
 
 DAO_DLL int DaoClinker_OnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 {
@@ -411,7 +435,7 @@ DAO_DLL int DaoClinker_OnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 	int i;
 
 	daox_ffi_stream_type = DaoNamespace_FindTypeChars( io, "Stream" );
-	daox_ffi_type = DaoNamespace_WrapType( ns, & DaoFFI_Typer, DAO_CSTRUCT, 0 );
+	daox_ffi_type = DaoNamespace_WrapType( ns, & daoFFICore, DAO_CSTRUCT, 0 );
 	printf( "%p\n", daox_ffi_stream_type );
 	for(i=0; i<DAO_FFI_SINT64; i++){
 		DString mbs = DString_WrapChars( alias[i] );

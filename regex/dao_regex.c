@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2014, Limin Fu
+// Copyright (c) 2014-2016, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -239,7 +239,7 @@ static void DaoOnigMatch_Length( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_PutInteger( proc, self->match->end[group] - self->match->beg[group] );
 }
 
-static DaoFuncItem matchMeths[]=
+static DaoFunctionEntry matchMeths[]=
 {
 	/*! Sub-string captured by \a group */
 	{ DaoOnigMatch_String,	"string(self: Match, group: int|string = 0) => string" },
@@ -269,10 +269,35 @@ static DaoFuncItem matchMeths[]=
  *
  * If \c group is a name, the last group in the pattern with this name is assumed (at least one such group must exist).
  */
-DaoTypeBase matchTyper =
+static void DaoOnigMatch_CoreDelete( DaoValue *self )
 {
-	"Match", NULL, NULL, (DaoFuncItem*) matchMeths, {0}, {0},
-	(FuncPtrDel)DaoOnigMatch_Delete, NULL
+	DaoOnigMatch_Delete( (DaoOnigMatch*) self->xCdata.data );
+	DaoCstruct_Delete( (DaoCstruct*) self );
+}
+
+DaoTypeCore daoOnigMatchCore =
+{
+	"Match",                                               /* name */
+	sizeof(DaoOnigMatch),                                  /* size */
+	{ NULL },                                              /* bases */
+	NULL,                                                  /* numbers */
+	matchMeths,                                            /* methods */
+	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
+	NULL,                        NULL,                     /* SetField */
+	NULL,                        NULL,                     /* GetItem */
+	NULL,                        NULL,                     /* SetItem */
+	NULL,                        NULL,                     /* Unary */
+	NULL,                        NULL,                     /* Binary */
+	NULL,                        NULL,                     /* Conversion */
+	NULL,                        NULL,                     /* ForEach */
+	NULL,                                                  /* Print */
+	NULL,                                                  /* Slice */
+	NULL,                                                  /* Compare */
+	NULL,                                                  /* Hash */
+	NULL,                                                  /* Create */
+	NULL,                                                  /* Copy */
+	(DaoDeleteFunction) DaoOnigMatch_CoreDelete,           /* Delete */
+	NULL                                                   /* HandleGC */
 };
 
 int NormBounds( DaoProcess *proc, DString *str, daoint *start, daoint *end )
@@ -596,20 +621,45 @@ static void DaoOnigRegex_Iter( DaoProcess *proc, DaoValue *p[], int N )
 }
 
 /*! \c for iterator to iterate over regular expression matches in a string */
-static DaoFuncItem iterMeths[] =
+static DaoFunctionEntry iterMeths[] =
 {
 	{ DaoOnigIter_Init,	"for(self: Iter, iterator: ForIterator)" },
 	{ DaoOnigIter_Get,	"[](self: Iter, index: ForIterator) => Match" },
 	{ NULL, NULL }
 };
 
-DaoTypeBase iterTyper =
+static void DaoOnigIter_CoreDelete( DaoValue *self )
 {
-	"Iter", NULL, NULL, (DaoFuncItem*) iterMeths, {0}, {0},
-	(FuncPtrDel)DaoOnigIter_Delete, NULL
+	DaoOnigIter_Delete( (DaoOnigIter*) self->xCdata.data );
+	DaoCstruct_Delete( (DaoCstruct*) self );
+}
+
+DaoTypeCore daoOnigIterCore =
+{
+	"Iter",                                                /* name */
+	sizeof(DaoOnigIter),                                   /* size */
+	{ NULL },                                              /* bases */
+	NULL,                                                  /* numbers */
+	iterMeths,                                             /* methods */
+	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
+	NULL,                        NULL,                     /* SetField */
+	NULL,                        NULL,                     /* GetItem */
+	NULL,                        NULL,                     /* SetItem */
+	NULL,                        NULL,                     /* Unary */
+	NULL,                        NULL,                     /* Binary */
+	NULL,                        NULL,                     /* Conversion */
+	NULL,                        NULL,                     /* ForEach */
+	NULL,                                                  /* Print */
+	NULL,                                                  /* Slice */
+	NULL,                                                  /* Compare */
+	NULL,                                                  /* Hash */
+	NULL,                                                  /* Create */
+	NULL,                                                  /* Copy */
+	(DaoDeleteFunction) DaoOnigIter_CoreDelete,            /* Delete */
+	NULL                                                   /* HandleGC */
 };
 
-static DaoFuncItem regexMeths[] =
+static DaoFunctionEntry regexMeths[] =
 {
 	/*! String pattern
 	 *
@@ -658,13 +708,38 @@ static DaoFuncItem regexMeths[] =
 };
 
 /*! Regular expression using [Onigmo fork](https://github.com/k-takata/Onigmo) of [Oniguruma](http://www.geocities.jp/kosako3/oniguruma/) library with Ruby grammar as backend */
-DaoTypeBase regexTyper =
+static void DaoOnigRegex_CoreDelete( DaoValue *self )
 {
-	"Regex", NULL, NULL, (DaoFuncItem*) regexMeths, {0}, {0},
-	(FuncPtrDel)DaoOnigRegex_Delete, NULL
+	DaoOnigRegex_Delete( (DaoOnigRegex*) self->xCdata.data );
+	DaoCstruct_Delete( (DaoCstruct*) self );
+}
+
+DaoTypeCore daoOnigRegexCore =
+{
+	"Regex",                                               /* name */
+	sizeof(DaoOnigRegex),                                  /* size */
+	{ NULL },                                              /* bases */
+	NULL,                                                  /* numbers */
+	regexMeths,                                            /* methods */
+	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
+	NULL,                        NULL,                     /* SetField */
+	NULL,                        NULL,                     /* GetItem */
+	NULL,                        NULL,                     /* SetItem */
+	NULL,                        NULL,                     /* Unary */
+	NULL,                        NULL,                     /* Binary */
+	NULL,                        NULL,                     /* Conversion */
+	NULL,                        NULL,                     /* ForEach */
+	NULL,                                                  /* Print */
+	NULL,                                                  /* Slice */
+	NULL,                                                  /* Compare */
+	NULL,                                                  /* Hash */
+	NULL,                                                  /* Create */
+	NULL,                                                  /* Copy */
+	(DaoDeleteFunction) DaoOnigRegex_CoreDelete,           /* Delete */
+	NULL                                                   /* HandleGC */
 };
 
-static DaoFuncItem reMeths[] =
+static DaoFunctionEntry reMeths[] =
 {
 	/*! Constructs regular expression from \a pattern using specified \a options (if provided).
 	 *
@@ -691,9 +766,9 @@ static DaoFuncItem reMeths[] =
 DAO_DLL int DaoRegex_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *rens = DaoNamespace_GetNamespace( ns, "re" );
-	daox_type_regex = DaoNamespace_WrapType( rens, &regexTyper, DAO_CDATA, DAO_CTYPE_INVAR );
-	daox_type_match = DaoNamespace_WrapType( rens, &matchTyper, DAO_CDATA, DAO_CTYPE_INVAR );
-	daox_type_iter = DaoNamespace_WrapType( rens, &iterTyper, DAO_CDATA, 0 );
+	daox_type_regex = DaoNamespace_WrapType( rens, &daoOnigRegexCore, DAO_CDATA, DAO_CTYPE_INVAR );
+	daox_type_match = DaoNamespace_WrapType( rens, &daoOnigMatchCore, DAO_CDATA, DAO_CTYPE_INVAR );
+	daox_type_iter = DaoNamespace_WrapType( rens, &daoOnigIterCore, DAO_CDATA, 0 );
 	DaoNamespace_WrapFunctions(rens, reMeths);
 	onig_init();
 	return 0;

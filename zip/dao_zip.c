@@ -2,7 +2,7 @@
 // Dao Standard Modules
 // http://www.daovm.net
 //
-// Copyright (c) 2014,2015, Limin Fu
+// Copyright (c) 2014-2016, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -263,7 +263,7 @@ static void ZIP_ReadFile( DaoProcess *proc, DaoValue *p[], int N )
 }
 
 
-static DaoFuncItem zipstreamMeths[] =
+static DaoFunctionEntry zipstreamMeths[] =
 {
 	{ ZIP_Open,   "Stream(file: string, mode: string) => Stream" },
 	{ ZIP_Open,   "Stream(fileno: int, mode: string) => Stream" },
@@ -274,13 +274,39 @@ static DaoFuncItem zipstreamMeths[] =
 	{ NULL, NULL }
 };
 
-DaoTypeBase zipstreamTyper =
+
+static void DaoZipStream_CoreDelete( DaoValue *self )
 {
-	"Stream", NULL, NULL, (DaoFuncItem*) zipstreamMeths, {0}, {0},
-	(FuncPtrDel) DaoZipStream_Delete, NULL
+	DaoZipStream_Delete( (DaoZipStream*) self->xCdata.data );
+	DaoCstruct_Delete( (DaoCstruct*) self );
+}
+
+DaoTypeCore daoZipStreamCore =
+{
+	"Stream",                                              /* name */
+	sizeof(DaoZipStream),                                  /* size */
+	{ NULL },                                              /* bases */
+	NULL,                                                  /* numbers */
+	zipstreamMeths,                                        /* methods */
+	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
+	NULL,                        NULL,                     /* SetField */
+	NULL,                        NULL,                     /* GetItem */
+	NULL,                        NULL,                     /* SetItem */
+	NULL,                        NULL,                     /* Unary */
+	NULL,                        NULL,                     /* Binary */
+	NULL,                        NULL,                     /* Conversion */
+	NULL,                        NULL,                     /* ForEach */
+	NULL,                                                  /* Print */
+	NULL,                                                  /* Slice */
+	NULL,                                                  /* Compare */
+	NULL,                                                  /* Hash */
+	NULL,                                                  /* Create */
+	NULL,                                                  /* Copy */
+	(DaoDeleteFunction) DaoZipStream_CoreDelete,           /* Delete */
+	NULL                                                   /* HandleGC */
 };
 
-static DaoFuncItem zipMeths[]=
+static DaoFunctionEntry zipMeths[]=
 {
 	{ ZIP_Compress,     "compress( source: string ) => string" },
 	{ ZIP_Decompress,   "decompress( source: string ) => string" },
@@ -294,7 +320,7 @@ static DaoFuncItem zipMeths[]=
 DAO_DLL int DaoZip_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	ns = DaoNamespace_GetNamespace( ns, "zip" );
-	daox_type_zipstream = DaoNamespace_WrapType( ns, &zipstreamTyper, DAO_CDATA, 0 );
+	daox_type_zipstream = DaoNamespace_WrapType( ns, & daoZipStreamCore, DAO_CDATA, 0 );
 	DaoNamespace_WrapFunctions( ns, zipMeths );
 	return 0;
 }
