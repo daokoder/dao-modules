@@ -2203,6 +2203,7 @@ static DaoFunctionEntry daoHelpMeths[]=
 DaoTypeCore daoHelpCore =
 {
 	"help",                                            /* name */
+	sizeof(DaoxHelper),                                /* size */
 	{ NULL },                                          /* bases */
 	NULL,                                              /* numbers */
 	daoHelpMeths,                                      /* methods */
@@ -2218,6 +2219,7 @@ DaoTypeCore daoHelpCore =
 	NULL,                                              /* Slice */
 	NULL,                                              /* Compare */
 	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
 	NULL,                                              /* Copy */
 	(DaoDeleteFunction) DaoxHelper_Delete,             /* Delete */
 	DaoxHelper_HandleGC                                /* HandleGC */

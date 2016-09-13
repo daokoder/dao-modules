@@ -16,52 +16,37 @@ modules.AddDirectory( "aux",         "aux" )
 
 modules.AddDirectory( "meta",        "meta" )
 modules.AddDirectory( "math",        "math" )
-modules.AddDirectory( "macro",       "macro" )
 modules.AddDirectory( "random",      "random" )
 modules.AddDirectory( "decimal",     "decimal" )
 modules.AddDirectory( "bigint",      "bigint" )
-modules.AddDirectory( "coroutine",   "coroutine" )
-modules.AddDirectory( "protobject",  "protobject" )
-modules.AddDirectory( "serializer",  "serializer" )
-modules.AddDirectory( "dataframe",   "dataframe" )
-modules.AddDirectory( "binary",      "binary" )
-modules.AddDirectory( "time",        "time" );
-modules.AddDirectory( "string",      "string" );
-modules.AddDirectory( "net",         "net" );
-modules.AddDirectory( "os",          "os" );
-modules.AddDirectory( "crypto",      "crypto" );
-modules.AddDirectory( "zip",         "zip" );
-modules.AddDirectory( "tar",         "tar" );
-modules.AddDirectory( "web",         "web" );
-modules.AddDirectory( "sync",        "sync" );
-modules.AddDirectory( "xml",         "xml" );
-modules.AddDirectory( "regex",       "regex" );
 modules.AddDirectory( "statistics",  "statistics" );
+modules.AddDirectory( "dataframe",   "dataframe" )
+modules.AddDirectory( "coroutine",   "coroutine" )
+modules.AddDirectory( "serializer",  "serializer" )
+modules.AddDirectory( "time",        "time" );
+modules.AddDirectory( "binary",      "binary" )
+modules.AddDirectory( "crypto",      "crypto" );
+modules.AddDirectory( "string",      "string" );
 modules.AddDirectory( "image",       "image" );
 modules.AddDirectory( "canvas",      "canvas" );
+modules.AddDirectory( "web",         "web" );
+modules.AddDirectory( "net",         "net" );
+modules.AddDirectory( "os",          "os" );
+modules.AddDirectory( "sync",        "sync" );
+modules.AddDirectory( "xml",         "xml" );
 modules.AddDirectory( "containers",  "containers" );
-modules.AddDirectory( "testing",     "testing" );
-
-#if( DaoMake::IsDir( "DaoJIT" ) ) modules.AddDirectory( "DaoJIT", "DaoJIT" );
+modules.AddDirectory( "zip",         "zip" );
+modules.AddDirectory( "regex",       "regex" );
 
 if( DaoMake::IsDir( "graph" ) ) modules.AddDirectory( "graph", "graph" );
 
-#if( DaoMake::IsDir( "mlkit" ) ) modules.AddDirectory( "mlkit", "mlkit" );
-
+if( DaoMake::IsDir( "DaoGraphics" ) ) modules.AddDirectory( "Graphics", "DaoGraphics" );
 
 if( DaoMake::IsDir( "DaoSDL" ) ) modules.AddDirectory( "SDL", "DaoSDL" );
 
-if( DaoMake::IsDir( "DaoGraphicsMagick" ) ) modules.AddDirectory( "GraphicsMagick", "DaoGraphicsMagick" );
-
-if( DaoMake::IsDir( "DaoGraphics" ) ) modules.AddDirectory( "Graphics", "DaoGraphics" );
-
 if( not DaoMake::IsPlatform( "IOS" ) ){
-	if( DaoMake::IsDir( "DaoOpenGL" ) ) modules.AddDirectory( "OpenGL", "DaoOpenGL" );
 	if( DaoMake::IsDir( "clinker" ) ) modules.AddDirectory( "clinker", "clinker" );
-#	if( DaoMake::IsDir( "DaoCXX" ) ) modules.AddDirectory( "DaoCXX", "DaoCXX" );
-	if( DaoMake::IsDir( "cblas" ) ) modules.AddDirectory( "cblas", "cblas" );
-	if( DaoMake::IsDir( "DaoFLTK" ) ) modules.AddDirectory( "FLTK", "DaoFLTK" );
 	if( DaoMake::IsDir( "DaoSQL" ) ) modules.AddDirectory( "DaoSQL", "DaoSQL" );
+	if( DaoMake::IsDir( "DaoFLTK" ) ) modules.AddDirectory( "FLTK", "DaoFLTK" );
 #	if( DaoMake::IsDir( "DaoGSL" ) ) modules.AddDirectory( "GSL", "DaoGSL" );
-
 }

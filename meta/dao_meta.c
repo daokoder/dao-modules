@@ -188,8 +188,8 @@ DaoClass* DaoClass_Instantiate( DaoClass *self, DList *types )
 			}
 			MAP_Insert( deftypes, self->typeHolders->items.pVoid[i], type );
 		}
-		klass->objType->nested = DList_New(DAO_DATA_VALUE);
-		DList_Assign( klass->objType->nested, types );
+		klass->objType->args = DList_New(DAO_DATA_VALUE);
+		DList_Assign( klass->objType->args, types );
 		if( DaoClass_CopyField( klass, self, deftypes ) == 0 ){
 			DString_Delete( name );
 			return NULL;
@@ -287,14 +287,14 @@ void DaoProcess_MakeClass( DaoProcess *self, DaoVmCode *vmc )
 		DaoClass_SetName( klass, name, ns2 );
 	}
 	for(i=0; i<routine->parCount; i++){
-		DaoType *type = routine->routType->nested->items.pType[i];
+		DaoType *type = routine->routType->args->items.pType[i];
 		DaoValue *value = self->activeValues[i];
 		/* type<@T<int|float>> kind of types may be specialized to type<float>
 		 * the type holder is only available from the original routine parameters: */
-		if( routine->original ) type = routine->original->routType->nested->items.pType[i];
+		if( routine->original ) type = routine->original->routType->args->items.pType[i];
 		if( type->tid == DAO_PAR_NAMED || type->tid == DAO_PAR_DEFAULT ) type = (DaoType*) type->aux;
 		if( type->tid != DAO_TYPE ) continue;
-		type = type->nested->items.pType[0];
+		type = type->args->items.pType[0];
 		if( type->tid == DAO_VARIANT && type->aux ) type = (DaoType*) type->aux;
 		if( type->tid == DAO_THT && value->type == DAO_TYPE ){
 			MAP_Insert( deftypes, type, value );
@@ -385,7 +385,7 @@ void DaoProcess_MakeClass( DaoProcess *self, DaoVmCode *vmc )
 			if( size && data[0]->type == DAO_STRING ) name = data[0]->xString.value;
 			if( size > 1 && data[1]->type ){
 				value = data[1];
-				type = fieldv->xTuple.ctype->nested->items.pType[1];
+				type = fieldv->xTuple.ctype->args->items.pType[1];
 			}
 			if( name == NULL || value == NULL ) continue;
 			if( MAP_Find( klass->lookupTable, name ) ) continue;
@@ -581,7 +581,7 @@ static void META_Fields( DaoProcess *proc, DaoValue *p[], int N, int cst )
 	}
 	if( cst ){
 		for(i=0; i<constants->size; ++i){
-			tuple = DaoTuple_Create( list->ctype->nested->items.pType[0], 2, 1 );
+			tuple = DaoTuple_Create( list->ctype->args->items.pType[0], 2, 1 );
 			it = DMap_Find( index, (void*)(size_t) (i|st<<16) );
 			if( restri && it == NULL ) continue;
 
@@ -591,7 +591,7 @@ static void META_Fields( DaoProcess *proc, DaoValue *p[], int N, int cst )
 		}
 	}else{
 		for(i=0; i<variables->size; ++i){
-			tuple = DaoTuple_Create( list->ctype->nested->items.pType[0], 3, 1 );
+			tuple = DaoTuple_Create( list->ctype->args->items.pType[0], 3, 1 );
 			it = DMap_Find( index, (void*)(size_t) (i|st<<16) );
 			if( restri && it == NULL ) continue;
 
@@ -750,10 +750,10 @@ static void META_Param( DaoProcess *proc, DaoValue *p[], int N )
 	DaoList *routConsts = routine->routConsts;
 	DaoList *list = DaoProcess_PutList( proc );
 	DaoType *routype = routine->routType;
-	DaoType *itp = list->ctype->nested->items.pType[0];
+	DaoType *itp = list->ctype->args->items.pType[0];
 	int i;
-	for(i=0; i<routype->nested->size; i++){
-		DaoType *partype = routype->nested->items.pType[i];
+	for(i=0; i<routype->args->size; i++){
+		DaoType *partype = routype->args->items.pType[i];
 		DaoTuple *tuple = DaoTuple_Create( itp, 2 + (partype->tid == DAO_PAR_DEFAULT), 1 );
 
 		if( partype->fname ) DString_Assign( tuple->values[0]->xString.value, partype->fname );
@@ -790,7 +790,7 @@ static void META_Trace( DaoProcess *proc, DaoValue *p[], int N )
 			line.value = body->annotCodes->items.pVmc[inst.value]->line;
 		}
 
-		entry = DaoTuple_Create( backtrace->ctype->nested->items.pType[0], 3, 1 );
+		entry = DaoTuple_Create( backtrace->ctype->args->items.pType[0], 3, 1 );
 
 		DaoTuple_SetItem( entry, (DaoValue*) frame->routine, 0 );
 		DaoTuple_SetItem( entry, (DaoValue*) & inst, 1 );
@@ -799,7 +799,7 @@ static void META_Trace( DaoProcess *proc, DaoValue *p[], int N )
 		DaoList_PushBack( backtrace, (DaoValue*) entry );
 	}
 }
-static DaoFuncItem metaMeths[]=
+static DaoFunctionEntry metaMeths[]=
 {
 	/* TODO: methods for types. */
 	{ META_Name, /* TODO: type for cdata; */

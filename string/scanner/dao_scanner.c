@@ -58,7 +58,7 @@ static void DaoScanner_Create( DaoProcess *proc, DaoValue *p[], int N )
 	self->pos = ( pos > str->size )? str->size : pos;
 	self->context = DString_New();
 	DString_Assign( self->context, str );
-	DaoProcess_PutValue( proc, self );
+	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 
 static void DaoScanner_Context( DaoProcess *proc, DaoValue *p[], int N )

@@ -384,6 +384,7 @@ DaoValue* DaoDecimal_Copy( DaoValue *self, DaoValue *target )
 static DaoTypeCore daoDecimalCore =
 {
 	"Decimal",                                             /* name */
+	sizeof(DaoDecimal),                                    /* size */
 	{ NULL },                                              /* bases */
 	NULL,                                                  /* numbers */
 	daoDecimalMeths,                                       /* methods */
@@ -398,8 +399,9 @@ static DaoTypeCore daoDecimalCore =
 	DaoDecimal_Print,                                      /* Print */
 	NULL,                                                  /* Slice */
 	DaoDecimal_Compare,                                    /* Compare */
-	DaoDecimal_Hash,                                       /* Hash */
-	DaoDecimal_Copy,                                       /* Copy */
+	DaoCstruct_HashPOD,                                    /* Hash */
+	DaoCstruct_CreatePOD,                                  /* Create */
+	DaoCstruct_CopyPOD,                                    /* Copy */
 	(DaoDeleteFunction) DaoCstruct_Delete,                 /* Delete */
 	NULL                                                   /* HandleGC */
 };

@@ -210,6 +210,7 @@ static void DaoxCoroutine_HandleGC( DaoValue *p, DList *values, DList *as, DList
 DaoTypeCore daoCoroutineCore =
 {
 	"Coroutine<@RESUME,@SUSPEND>",                     /* name */
+	sizeof(DaoxCoroutine),                             /* size */
 	{ NULL },                                          /* bases */
 	NULL,                                              /* numbers */
 	daoCoroutineMeths,                                 /* methods */
@@ -225,6 +226,7 @@ DaoTypeCore daoCoroutineCore =
 	NULL,                                              /* Slice */
 	NULL,                                              /* Compare */
 	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
 	NULL,                                              /* Copy */
 	(DaoDeleteFunction) DaoxCoroutine_Delete,          /* Delete */
 	DaoxCoroutine_HandleGC                             /* HandleGC */

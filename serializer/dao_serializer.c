@@ -544,7 +544,7 @@ static DaoObject* DaoSerializer_MakeObject( DaoSerializer *self, DaoClass *klass
 	DaoObject *object = DaoObject_New( klass );
 
 	DaoProcess_CacheValue( proc, (DaoValue*) object );
-	if( DaoProcess_PushCallable( proc, routines, (DaoValue*)object, & param, 1 ) ==0 ){
+	if( DaoProcess_PushCall( proc, routines, (DaoValue*)object, & param, 1 ) ==0 ){
 		GC_Assign( & proc->topFrame->object, object );
 		if( DaoProcess_Execute( proc ) ) return object;
 	}
@@ -557,7 +557,7 @@ static DaoCstruct* DaoSerializer_MakeCstruct( DaoSerializer *self, DaoCtype *cty
 	DaoProcess *proc = self->process;
 	DaoRoutine *routine = DaoType_FindFunction( ctype->valueType, ctype->name );
 
-	if( DaoProcess_PushCallable( proc, routine, NULL, & param, 1 ) ) return NULL;
+	if( DaoProcess_PushCall( proc, routine, NULL, & param, 1 ) ) return NULL;
 	proc->topFrame->active = proc->firstFrame;
 	DaoProcess_SetActiveFrame( proc, proc->firstFrame ); /* return value in stackValues[0] */
 	if( DaoProcess_Execute( proc ) == 0 ) return NULL;
@@ -1151,7 +1151,7 @@ static DaoObject* DaoClass_MakeObject( DaoClass *self, DaoValue *param, DaoProce
 {
 	DaoObject *object = DaoObject_New( self );
 	DaoProcess_CacheValue( proc, (DaoValue*) object );
-	if( DaoProcess_PushCallable( proc, self->initRoutines, (DaoValue*)object, & param, 1 ) ==0 ){
+	if( DaoProcess_PushCall( proc, self->initRoutines, (DaoValue*)object, & param, 1 ) ==0 ){
 		GC_Assign( & proc->topFrame->object, object );
 		proc->topFrame->returning = -1;
 		if( DaoProcess_Execute( proc ) ) return object;
@@ -1163,7 +1163,7 @@ static DaoCdata* DaoCdata_MakeObject( DaoCdata *self, DaoValue *param, DaoProces
 	DaoValue *value;
 	DaoRoutine *routine = DaoType_FindFunction( self->ctype, self->ctype->name );
 	printf( "%p %s\n", routine, self->ctype->name->chars );
-	if( DaoProcess_PushCallable( proc, routine, NULL, & param, 1 ) ) return NULL;
+	if( DaoProcess_PushCall( proc, routine, NULL, & param, 1 ) ) return NULL;
 	proc->topFrame->active = proc->firstFrame;
 	DaoProcess_SetActiveFrame( proc, proc->firstFrame ); /* return value in stackValues[0] */
 	if( DaoProcess_Execute( proc ) == 0 ) return NULL;
@@ -1721,6 +1721,7 @@ static void DaoSerializer_HandleGC( DaoValue *p, DList *values, DList *lists, DL
 DaoTypeCore daoSerializerCore =
 {
 	"Serializer",                                      /* name */
+	sizeof(DaoSerializer),                             /* size */
 	{ NULL },                                          /* bases */
 	NULL,                                              /* numbers */
 	daoSerializerMeths,                                /* methods */
@@ -1736,6 +1737,7 @@ DaoTypeCore daoSerializerCore =
 	NULL,                                              /* Slice */
 	NULL,                                              /* Compare */
 	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
 	NULL,                                              /* Copy */
 	(DaoDeleteFunction) DaoSerializer_Delete,          /* Delete */
 	DaoSerializer_HandleGC                             /* HandleGC */

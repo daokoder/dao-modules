@@ -225,6 +225,7 @@ static DaoFunctionEntry daoRandGeneratorMeths[]=
 DaoTypeCore daoRandGeneratorCore =
 {
 	"Generator",                                       /* name */
+	sizeof(DaoRandGenWrapper),                         /* size */
 	{ NULL },                                          /* bases */
 	NULL,                                              /* numbers */
 	daoRandGeneratorMeths,                             /* methods */
@@ -240,6 +241,7 @@ DaoTypeCore daoRandGeneratorCore =
 	NULL,                                              /* Slice */
 	NULL,                                              /* Compare */
 	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
 	NULL,                                              /* Copy */
 	(DaoDeleteFunction) DaoRandGenWrapper_Delete,      /* Delete */
 	NULL                                               /* HandleGC */
