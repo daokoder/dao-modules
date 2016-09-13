@@ -835,6 +835,7 @@ static DaoFunctionEntry daoEncoderMeths[] =
 DaoTypeCore daoEncoderCore =
 {
 	"Encoder",                                         /* name */
+	sizeof(DaoXCoder),                                 /* size */
 	{ NULL },                                          /* bases */
 	NULL,                                              /* numbers */
 	daoEncoderMeths,                                   /* methods */
@@ -850,6 +851,7 @@ DaoTypeCore daoEncoderCore =
 	NULL,                                              /* Slice */
 	NULL,                                              /* Compare */
 	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
 	NULL,                                              /* Copy */
 	(DaoDeleteFunction) DaoXCoder_Delete,              /* Delete */
 	NULL                                               /* HandleGC */
@@ -1033,6 +1035,7 @@ static DaoFunctionEntry daoDecoderMeths[] =
 DaoTypeCore daoDecoderCore =
 {
 	"Decoder",                                         /* name */
+	sizeof(DaoXCoder),                                 /* size */
 	{ NULL },                                          /* bases */
 	NULL,                                              /* numbers */
 	daoDecoderMeths,                                   /* methods */
@@ -1048,6 +1051,7 @@ DaoTypeCore daoDecoderCore =
 	NULL,                                              /* Slice */
 	NULL,                                              /* Compare */
 	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
 	NULL,                                              /* Copy */
 	(DaoDeleteFunction) DaoXCoder_Delete,              /* Delete */
 	NULL                                               /* HandleGC */
@@ -1066,6 +1070,7 @@ static DaoFunctionEntry daoEncodableMeths[] =
 DaoTypeCore daoEncodableCore =
 {
 	"Encodable",                                       /* name */
+	0,                                                 /* size */
 	{ NULL },                                          /* bases */
 	NULL,                                              /* numbers */
 	daoEncodableMeths,                                 /* methods */
@@ -1081,6 +1086,7 @@ DaoTypeCore daoEncodableCore =
 	NULL,                                              /* Slice */
 	NULL,                                              /* Compare */
 	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
 	NULL,                                              /* Copy */
 	NULL,                                              /* Delete */
 	NULL                                               /* HandleGC */
@@ -1099,6 +1105,7 @@ static DaoFunctionEntry daoDecodableMeths[] =
 DaoTypeCore daoDecodableCore =
 {
 	"Decodable",                                       /* name */
+	0,                                                 /* size */
 	{ NULL },                                          /* bases */
 	NULL,                                              /* numbers */
 	daoDecodableMeths,                                 /* methods */
@@ -1114,6 +1121,7 @@ DaoTypeCore daoDecodableCore =
 	NULL,                                              /* Slice */
 	NULL,                                              /* Compare */
 	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
 	NULL,                                              /* Copy */
 	NULL,                                              /* Delete */
 	NULL                                               /* HandleGC */

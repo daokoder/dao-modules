@@ -1500,6 +1500,7 @@ static void TIME_DayDiff( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFunctionEntry daoDateTimeMeths[] =
 {
+	{ TIME_Parse,  "DateTime(value: string = '2000-01-01') " },
 	/*! \c Returns the number of seconds elapsed since 2000-1-1, 00:00:00 UTC */
 	{ TIME_Value,   ".value(invar self: DateTime) => float" },
 	{ TIME_Value,   "(float)(invar self: DateTime)" },
@@ -1569,45 +1570,28 @@ static DaoFunctionEntry daoDateTimeMeths[] =
 };
 
 
-DaoValue* DaoTime_Copy( DaoValue *self, DaoValue *target )
-{
-	DaoTime *src = (DaoTime*) self;
-	DaoTime *dest = (DaoTime*) target;
-	if( target ){
-		if( src ){
-			dest->time = src->time;
-			dest->local = src->local;
-		}
-		return target;
-	}
-	dest = DaoTime_New();
-	if( src ){
-		dest->time = src->time;
-		dest->local = src->local;
-	}
-	return (DaoValue*) dest;
-}
-
 
 DaoTypeCore daoDateTimeCore =
 {
 	"DateTime",                                        /* name */
+	sizeof(DaoTime),                                   /* size */
 	{ NULL },                                          /* bases */
 	NULL,                                              /* numbers */
 	daoDateTimeMeths,                                  /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
-	NULL,                      NULL,                   /* SetField */
+	DaoCstruct_CheckSetField,  DaoCstruct_DoSetField,  /* SetField */
 	NULL,                      NULL,                   /* GetItem */
 	NULL,                      NULL,                   /* SetItem */
-	NULL,                      NULL,                   /* Unary */
-	NULL,                      NULL,                   /* Binary */
+	DaoCstruct_CheckUnary,     DaoCstruct_DoUnary,     /* Unary */
+	DaoCstruct_CheckBinary,    DaoCstruct_DoBinary,    /* Binary */
 	NULL,                      NULL,                   /* Conversion */
 	NULL,                      NULL,                   /* ForEach */
 	NULL,                                              /* Print */
 	NULL,                                              /* Slice */
 	NULL,                                              /* Compare */
-	NULL,                                              /* Hash */
-	DaoTime_Copy,                                      /* Copy */
+	DaoCstruct_HashPOD,                                /* Hash */
+	DaoCstruct_CreatePOD,                              /* Create */
+	DaoCstruct_CopyPOD,                                /* Copy */
 	(DaoDeleteFunction) DaoTime_Delete,                /* Delete */
 	                                                   /* HandleGC */
 };
@@ -1968,24 +1952,13 @@ static DaoFunctionEntry daoTimeSpanMeths[] =
 	{ NULL, NULL }
 };
 
-DaoValue* DaoTimeSpan_Copy( DaoValue *self, DaoValue *target )
-{
-	DaoTimeSpan *src = (DaoTimeSpan*) self;
-	DaoTimeSpan *dest = (DaoTimeSpan*) target;
-	if( target ){
-		if( src ) dest->span = src->span;
-		return target;
-	}
-	dest = DaoTimeSpan_New();
-	if( src ) dest->span = src->span;
-	return (DaoValue*) dest;
-}
 
 
 // TODO: Binary;
 DaoTypeCore daoTimeSpanCore =
 {
 	"TimeSpan",                                        /* name */
+	sizeof(DaoTimeSpan),                               /* size */
 	{ NULL },                                          /* bases */
 	NULL,                                              /* numbers */
 	daoTimeSpanMeths,                                  /* methods */
@@ -1993,15 +1966,16 @@ DaoTypeCore daoTimeSpanCore =
 	NULL,                      NULL,                   /* SetField */
 	NULL,                      NULL,                   /* GetItem */
 	NULL,                      NULL,                   /* SetItem */
-	NULL,                      NULL,                   /* Unary */
-	NULL,                      NULL,                   /* Binary */
+	DaoCstruct_CheckUnary,     DaoCstruct_DoUnary,     /* Unary */
+	DaoCstruct_CheckBinary,    DaoCstruct_DoBinary,    /* Binary */
 	NULL,                      NULL,                   /* Conversion */
 	NULL,                      NULL,                   /* ForEach */
 	NULL,                                              /* Print */
 	NULL,                                              /* Slice */
 	NULL,                                              /* Compare */
-	NULL,                                              /* Hash */
-	DaoTimeSpan_Copy,                                  /* Copy */
+	DaoCstruct_HashPOD,                                /* Hash */
+	DaoCstruct_CreatePOD,                              /* Create */
+	DaoCstruct_CopyPOD,                                /* Copy */
 	(DaoDeleteFunction) DaoTimeSpan_Delete,            /* Delete */
 	                                                   /* HandleGC */
 };
@@ -2047,7 +2021,6 @@ static DaoFunctionEntry timeFuncs[] =
 DaoTime* DaoProcess_PutTime( DaoProcess *self, DTime time, int local )
 {
 	DaoTime *res = (DaoTime*) DaoProcess_PutCstruct( self, daox_type_time );
-	printf( "DaoProcess_PutTime: %p %p\n", res, daox_type_time );
 
 	if( res == NULL ) return NULL;
 

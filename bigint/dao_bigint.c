@@ -1401,23 +1401,20 @@ static void DaoxBigInt_SetItem( DaoValue *self, DaoProcess *proc, DaoValue *ids[
 
 static void BIGINT_New1( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxBigInt *self = DaoxBigInt_New();
-	DaoProcess_PutValue( proc, (DaoValue*) self );
+	DaoxBigInt *self = (DaoxBigInt*) DaoProcess_PutCstruct( proc, daox_type_bigint );
 	DaoxBigInt_FromInteger( self, p[0]->xInteger.value );
 	self->base = p[1]->xInteger.value;
 }
 static void BIGINT_New2( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxBigInt *self = DaoxBigInt_New();
-	DaoProcess_PutValue( proc, (DaoValue*) self );
+	DaoxBigInt *self = (DaoxBigInt*) DaoProcess_PutCstruct( proc, daox_type_bigint );
 	DaoxBigInt_FromString( self, p[0]->xString.value );
 	self->base = p[1]->xInteger.value;
 }
 static void BIGINT_New3( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxBigInt *self = DaoxBigInt_New();
+	DaoxBigInt *self = (DaoxBigInt*) DaoProcess_PutCstruct( proc, daox_type_bigint );
 	DaoxBigInt *other = (DaoxBigInt*) DaoValue_CastCstruct( p[0], daox_type_bigint );
-	DaoProcess_PutValue( proc, (DaoValue*) self );
 	DaoxBigInt_Move( self, other );
 	self->base = p[1]->xInteger.value;
 }
@@ -1436,12 +1433,11 @@ static void DaoProcess_LongDiv ( DaoProcess *self, DaoxBigInt *z, DaoxBigInt *x,
 }
 static void BIGINT_BinaryOper1( DaoProcess *proc, DaoValue *p[], int N, int oper )
 {
-	DaoxBigInt *C = DaoxBigInt_New();
+	DaoxBigInt *C = (DaoxBigInt*) DaoProcess_PutCstruct( proc, daox_type_bigint );
 	DaoxBigInt *A = (DaoxBigInt*) p[0];
 	DaoxBigInt *B = DaoxBigInt_New();
 	DaoxBigInt *B2 = DaoxBigInt_New();
 	DaoxBigInt_FromValue( B, p[1] );
-	DaoProcess_PutValue( proc, (DaoValue*) C );
 	switch( oper ){
 	case DVM_ADD : DaoxBigInt_Add( C, A, B ); break;
 	case DVM_SUB : DaoxBigInt_Sub( C, A, B ); break;
@@ -1520,11 +1516,10 @@ static void BIGINT_NE1( DaoProcess *proc, DaoValue *p[], int N )
 }
 static void BIGINT_BinaryOper2( DaoProcess *proc, DaoValue *p[], int N, int oper )
 {
-	DaoxBigInt *C = DaoxBigInt_New();
+	DaoxBigInt *C = (DaoxBigInt*) DaoProcess_PutCstruct( proc, daox_type_bigint );
 	DaoxBigInt *A = (DaoxBigInt*) p[0];
 	DaoxBigInt *B = (DaoxBigInt*) p[1];
 	DaoxBigInt *B2 = DaoxBigInt_New();
-	DaoProcess_PutValue( proc, (DaoValue*) C );
 	switch( oper ){
 	case DVM_ADD : DaoxBigInt_Add( C, A, B ); break;
 	case DVM_SUB : DaoxBigInt_Sub( C, A, B ); break;
@@ -1691,8 +1686,7 @@ static void BIGINT_UnaryOper( DaoProcess *proc, DaoValue *p[], int N, int oper )
 {
 	daoint ta;
 	DaoxBigInt *A = (DaoxBigInt*) p[0];
-	DaoxBigInt *C = DaoxBigInt_New();
-	DaoProcess_PutValue( proc, (DaoValue*) C );
+	DaoxBigInt *C = (DaoxBigInt*) DaoProcess_PutCstruct( proc, daox_type_bigint );
 	switch( oper ){
 	case DVM_NOT  :
 		ta = DaoxBigInt_CompareToZero( A ) == 0;
@@ -1725,8 +1719,7 @@ static void BIGINT_TILDE( DaoProcess *proc, DaoValue *p[], int N )
 static void BIGINT_BitOper1( DaoProcess *proc, DaoValue *p[], int N, int oper )
 {
 	DaoxBigInt *A = (DaoxBigInt*) p[0];
-	DaoxBigInt *C = DaoxBigInt_New();
-	DaoProcess_PutValue( proc, (DaoValue*) C );
+	DaoxBigInt *C = (DaoxBigInt*) DaoProcess_PutCstruct( proc, daox_type_bigint );
 	switch( oper ){
 	case DVM_BITAND :
 		DaoxBigInt_FromValue( C, p[1] );
@@ -2058,6 +2051,11 @@ size_t DaoxBigInt_Hash( DaoValue *self )
 	return Dao_Hash( pod->data, pod->size, 0 );
 }
 
+DaoValue* DaoxBigInt_Create( DaoType *self )
+{
+	return (DaoValue*) DaoxBigInt_New();
+}
+
 DaoValue* DaoxBigInt_CoreCopy( DaoValue *self, DaoValue *target )
 {
 	DaoxBigInt *src = (DaoxBigInt*) self;
@@ -2074,6 +2072,7 @@ DaoValue* DaoxBigInt_CoreCopy( DaoValue *self, DaoValue *target )
 static DaoTypeCore daoBigIntCore =
 {
 	"BigInt",                                              /* name */
+	sizeof(DaoxBigInt),                                    /* size */
 	{ NULL },                                              /* bases */
 	NULL,                                                  /* numbers */
 	daoBigIntMeths,                                        /* methods */
@@ -2089,6 +2088,7 @@ static DaoTypeCore daoBigIntCore =
 	NULL,                                                  /* Slice */
 	DaoxBigInt_CoreCompare,                                /* Compare */
 	DaoxBigInt_Hash,                                       /* Hash */
+	DaoxBigInt_Create,                                     /* Create */
 	DaoxBigInt_CoreCopy,                                   /* Copy */
 	(DaoDeleteFunction) DaoxBigInt_Delete,                 /* Delete */
 	NULL                                                   /* HandleGC */
