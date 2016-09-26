@@ -475,6 +475,7 @@ static void DaoxStream_WriteEntryName2( DaoxStream *self, DString *name )
 	}
 	self->offset += 4 + name->size;
 	self->last = name->chars[name->size-1];
+	DString_Delete( mbs );
 }
 static void DaoxStream_WriteLink( DaoxStream *self, DString *link, int offset, int width )
 {
@@ -511,6 +512,8 @@ static void DaoxStream_WriteLink( DaoxStream *self, DString *link, int offset, i
 		DaoxStream_SetColor( self, NULL, NULL );
 		DaoxStream_WriteChar( self, ')' );
 	}
+	DString_Delete( name );
+	DString_Delete( addr );
 }
 
 typedef struct DaoxLexInfo DaoxLexInfo;
@@ -996,6 +999,7 @@ static void DaoxStream_WriteTable( DaoxStream *self, DString *text, int offset, 
 		start = newline + 1;
 	}
 	if( rows->size == 0 || rows->items.pList[0]->size == 0 ){
+		DArray_Delete( widths );
 		DList_Delete( rows );
 		DList_Delete( row );
 		DString_Delete( cell );
@@ -1065,6 +1069,7 @@ static void DaoxStream_WriteTable( DaoxStream *self, DString *text, int offset, 
 	for(j=0; j<tableWidth; ++j) DaoxStream_WriteChar( self, ' ' );
 	DaoxStream_SetColor( self, NULL, NULL );
 	DaoxStream_WriteNewLine( self, "" );
+	DArray_Delete( widths );
 	DList_Delete( rows );
 	DList_Delete( row );
 	DString_Delete( cell );
@@ -2140,6 +2145,7 @@ static void DaoxHelpEntry_ExportHTML( DaoxHelpEntry *self, DaoxStream *stream, D
 	DaoFile_WriteString( fout, stream->output );
 	fprintf( fout, "\n</pre>\n</body>\n</html>" );
 	if( fout != stdout ) fclose( fout );
+	DString_Delete( fname );
 }
 static void HELP_Export( DaoProcess *proc, DaoValue *p[], int N )
 {
