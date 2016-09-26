@@ -720,7 +720,7 @@ static void DaoxStream_PrintCode( DaoxStream *self, DString *code, DString *lang
 	DList *tokens = lexer->tokens;
 	const char *bgcolor = NULL; /* "yellow"; */
 	const char *defaultColor = NULL;
-	daoint start = 0, end = code->size-1;
+	daoint start = 0, end = code->size;
 	daoint i, j, pos, last, color, fgcolor;
 	int line = 1, printedline = 0;
 	int println = 1;
@@ -936,15 +936,15 @@ static int DaoxStream_WriteBlock( DaoxStream *self, DString *text, int offset, i
 
 static int DaoxStream_WriteList( DaoxStream *self, DString *text, int offset, int width, int islist, int listdep )
 {
-	const char *pat = "^[\n]+[ \t]* (%-%-|==)";
-	daoint pos, lb, last = 0, start = 0, end = text->size-1;
+	const char *pat = "^[\n]*[ \t]* (%-%-|==)";
+	daoint pos, lb, last = 0, start = 0, end = text->size;
 	int i, itemid = 1;
 	int fails = 0;
 
 	if( DString_Match( text, pat, & start, & end ) ){
 		DString *delim = DString_New();
 		DString *item = DString_New();
-		DString_SubString( text, delim, start, end - start + 1 );
+		DString_SubString( text, delim, start, end - start );
 		DString_Change( delim, "^[\n][\n]+", "\n", 1 );
 		while( last < text->size ){
 			DString_SubString( text, item, last, start - last );
@@ -1200,17 +1200,17 @@ static int DaoxStream_WriteBlock( DaoxStream *self, DString *text, int offset, i
 
 	while( last < text->size ){
 		start = last;
-		end = text->size-1;
+		end = text->size;
 		if( DaoRegex_Match( self->regex, text, & start, & end ) ){
 			DString_SubString( text, part, last, start - last );
 			//if( islist ) DString_Trim( part );
 			DaoxStream_WriteText( self, part, offset, width );
 
-			DString_SubString( text, delim, start, end - start + 1 );
+			DString_SubString( text, delim, start, end - start );
 			pos = DString_Find( text, delim, end );
 			if( pos == DAO_NULLPOS ) pos = text->size;
 			last = pos + delim->size;
-			DString_SubString( text, part, end + 1, pos - end - 1 );
+			DString_SubString( text, part, end, pos - end );
 
 			lb = DString_FindChar( text, '(', start );
 			if( lb > end ) lb = DAO_NULLPOS;
@@ -2327,7 +2327,7 @@ static void HandleVerbatim( DaoNamespace *NS, DString *verbatim, int line )
 	int (*inliner)(DaoNamespace*,DString*,DString*,DString*,int) = NULL;
 	DString *buffer = DString_New();
 	DString *buffer2 = DString_New();
-	daoint pstart = 0, pend = verbatim->size-1;
+	daoint pstart = 0, pend = verbatim->size;
 
 	if( DString_Match( verbatim, pat, & pstart, & pend ) ){ /* code inlining */
 		daoint lb = DString_FindChar( verbatim, '(', 0 );
