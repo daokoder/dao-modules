@@ -141,3 +141,47 @@ Other interesting features:
 
 
 
+
+
+@[name]
+dao.changelog
+@[name]
+
+@[title]
+ChangeLog
+@[title]
+
+
+@[text]
+
+@[section]
+Changes in 2016
+@[section]
+
+
+@[subsection]
+Changes in the language
+@[subsection]
+
+@[list]
+--Removed function decorator and class decorator;
+--Improved concrete interface such that it can replace function and class decorators;
+--Removed support for syntax macros;
+--Removed support for customized processing of verbatim strings;
+--Changed index ranges from close-close to close-open ranges;
+@[list]
+
+
+@[subsection]
+Changes in the internal implementation and programming interface
+@[subsection]
+
+@[list]
+--Changed DaoTypeBase to DaoTypeCore for type definition;
+--Added type checking and exection functions for standard operations to DaoTypeCore;
+--Added comparison and hashing functions to DaoTypeCore;
+--Added support for sandboxed vm-spaces that share nothing but the common core data and garbage collector;
+@[list]
+
+
+@[text]

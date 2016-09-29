@@ -599,10 +599,10 @@ class Something
 {
     var thing = {}
 
-    operator .something() {
+    routine .something() {
         return thing
     }
-    operator .something=( value ){
+    routine .something=( value ){
         thing = value;
     }
 }
@@ -615,11 +615,11 @@ class Something
 {
     var thing = {}
 
-    operator .( name : string ) {
+    routine .( name : string ) {
         if( name == "something" ) return thing
         return none;
     }
-    operator .=( name : string, value ){
+    routine .=( name : string, value ){
         if( name == "something" ) thing = value;
     }
 }
@@ -650,15 +650,15 @@ class UserDict
 {
     var data = {=>}
 
-    operator []( key ){
+    routine []( key ){
         return data[key]
     }
-    operator []=( item, key ){
+    routine []=( item, key ){
         data[key] = item
     }
 }
 @[code]
-Please note that in @[green]operator[]=@[green], @[green]item@[green]
+Please note that in @[green]routine[]=@[green], @[green]item@[green]
 is the first parameter. It is arranged in this way to naturally support
 multiple keys/indices. For example, for a multidimensional array, one may define,
 @[code]
@@ -670,10 +670,10 @@ class UserMatrix
 		data = array<int>(N,M){ [index] index }
 	}
 
-    operator []( index1, index2 ){
+    routine []( index1, index2 ){
         return data[ index1, index2 ]
     }
-    operator []=( item, index1, index2 ){
+    routine []=( item, index1, index2 ){
         data[ index1, index2 ] = item
     }
 }
@@ -705,7 +705,7 @@ class MyNumber
         self.value = value
     }
 
-    operator +( other: MyNumber ) {
+    routine +( other: MyNumber ) {
         return MyNumber( value + other.value )
     }
 }
@@ -761,7 +761,7 @@ fut = Sum() !!     # Asynchronous Function Call (returns a future value);
 sum = fut.value()  # Wait for the result;
 @[code]
 There are other ways to create tasklet in Dao,
-please see @[node]lua.concurrent@[node] for details.
+please see @[node]dao.concurrent@[node] for details.
 
 
 

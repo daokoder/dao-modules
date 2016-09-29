@@ -479,11 +479,13 @@ dao.class.decorator
 @[name]
 
 @[title]
-Class Decorator
+Class Decorator (Removed)
 @[title]
 
 
 @[text]
+
+@[red]WARNING: This feature has been removed!@[red]
 
 
 Class decorators are classes (prefixed with @[code]@@[code])
@@ -594,11 +596,13 @@ dao.class.aspect
 @[name]
 
 @[title]
-Aspect Class
+Aspect Class (Removed)
 @[title]
 
 
 @[text]
+
+@[red]WARNING: This feature has been removed!@[red]
 
 
 In Dao, a class decorator can be effectly used as an aspect for AOP,

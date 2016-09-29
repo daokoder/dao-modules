@@ -316,10 +316,12 @@ dao.routine.decorator
 @[name]
 
 @[title]
-Function Decorator
+Function Decorator (Removed)
 @[title]
 
 @[text]
+
+@[red]WARNING: This feature has been removed!@[red]
 
 
 Decorators are a special type of functions that can be used to

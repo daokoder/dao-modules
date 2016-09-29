@@ -49,13 +49,13 @@ programming interfaces for easy embedding and extending.
 Main features:
 @[list]
 --Optional typing with type inference and static type checking;
---Object-Oriented Programming (OOP) with classes and interfaces;
+--Object-Oriented Programming (OOP) with classes and mixins;
+--Abstract interface and concrete interface for advanced OOP;
 --Code section methods as a better alternative to functional methods;
+--Deferred block and exception handling by defer-recover;
 --Native support for concurrent programming;
 --Concurrent garbage collection;
 --Support closures, anonymous functions;
---Support typed coroutines and function decorators;
---BNF-like syntax macro for defining customized syntax;
 --Designed and implemented as a register-based virtual machine;
 --Portable implementation using standard C;
 --Simple C programming interfaces for easy embedding and extending;
