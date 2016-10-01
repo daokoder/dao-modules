@@ -1116,9 +1116,8 @@ ParamReturn ::= '(' [ ParamList ] ')' [ '=>' Type ]
 
 RoutineSig   ::= Identifier '(' [ ParamList ] ')' [ '=>' Type ]
 CodeBlockSig ::= Identifier '(' [ ParamList ] ')' '[' [ ParamList1 ] ']' [ '=>' Type ]
-DecoratorSig ::= TypeHolder '(' Identifier '(' Identifier ')' [ ',' ParamList ] ')'
 
-RoutineDecl1 ::= 'routine' { Identifier '::' } ( RoutineSig | CodeBlockSig | DecoratorSig )
+RoutineDecl1 ::= 'routine' { Identifier '::' } ( RoutineSig | CodeBlockSig )
 RoutineDecl2 ::= 'routine' { Identifier '::' } OverloadableOperator ParamReturn
 
 RoutineDecl ::= RoutineDecl1 | RoutineDecl2

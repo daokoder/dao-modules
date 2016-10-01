@@ -148,33 +148,34 @@ So the overhead of compiling a regular expression can be normally ignored.
 
 The following methods are provided:
 @[code]
-fetch( invar self: string, pattern: string, group = 0, start = 0, end = -1 )
+fetch( invar self: string, pattern: string, group = 0, start = 0, end = 0 )
 	=> string
-match( invar self: string, pattern: string, group = 0, start = 0, end = -1 )
+match( invar self: string, pattern: string, group = 0, start = 0, end = 0 )
 	=> tuple<start:int,end:int>|none
 change( invar self: string, pattern: string, target: string, index = 0, 
 	start = 0, end = -1 ) => string
-capture( invar self: string, pattern: string, start = 0, end = -1 ) => list<string>
+capture( invar self: string, pattern: string, start = 0, end = 0 ) => list<string>
 extract( invar self: string, pattern: string, 
 	mtype: enum<both,matched,unmatched> = $matched ) => list<string>
-scan( invar self: string, pattern: string, start = 0, end = -1 )
+scan( invar self: string, pattern: string, start = 0, end = 0 )
 	[start: int, end: int, state: enum<unmatched,matched> => none|@V]
 	=> list<@V>
 @[code]
 
 
 @[subsubsection]
-fetch(invar self:string,pattern:string,group=0,start=0,end=-1)=>string
+fetch(invar self:string,pattern:string,group=0,start=0,end=0)=>string
 @[subsubsection]
 @[code]
-fetch( invar self: string, pattern: string, group = 0, start = 0, end = -1 )
+fetch( invar self: string, pattern: string, group = 0, start = 0, end = 0 )
 	=> string
 @[code]
 Fetch the substring that matches the "group"-th group of pattern "pattern".
 
-Only the region between "start" and "end" is searched.
+Only the region between "start" (inclusive) and "end" (exclusive) is searched.
 
-Negative index starts from the last byte of the string.
+When the "end" parameter is not used explicitly, the region will range from
+"start" to the end of the string.
 
 
 Examples,
@@ -187,10 +188,10 @@ S4 = S1.fetch( "%d+", 0, 6 )    # S4 = "456"
 
 
 @[subsubsection]
-match(invar self:string,pattern:string,group=0,start=0,end=-1)=>...
+match(invar self:string,pattern:string,group=0,start=0,end=0)=>...
 @[subsubsection]
 @[code]
-match( invar self: string, pattern: string, group = 0, start = 0, end = -1 )
+match( invar self: string, pattern: string, group = 0, start = 0, end = 0 )
 	=> tuple<start:int,end:int>|none
 @[code]
 Match part of this string to pattern "pattern".
@@ -212,11 +213,11 @@ M5 = S1.match( "%d+(%a+)", 1 )  # M5 = (start=6,end=8); substring: "DEF"
 
 
 @[subsubsection]
-change(invar self:string,pat:string,tar:string,index=0,start=0,end=-1)=>string
+change(invar self:string,pat:string,tar:string,index=0,start=0,end=0)=>string
 @[subsubsection]
 @[code]
 change( invar self: string, pattern: string, target: string, index = 0, 
-	start = 0, end = -1 ) => string
+	start = 0, end = 0 ) => string
 @[code]
 Change the part(s) of the string that match pattern "pattern" to "target".
 And return a new string.
@@ -238,10 +239,10 @@ S3 = S.change( "(%d+)", "<%1>", 1 )  # S3 = "ABC<123>DEF456GHI"
 
 
 @[subsubsection]
-capture(invar self:string,pattern:string,start=0,end=-1)=>list<string>
+capture(invar self:string,pattern:string,start=0,end=0)=>list<string>
 @[subsubsection]
 @[code]
-capture( invar self: string, pattern: string, start = 0, end = -1 ) => list<string>
+capture( invar self: string, pattern: string, start = 0, end = 0 ) => list<string>
 @[code]
 Match pattern "pattern" to the string, and capture all the substrings that
 match to each of the groups of "pattern". Return these substrings as a list,
@@ -281,10 +282,10 @@ L2 = S2.extract( "%d+", $unmatched )  # L2 = { "ABC", "DEF", "GHI" }
 
 
 @[subsubsection]
-scan(invar self:string,pattern:string,start=0,end=-1)[...]=>list<@V>
+scan(invar self:string,pattern:string,start=0,end=0)[...]=>list<@V>
 @[subsubsection]
 @[code]
-scan( invar self: string, pattern: string, start = 0, end = -1 )
+scan( invar self: string, pattern: string, start = 0, end = 0 )
 	[start: int, end: int, state: enum<unmatched,matched> => none|@V]
 	=> list<@V>
 @[code]

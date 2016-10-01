@@ -565,7 +565,7 @@ static DIntStringPair daox_help_cxx_keywords[] =
 	{ DKEY_NONE,   "false" },
 	{ DKEY_NONE,   "true" },
 	{ DKEY_NONE,   "this" },
-	{ DKEY_NONE,   "self" },
+	{ DKEY_CLASS,  "self" },
 
 	{ DKEY_PUBLIC,     "public" },
 	{ DKEY_PROTECTED,  "protected" },

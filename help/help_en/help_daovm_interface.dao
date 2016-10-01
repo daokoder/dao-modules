@@ -370,7 +370,7 @@ DaoRoutine*
 DaoNamespace_WrapFunction( DaoNamespace *self, DaoCFunction fp, const char *proto );
 
 // Function to register multiple functions:
-int DaoNamespace_WrapFunctions( DaoNamespace *self, DaoFuncItem *items );
+int DaoNamespace_WrapFunctions( DaoNamespace *self, DaoFunctionEntry *items );
 @[code(cxx)]
 We will come to the second function later.
 For the first function, the first parameter is the namespace to which
@@ -495,8 +495,113 @@ DaoNamespace_WrapFunction( nspace, MyTestInC, "MyTest(id:int,name:string,extra=0
 
 
 @[section]
-Basic wrapping C/C++ type
+Type Wrapping
 @[section]
+
+In Dao virtual machine, a Dao data type is usually represented by three structures:
+@[list]
+-- @[code]DaoType@[code]:
+	The high level representation of the type for type matching and checking;
+-- @[code]DaoTypeKernel@[code]:
+	The middle level representation of the type for holding the wrapped values and methods,
+	or specialized methods for some generic types;
+-- @[code]DaoTypeCore@[code]:
+	The low level representation of the type for specifying the basic information,
+	type checking, running time execution, copying, comparison, hashing, printing,
+	printing, deletion and garbage collection behaviours;
+@[list]
+
+The first two structures are usually generated automatically from the last one.
+For wrapping C/C++ types, you only need to define the @[code]DaoTypeCore@[code] structure.
+
+
+@[subsection]
+Type Definition Structure
+@[subsection]
+
+The type definition structure @[code]DaoTypeCore@[code] is defined as the following:
+@[code(cxx)]
+struct DaoTypeCore
+{
+	const char        *name;      // Name of the type;
+	int                size;      // Size of the value structure;
+	DaoTypeCore       *bases[8];  // Type cores for the base types;
+	DaoNumberEntry    *numbers;   // Member numbers;
+	DaoFunctionEntry  *methods;   // Member methods;
+
+	DaoType* (*CheckGetField)( DaoType *self, DaoString *field, DaoRoutine *rout );
+	DaoValue* (*DoGetField)( DaoValue *self, DaoString *field, DaoProcess *proc );
+
+	int (*CheckSetField)( DaoType *self, DaoString *field, DaoType *value, DaoRoutine *rout );
+	int (*DoSetField)( DaoValue *self, DaoString *field, DaoValue *value, DaoProcess *proc );
+
+	DaoType*  (*CheckGetItem)( DaoType *self, DaoType *index[], int N, DaoRoutine *rout );
+	DaoValue* (*DoGetItem)( DaoValue *self, DaoValue *index[], int N, DaoProcess *proc );
+
+	int (*CheckSetItem)( DaoType *self, DaoType *index[], int N, DaoType *value, DaoRoutine *rout );
+	int (*DoSetItem)( DaoValue *self, DaoValue *index[], int N, DaoValue *value, DaoProcess *proc );
+
+	DaoType* (*CheckUnary)( DaoType *self, DaoVmCode *op, DaoRoutine *rout );
+	DaoValue* (*DoUnary)( DaoValue *self, DaoVmCode *op, DaoProcess *proc );
+
+	DaoType* (*CheckBinary)( DaoType *self, DaoVmCode *op, DaoType *operands[2], DaoRoutine *rout );
+	DaoValue* (*DoBinary)( DaoValue *self, DaoVmCode *op, DaoValue *operands[2], DaoProcess *proc );
+
+	DaoType*  (*CheckConversion)( DaoType *self, DaoType *type, DaoRoutine *rout );
+	DaoValue* (*DoConversion)( DaoValue *self, DaoType *type, int copy, DaoProcess *proc );
+
+	DaoType* (*CheckForEach)( DaoType *self, DaoRoutine *rout );
+	int (*DoForEach)( DaoValue *self, DaoTuple *iterator, DaoProcess *proc );
+
+	void (*Print)( DaoValue *self, DaoStream *stream, DMap *cycmap, DaoProcess *proc );
+	void (*Slice)( DaoValue *self );
+	int (*Compare)( DaoValue *self, DaoValue *other, DMap *cycmap );
+	size_t (*Hash)( DaoValue *self );
+	DaoValue* (*Create)( DaoType *self );
+	DaoValue* (*Copy)( DaoValue *self, DaoValue *target );
+	void (*Delete)( DaoValue *self );
+	void (*HandleGC)( DaoValue *self, DList *values, DList *lists, DList *maps, int remove );
+};
+@[code(cxx)]
+
+The type definition structure @[code]DaoTypeCore@[code] not only defines
+the basic information for the type, but also includes some function pointers
+that perform some standard operations on the type.
+
+
+Some of these function pointers are grouped into pairs per operation,
+where the first is the type checking function used at compiling time,
+and the second is the execution function called at running time to do
+the operation. The type checking function should return the resulting
+type on success and null otherwise.
+
+
+For user defined types, the default implementations are provided and
+declared as DaoCstruct_CheckXXX() and DaoCstruct_DoXXX() functions in
+this file. These default implementations use operator overloading from
+the member methods to do type checkings and running time executions.
+
+
+At running time, the executing DaoProcess object is usually passed to the
+execution functions, so that these functions can put the resulting values
+directly on the process stack. Otherwise, they should just return the results,
+and let the VM to put them on the stack if necessary.
+
+
+@[subsubsection]Type Registraction@[subsubsection]
+
+A C/C++ type can be used in Dao if only if it is registered in a Dao namespace
+with a type definition structure @[code]DaoTypeCore@[code] through,
+@[code(cxx)]
+DaoType* DaoNamespace_WrapType( DaoNamespace *self, DaoTypeCore *core, int tid, int options );
+int DaoNamespace_WrapTypes( DaoNamespace *self, DaoTypeCore *core[] );
+@[code(cxx)]
+The @[code]tid@[code] parameter must be set to 
+@[code]DAO_CSTRUCT@[code] for customized types,
+or @[code]DAO_CDATA@[code] for opaque wrapper types.
+The @[code]options@[code] parameter can be set to either @[code]0@[code]
+or @[code]DAO_CTYPE_INVAR@[code] for invariable types.
+
 
 There are two ways to extend Dao with user defined C/C++ types.
 One is to wrap it around by a @[code]DaoCdata@[code] object,
@@ -511,48 +616,15 @@ so I will introduce the wrapped types first, and then the customized types shoul
 easy to understand.
 
 
-@[subsection]
-Type information structure
-@[subsection]
-
-A C/C++ type can be used in Dao if only if it is registered in a Dao namespace
-with a type information structure through,
-@[code(cxx)]
-DaoType* DaoNamespace_WrapType( DaoNamespace *self, DaoTypeBase *typer, int opaque );
-int DaoNamespace_WrapTypes( DaoNamespace *self, DaoTypeBase *typer[] );
-@[code(cxx)]
-The @[code]opaque@[code] parameter must be set to 1 for wrapped types,
-and 0 for customized types.
-
-
-@[subsubsection]Structure definition@[subsubsection]
-
-Here @[code]DaoTypeBase@[code] is defined as the following,
-@[code(cxx)]
-/* Type information structure for creating Dao types for C/C++ types: */
-struct DaoTypeBase
-{
-	const char    *name;      /* type name; */
-	DaoTypeCore   *core;      /* data used internally; */
-	DaoNumItem    *numItems;  /* constant number list: should end with a null item; */
-	DaoFuncItem   *funcItems; /* method list: should end with a null item; */
-
-	/* typers for super types, to create c type hierarchy: */
-	DaoTypeBase   *supers[ DAO_MAX_CDATA_SUPER ];
-
-	/* function(s) to cast a C/C++ type to and from one of its parent type: */
-	FuncPtrCast    casts[ DAO_MAX_CDATA_SUPER ];
-
-	/* function to free data: */
-	void  (*Delete)( void *self );
-
-	/* Get garbage collectable fields (Dao data types with refCount by the type): */
-	void  (*GetGCFields)( void *self, DList *values, DList *lists, DList *maps, int remove );
-};
-@[code(cxx)]
-This structure defines the set of type information needed to create a corresponding Dao type.
-Obviously each type needs a name, which can be set in the first field of this structure.
-The second field is reserved for internal use for storing wrapped member constants and methods.
+Dao interface types can also be defined in C/C++ extensions.
+To define interface types, you need to defined type definition structions
+in a similar way as the above wrapped C/C++ data types.
+And then wrap them using,
+@[code]
+DaoType* DaoNamespace_WrapInterface( DaoNamespace *self, DaoTypeCore *core );
+DaoType* DaoNamespace_WrapCinType( DaoNamespace *self, DaoTypeCore *c, DaoType *a, DaoType *t );
+@[code]
+See bellow for example.
 
 
 @[subsubsection]Member constant numbers and methods@[subsubsection]
@@ -560,7 +632,7 @@ The second field is reserved for internal use for storing wrapped member constan
 The third field @[code]numItems@[code] can be used to specify a list of member constant numbers,
 which are defined in an array of the following structure:
 @[code(cxx)]
-struct DaoNumItem
+struct DaoNumberEntry
 {
 	const char *name;   /* contant name; */
 	int         type;   /* number type; */
@@ -570,7 +642,7 @@ struct DaoNumItem
 The number type should be one of @[code]DAO_INTEGER@[code], @[code]DAO_FLOAT@[code]
 and @[code]DAO_DOUBLE@[code]. The array should be terminated with a item with null name:
 @[code(cxx)]
-static DaoNumItem myTypeNumbers[] =
+static DaoNumberEntry myTypeNumbers[] =
 {
 	{ "MODE_ONE", DAO_INTEGER, MODE_ONE },
 	{ "MODE_TWO", DAO_INTEGER, MODE_TWO },
@@ -583,7 +655,7 @@ If the type has no member constant numbers, it can be simply set to NULL.
 The fourth field @[code]funcItems@[code] can be used to specify a list of member methods,
 which are defined in an array of the following structure:
 @[code(cxx)]
-struct DaoFuncItem
+struct DaoFunctionEntry
 {
 	DaoCFunction  fpter;  /* C function pointer; */
 	const char   *proto;  /* function prototype: name( parlist ) => return_type */
@@ -599,9 +671,11 @@ DaoNamespace_WrapFunction( DaoNamespace *self, DaoCFunction fp, const char *prot
 
 @[subsubsection]Base types and casting functions@[subsubsection]
 
+@[red]Obsolete@[red]
+
 The fifth field @[code]supers@[code] can be use to expose the inheritance structure
 of C/C++ types to Dao. To do this, one just need to set the @[code]supers@[code]
-array to the type information structures of the parent types, and terminate the array
+array to the type definition structures of the parent types, and terminate the array
 with a NULL pointer.
 
 
@@ -631,6 +705,8 @@ void* cast_Sub_Base( void *data, int down_casting )
 
 
 @[subsubsection]Deallocation and GC handling@[subsubsection]
+
+@[red]To be updated@[red]
 
 If the C/C++ type should not be deallocated by the standard C function
 @[code]free()@[code], a customized deallocation function must be specified for the
@@ -687,14 +763,14 @@ It can be wrapped in the following way,
 static void dao_ClassOne_ClassOne( DaoProcess *proc, DaoValue *p[], int n );
 static void dao_ClassOne_Method( DaoProcess *proc, DaoValue *p[], int n );
 // List of constant member numbers for the enums:
-static DaoNumItem ClassOneNumbers[] =
+static DaoNumberEntry ClassOneNumbers[] =
 {
 	{ "CLASSONE_AA", DAO_INTEGER, CLASSONE_AA },
 	{ "CLASSONE_BB", DAO_INTEGER, CLASSONE_BB },
 	{ NULL, 0, 0 }
 };
 // List of member constructors or methods of ClassOne:
-static DaoFuncItem ClassOneMethods[] =
+static DaoFunctionEntry ClassOneMethods[] =
 {
 	// Methods with the same name as the type name are constructors:
 	{ dao_ClassOne_ClassOne,  "ClassOne( v: int )" },
@@ -705,8 +781,8 @@ static void ClassOne_Delete( void *self )
 {
 	delete (ClassOne*) self;
 }
-// The type information structure for ClassOne:
-static DaoTypeBase ClassOne_Typer = 
+// The type definition structure for ClassOne:
+static DaoTypeCore ClassOne_Typer = 
 {
 	"ClassOne", NULL, ClassOneNumbers, ClassOneMethods,
 	{NULL}, {NULL}, ClassOne_Delete, NULL
@@ -822,7 +898,7 @@ Dao_ClassTwo::Dao_ClassTwo()
 Here the @[code]dao_type_ClassTwo@[code] is the Dao type object for @[code]ClassTwo@[code],
 and can be obtained in the same way as @[code]dao_type_ClassOne@[code].
 Now that @[code]Dao_ClassTwo@[code] has a reference to a @[code]DaoCdata@[code]
-object, the @[code]GetGCFields@[code] field of the type information structure
+object, the @[code]GetGCFields@[code] field of the type definition structure
 for @[code]ClassTwo@[code] should be set to a proper function, which will be provided later.
 The destructor should also be handled this reference properly by,
 @[code(cxx)]
@@ -893,7 +969,7 @@ ErrorCall:
 
 
 Now we will define a function that can be set to the @[code]GetGCFields@[code]
-field of the type information structure of @[code]ClassTwo@[code].
+field of the type definition structure of @[code]ClassTwo@[code].
 @[code(cxx)]
 static void Dao_ClassTwo_GetGCFields( void *self0,
 		DList *values, DList *lists, DList *maps, int remove )
@@ -934,7 +1010,7 @@ static void dao_ClassTwo_ClassTwo( DaoProcess *proc, DaoValue *p[], int n )
 	Dao_ClassTwo *self = new Dao_ClassTwo();
 	DaoProcess_PutValue( proc, (DaoValue*) self->dao_cdata );
 }
-static DaoFuncItem ClassTwoMethods[] =
+static DaoFunctionEntry ClassTwoMethods[] =
 {
 	{ dao_ClassTwo_ClassTwo,  "ClassTwo()" },
 	{ NULL, NULL }
@@ -948,8 +1024,8 @@ static void* Dao_ClassTwo_Cast_ClassOne( void *data, int down )
 	if( down ) return static_cast<ClassTwo*>((ClassOne*)data);
 	return dynamic_cast<ClassOne*>((ClassTwo*)data);
 }
-// The type information structure for ClassTwo:
-static DaoTypeBase ClassTwo_Typer = 
+// The type definition structure for ClassTwo:
+static DaoTypeCore ClassTwo_Typer = 
 {
 	"ClassTwo", NULL, NULL, ClassTwoMethods,
 	{ & ClassOne_Typer, NULL },

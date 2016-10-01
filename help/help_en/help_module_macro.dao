@@ -6,8 +6,10 @@ module.core.macro
 @[name]
 
 @[title]
-Syntax Macro
+Syntax Macro (Removed)
 @[title]
+
+@[red]WARNING: This feature has been removed!@[red]
 
 @[author]
 Limin Fu

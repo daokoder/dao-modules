@@ -288,7 +288,7 @@ Examples,
 S1 = "line\n"
 S2 = S1.chop()
 
-S3 = "道语言"[:7]
+S3 = "道语言"[:8]
 S4 = S3.chop( 1 )  # 道语
 @[code]
 
@@ -311,7 +311,7 @@ S1 = "\tline\n"
 S2 = S1.trim()         # "line"
 S3 = S1.trim( $head )  # "line\n"
 
-S4 = "\t道语言"[:7]
+S4 = "\t道语言"[:8]
 S5 = S4.trim()            # "道语??"
 S6 = S4.trim( $tail, 1 )  # "\t道语"
 @[code]

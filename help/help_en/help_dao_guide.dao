@@ -869,8 +869,7 @@ rout( 123, "XXX" );
 io.writeln( abc )  # Output: ABCXXX
 @[code]
 
-For code section routines and decorators,
-please see @[node]dao.routine.section@[node] and @[node]dao.routine.decorator@[node].
+For code section routines, please see @[node]dao.routine.section@[node].
 For coroutine and generator, please see @[node]module.core.coroutine@[node].
 
 
