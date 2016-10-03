@@ -1,6 +1,6 @@
 /*
 // Dao Standard Modules
-// http://www.daovm.net
+// http://daoscript.org
 //
 // Copyright (c) 2012-2014, Limin Fu
 // All rights reserved.

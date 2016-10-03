@@ -366,8 +366,7 @@ To register functions to a namespace, one can use one of the
 following interface functions of @[code]DaoNamespace@[code],
 @[code(cxx)]
 // Function to register a single function:
-DaoRoutine*
-DaoNamespace_WrapFunction( DaoNamespace *self, DaoCFunction fp, const char *proto );
+DaoRoutine* DaoNamespace_WrapFunction( DaoNamespace *self, DaoCFunction fp, const char *proto );
 
 // Function to register multiple functions:
 int DaoNamespace_WrapFunctions( DaoNamespace *self, DaoFunctionEntry *items );
@@ -578,7 +577,8 @@ type on success and null otherwise.
 
 For user defined types, the default implementations are provided and
 declared as DaoCstruct_CheckXXX() and DaoCstruct_DoXXX() functions in
-this file. These default implementations use operator overloading from
+the header file @[code]dao.h@[code].
+These default implementations use operator overloading from
 the member methods to do type checkings and running time executions.
 
 
@@ -586,6 +586,159 @@ At running time, the executing DaoProcess object is usually passed to the
 execution functions, so that these functions can put the resulting values
 directly on the process stack. Otherwise, they should just return the results,
 and let the VM to put them on the stack if necessary.
+
+
+@[subsubsection]Name and Size@[subsubsection]
+
+
+@[subsubsection]Member constant numbers and methods@[subsubsection]
+
+The third field @[code]numbers@[code] can be used to specify a list of member constant numbers,
+which are defined in an array of the following structure:
+@[code(cxx)]
+struct DaoNumberEntry
+{
+	const char *name;   /* contant name; */
+	int         type;   /* number type; */
+	double      value;  /* number value; */
+};
+@[code(cxx)]
+The number type should be one of @[code]DAO_BOOLEAN@[code], @[code]DAO_INTEGER@[code]
+and @[code]DAO_FLOAT@[code]. The array should be terminated with a item with null name:
+@[code(cxx)]
+static DaoNumberEntry myTypeNumbers[] =
+{
+	{ "MODE_ONE", DAO_INTEGER, MODE_ONE },
+	{ "MODE_TWO", DAO_INTEGER, MODE_TWO },
+	{ NULL, 0, 0 }
+};
+@[code(cxx)]
+If the type has no member constant numbers, it can be simply set to NULL.
+
+
+The fourth field @[code]methods@[code] can be used to specify a list of member methods,
+which are defined in an array of the following structure:
+@[code(cxx)]
+struct DaoFunctionEntry
+{
+	DaoCFunction  fpter;  /* C function pointer; */
+	const char   *proto;  /* function prototype: name( parlist ) => return_type */
+};
+@[code(cxx)]
+where the two fields @[code]fpter@[code] and @[code]proto@[code]
+should be the same as they would in the parameter list of:
+@[code(cxx)]
+DaoRoutine* DaoNamespace_WrapFunction( DaoNamespace *self, DaoCFunction fp, const char *proto );
+@[code(cxx)]
+
+
+@[subsubsection]Inheritance@[subsubsection]
+
+The inheritance relationship can be defined with the @[code]bases@[code] field,
+by specifying the type definition structures for the base types in this field.
+Given that a type definition structure can be used for both wrapping C/C++ types
+and defining interface types, the @[code]bases@[code] field can list an array
+of base types to support multiple inheritance.
+
+
+If an inheritance relationship involves wrapped C++ classes with virtual functions,
+the conversion between a base type and a derived type should be handled
+properly in the @[code]DaoTypeCore::DoConversion@[code] method (See bellow).
+
+
+@[subsubsection]Get Field Operation@[subsubsection]
+
+@[code]
+DaoType* (*CheckGetField)( DaoType *self, DaoString *field, DaoRoutine *rout );
+DaoValue* (*DoGetField)( DaoValue *self, DaoString *field, DaoProcess *proc );
+@[code]
+
+
+@[subsubsection]Set Field Operation@[subsubsection]
+
+@[code]
+int (*CheckSetField)( DaoType *self, DaoString *field, DaoType *value, DaoRoutine *rout );
+int (*DoSetField)( DaoValue *self, DaoString *field, DaoValue *value, DaoProcess *proc );
+@[code]
+
+
+@[subsubsection]Get Item Operation@[subsubsection]
+
+@[code]
+DaoType*  (*CheckGetItem)( DaoType *self, DaoType *index[], int N, DaoRoutine *rout );
+DaoValue* (*DoGetItem)( DaoValue *self, DaoValue *index[], int N, DaoProcess *proc );
+@[code]
+
+
+@[subsubsection]Set Item Operation@[subsubsection]
+
+@[code]
+int (*CheckSetItem)( DaoType *self, DaoType *index[], int N, DaoType *value, DaoRoutine *rout );
+int (*DoSetItem)( DaoValue *self, DaoValue *index[], int N, DaoValue *value, DaoProcess *proc );
+@[code]
+
+
+@[subsubsection]Unary Operation@[subsubsection]
+
+@[code]
+DaoType* (*CheckUnary)( DaoType *self, DaoVmCode *op, DaoRoutine *rout );
+DaoValue* (*DoUnary)( DaoValue *self, DaoVmCode *op, DaoProcess *proc );
+@[code]
+
+
+
+@[subsubsection]Binary Operation@[subsubsection]
+
+@[code]
+DaoType* (*CheckBinary)( DaoType *self, DaoVmCode *op, DaoType *operands[2], DaoRoutine *rout );
+DaoValue* (*DoBinary)( DaoValue *self, DaoVmCode *op, DaoValue *operands[2], DaoProcess *proc );
+@[code]
+
+
+@[subsubsection]Type Conversion Operation@[subsubsection]
+
+@[code]
+DaoType*  (*CheckConversion)( DaoType *self, DaoType *type, DaoRoutine *rout );
+DaoValue* (*DoConversion)( DaoValue *self, DaoType *type, int copy, DaoProcess *proc );
+@[code]
+
+
+@[subsubsection]Deallcation@[subsubsection]
+
+@[code]
+void (*Delete)( DaoValue *self );
+@[code]
+
+If instance object can be created for the type (not its derived types),
+a deallcation function must be supplied in the type definition structure,
+in order to properly delete the object once it becomes unreachable in the program.
+
+
+@[subsubsection]GC Handling@[subsubsection]
+
+@[code]
+void (*HandleGC)( DaoValue *self, DList *values, DList *lists, DList *maps, int remove );
+@[code]
+
+If an instance object of the type may hold counted references to
+non-primitive Dao data values, this object must be handled properly
+for garbage collection.
+In order to do this, a function must be properly defined and
+set to the last field of @[code]DaoTypeCore@[code], namely @[code]HandleGC@[code].
+This function will be called during garbage collection scans,
+and it must export its reference couned values to the parameter lists;
+
+
+In this function, directly referenced member values should be pushed into @[code]values@[code],
+and @[code]DList@[code] members holding referenced values should be pushed into @[code]lists@[code],
+and @[code]DMap@[code] members holding referenced values should be pushed into @[code]maps@[code].
+When the user defined value is marked for deletion by the garbage collector,
+the @[code]remove@[code] parameter will be set to non-zero.
+In the case, references to the member values that are pushed to @[code]values@[code]
+should be removed by setting them to nulls.
+This is necessary, because some of the objects referenced by this object
+could be deallocated by the collector before this object is deallocated,
+breaking references to them will avoid posible double deletion.
 
 
 @[subsubsection]Type Registraction@[subsubsection]
@@ -627,118 +780,6 @@ DaoType* DaoNamespace_WrapCinType( DaoNamespace *self, DaoTypeCore *c, DaoType *
 See bellow for example.
 
 
-@[subsubsection]Member constant numbers and methods@[subsubsection]
-
-The third field @[code]numItems@[code] can be used to specify a list of member constant numbers,
-which are defined in an array of the following structure:
-@[code(cxx)]
-struct DaoNumberEntry
-{
-	const char *name;   /* contant name; */
-	int         type;   /* number type; */
-	double      value;  /* number value; */
-};
-@[code(cxx)]
-The number type should be one of @[code]DAO_INTEGER@[code], @[code]DAO_FLOAT@[code]
-and @[code]DAO_DOUBLE@[code]. The array should be terminated with a item with null name:
-@[code(cxx)]
-static DaoNumberEntry myTypeNumbers[] =
-{
-	{ "MODE_ONE", DAO_INTEGER, MODE_ONE },
-	{ "MODE_TWO", DAO_INTEGER, MODE_TWO },
-	{ NULL, 0, 0 }
-};
-@[code(cxx)]
-If the type has no member constant numbers, it can be simply set to NULL.
-
-
-The fourth field @[code]funcItems@[code] can be used to specify a list of member methods,
-which are defined in an array of the following structure:
-@[code(cxx)]
-struct DaoFunctionEntry
-{
-	DaoCFunction  fpter;  /* C function pointer; */
-	const char   *proto;  /* function prototype: name( parlist ) => return_type */
-};
-@[code(cxx)]
-where the two fields @[code]fpter@[code] and @[code]proto@[code]
-should be the same as they would in the parameter list of:
-@[code(cxx)]
-DaoRoutine*
-DaoNamespace_WrapFunction( DaoNamespace *self, DaoCFunction fp, const char *proto );
-@[code(cxx)]
-
-
-@[subsubsection]Base types and casting functions@[subsubsection]
-
-@[red]Obsolete@[red]
-
-The fifth field @[code]supers@[code] can be use to expose the inheritance structure
-of C/C++ types to Dao. To do this, one just need to set the @[code]supers@[code]
-array to the type definition structures of the parent types, and terminate the array
-with a NULL pointer.
-
-
-If the wrapped type is a C++ class with virtual method(s) or
-virtual base(s), Dao will need to know how to cast this type to and from its parent
-type properly. This can be done by specifying a list of cast functions in the sixth
-field @[code]casts@[code] of the type structure.
-
-
-If the C++ class has virtual method(s) but no virtual base(s), the cast function should
-be provided in the following form,
-@[code(cxx)]
-void* cast_Sub_Base( void *data, int down_casting )
-{
-	if( down_casting ) return static_cast<Sub*>( (Base*)data );
-	return dynamic_cast<Base*>( (Sub*)data );
-}
-@[code(cxx)]
-And if the C++ class has virtual base(s), the cast function should be like,
-@[code(cxx)]
-void* cast_Sub_Base( void *data, int down_casting )
-{
-	if( down_casting ) return dynamic_cast<Sub*>( (Base*)data );
-	return dynamic_cast<Base*>( (Sub*)data );
-}
-@[code(cxx)]
-
-
-@[subsubsection]Deallocation and GC handling@[subsubsection]
-
-@[red]To be updated@[red]
-
-If the C/C++ type should not be deallocated by the standard C function
-@[code]free()@[code], a customized deallocation function must be specified for the
-type structure. For wrapped C/C++ types, the @[code]self@[code] parameter passed
-to the deallocation function will be the opaque C/C++ pointer,
-and for customized C types, it will be the whole objects that have the same header fields
-as @[code]DaoCdata@[code].
-
-
-The last field @[code]GetGCFields@[code] can be normally set to NULL.
-But if the C/C++ type may retain reference(s) to Dao data structures that
-can form potentially cyclic referencing relationships, this field must be set
-to a proper function.
-The main purpose of this function is to expose the references retained by the C/C++
-type to Dao garbage collector.
-In this function, the pointers of Dao data that are directly referenced by the C/C++ type
-should be pushed to the @[code]values@[code] parameters; and for Dao data that are
-referenced through @[code]DList@[code] structures, these @[code]DList@[code] structures
-should be pushed into the @[code]lists@[code]; and for those that are referenced
-through @[code]DMap@[code] structures, these @[code]DMap@[code] structures
-should be pushed into the @[code]maps@[code].
-
-
-This function is called with a zero @[code]remove@[code] parameter automatically by 
-the garbage collector (GC) when an object of the C/C++ type needs to be scanned to determine 
-if it is no longer reachable from the program.
-It is also called before the object is deallocated by the GC,
-this time the @[code]remove@[code] parameter is set to one,
-and in this case, the @[code]GetGCFields@[code] must break the references that
-are pushed into the @[code]values@[code], @[code]lists@[code] and @[code]maps@[code] lists.
-This is necessary, because some of the objects referenced by the C/C++ object
-can be deallocated by the GC, breaking references to them will avoid posible double deletion.
 
 
 @[subsection]A simple example@[subsection]
