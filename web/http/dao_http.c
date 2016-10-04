@@ -101,6 +101,7 @@ struct DaoxRequest
 
 	DString  *uri;
 	DString  *host;
+	DString  *method;
 	daoint    remote_ip;
 	daoint    remote_port;
 };
@@ -111,6 +112,7 @@ DaoxRequest* DaoxRequest_New()
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_request );
 	self->uri = DString_New();
 	self->host = DString_New();
+	self->method = DString_New();
 	self->key = DaoString_New(1);
 	self->value = DaoString_New(1);
 	self->http_get    = DaoMap_New( 1 + (size_t)rand() );  /* Random hash seed; */
@@ -139,6 +141,7 @@ static void DaoxRequest_Delete( DaoxRequest *self )
 {
 	DString_Delete( self->uri );
 	DString_Delete( self->host );
+	DString_Delete( self->method );
 	DaoGC_DecRC( (DaoValue*) self->key );
 	DaoGC_DecRC( (DaoValue*) self->value );
 	DaoGC_DecRC( (DaoValue*) self->http_get );
@@ -154,6 +157,7 @@ static void DaoxRequest_Reset( DaoxRequest *self )
 {
 	DString_Reset( self->uri, 0 );
 	DString_Reset( self->host, 0 );
+	DString_Reset( self->method, 0 );
 	DaoMap_Reset( self->http_get, 1 + (size_t)rand() );
 	DaoMap_Reset( self->http_post, 1 + (size_t)rand() );
 	DaoMap_Reset( self->http_cookie, 1 + (size_t)rand() );
@@ -366,6 +370,7 @@ struct DaoxResponse
 	DAO_CSTRUCT_COMMON;
 
 	DMap  *cookies;
+	int    responded;
 
 	mg_connection *connection;
 };
@@ -375,6 +380,7 @@ DaoxResponse* DaoxResponse_New()
 	DaoxResponse *self = (DaoxResponse*) dao_calloc( 1, sizeof(DaoxResponse) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_response );
 	self->cookies = DHash_New( DAO_DATA_STRING, DAO_DATA_STRING );
+	self->responded = 0;
 	return self;
 }
 
@@ -387,6 +393,7 @@ static void DaoxResponse_Delete( DaoxResponse *self )
 
 static void DaoxResponse_Reset( DaoxResponse *self )
 {
+	self->responded = 0;
 	self->cookies->hashing = 1 + (size_t) rand();
 	DMap_Reset( self->cookies );
 }
@@ -694,6 +701,7 @@ DaoxRequest* DaoxServer_MakeRequest( DaoxServer *self, mg_connection *conn )
 
 	mg_get_hostname( conn, host, sizeof(host) );
 	DString_SetChars( request->host, host );
+	DString_SetChars( request->method, ri->request_method );
 
 	DaoxRequest_SetURI( request, ri->uri );
 	if( cookie ) DaoxRequest_ParseQueryString( request, request->http_cookie, cookie );
@@ -930,6 +938,11 @@ static void REQ_GETF_Host( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxRequest *request = (DaoxRequest*) p[0];
 	DaoProcess_PutString( proc, request->host );
 }
+static void REQ_GETF_Method( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxRequest *request = (DaoxRequest*) p[0];
+	DaoProcess_PutString( proc, request->method );
+}
 static void REQ_GETF_URI( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxRequest *request = (DaoxRequest*) p[0];
@@ -990,6 +1003,7 @@ static void REQ_SETF_HttpFile( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFunctionEntry daoRequestMeths[] =
 {
 	{ REQ_GETF_Host,       ".Host( self: Request ) => string" },
+	{ REQ_GETF_Method,     ".Method( self: Request ) => string" },
 	{ REQ_GETF_URI,        ".URI( self: Request ) => string" },
 	{ REQ_SETF_URI,        ".URI=( self: Request, uri: string )" },
 	{ REQ_GETF_HttpURI,    ".HttpURI( self: Request ) => list<string>" },
@@ -1048,6 +1062,7 @@ static void RES_WriteHeader( DaoProcess *proc, DaoValue *p[], int N )
 	int status = p[1]->xInteger.value;
 	DNode *it;
 
+	response->responded = 1;
 	mg_printf( response->connection, "HTTP/1.1 %i %s\r\n", status, "OK" /* TODO */ );
 	for(it=DaoMap_First(headers); it; it=DaoMap_Next(headers,it)){
 		const char *key = DaoString_GetChars( (DaoString*) it->key.pValue );
@@ -1071,6 +1086,7 @@ static void RES_SendFile( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxResponse *response = (DaoxResponse*) p[0];
 	const char *path = DaoString_GetChars( (DaoString*) p[1] );
 	mg_send_file( response->connection, path );
+	response->responded = 1;
 }
 static void RES_RespondError( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1079,6 +1095,7 @@ static void RES_RespondError( DaoProcess *proc, DaoValue *p[], int N )
 	int code = p[1]->xInteger.value;
 	DNode *it;
 
+	response->responded = 1;
 	mg_printf( response->connection, "HTTP/1.1 %i %s\r\n", code, "Internal Server Error" );
 	mg_printf( response->connection, "Content-Type: text/html\r\n" );
 	for(it=DMap_First(response->cookies); it; it=DMap_Next(response->cookies,it)){
@@ -1330,6 +1347,7 @@ static int DaoxHttp_HandleRequest( mg_connection *conn )
 	DaoxCache *cache = NULL;
 	DaoVmCode *sect = NULL;
 	DNode *it;
+	int ret;
 
 	DMutex_Lock( & server->mutex2 );
 	it = DMap_Find( server->uriToPaths, & uri );
@@ -1362,7 +1380,7 @@ static int DaoxHttp_HandleRequest( mg_connection *conn )
 		DaoProcess_PrintException( process, NULL, 1 );
 		DaoxServer_ReleaseProcess( server, process );
 		DaoxServer_CacheObjects( server, request, response, session, cache );
-		return 1;
+		return 0;
 	}
 
 	process->topFrame->outer = caller;
@@ -1376,10 +1394,11 @@ static int DaoxHttp_HandleRequest( mg_connection *conn )
 	if( sectCode->b >3 ) DaoProcess_SetValue( process, sectCode->a+3, (DaoValue*) cache );
 	DaoProcess_Execute( process );
 
+	ret = response->responded;
 	DaoxServer_ReleaseProcess( server, process );
 
 	DaoxServer_CacheObjects( server, request, response, session, cache );
-	return 1;
+	return ret;
 }
 
 
