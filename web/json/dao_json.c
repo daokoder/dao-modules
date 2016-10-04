@@ -583,7 +583,7 @@ static DaoFunctionEntry daoEncodableMeths[] =
 
 //! A type which can be encoded to JSON data. Use it in conjunction with \c Marshallable
 //! to define serialization of custom data structures to JSON
-DaoTypeCore daoEncodableCore =
+static DaoTypeCore daoEncodableCore =
 {
 	"Encodable",                                       /* name */
 	0,                                                 /* size */
@@ -618,7 +618,7 @@ static DaoFunctionEntry daoDecodableMeths[] =
 
 //! A type which can be decoded from JSON data. Use it in conjunction with \c Unmarshallable
 //! to define deserialization of custom data structures from JSON
-DaoTypeCore daoDecodableCore =
+static DaoTypeCore daoDecodableCore =
 {
 	"Decodable",                                       /* name */
 	0,                                                 /* size */
@@ -652,7 +652,7 @@ static DaoFunctionEntry daoMarshallableMeths[] =
 };
 
 //! A type which can be marshalled to a JSON document
-DaoTypeCore daoMarshallableCore =
+static DaoTypeCore daoMarshallableCore =
 {
 	"Marshallable",                                    /* name */
 	0,                                                 /* size */
@@ -686,7 +686,7 @@ static DaoFunctionEntry daoUnmarshallableMeths[] =
 };
 
 //! A type which can be unmarshalled from a JSON document
-DaoTypeCore daoUnmarshallableCore =
+static DaoTypeCore daoUnmarshallableCore =
 {
 	"Unmarshallable",                                  /* name */
 	0,                                                 /* size */

@@ -832,7 +832,7 @@ static DaoFunctionEntry daoEncoderMeths[] =
 };
 
 //! Stateful binary encoder
-DaoTypeCore daoEncoderCore =
+static DaoTypeCore daoEncoderCore =
 {
 	"Encoder",                                         /* name */
 	sizeof(DaoXCoder),                                 /* size */
@@ -1032,7 +1032,7 @@ static DaoFunctionEntry daoDecoderMeths[] =
 };
 
 //! Stateful binary decoder
-DaoTypeCore daoDecoderCore =
+static DaoTypeCore daoDecoderCore =
 {
 	"Decoder",                                         /* name */
 	sizeof(DaoXCoder),                                 /* size */
@@ -1067,7 +1067,7 @@ static DaoFunctionEntry daoEncodableMeths[] =
 
 //! A type which can be encoded to binary form. Use it to define conversions
 //! to specific serialization formats
-DaoTypeCore daoEncodableCore =
+static DaoTypeCore daoEncodableCore =
 {
 	"Encodable",                                       /* name */
 	0,                                                 /* size */
@@ -1102,7 +1102,7 @@ static DaoFunctionEntry daoDecodableMeths[] =
 
 //! A type which can be decoded from binary form. Use it to define conversions
 //! from specific serialization formats
-DaoTypeCore daoDecodableCore =
+static DaoTypeCore daoDecodableCore =
 {
 	"Decodable",                                       /* name */
 	0,                                                 /* size */

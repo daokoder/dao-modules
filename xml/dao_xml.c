@@ -1506,7 +1506,7 @@ static void DaoXMLDocument_CoreDelete( DaoValue *self )
 	DaoCstruct_Delete( (DaoCstruct*) self );
 }
 
-DaoTypeCore daoDocumentCore =
+static DaoTypeCore daoDocumentCore =
 {
 	"Document",                                            /* name */
 	sizeof(DaoXMLDocument),                                /* size */
@@ -1655,7 +1655,7 @@ static void DaoXMLNode_CoreDelete( DaoValue *self )
 	DaoCstruct_Delete( (DaoCstruct*) self );
 }
 
-DaoTypeCore daoInstructionCore =
+static DaoTypeCore daoInstructionCore =
 {
 	"Instruction",                                         /* name */
 	sizeof(DaoXMLNode),                                    /* size */
@@ -2663,7 +2663,7 @@ static DaoFunctionEntry xmlElemMeths[] =
 
 /*! XML element */
 
-DaoTypeCore daoElementCore =
+static DaoTypeCore daoElementCore =
 {
 	"Element",                                           /* name */
 	sizeof(DaoXMLNode),                                  /* size */
@@ -2786,7 +2786,7 @@ static DaoFunctionEntry xmlCdataMeths[] =
 
 /*! XML character data */
 
-DaoTypeCore daoCharDataCore =
+static DaoTypeCore daoCharDataCore =
 {
 	"CharData",                                            /* name */
 	sizeof(DaoXMLNode),                                    /* size */
@@ -3353,7 +3353,7 @@ static void DaoXMLWriter_CoreDelete( DaoValue *self )
 	DaoCstruct_Delete( (DaoCstruct*) self );
 }
 
-DaoTypeCore daoWriterCore =
+static DaoTypeCore daoWriterCore =
 {
 	"Writer",                                              /* name */
 	sizeof(DaoXMLWriter),                                  /* size */
@@ -3394,7 +3394,7 @@ static DaoFunctionEntry encodableMeths[] =
 
 //! A type which can be encoded to XML
 
-DaoTypeCore daoEncodableCore =
+static DaoTypeCore daoEncodableCore =
 {
 	"Encodable",             /* name */
 	0,                       /* size */
@@ -3428,7 +3428,7 @@ static DaoFunctionEntry decodableMeths[] =
 
 //! A type which can be decoded from XML
 
-DaoTypeCore daoDecodableCore =
+static DaoTypeCore daoDecodableCore =
 {
 	"Decodable",             /* name */
 	0,                       /* size */
