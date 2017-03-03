@@ -602,6 +602,7 @@ DaoTypeCore daoPipeCore =
 	"Pipe",                                                /* name */
 	sizeof(DaoPipe),                                       /* size */
 	{ NULL },                                              /* bases */
+	{ NULL },                                              /* casts */
 	NULL,                                                  /* numbers */
 	daoPipeMeths,                                          /* methods */
 	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
@@ -1365,6 +1366,7 @@ DaoTypeCore daoOSProcessCore =
 	"Process",                                             /* name */
 	sizeof(DaoOSProcess),                                  /* size */
 	{ NULL },                                              /* bases */
+	{ NULL },                                              /* casts */
 	NULL,                                                  /* numbers */
 	daoOSProcessMeths,                                     /* methods */
 	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */

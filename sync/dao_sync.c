@@ -181,6 +181,7 @@ DaoTypeCore daoMutexCore =
 	"Mutex",                                           /* name */
 	sizeof(DaoMutex),                                  /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoMutexMeths,                                     /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -278,6 +279,7 @@ DaoTypeCore daoCondVarCore =
 	"Condition",                                       /* name */
 	sizeof(DaoCondVar),                                /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoCondVarMeths,                                   /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -384,6 +386,7 @@ DaoTypeCore daoSemaCore =
 	"Semaphore",                                       /* name */
 	sizeof(DaoSema),                                   /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoSemaMeths,                                      /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -642,6 +645,7 @@ DaoTypeCore daoStateCore =
 	"State<@T>",                                       /* name */
 	sizeof(DaoState),                                  /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoStateMeths,                                     /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -948,6 +952,7 @@ DaoTypeCore daoQueueCore =
 	"Queue<@T>",                                       /* name */
 	sizeof(DaoQueue),                                  /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoQueueMeths,                                     /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1077,6 +1082,7 @@ DaoTypeCore daoGuardCore =
 	"Guard<@T>",                                       /* name */
 	sizeof(DaoGuard),                                  /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoGuardMeths,                                     /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */

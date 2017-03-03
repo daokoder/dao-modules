@@ -1576,6 +1576,7 @@ DaoTypeCore daoDateTimeCore =
 	"DateTime",                                        /* name */
 	sizeof(DaoTime),                                   /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoDateTimeMeths,                                  /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1960,6 +1961,7 @@ DaoTypeCore daoTimeSpanCore =
 	"TimeSpan",                                        /* name */
 	sizeof(DaoTimeSpan),                               /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoTimeSpanMeths,                                  /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */

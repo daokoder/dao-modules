@@ -371,6 +371,7 @@ DaoTypeCore daoSignalPipeCore =
 	"SignalPipe",                                          /* name */
 	sizeof(DaoSignalPipe),                                 /* size */
 	{ NULL },                                              /* bases */
+	{ NULL },                                              /* casts */
 	NULL,                                                  /* numbers */
 	daoSignalPipeMeths,                                    /* methods */
 	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */

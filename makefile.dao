@@ -42,11 +42,11 @@ if( DaoMake::IsDir( "graph" ) ) modules.AddDirectory( "graph", "graph" );
 
 if( DaoMake::IsDir( "DaoGraphics" ) ) modules.AddDirectory( "Graphics", "DaoGraphics" );
 
-if( DaoMake::IsDir( "DaoSDL" ) ) modules.AddDirectory( "SDL", "DaoSDL" );
+#if( DaoMake::IsDir( "DaoSDL" ) ) modules.AddDirectory( "SDL", "DaoSDL" );
 
 if( not DaoMake::IsPlatform( "IOS" ) ){
 	if( DaoMake::IsDir( "clinker" ) ) modules.AddDirectory( "clinker", "clinker" );
 	if( DaoMake::IsDir( "DaoSQL" ) ) modules.AddDirectory( "DaoSQL", "DaoSQL" );
-	if( DaoMake::IsDir( "DaoFLTK" ) ) modules.AddDirectory( "FLTK", "DaoFLTK" );
+#	if( DaoMake::IsDir( "DaoFLTK" ) ) modules.AddDirectory( "FLTK", "DaoFLTK" );
 #	if( DaoMake::IsDir( "DaoGSL" ) ) modules.AddDirectory( "GSL", "DaoGSL" );
 }

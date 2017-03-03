@@ -408,6 +408,7 @@ DaoTypeCore daoFFICore =
 	"FFI",                              /* name */
 	sizeof(DaoFFI),                     /* size */
 	{ NULL },                           /* bases */
+	{ NULL },                           /* casts */
 	NULL,                               /* numbers */
 	NULL,                               /* methods */
 	NULL,  NULL,                        /* GetField */

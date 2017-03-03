@@ -2211,6 +2211,7 @@ DaoTypeCore daoHelpCore =
 	"help",                                            /* name */
 	sizeof(DaoxHelper),                                /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoHelpMeths,                                      /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */

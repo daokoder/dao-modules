@@ -1024,6 +1024,7 @@ DaoTypeCore daoRequestCore =
 	"Request",                                         /* name */
 	sizeof(DaoxRequest),                               /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoRequestMeths,                                   /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1124,6 +1125,7 @@ DaoTypeCore daoResponseCore =
 	"Response",                                        /* name */
 	sizeof(DaoxResponse),                              /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoResponseMeths,                                  /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1189,6 +1191,7 @@ DaoTypeCore daoSessionCore =
 	"Session",                                         /* name */
 	sizeof(DaoxSession),                               /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoSessionMeths,                                   /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1243,6 +1246,7 @@ DaoTypeCore daoCacheCore =
 	"Cache",                                           /* name */
 	sizeof(DaoxCache),                                 /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoCacheMeths,                                     /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1421,6 +1425,9 @@ static void SERVER_SetDocRoot( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxServer *self = (DaoxServer*) p[0];
 	DString *docroot = DaoValue_TryGetString( p[1] );
 	DString_Assign( self->docroot, docroot );
+	if( self->docroot->size && self->docroot->chars[self->docroot->size-1] != '/' ){
+		DString_AppendChar( self->docroot, '/' );
+	}
 }
 
 
@@ -1473,7 +1480,7 @@ static void SERVER_Stop( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFunctionEntry daoServerMeths[] =
 {
 	{ SERVER_New,        "Server( docroot = '' )" },
-	{ SERVER_GetDocRoot, ".DocumentRoot( self: Server )" },
+	{ SERVER_GetDocRoot, ".DocumentRoot( self: Server ) => string" },
 	{ SERVER_SetDocRoot, ".DocumentRoot=( self: Server, docroot: string )" },
 	{ SERVER_Start,
 		"Start( self: Server, port = 80, numthread = 8 )"
@@ -1489,6 +1496,7 @@ DaoTypeCore daoServerCore =
 	"Server",                                          /* name */
 	sizeof(DaoxServer),                                /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoServerMeths,                                    /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1621,6 +1629,7 @@ DaoTypeCore daoClientCore =
 	"Client",                                          /* name */
 	0,                                                 /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoClientMeths,                                    /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */

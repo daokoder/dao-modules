@@ -963,6 +963,7 @@ DaoTypeCore daoSetCore =
 	"Set<@T>",                                             /* name */
 	sizeof(DaoSet),                                        /* size */
 	{ NULL },                                              /* bases */
+	{ NULL },                                              /* casts */
 	NULL,                                                  /* numbers */
 	daoSetMeths,                                           /* methods */
 	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */

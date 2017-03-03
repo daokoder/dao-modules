@@ -1723,6 +1723,7 @@ DaoTypeCore daoSerializerCore =
 	"Serializer",                                      /* name */
 	sizeof(DaoSerializer),                             /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoSerializerMeths,                                /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */

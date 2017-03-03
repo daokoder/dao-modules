@@ -837,6 +837,7 @@ static DaoTypeCore daoEncoderCore =
 	"Encoder",                                         /* name */
 	sizeof(DaoXCoder),                                 /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoEncoderMeths,                                   /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1037,6 +1038,7 @@ static DaoTypeCore daoDecoderCore =
 	"Decoder",                                         /* name */
 	sizeof(DaoXCoder),                                 /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoDecoderMeths,                                   /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1072,6 +1074,7 @@ static DaoTypeCore daoEncodableCore =
 	"Encodable",                                       /* name */
 	0,                                                 /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoEncodableMeths,                                 /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1107,6 +1110,7 @@ static DaoTypeCore daoDecodableCore =
 	"Decodable",                                       /* name */
 	0,                                                 /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoDecodableMeths,                                 /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */

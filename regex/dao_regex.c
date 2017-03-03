@@ -280,6 +280,7 @@ DaoTypeCore daoOnigMatchCore =
 	"Match",                                               /* name */
 	sizeof(DaoOnigMatch),                                  /* size */
 	{ NULL },                                              /* bases */
+	{ NULL },                                              /* casts */
 	NULL,                                                  /* numbers */
 	matchMeths,                                            /* methods */
 	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
@@ -639,6 +640,7 @@ DaoTypeCore daoOnigIterCore =
 	"Iter",                                                /* name */
 	sizeof(DaoOnigIter),                                   /* size */
 	{ NULL },                                              /* bases */
+	{ NULL },                                              /* casts */
 	NULL,                                                  /* numbers */
 	iterMeths,                                             /* methods */
 	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
@@ -719,6 +721,7 @@ DaoTypeCore daoOnigRegexCore =
 	"Regex",                                               /* name */
 	sizeof(DaoOnigRegex),                                  /* size */
 	{ NULL },                                              /* bases */
+	{ NULL },                                              /* casts */
 	NULL,                                                  /* numbers */
 	regexMeths,                                            /* methods */
 	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */

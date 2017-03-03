@@ -52,10 +52,10 @@ Main features:
 --Object-Oriented Programming (OOP) with classes and mixins;
 --Abstract interface and concrete interface for advanced OOP;
 --Code section methods as a better alternative to functional methods;
+--Support closures, anonymous functions;
 --Deferred block and exception handling by defer-recover;
 --Native support for concurrent programming;
 --Concurrent garbage collection;
---Support closures, anonymous functions;
 --Designed and implemented as a register-based virtual machine;
 --Portable implementation using standard C;
 --Simple C programming interfaces for easy embedding and extending;

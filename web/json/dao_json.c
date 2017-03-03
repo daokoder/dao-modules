@@ -588,6 +588,7 @@ static DaoTypeCore daoEncodableCore =
 	"Encodable",                                       /* name */
 	0,                                                 /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoEncodableMeths,                                 /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -623,6 +624,7 @@ static DaoTypeCore daoDecodableCore =
 	"Decodable",                                       /* name */
 	0,                                                 /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoDecodableMeths,                                 /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -657,6 +659,7 @@ static DaoTypeCore daoMarshallableCore =
 	"Marshallable",                                    /* name */
 	0,                                                 /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoMarshallableMeths,                              /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -691,6 +694,7 @@ static DaoTypeCore daoUnmarshallableCore =
 	"Unmarshallable",                                  /* name */
 	0,                                                 /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoUnmarshallableMeths,                            /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */

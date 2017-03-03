@@ -386,6 +386,7 @@ static DaoTypeCore daoDecimalCore =
 	"Decimal",                                             /* name */
 	sizeof(DaoDecimal),                                    /* size */
 	{ NULL },                                              /* bases */
+	{ NULL },                                              /* casts */
 	NULL,                                                  /* numbers */
 	daoDecimalMeths,                                       /* methods */
 	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */

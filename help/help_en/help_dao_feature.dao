@@ -178,7 +178,7 @@ Changes in the internal implementation and programming interface
 
 @[list]
 --Changed DaoTypeBase to DaoTypeCore for type definition;
---Added type checking and exection functions for standard operations to DaoTypeCore;
+--Added type checking and execution functions for standard operations to DaoTypeCore;
 --Added comparison and hashing functions to DaoTypeCore;
 --Added support for sandboxed vm-spaces that share nothing but the common core data and garbage collector;
 @[list]

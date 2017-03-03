@@ -867,6 +867,7 @@ DaoTypeCore daoHeaderCore =
 	"Header",                                          /* name */
 	0,                                                 /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoHeaderMeths,                                    /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1014,6 +1015,7 @@ DaoTypeCore daoRequestHeaderCore =
 	"RequestHeader",                                   /* name */
 	sizeof(DaoHttpRequest),                            /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoRequestHeaderMeths,                             /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1149,8 +1151,9 @@ static DaoFunctionEntry daoResponseHeaderMeths[] =
 DaoTypeCore daoResponseHeaderCore =
 {
 	"ResponseHeader",                                  /* name */
-	sizeof(DaoHttpResponse),                                 /* size */
+	sizeof(DaoHttpResponse),                           /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoResponseHeaderMeths,                            /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1615,6 +1618,7 @@ DaoTypeCore daoChunkDecoderCore =
 	"ChunkDecoder",                                    /* name */
 	sizeof(DaoChunkDecoder),                           /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoChunkDecoderMeths,                              /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */

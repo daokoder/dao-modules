@@ -224,6 +224,7 @@ DaoTypeCore daoPathCore =
 	"Path",                                            /* name */
 	sizeof(DaoxPath),                                  /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoPathMeths,                                      /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -261,6 +262,7 @@ DaoTypeCore daoPathMeshCore =
 	"PathMesh",                                        /* name */
 	sizeof(DaoxPathMesh),                              /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	NULL,                                              /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -300,6 +302,7 @@ DaoTypeCore daoPathCacheCore =
 	"PathCache",                                       /* name */
 	sizeof(DaoxPathCache),                             /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	NULL,                                              /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -365,6 +368,7 @@ DaoTypeCore daoGradientCore =
 	"ColorGradient",                                   /* name */
 	sizeof(DaoxGradient),                              /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoGradientMeths,                                  /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -413,6 +417,7 @@ DaoTypeCore daoLinearGradientCore =
 	"LinearGradient",                                  /* name */
 	sizeof(DaoxGradient),                              /* size */
 	{ & daoGradientCore, NULL },                       /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoLinearGradientMeths,                            /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -455,6 +460,7 @@ DaoTypeCore daoRadialGradientCore =
 	"RadialGradient",                                  /* name */
 	sizeof(DaoxGradient),                              /* size */
 	{ & daoGradientCore, NULL },                       /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoRadialGradientMeths,                            /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -597,6 +603,7 @@ DaoTypeCore daoBrushCore =
 	"Brush",                                           /* name */
 	sizeof(DaoxBrush),                                 /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoBrushMeths,                                     /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -706,6 +713,7 @@ DaoTypeCore daoCanvasNodeCore =
 	"CanvasNode",                                      /* name */
 	sizeof(DaoxCanvasNode),                            /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoCanvasNodeMeths,                                /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -759,6 +767,7 @@ DaoTypeCore daoCanvasLineCore =
 	"CanvasLine",                                      /* name */
 	sizeof(DaoxCanvasLine),                            /* size */
 	{ & daoCanvasNodeCore, NULL },                     /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoCanvasLineMeths,                                /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -813,6 +822,7 @@ DaoTypeCore daoCanvasRectCore =
 	"CanvasRect",                                      /* name */
 	sizeof(DaoxCanvasRect),                            /* size */
 	{ & daoCanvasNodeCore, NULL },                     /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoCanvasRectMeths,                                /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -860,6 +870,7 @@ DaoTypeCore daoCanvasCircleCore =
 	"CanvasCircle",                                    /* name */
 	sizeof(DaoxCanvasCircle),                          /* size */
 	{ & daoCanvasNodeCore, NULL },                     /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoCanvasCircleMeths,                              /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -910,6 +921,7 @@ DaoTypeCore daoCanvasEllipseCore =
 	"CanvasEllipse",                                   /* name */
 	sizeof(DaoxCanvasEllipse),                         /* size */
 	{ & daoCanvasNodeCore, NULL },                     /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoCanvasEllipseMeths,                             /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -944,6 +956,7 @@ DaoTypeCore daoCanvasPathCore =
 	"CanvasPath",                                      /* name */
 	sizeof(DaoxCanvasPath),                            /* size */
 	{ & daoCanvasNodeCore, NULL },                     /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoCanvasPathMeths,                                /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -978,6 +991,7 @@ DaoTypeCore daoCanvasTextCore =
 	"CanvasText",                                      /* name */
 	sizeof(DaoxCanvasText),                            /* size */
 	{ & daoCanvasNodeCore, NULL },                     /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoCanvasTextMeths,                                /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1011,6 +1025,7 @@ DaoTypeCore daoCanvasImageCore =
 	"CanvasImage",                                     /* name */
 	sizeof(DaoxCanvasImage),                           /* size */
 	{ & daoCanvasNodeCore, NULL },                     /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoCanvasImageMeths,                               /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1219,6 +1234,7 @@ DaoTypeCore daoCanvasCore =
 	"Canvas",                                          /* name */
 	sizeof(DaoxCanvas),                                /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoCanvasMeths,                                    /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1278,6 +1294,7 @@ DaoTypeCore daoPainterCore =
 	"Painter",                                         /* name */
 	sizeof(DaoxPainter),                               /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoPainterMeths,                                   /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */

@@ -227,6 +227,7 @@ DaoTypeCore daoRandGeneratorCore =
 	"Generator",                                       /* name */
 	sizeof(DaoRandGenWrapper),                         /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoRandGeneratorMeths,                             /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */

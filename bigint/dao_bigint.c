@@ -2074,6 +2074,7 @@ static DaoTypeCore daoBigIntCore =
 	"BigInt",                                              /* name */
 	sizeof(DaoxBigInt),                                    /* size */
 	{ NULL },                                              /* bases */
+	{ NULL },                                              /* casts */
 	NULL,                                                  /* numbers */
 	daoBigIntMeths,                                        /* methods */
 	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */

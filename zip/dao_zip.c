@@ -286,6 +286,7 @@ DaoTypeCore daoZipStreamCore =
 	"Stream",                                              /* name */
 	sizeof(DaoZipStream),                                  /* size */
 	{ NULL },                                              /* bases */
+	{ NULL },                                              /* casts */
 	NULL,                                                  /* numbers */
 	zipstreamMeths,                                        /* methods */
 	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */

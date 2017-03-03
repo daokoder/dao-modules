@@ -335,6 +335,7 @@ DaoTypeCore daoScannerCore =
 	"Scanner",                                         /* name */
 	sizeof(DaoScanner),                                /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoScannerMeths,                                   /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */

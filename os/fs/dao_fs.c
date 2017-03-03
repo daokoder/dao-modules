@@ -1641,6 +1641,7 @@ DaoTypeCore daoEntryCore =
 	"Entry",                                               /* name */
 	sizeof(DInode),                                        /* size */
 	{ NULL },                                              /* bases */
+	{ NULL },                                              /* casts */
 	NULL,                                                  /* numbers */
 	daoEntryMeths,                                         /* methods */
 	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
@@ -1667,6 +1668,7 @@ DaoTypeCore daoFileCore =
 	"File",                                                /* name */
 	sizeof(DInode),                                        /* size */
 	{ & daoEntryCore, NULL },                              /* bases */
+	{ NULL },                                              /* casts */
 	NULL,                                                  /* numbers */
 	daoFileMeths,                                          /* methods */
 	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
@@ -1693,6 +1695,7 @@ DaoTypeCore daoDirCore =
 	"Dir",                                                 /* name */
 	sizeof(DInode),                                        /* size */
 	{ & daoEntryCore, NULL },                              /* bases */
+	{ NULL },                                              /* casts */
 	NULL,                                                  /* numbers */
 	daoDirMeths,                                           /* methods */
 	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */

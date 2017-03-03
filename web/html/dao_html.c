@@ -1469,6 +1469,7 @@ DaoTypeCore daoHtmlNodeCore =
 	"Node",                                            /* name */
 	sizeof(DaoxHtmlNode),                              /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxHtmlNodeMeths,                                 /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1538,6 +1539,7 @@ DaoTypeCore daoHtmlDocumentCore =
 	"Document",                                        /* name */
 	sizeof(DaoxHtmlDocument),                          /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxHtmlDocumentMeths,                             /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */

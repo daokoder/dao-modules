@@ -1877,6 +1877,7 @@ DaoTypeCore daoSocketCore =
 	"Socket",                                          /* name */
 	sizeof(DaoSocket),                                 /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoSocketMeths,                                    /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1958,6 +1959,7 @@ DaoTypeCore daoTcpStreamCore =
 	"TcpStream",                                       /* name */
 	sizeof(DaoSocket),                                 /* size */
 	{ & daoSocketCore, NULL },                         /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoTcpStreamMeths,                                 /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -2004,6 +2006,7 @@ DaoTypeCore daoTcpListenerCore =
 	"TcpListener",                                     /* name */
 	sizeof(DaoSocket),                                 /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoTcpListenerMeths,                               /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -2068,6 +2071,7 @@ DaoTypeCore daoUdpSocketCore =
 	"UdpSocket",                                       /* name */
 	sizeof(DaoSocket),                                 /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoUdpSocketMeths,                                 /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -2271,6 +2275,7 @@ DaoTypeCore daoIpv4AddrCore =
 	"Ipv4Addr",                                        /* name */
 	sizeof(DaoIpv4Addr),                               /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoIpv4AddrMeths,                                  /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -2384,6 +2389,7 @@ DaoTypeCore daoSocketAddrCore =
 	"SocketAddr",                                      /* name */
 	sizeof(DaoSocketAddr),                             /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoSocketAddrMeths,                                /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */

@@ -204,6 +204,7 @@ DaoTypeCore daoDataColumnCore =
 	"DataColumn",                               /* name */
 	sizeof(DaoxDataColumn),                     /* size */
 	{ NULL },                                   /* bases */
+	{ NULL },                                   /* casts */
 	NULL,                                       /* numbers */
 	NULL,                                       /* methods */
 	NULL,  NULL,                                /* GetField */
@@ -1935,6 +1936,7 @@ DaoTypeCore daoDataFrameCore =
 	"DataFrame",                                           /* name */
 	sizeof(DaoxDataFrame),                                 /* size */
 	{ NULL },                                              /* bases */
+	{ NULL },                                              /* casts */
 	NULL,                                                  /* numbers */
 	daoDataFrameMeths,                                     /* methods */
 	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */

@@ -1511,6 +1511,7 @@ static DaoTypeCore daoDocumentCore =
 	"Document",                                            /* name */
 	sizeof(DaoXMLDocument),                                /* size */
 	{ NULL },                                              /* bases */
+	{ NULL },                                              /* casts */
 	NULL,                                                  /* numbers */
 	xmlDocMeths,                                           /* methods */
 	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
@@ -1660,6 +1661,7 @@ static DaoTypeCore daoInstructionCore =
 	"Instruction",                                         /* name */
 	sizeof(DaoXMLNode),                                    /* size */
 	{ NULL },                                              /* bases */
+	{ NULL },                                              /* casts */
 	NULL,                                                  /* numbers */
 	xmlInstMeths,                                          /* methods */
 	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
@@ -2668,6 +2670,7 @@ static DaoTypeCore daoElementCore =
 	"Element",                                           /* name */
 	sizeof(DaoXMLNode),                                  /* size */
 	{ NULL },                                            /* bases */
+	{ NULL },                                            /* casts */
 	NULL,                                                /* numbers */
 	xmlElemMeths,                                        /* methods */
 	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,  /* GetField */
@@ -2791,6 +2794,7 @@ static DaoTypeCore daoCharDataCore =
 	"CharData",                                            /* name */
 	sizeof(DaoXMLNode),                                    /* size */
 	{ NULL },                                              /* bases */
+	{ NULL },                                              /* casts */
 	NULL,                                                  /* numbers */
 	xmlCdataMeths,                                         /* methods */
 	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
@@ -3358,6 +3362,7 @@ static DaoTypeCore daoWriterCore =
 	"Writer",                                              /* name */
 	sizeof(DaoXMLWriter),                                  /* size */
 	{ NULL },                                              /* bases */
+	{ NULL },                                              /* casts */
 	NULL,                                                  /* numbers */
 	xmlWriterMeths,                                        /* methods */
 	DaoCstruct_CheckGetField,    DaoCstruct_DoGetField,    /* GetField */
@@ -3399,6 +3404,7 @@ static DaoTypeCore daoEncodableCore =
 	"Encodable",             /* name */
 	0,                       /* size */
 	{ NULL },                /* bases */
+	{ NULL },                /* casts */
 	NULL,                    /* numbers */
 	encodableMeths,          /* methods */
 	NULL,  NULL,             /* GetField */
@@ -3433,6 +3439,7 @@ static DaoTypeCore daoDecodableCore =
 	"Decodable",             /* name */
 	0,                       /* size */
 	{ NULL },                /* bases */
+	{ NULL },                /* casts */
 	NULL,                    /* numbers */
 	encodableMeths,          /* methods */
 	NULL,  NULL,             /* GetField */

@@ -212,6 +212,7 @@ DaoTypeCore daoCoroutineCore =
 	"Coroutine<@RESUME,@SUSPEND>",                     /* name */
 	sizeof(DaoxCoroutine),                             /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoCoroutineMeths,                                 /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */

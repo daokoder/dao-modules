@@ -575,6 +575,7 @@ DaoTypeCore daoNodeCore =
 	"Node<@N=none,@E=none>",                           /* name */
 	sizeof(DaoxNode),                                  /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxNodeMeths,                                     /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -612,6 +613,7 @@ DaoTypeCore daoEdgeCore =
 	"Edge<@N=none,@E=none>",                           /* name */
 	sizeof(DaoxEdge),                                  /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxEdgeMeths,                                     /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -670,6 +672,7 @@ DaoTypeCore daoGraphCore =
 	"Graph<@N=none,@E=none>",                          /* name */
 	sizeof(DaoxGraph),                                 /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxGraphMeths,                                    /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -781,6 +784,7 @@ DaoTypeCore daoGraphDataCore =
 	"GraphData",                                       /* name */
 	0,                                                 /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxGraphDataMeths,                                /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1041,6 +1045,7 @@ DaoTypeCore daoGraphMaxFlowCore =
 	"GraphMaxFlow",                                    /* name */
 	sizeof(DaoxGraphMaxFlow),                          /* size */
 	{ & daoGraphDataCore, NULL },                      /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxGraphMFMeths,                                  /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */

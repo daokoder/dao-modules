@@ -491,6 +491,7 @@ DaoTypeCore daoImageCore =
 	"Image",                                           /* name */
 	sizeof(DaoImage),                                  /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	daoImageMeths,                                     /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -521,7 +522,7 @@ DAO_DLL_EXPORT int DaoImage_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	daox_type_image = DaoNamespace_WrapType( ns, & daoImageCore, DAO_CSTRUCT, 0 );
 
 #define DAO_API_INIT
-#include"dao_api.h"
+//#include"dao_api.h"
 
 	return 0;
 }
