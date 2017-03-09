@@ -820,7 +820,7 @@ static int DaoSerializer_DecodeValue( DaoSerializer *self, int start, int end, D
 				DaoValue_Copy( it->value.pValue, value2 );
 				break;
 			}else if( tmp == NULL ){
-				DaoCdata *cd = DaoCdata_Wrap( type, key );
+				DaoCdata *cd = DaoCdata_Wrap( process->vmSpace, type, key );
 				DaoValue_Copy( (DaoValue*) cd, value2 );
 				break;
 			}
