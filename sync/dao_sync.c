@@ -28,16 +28,10 @@
 // 2011-01: Danilov Aleksey, implementation of state and queue types.
 
 #include"dao_sync.h"
+#include"daoVmspace.h"
 
 
 #ifdef DAO_WITH_THREAD
-
-static DaoType *dao_type_mutex   = NULL;
-static DaoType *dao_type_condvar = NULL;
-static DaoType *dao_type_sema    = NULL;
-static DaoType *daox_type_DaoState = NULL;
-static DaoType *daox_type_DaoQueue = NULL;
-static DaoType *daox_type_DaoGuard = NULL;
 
 
 static void DSema_SetValue( DSema *self, int n );
@@ -109,10 +103,10 @@ void DSema_SetValue( DSema *self, int n )
 
 
 
-DaoMutex* DaoMutex_New()
+DaoMutex* DaoMutex_New( DaoType *type )
 {
 	DaoMutex* self = (DaoMutex*) dao_calloc( 1, sizeof(DaoMutex) );
-	DaoCstruct_Init( (DaoCstruct*) self, dao_type_mutex );
+	DaoCstruct_Init( (DaoCstruct*) self, type );
 	DMutex_Init( & self->myMutex );
 	return self;
 }
@@ -131,7 +125,8 @@ int DaoMutex_TryLock( DaoMutex *self )
 
 static void DaoMutex_Lib_Mutex( DaoProcess *proc, DaoValue *par[], int N )
 {
-	DaoMutex *mutex = DaoMutex_New();
+	DaoType *type = DaoProcess_GetReturnType( proc );
+	DaoMutex *mutex = DaoMutex_New( type );
 	DaoProcess_PutValue( proc, (DaoValue*) mutex );
 }
 static void DaoMutex_Lib_Lock( DaoProcess *proc, DaoValue *par[], int N )
@@ -205,10 +200,10 @@ DaoTypeCore daoMutexCore =
 
 
 /* Condition variable */
-DaoCondVar* DaoCondVar_New()
+DaoCondVar* DaoCondVar_New( DaoType *type )
 {
 	DaoCondVar* self = (DaoCondVar*) dao_calloc( 1, sizeof(DaoCondVar) );
-	DaoCstruct_Init( (DaoCstruct*) self, dao_type_condvar );
+	DaoCstruct_Init( (DaoCstruct*) self, type );
 	DCondVar_Init( & self->myCondVar );
 	return self;
 }
@@ -239,7 +234,8 @@ void DaoCondVar_BroadCast( DaoCondVar *self )
 
 static void DaoCondV_Lib_CondVar( DaoProcess *proc, DaoValue *par[], int N )
 {
-	DaoProcess_PutValue( proc, (DaoValue*)DaoCondVar_New() );
+	DaoType *type = DaoProcess_GetReturnType( proc );
+	DaoProcess_PutValue( proc, (DaoValue*)DaoCondVar_New( type ) );
 }
 static void DaoCondV_Lib_Wait( DaoProcess *proc, DaoValue *par[], int N )
 {
@@ -303,10 +299,10 @@ DaoTypeCore daoCondVarCore =
 
 /* Semaphore */
 
-DaoSema* DaoSema_New( int n )
+DaoSema* DaoSema_New( DaoType *type, int n )
 {
 	DaoSema* self = (DaoSema*) dao_calloc( 1, sizeof(DaoSema) );
-	DaoCstruct_Init( (DaoCstruct*) self, dao_type_sema );
+	DaoCstruct_Init( (DaoCstruct*) self, type );
 	DSema_Init( & self->mySema, ( n < 0 )? 0 : n );
 	return self;
 }
@@ -337,7 +333,8 @@ int  DaoSema_GetValue( DaoSema *self )
 
 static void DaoSema_Lib_Sema( DaoProcess *proc, DaoValue *par[], int N )
 {
-	DaoProcess_PutValue( proc, (DaoValue*)DaoSema_New( par[0]->xInteger.value ) );
+	DaoType *type = DaoProcess_GetReturnType( proc );
+	DaoProcess_PutValue( proc, (DaoValue*)DaoSema_New( type, par[0]->xInteger.value ) );
 }
 static void DaoSema_Lib_Wait( DaoProcess *proc, DaoValue *par[], int N )
 {
@@ -413,12 +410,14 @@ DaoTypeCore daoSemaCore =
 
 DaoState* DaoState_New( DaoType *type, DaoValue *state )
 {
+	DaoVmSpace *vmspace = DaoType_GetVmSpace( type );
+	DaoType *mtype = DaoVmSpace_GetType( vmspace, & daoMutexCore );
 	DaoState *res = dao_malloc( sizeof(DaoState) );
 	DaoCstruct_Init( (DaoCstruct*)res, type );
 	res->state = 0;
 	DaoValue_Copy( state, &res->state );
-	res->lock = DaoMutex_New();
-	res->defmtx = DaoMutex_New();
+	res->lock = DaoMutex_New( mtype );
+	res->defmtx = DaoMutex_New( mtype );
 	res->demands = DaoMap_New( 0 );
 	DaoGC_IncRC( (DaoValue*)res->lock );
 	DaoGC_IncRC( (DaoValue*)res->defmtx );
@@ -571,7 +570,8 @@ static void DaoState_WaitFor( DaoProcess *proc, DaoValue *p[], int N )
 	else{
 		condvar = (DaoCondVar*)DaoMap_GetValue( self->demands, state );
 		if( !condvar ){
-			condvar = DaoCondVar_New();
+			DaoType *cvtype = DaoVmSpace_GetType( proc->vmSpace, & daoCondVarCore );
+			condvar = DaoCondVar_New( cvtype );
 			DaoMap_Insert( self->demands, state, (DaoValue*)condvar );
 		}
 	}
@@ -670,15 +670,18 @@ DaoTypeCore daoStateCore =
 
 DaoQueue* DaoQueue_New( DaoType *type, int capacity )
 {
+	DaoVmSpace *vmspace = DaoType_GetVmSpace( type );
+	DaoType *mtype = DaoVmSpace_GetType( vmspace, & daoMutexCore );
+	DaoType *cvtype = DaoVmSpace_GetType( vmspace, & daoCondVarCore );
 	DaoQueue *res = (DaoQueue*)dao_malloc( sizeof(DaoQueue) );
 	DaoCstruct_Init( (DaoCstruct*)res, type );
 	res->head = res->tail = NULL;
 	res->size = 0;
 	res->capacity = ( ( capacity < 0 )? 0 : capacity );
-	res->mtx = DaoMutex_New();
-	res->pushvar = DaoCondVar_New();
-	res->popvar = DaoCondVar_New();
-	res->joinvar = DaoCondVar_New();
+	res->mtx = DaoMutex_New( mtype );
+	res->pushvar = DaoCondVar_New( cvtype );
+	res->popvar = DaoCondVar_New( cvtype );
+	res->joinvar = DaoCondVar_New( cvtype );
 	DaoGC_IncRC( (DaoValue*)res->mtx );
 	DaoGC_IncRC( (DaoValue*)res->pushvar );
 	DaoGC_IncRC( (DaoValue*)res->popvar );
@@ -976,13 +979,16 @@ DaoTypeCore daoQueueCore =
 
 DaoGuard* DaoGuard_New( DaoType *type, DaoValue *value )
 {
+	DaoVmSpace *vmspace = DaoType_GetVmSpace( type );
+	DaoType *mtype = DaoVmSpace_GetType( vmspace, & daoMutexCore );
+	DaoType *cvtype = DaoVmSpace_GetType( vmspace, & daoCondVarCore );
 	DaoGuard *res = dao_malloc( sizeof(DaoGuard) );
 	DaoCstruct_Init( (DaoCstruct*)res, type );
 	res->value = NULL;
 	DaoValue_Copy( value, &res->value );
 	res->read = res->write = 0;
-	res->lock = DaoMutex_New();
-	res->writevar = DaoCondVar_New();
+	res->lock = DaoMutex_New( mtype );
+	res->writevar = DaoCondVar_New( cvtype );
 	DaoGC_IncRC( (DaoValue*)res->lock );
 	DaoGC_IncRC( (DaoValue*)res->writevar );
 	return res;
@@ -1106,12 +1112,12 @@ DaoTypeCore daoGuardCore =
 DAO_DLL int DaoSync_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *mtns = DaoVmSpace_GetNamespace( vmSpace, "mt" );
-	dao_type_mutex   = DaoNamespace_WrapType( mtns, & daoMutexCore, DAO_CSTRUCT, 0 );
-	dao_type_condvar = DaoNamespace_WrapType( mtns, & daoCondVarCore, DAO_CSTRUCT, 0 );
-	dao_type_sema    = DaoNamespace_WrapType( mtns, & daoSemaCore, DAO_CSTRUCT, 0 );
-	daox_type_DaoState = DaoNamespace_WrapType( mtns, &daoStateCore, DAO_CSTRUCT, 0 );
-	daox_type_DaoQueue = DaoNamespace_WrapType( mtns, &daoQueueCore, DAO_CSTRUCT, 0 );
-	daox_type_DaoGuard = DaoNamespace_WrapType( mtns, &daoGuardCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( mtns, & daoMutexCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( mtns, & daoCondVarCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( mtns, & daoSemaCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( mtns, &daoStateCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( mtns, &daoQueueCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( mtns, &daoGuardCore, DAO_CSTRUCT, 0 );
 	return 0;
 }
 

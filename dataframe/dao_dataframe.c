@@ -40,6 +40,11 @@
 
 #ifdef DAO_WITH_NUMARRAY
 
+
+extern DaoTypeCore daoDataColumnCore;
+extern DaoTypeCore daoDataFrameCore;
+
+
 static int DaoType_GetDataSize( DaoType *self )
 {
 	switch( self->tid ){
@@ -66,13 +71,13 @@ static int DaoType_GetDataType( DaoType *self )
 
 
 
-DaoType *daox_type_datacolumn = NULL;
-
-DaoxDataColumn* DaoxDataColumn_New( DaoType *type )
+DaoxDataColumn* DaoxDataColumn_New( DaoVmSpace *vmspace, DaoType *type )
 {
 	DaoxDataColumn *self = (DaoxDataColumn*) dao_calloc( 1, sizeof(DaoxDataColumn) );
-	DaoCstruct_Init( (DaoCstruct*) self, daox_type_datacolumn );
-	if( type == NULL ) type = DaoType_GetCommonType( DAO_ANY, 0 );
+	DaoType *ctype = DaoVmSpace_GetType( vmspace, & daoDataColumnCore );
+
+	DaoCstruct_Init( (DaoCstruct*) self, ctype );
+	//if( type == NULL ) type = DaoVmSpace_GetCommonType( DAO_ANY, 0 );
 	GC_IncRC( type );
 	self->vatype = type;
 	self->cells = DArray_New( DaoType_GetDataSize( type ) );
@@ -119,7 +124,7 @@ void DaoxDataColumn_SetType( DaoxDataColumn *self, DaoType *type )
 	int datatype, datasize;
 
 	DaoxDataColumn_Reset( self, 0 );
-	if( type == NULL ) type = DaoType_GetCommonType( DAO_ANY, 0 );
+	//if( type == NULL ) type = DaoVmSpace_GetCommonType( DAO_ANY, 0 );
 	datatype = DaoType_GetDataType( type );
 	datasize = DaoType_GetDataSize( type );
 
@@ -228,13 +233,13 @@ DaoTypeCore daoDataColumnCore =
 
 
 
-DaoType *daox_type_dataframe = NULL;
-
-DaoxDataFrame* DaoxDataFrame_New()
+DaoxDataFrame* DaoxDataFrame_New( DaoVmSpace *vmspace )
 {
 	int i;
 	DaoxDataFrame *self = (DaoxDataFrame*) dao_calloc( 1, sizeof(DaoxDataFrame) );
-	DaoCstruct_Init( (DaoCstruct*) self, daox_type_dataframe );
+	DaoType *ctype = DaoVmSpace_GetType( vmspace, & daoDataFrameCore );
+
+	DaoCstruct_Init( (DaoCstruct*) self, ctype );
 	for(i=0; i<3; ++i){
 		self->dims[i] = 0;
 		self->groups[i] = 0;
@@ -284,19 +289,19 @@ void DaoxDataFrame_Reset( DaoxDataFrame *self )
 }
 DaoxDataColumn* DaoxDataFrame_MakeColumn( DaoxDataFrame *self, DaoType *type )
 {
+	DaoVmSpace *vmspace = DaoType_GetVmSpace( self->ctype );
 	if( self->caches->size ){
 		DaoxDataColumn *column = (DaoxDataColumn*) DList_Back( self->caches );
 		DaoxDataColumn_SetType( column, type );
 		DList_PopBack( self->caches );
 		return column;
 	}
-	return DaoxDataColumn_New( type );
+	return DaoxDataColumn_New( vmspace, type );
 }
 
-int DaoxDataFrame_FromMatrix( DaoxDataFrame *self, DaoArray *mat )
+int DaoxDataFrame_FromMatrix( DaoxDataFrame *self, DaoArray *mat, DaoType *etype )
 {
 	DaoxDataColumn *col;
-	DaoType *etype = DaoType_GetCommonType( mat->etype, 0 );
 	daoint i, j, k, N, M, K, MK;
 
 	DaoxDataFrame_Reset( self );
@@ -930,7 +935,8 @@ DaoxDataFrame* DaoProcess_MakeReturnDataFrame( DaoProcess *self )
 {
 	DaoVmCode *vmc = self->activeCode;
 	DaoValue *dC = self->activeValues[ vmc->c ];
-	DaoxDataFrame *df = (DaoxDataFrame*) DaoValue_CastCstruct( dC, daox_type_dataframe );
+	DaoType *ctype = DaoVmSpace_GetType( self->vmSpace, & daoDataFrameCore );
+	DaoxDataFrame *df = (DaoxDataFrame*) DaoValue_CastCstruct( dC, ctype );
 	if( df != NULL ){
 		DaoVmCode *vmc2 = vmc + 1;
 		int reuse = 0;
@@ -943,7 +949,7 @@ DaoxDataFrame* DaoProcess_MakeReturnDataFrame( DaoProcess *self )
 			return df;
 		}
 	}
-	df = DaoxDataFrame_New();
+	df = DaoxDataFrame_New( self->vmSpace );
 	DaoValue_Copy( (DaoValue*) df, & self->activeValues[ vmc->c ] );
 	return df;
 }
@@ -952,19 +958,21 @@ DaoxDataFrame* DaoProcess_MakeReturnDataFrame( DaoProcess *self )
 
 static void FRAME_New( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxDataFrame *self = DaoxDataFrame_New();
+	DaoxDataFrame *self = DaoxDataFrame_New( proc->vmSpace );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void FRAME_NewMatrix( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxDataFrame *self = DaoxDataFrame_New();
+	DaoxDataFrame *self = DaoxDataFrame_New( proc->vmSpace );
+	DaoType *etype = DaoVmSpace_GetCommonType( proc->vmSpace, p[0]->xArray.etype, 0 );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
-	DaoxDataFrame_FromMatrix( self, (DaoArray*) p[0] );
+	DaoxDataFrame_FromMatrix( self, (DaoArray*) p[0], etype );
 }
 static void FRAME_FromMatrix( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxDataFrame *self = (DaoxDataFrame*) p[0];
-	DaoxDataFrame_FromMatrix( self, (DaoArray*) p[1] );
+	DaoType *etype = DaoVmSpace_GetCommonType( proc->vmSpace, p[0]->xArray.etype, 0 );
+	DaoxDataFrame_FromMatrix( self, (DaoArray*) p[1], etype );
 }
 static void FRAME_Size( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1006,7 +1014,7 @@ static void FRAME_AddArrayCol( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxDataFrame *self = (DaoxDataFrame*) p[0];
 	DaoArray *array = (DaoArray*) p[1];
 	DString *lab = DaoValue_TryGetString( p[2] );
-	DaoType *etype = DaoType_GetCommonType( array->etype, 0 );
+	DaoType *etype = DaoVmSpace_GetCommonType( proc->vmSpace, array->etype, 0 );
 	daoint i, M = self->dims[0] * self->dims[2];
 
 	DaoxDataFrame_Sliced( self );
@@ -1033,7 +1041,7 @@ static void FRAME_AddListCol( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxDataFrame *self = (DaoxDataFrame*) p[0];
 	DaoList *list = (DaoList*) p[1];
 	DString *lab = DaoValue_TryGetString( p[2] );
-	DaoType *etype = DaoType_GetCommonType( DAO_ANY, 0 );
+	DaoType *etype = DaoVmSpace_GetCommonType( proc->vmSpace, DAO_ANY, 0 );
 	daoint i, M = self->dims[0] * self->dims[2];
 
 	if( list->ctype && list->ctype->args->size ){
@@ -1109,6 +1117,7 @@ static void FRAME_GETMI( DaoProcess *proc, DaoValue *p[], int N )
 }
 static void FRAME_SETMI( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *ctype = DaoVmSpace_GetType( proc->vmSpace, & daoDataFrameCore );
 	DaoxDataFrame *df, *self = (DaoxDataFrame*) p[0];
 	DaoValue *value = p[1];
 	int singleIndex1 = DaoxDF_IsSingleIndex( p[2] );
@@ -1126,7 +1135,7 @@ static void FRAME_SETMI( DaoProcess *proc, DaoValue *p[], int N )
 	}else{
 		int rc = 0;
 		DaoxDataFrame df2 = *self;
-		df = (DaoxDataFrame*) DaoValue_CastCstruct( value, daox_type_dataframe );
+		df = (DaoxDataFrame*) DaoValue_CastCstruct( value, ctype );
 		DaoxDataFrame_PrepareSlices( self );
 		DaoxDataFrame_MakeSlice( self, proc, p+2, N-2, self->slices );
 		df2.original = self;
@@ -1170,8 +1179,8 @@ static void FRAME_PRINT( DaoProcess *proc, DaoValue *p[], int n )
 	DaoxDataFrame *self = (DaoxDataFrame*) p[0];
 	DaoxDataFrame *original = self->original;
 	DaoStream *stream = (DaoStream*) DaoValue_CastStream( casting ? p[2] : p[1] );
-	DaoStream *sstream = DaoStream_New();
-	DaoStream *sstream2 = DaoStream_New();
+	DaoStream *sstream = DaoStream_New( proc->vmSpace );
+	DaoStream *sstream2 = DaoStream_New( proc->vmSpace );
 	DaoValue valueBuffer, *nulls[3] = {NULL,NULL,NULL};
 	DArray *rlabwidth = DArray_New( sizeof(int) );
 	DArray *clabwidth = DArray_New( sizeof(int) );
@@ -1875,6 +1884,7 @@ static DaoType* DaoxDataFrame_CheckBinary( DaoType *self, DaoVmCode *op, DaoType
 
 DaoValue* DaoxDataFrame_DoBinary( DaoValue *self, DaoVmCode *op, DaoValue *args[2], DaoProcess *proc )
 {
+	DaoType *ctype = DaoVmSpace_GetType( proc->vmSpace, & daoDataFrameCore );
 	DaoxDataFrame *frame = (DaoxDataFrame*) self;
 	DaoCstruct *B;
 
@@ -1902,7 +1912,7 @@ DaoValue* DaoxDataFrame_DoBinary( DaoValue *self, DaoVmCode *op, DaoValue *args[
 		return self;
 	}
 
-	B = DaoValue_CastCstruct( args[1], daox_type_dataframe );
+	B = DaoValue_CastCstruct( args[1], ctype );
 	if( B != NULL ){
 		int rc = DaoxDataFrame_UpdateByFrame( frame, (DaoxDataFrame*) B, op->code );
 		if( rc == DAOX_DF_WRONG_SHAP ){
@@ -1961,8 +1971,8 @@ DaoTypeCore daoDataFrameCore =
 
 DAO_DLL int DaoDataframe_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	daox_type_datacolumn = DaoNamespace_WrapType( ns, & daoDataColumnCore, DAO_CSTRUCT, 0 );
-	daox_type_dataframe = DaoNamespace_WrapType( ns, & daoDataFrameCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( ns, & daoDataColumnCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( ns, & daoDataFrameCore, DAO_CSTRUCT, 0 );
 	DaoNamespace_DefineType( ns, "enum<row,column,depth>", "DataFrame_DimType" );
 	DaoNamespace_DefineType( ns, "none|int|string|tuple<none,none>|tuple<int,int>|tuple<string,string>|tuple<int|string,none>|tuple<none,int|string>", "DataFrame_IndexType" );
 	return 0;

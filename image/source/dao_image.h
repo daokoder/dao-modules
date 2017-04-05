@@ -74,9 +74,7 @@ struct DaoImage
 #endif
 
 
-DAO_API( IMAGE, DaoType*, DaoImage_Type, () );
-
-DAO_API( IMAGE, DaoImage*, DaoImage_New, () );
+DAO_API( IMAGE, DaoImage*, DaoImage_New, (DaoType *type) );
 DAO_API( IMAGE, void, DaoImage_Delete, (DaoImage *self) );
 
 DAO_API( IMAGE, void, DaoImage_Resize, (DaoImage *self, int width, int height) );

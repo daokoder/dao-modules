@@ -71,7 +71,6 @@ static void ZIP_Decompress( DaoProcess *proc, DaoValue *p[], int N )
 }
 
 
-DaoType *daox_type_zipstream = NULL;
 
 DaoZipStream* DaoZipStream_New()
 {
@@ -142,6 +141,8 @@ int DaoZipStream_Write( DaoZipStream *self, DString *data )
 
 static void ZIP_Open( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *retype = DaoProcess_GetReturnType( proc );
+
 	char *mode = p[1]->xString.value->chars;
 	if ( ( *mode != 'r' && *mode != 'w' ) || *( mode + 1 ) != '\0' )
 		DaoProcess_RaiseError( proc, "Param", "Only 'r' and 'w' modes are supported" );
@@ -150,7 +151,7 @@ static void ZIP_Open( DaoProcess *proc, DaoValue *p[], int N )
 		if ( p[0]->type == DAO_STRING ){
 			DString *file = p[0]->xString.value;
 			if ( DaoZipStream_Open( res, fopen( file->chars, mode ), *mode == 'r' ) )
-				DaoProcess_PutCdata( proc, res, daox_type_zipstream );
+				DaoProcess_PutCdata( proc, res, retype );
 			else {
 				char errbuf[512];
 				snprintf( errbuf, sizeof(errbuf), "Failed to open file '%s'", file->chars );
@@ -160,7 +161,7 @@ static void ZIP_Open( DaoProcess *proc, DaoValue *p[], int N )
 		}
 		else {
 			if ( DaoZipStream_Open( res, fdopen( p[0]->xInteger.value, mode ), *mode == 'r' ) )
-				DaoProcess_PutCdata( proc, res, daox_type_zipstream );
+				DaoProcess_PutCdata( proc, res, retype );
 			else {
 				char errbuf[100];
 				int fn = p[0]->xInteger.value;
@@ -321,7 +322,7 @@ static DaoFunctionEntry zipMeths[]=
 DAO_DLL int DaoZip_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	ns = DaoNamespace_GetNamespace( ns, "zip" );
-	daox_type_zipstream = DaoNamespace_WrapType( ns, & daoZipStreamCore, DAO_CDATA, 0 );
+	DaoNamespace_WrapType( ns, & daoZipStreamCore, DAO_CDATA, 0 );
 	DaoNamespace_WrapFunctions( ns, zipMeths );
 	return 0;
 }

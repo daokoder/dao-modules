@@ -140,8 +140,8 @@ struct DaoOSProcess
 	int detached;
 };
 
-static DaoType *daox_type_process = NULL;
-static DaoType *daox_type_pipe = NULL;
+extern DaoTypeCore daoPipeCore;
+extern DaoTypeCore daoOSProcessCore;
 
 
 static void GetError( char *buf, size_t size )
@@ -791,14 +791,15 @@ int GetFile( DaoFileStream *stream, fd_t *fd )
 
 int GetStdStream( DaoProcess *proc, DaoValue *value, DaoValue **dest, DaoPipe **pipe, fd_t *fd, pipe_end end )
 {
+	DaoType *pipetype = DaoVmSpace_GetType( proc->vmSpace, & daoPipeCore );
 	if ( value ){
-		if ( value->xCdata.ctype == daox_type_pipe )
+		if ( value->xCdata.ctype == pipetype )
 			DaoValue_Copy( value, dest );
 		else
 			return GetFile( (DaoFileStream*) value, fd );
 	}
 	else
-		DaoGC_Assign( dest, (DaoValue*) DaoProcess_NewCdata( proc, daox_type_pipe, DaoPipe_New(), 1 ) );
+		DaoGC_Assign( dest, (DaoValue*) DaoProcess_NewCdata( proc, pipetype, DaoPipe_New(), 1 ) );
 	*pipe = (DaoPipe*)DaoValue_TryGetCdata( *dest );
 	if ( !value && ( !DaoPipe_Init( *pipe ) || !DaoPipe_SetBlocking( *pipe, end, 0 ) ) )
 		return 0;
@@ -827,6 +828,7 @@ void CloseUnused( DaoPipe *pipe, pipe_end end, fd_t fd )
 DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd, DaoList *args, DString *dir, DaoList *env,
 							  DaoValue *inpipe, DaoValue *outpipe, DaoValue *errpipe, int detached )
 {
+	DaoType *proctype = DaoVmSpace_GetType( proc->vmSpace, & daoOSProcessCore );
 	DaoPipe *pin = NULL, *pout = NULL, *perr = NULL;
 	fd_t fin, fout, ferr;
 	DaoValue *value = NULL;
@@ -1031,7 +1033,7 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 	CloseUnused( pin, Pipe_Read, fin );
 	self->state = Process_Active;
 	self->detached = detached;
-	value = (DaoValue*)DaoProcess_NewCdata( proc, daox_type_process, self, 1 );
+	value = (DaoValue*)DaoProcess_NewCdata( proc, proctype, self, 1 );
 	// introducing process to the child tracker
 	if ( !detached ){
 		char key[sizeof(void*)*2];
@@ -1087,7 +1089,8 @@ int CheckEnv( DaoList *env, DaoProcess *proc )
 
 int CheckStream( DaoProcess *proc, DaoValue *value, int read )
 {
-	if ( value->xCdata.ctype != daox_type_pipe ){
+	DaoType *pipetype = DaoVmSpace_GetType( proc->vmSpace, & daoPipeCore );
+	if ( value->xCdata.ctype != pipetype ){
 		DaoFileStream *stream = (DaoFileStream*) value;
 		if ( !stream->file ){
 			DaoProcess_RaiseError( proc, "Value", "Not an open file stream" );
@@ -1543,6 +1546,7 @@ End:
 
 static void OS_Pipe( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *pipetype = DaoVmSpace_GetType( proc->vmSpace, & daoPipeCore );
 	DaoPipe *res = DaoPipe_New();
 	res->autoclose = p[0]->xBoolean.value;
 	if ( !DaoPipe_Init( res ) ){
@@ -1550,11 +1554,12 @@ static void OS_Pipe( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, "Pipe", "Failed to create pipe" );
 	}
 	else
-		DaoProcess_PutCdata( proc, res, daox_type_pipe );
+		DaoProcess_PutCdata( proc, res, pipetype );
 }
 
 static void OS_Mkfifo( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *pipetype = DaoVmSpace_GetType( proc->vmSpace, & daoPipeCore );
 	DaoPipe *pipe = DaoPipe_New();
 	DString *name = p[0]->xString.value;
 	DString *mode = p[1]->xString.value;
@@ -1626,11 +1631,12 @@ static void OS_Mkfifo( DaoProcess *proc, DaoValue *p[], int N )
 		DaoPipe_Delete( pipe );
 	}
 	else
-		DaoProcess_PutCdata( proc, pipe, daox_type_pipe );
+		DaoProcess_PutCdata( proc, pipe, pipetype );
 }
 
 static void OS_Open( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *pipetype = DaoVmSpace_GetType( proc->vmSpace, & daoPipeCore );
 	DaoPipe *pipe = DaoPipe_New();
 	DString *name = p[0]->xString.value;
 	DString *mode = p[1]->xString.value;
@@ -1697,7 +1703,7 @@ static void OS_Open( DaoProcess *proc, DaoValue *p[], int N )
 		DaoPipe_Delete( pipe );
 	}
 	else
-		DaoProcess_PutCdata( proc, pipe, daox_type_pipe );
+		DaoProcess_PutCdata( proc, pipe, pipetype );
 }
 
 static DaoFunctionEntry daoOsMeths[] =
@@ -1785,11 +1791,11 @@ DAO_DLL int DaoProcess_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace *streamns = DaoVmSpace_LinkModule( vmSpace, ns, "stream" );
 	DaoNamespace *osns = DaoVmSpace_GetNamespace( vmSpace, "os" );
 	DaoNamespace_AddConstValue( ns, "os", (DaoValue*)osns );
-	daox_type_pipe = DaoNamespace_WrapType( osns, &daoPipeCore, DAO_CDATA, 0 );
+	DaoNamespace_WrapType( osns, &daoPipeCore, DAO_CDATA, 0 );
 
 #ifdef DAO_WITH_THREAD
 	DMutex_Init( &proc_mtx );
-	daox_type_process = DaoNamespace_WrapType( osns, &daoOSProcessCore, DAO_CDATA, 0 );
+	DaoNamespace_WrapType( osns, &daoOSProcessCore, DAO_CDATA, 0 );
 #else
 	DaoStream_WriteChars( vmSpace->errorStream, "WARNING: Module \"os.process\" is incomplete without Dao threading support!\n" );
 #endif

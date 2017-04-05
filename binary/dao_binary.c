@@ -629,8 +629,6 @@ static DaoFunctionEntry binMeths[] =
 	{ NULL, NULL }
 };
 
-static DaoType *daox_type_encoder;
-static DaoType *daox_type_decoder;
 
 void DaoXCoder_Delete( DaoXCoder *self )
 {
@@ -640,10 +638,11 @@ void DaoXCoder_Delete( DaoXCoder *self )
 
 static void DaoEncoder_Create( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *retype = DaoProcess_GetReturnType( proc );
 	DaoXCoder *res = (DaoXCoder*)dao_malloc( sizeof(DaoXCoder) );
 	res->counter = 0;
 	if ( N == 0 ){
-		res->stream = DaoStream_New();
+		res->stream = DaoStream_New( proc->vmSpace );
 		DaoStream_SetStringMode( res->stream );
 		DaoGC_IncRC( (DaoValue*) res->stream );
 	}
@@ -659,7 +658,7 @@ static void DaoEncoder_Create( DaoProcess *proc, DaoValue *p[], int N )
 			return;
 		}
 	}
-	DaoProcess_PutCdata( proc, res, daox_type_encoder );
+	DaoProcess_PutCdata( proc, res, retype );
 }
 
 static void DaoXCoder_Stream( DaoProcess *proc, DaoValue *p[], int N )
@@ -861,6 +860,7 @@ static DaoTypeCore daoEncoderCore =
 
 static void DaoDecoder_Create( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *retype = DaoProcess_GetReturnType( proc );
 	DaoXCoder *res = (DaoXCoder*)dao_malloc( sizeof(DaoXCoder) );
 	DaoStream *stream = &p[0]->xStream;
 	res->counter = 0;
@@ -873,7 +873,7 @@ static void DaoDecoder_Create( DaoProcess *proc, DaoValue *p[], int N )
 		dao_free( res );
 		return;
 	}
-	DaoProcess_PutCdata( proc, res, daox_type_decoder );
+	DaoProcess_PutCdata( proc, res, retype );
 }
 
 uint64_t DaoDecoder_ReadInteger( DaoXCoder *self, int size )
@@ -1142,8 +1142,8 @@ DAO_DLL int DaoBinary_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 		return 1;
 	}
 	binns = DaoNamespace_GetNamespace( ns, "bin" );
-	daox_type_encoder = DaoNamespace_WrapType( binns, &daoEncoderCore, DAO_CDATA, 0 );
-	daox_type_decoder = DaoNamespace_WrapType( binns, &daoDecoderCore, DAO_CDATA, 0 );
+	DaoNamespace_WrapType( binns, &daoEncoderCore, DAO_CDATA, 0 );
+	DaoNamespace_WrapType( binns, &daoDecoderCore, DAO_CDATA, 0 );
 	DaoNamespace_WrapInterface( binns, &daoEncodableCore );
 	DaoNamespace_WrapInterface( binns, &daoDecodableCore );
 	DaoNamespace_WrapFunctions( binns, binMeths );

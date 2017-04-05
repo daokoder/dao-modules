@@ -39,14 +39,9 @@
 #include"dao_api.h"
 
 
-static DaoType *daox_type_header = NULL;
-static DaoType *daox_type_request = NULL;
-static DaoType *daox_type_response = NULL;
-static DaoType *daox_type_chunkDecoder = NULL;
-
-DaoHttpRequest* DaoHttpRequest_New()
+DaoHttpRequest* DaoHttpRequest_New( DaoType *type )
 {
-	DaoCstruct *cstruct = DaoCstruct_New( daox_type_request, sizeof(DaoHttpRequest) );
+	DaoCstruct *cstruct = DaoCstruct_New( type, sizeof(DaoHttpRequest) );
 	DaoHttpRequest *self = (DaoHttpRequest*) cstruct;
 	self->method = DString_New();
 	self->uri = DString_New();
@@ -67,9 +62,9 @@ void DaoHttpRequest_Delete( DaoHttpRequest *self )
 	DaoCstruct_Delete( (DaoCstruct*) self );
 }
 
-DaoHttpResponse* DaoHttpResponse_New()
+DaoHttpResponse* DaoHttpResponse_New( DaoType *type )
 {
-	DaoCstruct *cstruct = DaoCstruct_New( daox_type_response, sizeof(DaoHttpResponse) );
+	DaoCstruct *cstruct = DaoCstruct_New( type, sizeof(DaoHttpResponse) );
 	DaoHttpResponse *self = (DaoHttpResponse*) cstruct;
 	self->version = DString_New();
 	self->reason = DString_New();
@@ -1194,10 +1189,13 @@ void GetParsingErrorMsg( http_err_t error, char *buffer, size_t size )
 
 static void HTTP_AcceptRequest( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *retype = DaoProcess_GetReturnType( proc );
 	DString *msg = p[0]->xString.value;
 	daoint end = DString_FindChars( msg, "\r\n\r\n", 0 );
+
+	retype = DaoType_GetVariantItem( retype, 0 );
 	if ( end >= 0 ){
-		DaoHttpRequest *res = DaoHttpRequest_New();
+		DaoHttpRequest *res = DaoHttpRequest_New( retype );
 		http_err_t err = DaoHttpRequest_Parse( res, msg, end );
 		if ( !err )
 			 DaoProcess_PutValue( proc, (DaoValue*) res );
@@ -1215,10 +1213,13 @@ static void HTTP_AcceptRequest( DaoProcess *proc, DaoValue *p[], int N )
 
 static void HTTP_AcceptResponse( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *retype = DaoProcess_GetReturnType( proc );
 	DString *msg = p[0]->xString.value;
 	daoint end = DString_FindChars( msg, "\r\n\r\n", 0 );
+
+	retype = DaoType_GetVariantItem( retype, 0 );
 	if ( end >= 0 ){
-		DaoHttpResponse *res = DaoHttpResponse_New();
+		DaoHttpResponse *res = DaoHttpResponse_New( retype );
 		http_err_t err = DaoHttpResponse_Parse( res, msg, end );
 		if ( !err )
 			 DaoProcess_PutValue( proc, (DaoValue*) res );
@@ -1426,9 +1427,9 @@ static void HTTP_InitResponse( DaoProcess *proc, DaoValue *p[], int N )
 	DString_AppendChars( resp, "\r\n" );
 }
 
-DaoChunkDecoder* DaoChunkDecoder_New()
+DaoChunkDecoder* DaoChunkDecoder_New( DaoType *type )
 {
-	DaoCstruct *cstruct = DaoCstruct_New( daox_type_chunkDecoder, sizeof(DaoChunkDecoder) );
+	DaoCstruct *cstruct = DaoCstruct_New( type, sizeof(DaoChunkDecoder) );
 	DaoChunkDecoder *self = (DaoChunkDecoder*) cstruct;
 	self->status = Status_Idle;
 	self->pending = 0;
@@ -1445,7 +1446,8 @@ void DaoChunkDecoder_Delete( DaoChunkDecoder *self )
 
 static void DaoChunkDecoder_Create( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoChunkDecoder *self = DaoChunkDecoder_New();
+	DaoType *retype = DaoProcess_GetReturnType( proc );
+	DaoChunkDecoder *self = DaoChunkDecoder_New( retype );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 
@@ -1925,10 +1927,10 @@ DAO_DLL int DaoHttp_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace *httpns = DaoVmSpace_GetNamespace( vmSpace, "http" );
 	DaoNamespace_AddConstValue( ns, "http", (DaoValue*)httpns );
 	DaoNamespace_AddParent( httpns, ns );
-	daox_type_header = DaoNamespace_WrapType( httpns, &daoHeaderCore, DAO_CSTRUCT, 0 );
-	daox_type_request = DaoNamespace_WrapType( httpns, &daoRequestHeaderCore, DAO_CSTRUCT, 0 );
-	daox_type_response = DaoNamespace_WrapType( httpns, &daoResponseHeaderCore, DAO_CSTRUCT, 0 );
-	daox_type_chunkDecoder = DaoNamespace_WrapType( httpns, &daoChunkDecoderCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( httpns, &daoHeaderCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( httpns, &daoRequestHeaderCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( httpns, &daoResponseHeaderCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( httpns, &daoChunkDecoderCore, DAO_CSTRUCT, 0 );
 	DaoNamespace_DefineType( httpns, "tuple<name: string, params: map<string,string>>", "MediaType" );
 	DaoNamespace_WrapFunctions( httpns, httpMeths );
 	return 0;

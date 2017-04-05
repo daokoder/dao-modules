@@ -60,11 +60,6 @@ struct DaoDecimal
 #endif
 
 
-DAO_API( DECIMAL, DaoType*, DaoDecimal_Type, () );
-
-DAO_API( DECIMAL, DaoDecimal*, DaoDecimal_New, () );
-DAO_API( DECIMAL, void, DaoDecimal_Delete, (DaoDecimal *self) );
-
 DAO_API( DECIMAL, void, DaoDecimal_FromString, (DaoDecimal *self, DString *in, DaoProcess*) );
 DAO_API( DECIMAL, void, DaoDecimal_ToString, (DaoDecimal *self, DString *out) );
 

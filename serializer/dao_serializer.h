@@ -67,7 +67,7 @@ struct DaoSerializer
 
 #endif
 
-DAO_API( SERIAL, DaoSerializer*, DaoSerializer_New, () );
+DAO_API( SERIAL, DaoSerializer*, DaoSerializer_New, (DaoVmSpace *vmspace) );
 DAO_API( SERIAL, void, DaoSerializer_Delete, (DaoSerializer *self) );
 DAO_API( SERIAL, void, DaoSerializer_Reset, (DaoSerializer *self, DaoNamespace *ns) );
 DAO_API( SERIAL, DString*, DaoSerializer_Encode, (DaoSerializer *self, DaoValue *values[], int count ) );

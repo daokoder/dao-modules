@@ -182,13 +182,14 @@ static void DaoDeserializeString( DString *serial, DString *source )
 
 
 
-DaoType *daox_type_serializer = NULL;
+extern DaoTypeCore daoSerializerCore;
 
 
-DaoSerializer* DaoSerializer_New( )
+DaoSerializer* DaoSerializer_New( DaoVmSpace *vmspace )
 {
 	DaoSerializer *self = (DaoSerializer*) dao_calloc( 1, sizeof(DaoSerializer) );
-	DaoCstruct_Init( (DaoCstruct*)self, daox_type_serializer );
+	DaoType *ctype = DaoVmSpace_GetType( vmspace, & daoSerializerCore );
+	DaoCstruct_Init( (DaoCstruct*)self, ctype );
 	self->error = 0;
 	self->nspace = NULL;
 	self->parser = NULL;
@@ -1664,7 +1665,7 @@ DAO_SERIAL_DLL int DaoSerializer_OnLoad2( DaoVmSpace *vmSpace, DaoNamespace *ns 
 
 static void SERIAL_New( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoSerializer *self = DaoSerializer_New();
+	DaoSerializer *self = DaoSerializer_New( proc->vmSpace );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void SERIAL_Encode( DaoProcess *proc, DaoValue *p[], int N )
@@ -1752,7 +1753,7 @@ DaoTypeCore daoSerializerCore =
 
 DAO_DLL_EXPORT int DaoSerializer_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	daox_type_serializer = DaoNamespace_WrapType( ns, & daoSerializerCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( ns, & daoSerializerCore, DAO_CSTRUCT, 0 );
 
 #define DAO_API_INIT
 #include"dao_api.h"

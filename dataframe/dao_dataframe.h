@@ -51,9 +51,7 @@ struct DaoxDataColumn
 	DArray   *cells;   // DArray<daoint|float|double|complex|DString | DaoValue* >
 };
 
-DAO_DLL DaoType *daox_type_datacolumn;
-
-DAO_DLL DaoxDataColumn* DaoxDataColumn_New( DaoType *type );
+DAO_DLL DaoxDataColumn* DaoxDataColumn_New( DaoVmSpace *vmspace, DaoType *type );
 DAO_DLL void DaoxDataColumn_Delete( DaoxDataColumn *self );
 
 DAO_DLL void DaoxDataColumn_Reset( DaoxDataColumn *self, daoint size );
@@ -78,15 +76,13 @@ struct DaoxDataFrame
 	DArray         *slices;    // see comments in daoNumtype.h;
 };
 
-DAO_DLL DaoType *daox_type_dataframe;
-
-DAO_DLL DaoxDataFrame* DaoxDataFrame_New();
+DAO_DLL DaoxDataFrame* DaoxDataFrame_New( DaoVmSpace *vmspace );
 DAO_DLL void DaoxDataFrame_Delete( DaoxDataFrame *self );
 
 DAO_DLL void DaoxDataFrame_Clear( DaoxDataFrame *self );
 DAO_DLL void DaoxDataFrame_Reset( DaoxDataFrame *self );
 
-DAO_DLL int DaoxDataFrame_FromMatrix( DaoxDataFrame *self, DaoArray *matrix );
+DAO_DLL int DaoxDataFrame_FromMatrix( DaoxDataFrame *self, DaoArray *matrix, DaoType *type );
 
 DAO_DLL void DaoxDataFrame_UseLabels( DaoxDataFrame *self, int dim, int group );
 DAO_DLL void DaoxDataFrame_AddLabels( DaoxDataFrame *self, int dim, DMap *labels );

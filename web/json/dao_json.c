@@ -35,12 +35,10 @@
 #include"dao.h"
 #include"daoValue.h"
 #include"daoNamespace.h"
+#include"daoVmspace.h"
 #include"daoProcess.h"
 
 static const char jsonerr[] = "JSON";
-static DaoType *booltype;
-static DaoType *json_list_type;
-static DaoType *json_map_type;
 
 typedef enum {
 	InvalidKeyType = -1,
@@ -357,10 +355,13 @@ DaoValue* JSON_ParseObject( DaoProcess *process, DaoValue *object, char* *text, 
 
 DaoValue* JSON_ParseArray( DaoProcess *process, DaoValue *exlist, char* *text, int *error, int *line )
 {
-	char* data;
+	DaoNamespace *jsonns = DaoVmSpace_GetNamespace( process->vmSpace, "json" );
+	DaoType *json_list_type = DaoNamespace_FindTypeChars( jsonns, "Array" );
 	DaoList *list = exlist? (DaoList*)exlist : DaoProcess_NewList( process );
 	DaoValue *value;
 	int coma = 0;
+	char* data;
+
 	(*text)++;
 	DaoList_SetType( list, json_list_type );
 	for( ;; ){
@@ -415,11 +416,14 @@ DaoValue* JSON_ParseArray( DaoProcess *process, DaoValue *exlist, char* *text, i
 
 DaoValue* JSON_ParseObject( DaoProcess *process, DaoValue *exmap, char* *text, int *error, int *line )
 {
-	char* data;
+	DaoNamespace *jsonns = DaoVmSpace_GetNamespace( process->vmSpace, "json" );
+	DaoType *json_map_type = DaoNamespace_FindTypeChars( jsonns, "Object" );
 	DaoMap *map = exmap? (DaoMap*)exmap : DaoProcess_NewMap( process, 0 );
 	DaoValue *key, *value;
 	DaoValue **val = &key;
 	int coma = 0, colon = 0;
+	char* data;
+
 	(*text)++;
 	DaoMap_SetType( map, json_map_type );
 	for( ;; ){
@@ -718,11 +722,13 @@ static DaoTypeCore daoUnmarshallableCore =
 
 DAO_DLL int DaoJson_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	DaoNamespace *jsonns;
-	jsonns = DaoNamespace_GetNamespace( ns, "json" );
+	DaoNamespace *jsonns = DaoVmSpace_GetNamespace( vmSpace, "json" );
+
+	DaoNamespace_AddConstValue( ns, "json", (DaoValue*) jsonns );
+
 	DaoNamespace_DefineType( jsonns, "none|bool|int|float|string|list<Data>|map<string,Data>", "Data" );
-	json_list_type = DaoNamespace_DefineType( jsonns, "list<Data>", "Array" );
-	json_map_type = DaoNamespace_DefineType( jsonns, "map<string,Data>", "Object" );
+	DaoNamespace_DefineType( jsonns, "list<Data>", "Array" );
+	DaoNamespace_DefineType( jsonns, "map<string,Data>", "Object" );
 	DaoNamespace_WrapInterface( jsonns, &daoEncodableCore );
 	DaoNamespace_WrapInterface( jsonns, &daoDecodableCore );
 	DaoNamespace_WrapInterface( jsonns, &daoMarshallableCore );

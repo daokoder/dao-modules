@@ -35,6 +35,7 @@
 #include "daoValue.h"
 #include "daoStdtype.h"
 #include "daoProcess.h"
+#include "daoVmspace.h"
 
 typedef struct DaoHtmlContext DaoHtmlContext;
 
@@ -826,17 +827,18 @@ struct DaoxHtmlNode
 	DString           *text;
 	short              html;
 };
-DaoType *daox_type_html_node;
-DaoType *daox_type_html_document_node;
-DaoType *daox_type_html_element_node;
-DaoType *daox_type_html_text_node;
+
+extern DaoTypeCore daoHtmlNodeCore;
 
 
 
 DaoxHtmlNode* DaoxHtmlNode_New( DaoxHtmlDocument *document )
 {
+	DaoCstruct *cstruct = (DaoCstruct*) document;
+	DaoVmSpace *vmspace = DaoType_GetVmSpace( cstruct->ctype );
+	DaoType *type = DaoVmSpace_GetType( vmspace, & daoHtmlNodeCore );
 	DaoxHtmlNode *self = (DaoxHtmlNode*) dao_calloc(1, sizeof(DaoxHtmlNode));
-	DaoCstruct_Init( (DaoCstruct*)self, daox_type_html_node );
+	DaoCstruct_Init( (DaoCstruct*)self, type );
 	self->text = DString_New();
 	self->document = document;
 	GC_IncRC( document );
@@ -910,15 +912,14 @@ struct DaoxHtmlDocument
 	DMap         *tags; /* TODO: move elsewhere; */
 	daoint        useCount;
 };
-DaoType *daox_type_html_document;
 
 
 
-DaoxHtmlDocument* DaoxHtmlDocument_New()
+DaoxHtmlDocument* DaoxHtmlDocument_New( DaoType *type )
 {
 	int i;
 	DaoxHtmlDocument *self = (DaoxHtmlDocument*) dao_calloc(1, sizeof(DaoxHtmlDocument));
-	DaoCstruct_Init( (DaoCstruct*)self, daox_type_html_document );
+	DaoCstruct_Init( (DaoCstruct*)self, type );
 	self->strings = DList_New( DAO_DATA_STRING );
 	self->allWrappers = DList_New( DAO_DATA_VALUE );
 	self->freeWrappers = DList_New(0);
@@ -1494,7 +1495,8 @@ DaoTypeCore daoHtmlNodeCore =
 
 static void DOC_New( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxHtmlDocument *self = DaoxHtmlDocument_New();
+	DaoType *retype = DaoProcess_GetReturnType( proc );
+	DaoxHtmlDocument *self = DaoxHtmlDocument_New( retype );
 	DString *source = p[0]->xString.value;
 	DaoxHtmlDocument_Parse( self, source );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
@@ -1566,8 +1568,8 @@ DAO_DLL int DaoHtml_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *htmlns = DaoNamespace_GetNamespace( ns, "html" );
 
-	daox_type_html_node = DaoNamespace_WrapType( htmlns, & daoHtmlNodeCore, DAO_CSTRUCT, 0 );
-	daox_type_html_document = DaoNamespace_WrapType( htmlns, & daoHtmlDocumentCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( htmlns, & daoHtmlNodeCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( htmlns, & daoHtmlDocumentCore, DAO_CSTRUCT, 0 );
 
 	DaoNamespace_DefineType( htmlns, html_global_attr, "GlobalAttr" );
 	DaoNamespace_DefineType( htmlns, html_step_attr, "Step" );

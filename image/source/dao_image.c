@@ -37,21 +37,15 @@
 #include "micro_jpeg.h"
 
 
-DaoType *daox_type_image = NULL;
 
-DaoType* DaoImage_Type()
-{
-	return daox_type_image;
-}
-
-
-DaoImage* DaoImage_New()
+DaoImage* DaoImage_New( DaoType *type )
 {
 	DaoImage *self = (DaoImage*) dao_calloc( 1, sizeof(DaoImage) );
-	DaoCstruct_Init( (DaoCstruct*)self, daox_type_image );
+	DaoCstruct_Init( (DaoCstruct*)self, type );
 	self->depth = DAOX_IMAGE_BIT32;
 	return self;
 }
+
 void DaoImage_Delete( DaoImage *self )
 {
 	DaoCstruct_Free( (DaoCstruct*) self );
@@ -404,7 +398,8 @@ void DaoImage_Export( DaoImage *self, DaoArray *matrix, float factor )
 
 static void IMAGE_New( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoImage *self = DaoImage_New();
+	DaoType *retype = DaoProcess_GetReturnType( proc );
+	DaoImage *self = DaoImage_New( retype );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void IMAGE_Load( DaoProcess *proc, DaoValue *p[], int N )
@@ -460,7 +455,8 @@ static void IMAGE_Export( DaoProcess *proc, DaoValue *p[], int N )
 }
 static void IMAGE_New2( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoImage *self = DaoImage_New();
+	DaoType *retype = DaoProcess_GetReturnType( proc );
+	DaoImage *self = DaoImage_New( retype );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 	DaoImage_Decode( self, p[0]->xString.value );
 }
@@ -519,7 +515,7 @@ DaoTypeCore daoImageCore =
 
 DAO_DLL_EXPORT int DaoImage_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	daox_type_image = DaoNamespace_WrapType( ns, & daoImageCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( ns, & daoImageCore, DAO_CSTRUCT, 0 );
 
 #define DAO_API_INIT
 //#include"dao_api.h"

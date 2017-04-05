@@ -28,6 +28,7 @@
 
 #include<time.h>
 #include"daoValue.h"
+#include"daoVmspace.h"
 #include"dao_random.h"
 
 #define DAO_MTCOUNT 624
@@ -119,14 +120,16 @@ struct DaoRandGenWrapper
 
 	DaoRandGenerator generator;
 };
-DAO_DLL DaoType *daox_type_rand_generator;
+
+extern DaoTypeCore daoRandGeneratorCore;
 
 
 
-DaoRandGenWrapper* DaoRandGenWrapper_New( uint_t seed )
+DaoRandGenWrapper* DaoRandGenWrapper_New( DaoVmSpace *vms, uint_t seed )
 {
 	DaoRandGenWrapper *self = (DaoRandGenWrapper*) dao_calloc(1, sizeof(DaoRandGenWrapper));
-	DaoCstruct_Init( (DaoCstruct*)self, daox_type_rand_generator );
+	DaoType *type = DaoVmSpace_GetType( vms, & daoRandGeneratorCore );
+	DaoCstruct_Init( (DaoCstruct*)self, type );
 	DaoRandGenerator_Seed( & self->generator, seed );
 	return self;
 }
@@ -141,7 +144,8 @@ void DaoRandGenWrapper_Delete( DaoRandGenWrapper *self )
 
 static void GEN_New( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoRandGenWrapper *self = DaoRandGenWrapper_New( N ? p[0]->xInteger.value : time(NULL) );
+	uint_t seed = N ? p[0]->xInteger.value : time(NULL);
+	DaoRandGenWrapper *self = DaoRandGenWrapper_New( proc->vmSpace, seed );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void GEN_GetUniform( DaoProcess *proc, DaoValue *p[], int N )
@@ -314,8 +318,6 @@ static DaoFunctionEntry randomMeths[]=
 };
 
 
-DaoType *daox_type_rand_generator = NULL;
-
 
 #undef DAO_RANDOM
 #undef DAO_RANDOM_DLL
@@ -325,7 +327,7 @@ DaoType *daox_type_rand_generator = NULL;
 DAO_DLL_EXPORT int DaoRandom_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *randomns = DaoNamespace_GetNamespace( ns, "random" );
-	daox_type_rand_generator = DaoNamespace_WrapType( randomns, & daoRandGeneratorCore, DAO_CDATA, 0 );
+	DaoNamespace_WrapType( randomns, & daoRandGeneratorCore, DAO_CSTRUCT, 0 );
 	DaoNamespace_WrapFunctions( randomns, randomMeths );
 
 #define DAO_API_INIT

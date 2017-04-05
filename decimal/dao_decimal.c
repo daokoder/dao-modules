@@ -52,6 +52,9 @@ static decContext* DaoProcess_GetDecimalContext( DaoProcess *self )
 }
 
 
+extern DaoTypeCore daoDecimalCore;
+
+#if 0
 DaoType *dao_type_decimal = NULL;
 
 DaoType* DaoDecimal_Type()
@@ -69,6 +72,7 @@ void DaoDecimal_Delete( DaoDecimal *self )
 {
 	DaoCstruct_Delete( (DaoCstruct*) self );
 }
+#endif
 
 static void DecQuad_FromValue( decQuad *self, DaoValue *value, decContext *ctx )
 {
@@ -100,7 +104,8 @@ void DaoDecimal_ToString(DaoDecimal *self, DString *out )
 DaoDecimal* DaoProcess_PutDecimal( DaoProcess *self, double value )
 {
 	decContext *ctx = DaoProcess_GetDecimalContext( self );
-	DaoCstruct *obj = DaoProcess_PutCstruct( self, dao_type_decimal );
+	DaoType  *ctype = DaoVmSpace_GetType( self->vmSpace, & daoDecimalCore );
+	DaoCstruct *obj = DaoProcess_PutCstruct( self, ctype );
 	DaoDecimal *res = (DaoDecimal*) obj;
 	char buffer[64];
 
@@ -360,28 +365,10 @@ int DaoDecimal_Compare( DaoValue *self, DaoValue *other, DMap *cycmap )
 	return decQuadToInt32( & Q, ctx, DEC_ROUND_HALF_UP );
 }
 
-size_t DaoDecimal_Hash( DaoValue *self )
-{
-	DaoDecimal *pod = (DaoDecimal*) self;
-	return Dao_Hash( & pod->value, sizeof(pod->value), 0 );
-}
-
-DaoValue* DaoDecimal_Copy( DaoValue *self, DaoValue *target )
-{
-	DaoDecimal *src = (DaoDecimal*) self;
-	DaoDecimal *dest = (DaoDecimal*) target;
-	if( target ){
-		if( src ) dest->value = src->value;
-		return target;
-	}
-	dest = DaoDecimal_New();
-	if( src ) dest->value = src->value;
-	return (DaoValue*) dest;
-}
 
 
 /* TODO: Unary, Binary and Conversion; */
-static DaoTypeCore daoDecimalCore =
+DaoTypeCore daoDecimalCore =
 {
 	"Decimal",                                             /* name */
 	sizeof(DaoDecimal),                                    /* size */
@@ -421,7 +408,7 @@ DAO_DLL_EXPORT int DaoDecimal_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 
 	decContextTestEndian(0);
 
-	dao_type_decimal = DaoNamespace_WrapType( mathns, & daoDecimalCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( mathns, & daoDecimalCore, DAO_CSTRUCT, 0 );
 
 #define DAO_API_INIT
 #include"dao_api.h"

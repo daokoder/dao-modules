@@ -142,14 +142,14 @@ DAO_API( TIME, dao_time_t, DTimeSpan_ToUSeconds, (DTimeSpan span) );
 DAO_API( TIME, int, DTimeSpan_IsValid, (DTimeSpan span) );
 DAO_API( TIME, int, DTimeSpan_Compare, (DTimeSpan first, DTimeSpan second) );
 
-DAO_API( TIME, DaoTime*, DaoTime_New, () );
+DAO_API( TIME, DaoTime*, DaoTime_New, (DaoVmSpace *vmspace) );
 DAO_API( TIME, void, DaoTime_Delete, (DaoTime *self) );
 DAO_API( TIME, int, DaoTime_Now, (DaoTime *self) );
-DAO_API( TIME, DaoType*, DaoTime_Type, () );
+DAO_API( TIME, DaoType*, DaoTime_Type, (DaoVmSpace *vmspace) );
 
-DAO_API( TIME, DaoTimeSpan*, DaoTimeSpan_New, () );
+DAO_API( TIME, DaoTimeSpan*, DaoTimeSpan_New, (DaoVmSpace *vmspace) );
 DAO_API( TIME, void, DaoTimeSpan_Delete, (DaoTimeSpan *self) );
-DAO_API( TIME, DaoType*, DaoTimeSpan_Type, () );
+DAO_API( TIME, DaoType*, DaoTimeSpan_Type, (DaoVmSpace *vmspace) );
 
 DAO_API( TIME, DaoTime*, DaoProcess_PutTime, (DaoProcess *self, DTime time, int local) );
 DAO_API( TIME, DaoTime*, DaoProcess_NewTime, (DaoProcess *self, DTime time, int local) );

@@ -37,6 +37,7 @@
 
 #include"dao.h"
 #include"daoValue.h"
+#include"daoVmspace.h"
 
 #define DAO_HAS_TIME
 #include"dao_api.h"
@@ -208,9 +209,8 @@ struct DInode
 
 typedef struct DInode DInode;
 
-DaoType *daox_type_entry = NULL;
-DaoType *daox_type_file = NULL;
-DaoType *daox_type_dir = NULL;
+extern DaoTypeCore daoFileCore;
+extern DaoTypeCore daoDirCore;
 
 DInode* DInode_New()
 {
@@ -443,6 +443,8 @@ int DInode_SubInode( DInode *self, const char_t *path, int dir, DInode *dest, in
 
 int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *dest, DaoRegex *pattern )
 {
+	DaoType *dirtype = DaoVmSpace_GetType( proc->vmSpace, & daoDirCore );
+	DaoType *filetype = DaoVmSpace_GetType( proc->vmSpace, & daoFileCore );
 	char_t buffer[MAX_PATH + 1];
 	size_t len;
 	int res;
@@ -479,7 +481,7 @@ int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *des
 						continue;
 					}
 					if( ( fsnode->type == type || type == 2 ) && DaoRegex_Match( pattern, str, NULL, NULL ) ){
-						value = (DaoValue*) DaoProcess_NewCdata( proc, fsnode->type == 0? daox_type_dir : daox_type_file, fsnode, 1 );
+						value = (DaoValue*) DaoProcess_NewCdata( proc, fsnode->type == 0? dirtype : filetype, fsnode, 1 );
 						DaoList_PushBack( dest, value );
 					}
 					else
@@ -515,7 +517,7 @@ int DInode_ChildrenRegex( DInode *self, int type, DaoProcess *proc, DaoList *des
 						continue;
 					}
 					if( ( fsnode->type == type || type == 2 ) && DaoRegex_Match( pattern, str, NULL, NULL ) ){
-						value = (DaoValue*) DaoProcess_NewCdata( proc, fsnode->type == 0? daox_type_dir : daox_type_file, fsnode, 1 );
+						value = (DaoValue*) DaoProcess_NewCdata( proc, fsnode->type == 0? dirtype : filetype, fsnode, 1 );
 						DaoList_PushBack( dest, value );
 					}
 					else
@@ -768,6 +770,7 @@ static void FSNode_BaseName( DaoProcess *proc, DaoValue *p[], int N )
 
 static void FSNode_Parent( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *dirtype = DaoVmSpace_GetType( proc->vmSpace, & daoDirCore );
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
 	DInode *par;
 	char_t path[MAX_PATH + 1];
@@ -784,7 +787,7 @@ static void FSNode_Parent( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, fserr, errbuf );
 		return;
 	}
-	DaoProcess_PutCdata( proc, (void*)par, daox_type_dir );
+	DaoProcess_PutCdata( proc, (void*)par, dirtype );
 }
 
 static void FSNode_Type( DaoProcess *proc, DaoValue *p[], int N )
@@ -907,6 +910,7 @@ Error:
 
 static void FSNode_Makefile( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *filetype = DaoVmSpace_GetType( proc->vmSpace, & daoFileCore );
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
 	DInode *child;
 	char_t *path = CharsToTChars( p[1]->xString.value->chars );
@@ -927,12 +931,13 @@ static void FSNode_Makefile( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 	else
-		DaoProcess_PutCdata( proc, (void*)child, daox_type_file );
+		DaoProcess_PutCdata( proc, (void*)child, filetype );
 	FreeTChars( path );
 }
 
 static void FSNode_Makedir( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *dirtype = DaoVmSpace_GetType( proc->vmSpace, & daoDirCore );
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
 	DInode *child;
 	char_t *path = CharsToTChars( p[1]->xString.value->chars );
@@ -953,7 +958,7 @@ static void FSNode_Makedir( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 	else
-		DaoProcess_PutCdata( proc, (void*)child, daox_type_dir );
+		DaoProcess_PutCdata( proc, (void*)child, dirtype );
 	FreeTChars( path );
 }
 
@@ -975,6 +980,8 @@ static void FSNode_Exists( DaoProcess *proc, DaoValue *p[], int N )
 
 static void FSNode_Child( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *dirtype = DaoVmSpace_GetType( proc->vmSpace, & daoDirCore );
+	DaoType *filetype = DaoVmSpace_GetType( proc->vmSpace, & daoFileCore );
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
 	DInode *child;
 	char_t *path = CharsToTChars( p[1]->xString.value->chars );
@@ -1001,7 +1008,7 @@ static void FSNode_Child( DaoProcess *proc, DaoValue *p[], int N )
 		DInode_Delete( child );
 		goto Exit;
 	}
-	DaoProcess_PutCdata( proc, (void*)child, child->type == 0? daox_type_dir : daox_type_file );
+	DaoProcess_PutCdata( proc, (void*)child, child->type == 0? dirtype : filetype );
 Exit:
 	FreeTChars( path );
 }
@@ -1117,6 +1124,7 @@ static void FSNode_Suffix( DaoProcess *proc, DaoValue *p[], int N )
 
 static void FSNode_Copy( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *filetype = DaoVmSpace_GetType( proc->vmSpace, & daoFileCore );
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
 	int dir = ( p[1]->type != DAO_STRING );
 	char_t *path = NULL;
@@ -1188,7 +1196,7 @@ static void FSNode_Copy( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, fserr, errbuf );
 		goto Exit;
 	}
-	DaoProcess_PutCdata( proc, copy, daox_type_file );
+	DaoProcess_PutCdata( proc, copy, filetype );
 Exit:
 	FreeTChars( path );
 	if ( src ) fclose( src );
@@ -1209,6 +1217,7 @@ static void FSNode_Owner( DaoProcess *proc, DaoValue *p[], int N )
 
 static void FSNode_Mktemp( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *filetype = DaoVmSpace_GetType( proc->vmSpace, & daoFileCore );
 	DInode *self = (DInode*)DaoValue_TryGetCdata( p[0] );
 	char_t *pref = CharsToTChars( p[1]->xString.value->chars );
 	char_t buf[MAX_PATH + 1];
@@ -1230,13 +1239,15 @@ static void FSNode_Mktemp( DaoProcess *proc, DaoValue *p[], int N )
 			DaoProcess_RaiseError( proc, res == -2? "Param" : fserr, errbuf );
 		}
 		else
-			DaoProcess_PutCdata( proc, fsnode, daox_type_file );
+			DaoProcess_PutCdata( proc, fsnode, filetype );
 	}
 	FreeTChars( pref );
 }
 
 static void FSNode_New( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *dirtype = DaoVmSpace_GetType( proc->vmSpace, & daoDirCore );
+	DaoType *filetype = DaoVmSpace_GetType( proc->vmSpace, & daoFileCore );
 	DInode *fsnode = DInode_New();
 	int res;
 	char_t *path = CharsToTChars( p[0]->xString.value->chars );
@@ -1252,12 +1263,13 @@ static void FSNode_New( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 	else
-		DaoProcess_PutCdata( proc, (void*)fsnode, fsnode->type == 0? daox_type_dir : daox_type_file );
+		DaoProcess_PutCdata( proc, (void*)fsnode, fsnode->type == 0? dirtype : filetype );
 	FreeTChars( path );
 }
 
 static void FS_CWD( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *dirtype = DaoVmSpace_GetType( proc->vmSpace, & daoDirCore );
 	char_t buf[MAX_PATH + 1];
 	int res = 0;
 	DInode *fsnode = DInode_New();
@@ -1269,7 +1281,7 @@ static void FS_CWD( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 	else
-		DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_dir );
+		DaoProcess_PutCdata( proc, (void*)fsnode, dirtype );
 }
 
 static void FS_SetCWD( DaoProcess *proc, DaoValue *p[], int N )
@@ -1373,6 +1385,7 @@ static void FS_Roots( DaoProcess *proc, DaoValue *p[], int N )
 
 static void FS_NewFile( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *filetype = DaoVmSpace_GetType( proc->vmSpace, & daoFileCore );
 	DInode *fsnode = DInode_New();
 	int res;
 	char_t *path = CharsToTChars( p[0]->xString.value->chars );
@@ -1392,12 +1405,13 @@ static void FS_NewFile( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, fserr, "File object is not a file" );
 	}
 	else
-		DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_file );
+		DaoProcess_PutCdata( proc, (void*)fsnode, filetype );
 	FreeTChars( path );
 }
 
 static void FS_NewDir( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *dirtype = DaoVmSpace_GetType( proc->vmSpace, & daoDirCore );
 	DInode *fsnode = DInode_New();
 	int res;
 	char_t *path = CharsToTChars( p[0]->xString.value->chars );
@@ -1417,7 +1431,7 @@ static void FS_NewDir( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, fserr, "File object is not a directory" );
 	}
 	else
-		DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_dir );
+		DaoProcess_PutCdata( proc, (void*)fsnode, dirtype );
 	FreeTChars( path );
 }
 
@@ -1465,6 +1479,7 @@ static void FS_ListDir2( DaoProcess *proc, DaoValue *p[], int N )
 
 static void FS_HomeDir( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *dirtype = DaoVmSpace_GetType( proc->vmSpace, & daoDirCore );
 	char_t buf[MAX_PATH + 1];
 	int res = 0;
 	DInode *fsnode = DInode_New();
@@ -1484,7 +1499,7 @@ static void FS_HomeDir( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, fserr, errbuf );
 	}
 	else
-		DaoProcess_PutCdata( proc, (void*)fsnode, daox_type_dir );
+		DaoProcess_PutCdata( proc, (void*)fsnode, dirtype );
 }
 
 static void FS_Rm( DaoProcess *proc, DaoValue *p[], int N )
@@ -1775,9 +1790,9 @@ DAO_DLL int DaoFS_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	FS_INIT();
 	fsns = DaoNamespace_GetNamespace( ns, "fs" );
 	DaoNamespace_AddParent( fsns, ns );
-	daox_type_entry = DaoNamespace_WrapType( fsns, & daoEntryCore, DAO_CDATA, 0 );
-	daox_type_file = DaoNamespace_WrapType( fsns, & daoFileCore, DAO_CDATA, 0 );
-	daox_type_dir = DaoNamespace_WrapType( fsns, & daoDirCore, DAO_CDATA, 0 );
+	DaoNamespace_WrapType( fsns, & daoEntryCore, DAO_CDATA, 0 );
+	DaoNamespace_WrapType( fsns, & daoFileCore, DAO_CDATA, 0 );
+	DaoNamespace_WrapType( fsns, & daoDirCore, DAO_CDATA, 0 );
 	DaoNamespace_WrapFunctions( fsns, fsMeths );
 	return 0;
 }

@@ -27,10 +27,11 @@
 
 #include <ctype.h>
 #include "dao_regex.h"
+#include "daoVmspace.h"
 
-static DaoType *daox_type_regex = NULL;
-static DaoType *daox_type_match = NULL;
-static DaoType *daox_type_iter = NULL;
+extern DaoTypeCore daoOnigRegexCore;
+extern DaoTypeCore daoOnigMatchCore;
+extern DaoTypeCore daoOnigIterCore;
 
 static int Onig_New(OnigRegex*rgx, const char* pattern, const char* pattern_end, OnigOptionType option, OnigEncoding enc, OnigSyntaxType* syntax, OnigErrorInfo* einfo)
 {
@@ -61,6 +62,7 @@ void DaoOnigRegex_Delete( DaoOnigRegex *self )
 
 static void DaoOnigRegex_Create( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *retype = DaoProcess_GetReturnType( proc );
 	DaoOnigRegex *res;
 	DString* dpt = p[0]->xString.value;
 	DString* pt = DString_New();
@@ -141,7 +143,7 @@ static void DaoOnigRegex_Create( DaoProcess *proc, DaoValue *p[], int N )
 		return;
 	}
 	DString_Delete( pt );
-	DaoProcess_PutCdata( proc, res, daox_type_regex );
+	DaoProcess_PutCdata( proc, res, retype );
 }
 
 static void DaoOnigRegex_Pattern( DaoProcess *proc, DaoValue *p[], int N )
@@ -457,16 +459,20 @@ static void DaoOnigRegex_Search( DaoProcess *proc, DaoValue *p[], int N )
 		OnigRegion *match = onig_region_new();
 		int pos = Onig_Search( self->regex, str->chars, str->chars + str->size, str->chars + start, str->chars + end + 1, match,
 							   ONIG_OPTION_NONE );
-		if ( pos >= 0 )
-			DaoProcess_PutCdata( proc, DaoOnigMatch_New( str, p[0], match ), daox_type_match );
-		else
+		if ( pos >= 0 ){
+			DaoType *retype = DaoProcess_GetReturnType( proc );
+			retype = DaoType_GetVariantItem( retype, 0 );
+			DaoProcess_PutCdata( proc, DaoOnigMatch_New( str, p[0], match ), retype );
+		}else{
 			DaoProcess_PutNone( proc );
+		}
 		onig_region_free( match, 1 );
 	}
 }
 
 static void DaoOnigRegex_Scan( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *ctype = DaoVmSpace_GetType( proc->vmSpace, & daoOnigMatchCore );
 	DaoOnigRegex *self = (DaoOnigRegex*)DaoValue_TryGetCdata( p[0] );
 	DaoValue *rval = p[0];
 	DString *str = p[1]->xString.value;
@@ -488,7 +494,7 @@ static void DaoOnigRegex_Scan( DaoProcess *proc, DaoValue *p[], int N )
 							   ONIG_OPTION_NONE );
 			if ( pos >= 0 ){
 				if ( sect->b > 0 )
-					DaoProcess_SetValue( proc, sect->a, (DaoValue*)DaoProcess_NewCdata( proc, daox_type_match,
+					DaoProcess_SetValue( proc, sect->a, (DaoValue*)DaoProcess_NewCdata( proc, ctype,
 																						DaoOnigMatch_New( str, rval, match ), 1 ) );
 				proc->topFrame->entry = entry;
 				if ( !DaoProcess_Execute( proc ) )
@@ -507,6 +513,7 @@ static void DaoOnigRegex_Scan( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoOnigRegex_Change( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *ctype = DaoVmSpace_GetType( proc->vmSpace, & daoOnigMatchCore );
 	DaoOnigRegex *self = (DaoOnigRegex*)DaoValue_TryGetCdata( p[0] );
 	DaoValue *rval = p[0];
 	DString *str = p[1]->xString.value;
@@ -531,7 +538,7 @@ static void DaoOnigRegex_Change( DaoProcess *proc, DaoValue *p[], int N )
 			DString_AppendBytes( res, str->chars + start, ( ( pos >= 0 )? pos : end + 1 ) - start );
 			if ( pos >= 0 ){
 				if ( sect->b > 0 )
-					DaoProcess_SetValue( proc, sect->a, (DaoValue*)DaoProcess_NewCdata( proc, daox_type_match,
+					DaoProcess_SetValue( proc, sect->a, (DaoValue*)DaoProcess_NewCdata( proc, ctype,
 																						DaoOnigMatch_New( str, rval, match ), 1 ) );
 				else
 					onig_region_free( match, 1 );
@@ -591,6 +598,7 @@ static void DaoOnigIter_Init( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoOnigIter_Get( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *ctype = DaoVmSpace_GetType( proc->vmSpace, & daoOnigMatchCore );
 	DaoOnigIter *self = (DaoOnigIter*)DaoValue_TryGetCdata( p[0] );
 	DaoTuple *iter = &p[1]->xTuple;
 	if ( iter->values[1]->type == DAO_INTEGER ){
@@ -598,7 +606,7 @@ static void DaoOnigIter_Get( DaoProcess *proc, DaoValue *p[], int N )
 		DaoInteger *start = &iter->values[1]->xInteger;
 		char *chs = self->target->chars;
 		int pos;
-		DaoProcess_PutCdata( proc, DaoOnigMatch_New( self->target, self->regval, self->match ), daox_type_match );
+		DaoProcess_PutCdata( proc, DaoOnigMatch_New( self->target, self->regval, self->match ), ctype );
 		pos = ( start->value < self->target->size )?
 					Onig_Search( self->regex->regex, chs, chs + self->target->size, chs + start->value, chs + self->end + 1, self->match,
 								 ONIG_OPTION_NONE ) : -1;
@@ -612,13 +620,14 @@ static void DaoOnigIter_Get( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoOnigRegex_Iter( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *ctype = DaoVmSpace_GetType( proc->vmSpace, & daoOnigIterCore );
 	DaoOnigRegex *self = (DaoOnigRegex*)DaoValue_TryGetCdata( p[0] );
 	DaoValue *rval = p[0];
 	DString *str = p[1]->xString.value;
 	daoint start = p[2]->xInteger.value;
 	daoint end = p[3]->xInteger.value;
 	if ( NormBounds( proc, str, &start, &end ) )
-		DaoProcess_PutCdata( proc, DaoOnigIter_New( str, rval, start, end ), daox_type_iter );
+		DaoProcess_PutCdata( proc, DaoOnigIter_New( str, rval, start, end ), ctype );
 }
 
 /*! \c for iterator to iterate over regular expression matches in a string */
@@ -769,9 +778,9 @@ static DaoFunctionEntry reMeths[] =
 DAO_DLL int DaoRegex_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *rens = DaoNamespace_GetNamespace( ns, "re" );
-	daox_type_regex = DaoNamespace_WrapType( rens, &daoOnigRegexCore, DAO_CDATA, DAO_CTYPE_INVAR );
-	daox_type_match = DaoNamespace_WrapType( rens, &daoOnigMatchCore, DAO_CDATA, DAO_CTYPE_INVAR );
-	daox_type_iter = DaoNamespace_WrapType( rens, &daoOnigIterCore, DAO_CDATA, 0 );
+	DaoNamespace_WrapType( rens, &daoOnigRegexCore, DAO_CDATA, DAO_CTYPE_INVAR );
+	DaoNamespace_WrapType( rens, &daoOnigMatchCore, DAO_CDATA, DAO_CTYPE_INVAR );
+	DaoNamespace_WrapType( rens, &daoOnigIterCore, DAO_CDATA, 0 );
 	DaoNamespace_WrapFunctions(rens, reMeths);
 	onig_init();
 	return 0;

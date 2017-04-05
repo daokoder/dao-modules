@@ -44,7 +44,6 @@ struct DaoSignalPipe {
 	int readfd, writefd;
 };
 
-static DaoType *daox_type_sigpipe = NULL;
 static DaoSignalPipe signal_pipe = {-1, -1};
 
 void SignalHanlder( int sig )
@@ -71,6 +70,7 @@ enum {
 
 static void UNIX_Trap( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *retype = DaoProcess_GetReturnType( proc );
 	int sig = p[0]->xEnum.value;
 	struct sigaction action;
 
@@ -94,7 +94,7 @@ static void UNIX_Trap( DaoProcess *proc, DaoValue *p[], int N )
 		sigaction( SIGUSR2, &action, NULL );
 	if ( sig & Signal_Pipe )
 		sigaction( SIGPIPE, &action, NULL );
-	DaoProcess_PutCdata( proc, &signal_pipe, daox_type_sigpipe );
+	DaoProcess_PutCdata( proc, &signal_pipe, retype );
 }
 
 static void UNIX_Pid( DaoProcess *proc, DaoValue *p[], int N )
@@ -397,7 +397,7 @@ DAO_DLL int DaoUnix_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *osns = DaoVmSpace_GetNamespace( vmSpace, "os" );
 	DaoNamespace_AddConstValue( ns, "os", (DaoValue*)osns );
-	daox_type_sigpipe = DaoNamespace_WrapType( osns, &daoSignalPipeCore, DAO_CDATA, 0 );
+	DaoNamespace_WrapType( osns, &daoSignalPipeCore, DAO_CDATA, 0 );
 	DaoNamespace_DefineType( osns, "enum<sigint;sigterm;sigquit;sighup;sigchld;sigusr1;sigusr2;sigpipe>", "SignalSet" );
 	DaoNamespace_DefineType( osns, "enum<in;out;error;hup;none>", "PollEvent" );
 	DaoNamespace_DefineType( osns, "tuple<fd: int, events: tuple<monitored: PollEvent, occurred: PollEvent>>", "PollFd" );

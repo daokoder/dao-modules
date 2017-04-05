@@ -162,6 +162,7 @@ DaoxHelper *daox_helper = NULL;
 DaoVmSpace *dao_vmspace = NULL;
 DaoNamespace *dao_help_namespace = NULL;
 DaoMap *daox_helpers = NULL;
+extern DaoTypeCore daoHelpCore;
 
 
 
@@ -1665,12 +1666,14 @@ static void DaoxHelp_Delete( DaoxHelp *self )
 
 
 
-static DaoxHelper* DaoxHelper_New()
+static DaoxHelper* DaoxHelper_New( DaoVmSpace *vmspace )
 {
 	int i;
 	DString name = DString_WrapChars( "ALL" );
 	DaoxHelper *self = (DaoxHelper*) dao_malloc( sizeof(DaoxHelper) );
-	DaoCstruct_Init( (DaoCstruct*) self, daox_type_helper );
+	DaoType *ctype = DaoVmSpace_GetType( vmspace, & daoHelpCore );
+
+	DaoCstruct_Init( (DaoCstruct*) self, ctype );
 	self->helps = DHash_New(0,0);
 	self->tree = DaoxHelpEntry_New( & name );
 	self->entries = DMap_New( DAO_DATA_STRING, 0 );
@@ -2088,7 +2091,7 @@ static void HELP_SetLang( DaoProcess *proc, DaoValue *p[], int N )
 	const char *lang = DaoValue_TryGetChars( p[0] );
 	DaoxHelper *helper = (DaoxHelper*) DaoMap_GetValueChars( daox_helpers, lang );
 	if( helper == NULL ){
-		helper = DaoxHelper_New();
+		helper = DaoxHelper_New( proc->vmSpace );
 		DaoMap_InsertChars( daox_helpers, lang, (DaoValue*) helper );
 		DaoxHelper_Load( helper, lang );
 	}
@@ -2394,9 +2397,9 @@ DAO_DLL int DaoHelp_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 
 	daox_helpers = DaoMap_New(0);
 	dao_help_namespace = ns;
-	daox_type_helper = DaoNamespace_WrapType( ns, & daoHelpCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( ns, & daoHelpCore, DAO_CSTRUCT, 0 );
 	DaoNamespace_AddValue( ns, "__helpers__", (DaoValue*)daox_helpers, "map<string,help>" );
-	daox_helper = DaoxHelper_New();
+	daox_helper = DaoxHelper_New( vmSpace );
 	DaoMap_InsertChars( daox_helpers, "en", (DaoValue*) daox_helper );
 
 	DaoxHelper_Load( daox_helper, "en" );

@@ -42,7 +42,6 @@ struct DaoxCoroutine
 	DaoProcess  *process;
 };
 
-DaoType *daox_type_coroutine = NULL;
 
 DaoxCoroutine* DaoxCoroutine_New( DaoType *type )
 {
@@ -236,6 +235,6 @@ DaoTypeCore daoCoroutineCore =
 
 DAO_DLL int DaoCoroutine_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	daox_type_coroutine = DaoNamespace_WrapType( ns, & daoCoroutineCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( ns, & daoCoroutineCore, DAO_CSTRUCT, 0 );
 	return 0;
 }

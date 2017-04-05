@@ -39,6 +39,7 @@
 #include<time.h>
 #include"dao_time.h"
 #include"daoPlatform.h"
+#include"daoVmspace.h"
 
 #ifdef WIN32
 #define tzset _tzset
@@ -48,9 +49,11 @@
 #endif
 
 
+extern DaoTypeCore daoDateTimeCore;
+extern DaoTypeCore daoTimeSpanCore;
+
+
 static const char timeerr[] = "Time";
-static DaoType *daox_type_time = NULL;
-static DaoType *daox_type_span = NULL;
 
 static dao_time_t epoch2000_days = 0;
 static dao_time_t epoch2000_useconds = 0;
@@ -647,9 +650,10 @@ int DTimeSpan_Compare( DTimeSpan first, DTimeSpan second )
 
 
 
-DaoTime* DaoTime_New()
+DaoTime* DaoTime_New( DaoVmSpace *vmspace )
 {
-	DaoTime *self = (DaoTime*) DaoCstruct_New( daox_type_time, sizeof(DaoTime) );
+	DaoType *ctype = DaoTime_Type( vmspace );
+	DaoTime *self = (DaoTime*) DaoCstruct_New( ctype, sizeof(DaoTime) );
 	return self;
 }
 
@@ -671,25 +675,26 @@ DTime DaoTime_Get( DaoTime *self, int local )
 	return DTime_LocalToUtc( self->time );
 }
 
-DaoType* DaoTime_Type()
+DaoType* DaoTime_Type( DaoVmSpace *vmspace )
 {
-	return daox_type_time;
+	return DaoVmSpace_GetType( vmspace, & daoDateTimeCore );
 }
 
 
 
-DaoTimeSpan* DaoTimeSpan_New()
+DaoTimeSpan* DaoTimeSpan_New( DaoVmSpace *vmspace )
 {
-	DaoTimeSpan *self = (DaoTimeSpan*) DaoCstruct_New( daox_type_span, sizeof(DaoTimeSpan) );
+	DaoType *ctype = DaoTimeSpan_Type( vmspace );
+	DaoTimeSpan *self = (DaoTimeSpan*) DaoCstruct_New( ctype, sizeof(DaoTimeSpan) );
 	return self;
 }
 void DaoTimeSpan_Delete( DaoTimeSpan *self )
 {
 	DaoCstruct_Delete( (DaoCstruct*) self );
 }
-DaoType* DaoTimeSpan_Type()
+DaoType* DaoTimeSpan_Type( DaoVmSpace *vmspace )
 {
-	return daox_type_span;
+	return DaoVmSpace_GetType( vmspace, & daoTimeSpanCore );
 }
 
 
@@ -2022,7 +2027,8 @@ static DaoFunctionEntry timeFuncs[] =
 
 DaoTime* DaoProcess_PutTime( DaoProcess *self, DTime time, int local )
 {
-	DaoTime *res = (DaoTime*) DaoProcess_PutCstruct( self, daox_type_time );
+	DaoType *ctype = DaoTime_Type( self->vmSpace );
+	DaoTime *res = (DaoTime*) DaoProcess_PutCstruct( self, ctype );
 
 	if( res == NULL ) return NULL;
 
@@ -2037,7 +2043,8 @@ DaoTime* DaoProcess_PutTime( DaoProcess *self, DTime time, int local )
 
 DaoTime* DaoProcess_NewTime( DaoProcess *self, DTime time, int local )
 {
-	DaoTime *res = (DaoTime*) DaoProcess_NewCstruct( self, daox_type_time );
+	DaoType *ctype = DaoTime_Type( self->vmSpace );
+	DaoTime *res = (DaoTime*) DaoProcess_NewCstruct( self, ctype );
 	if ( !DTime_IsValid( time ) ){
 		DaoProcess_RaiseError( self, timeerr, "Invalid datetime" );
 		return NULL;
@@ -2050,7 +2057,8 @@ DaoTime* DaoProcess_NewTime( DaoProcess *self, DTime time, int local )
 
 DaoTimeSpan* DaoProcess_PutTimeSpan( DaoProcess *self, DTimeSpan span )
 {
-	DaoTimeSpan *res = (DaoTimeSpan*) DaoProcess_PutCstruct( self, daox_type_span );
+	DaoType *ctype = DaoTimeSpan_Type( self->vmSpace );
+	DaoTimeSpan *res = (DaoTimeSpan*) DaoProcess_PutCstruct( self, ctype );
 
 	if( res == NULL ) return NULL;
 
@@ -2060,7 +2068,8 @@ DaoTimeSpan* DaoProcess_PutTimeSpan( DaoProcess *self, DTimeSpan span )
 
 DaoTimeSpan* DaoProcess_NewTimeSpan( DaoProcess *self, DTimeSpan span )
 {
-	DaoTimeSpan *res = (DaoTimeSpan*) DaoProcess_NewCstruct( self, daox_type_span );
+	DaoType *ctype = DaoTimeSpan_Type( self->vmSpace );
+	DaoTimeSpan *res = (DaoTimeSpan*) DaoProcess_NewCstruct( self, ctype );
 	res->span = span;
 	return res;
 }
@@ -2082,8 +2091,8 @@ DAO_DLL_EXPORT int DaoTime_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	epoch2000_useconds = epoch2000_days * 24 * 3600 * 1E6;
 	epoch1970_seconds = DTime_ToJulianDay( epoch1970 ) * 24 * 3600;
 
-	daox_type_time = DaoNamespace_WrapType( timens, & daoDateTimeCore, DAO_CSTRUCT, 0 );
-	daox_type_span = DaoNamespace_WrapType( timens, & daoTimeSpanCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( timens, & daoDateTimeCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( timens, & daoTimeSpanCore, DAO_CSTRUCT, 0 );
 	DaoNamespace_WrapFunctions( timens, timeFuncs );
 
 #define DAO_API_INIT

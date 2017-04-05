@@ -62,25 +62,62 @@ typedef struct DaoxSession   DaoxSession;
 typedef struct DaoxCache     DaoxCache;
 typedef struct DaoxServer    DaoxServer;
 
+extern DaoTypeCore daoRequestCore;
+extern DaoTypeCore daoResponseCore;
+extern DaoTypeCore daoSessionCore;
+extern DaoTypeCore daoCacheCore;
+extern DaoTypeCore daoServerCore;
+extern DaoTypeCore daoClientCore;
 
-DAO_DLL DaoType *daox_type_request;
-DAO_DLL DaoType *daox_type_response;
-DAO_DLL DaoType *daox_type_session;
-DAO_DLL DaoType *daox_type_cache;
-DAO_DLL DaoType *daox_type_server;
-DAO_DLL DaoType *daox_type_client;
 
-DaoType *daox_type_request = NULL;
-DaoType *daox_type_response = NULL;
-DaoType *daox_type_session = NULL;
-DaoType *daox_type_cache = NULL;
-DaoType *daox_type_server = NULL;
-DaoType *daox_type_client = NULL;
+struct DaoxServer
+{
+	DAO_CSTRUCT_COMMON;
 
-DaoType *daox_type_keyvalue = NULL;
-DaoType *daox_type_namestream = NULL;
-DaoType *daox_type_filemap = NULL;
-DaoType *daox_type_stringlist = NULL;
+	mg_context  *context;
+
+	DaoVmSpace *vmspace;
+	DaoProcess *process;
+	DaoVmCode  *sectCode;
+	int         entryIndex;
+
+	DString  *docroot;
+
+	DList   *indexFiles;
+	DMap    *staticMimes;
+
+	DMap  *uriToPaths;
+
+	DMap  *cookieToSessions;
+	DMap  *timestampToSessions;
+
+	DList  *processes;
+
+	DList  *freeRequests;
+	DList  *freeResponses;
+	DList  *freeSessions;
+	DList  *freeCaches;
+
+	DList  *allRequests;
+	DList  *allResponses;
+	DList  *allSessions;
+	DList  *allCaches;
+
+	DaoType *typeRequest;
+	DaoType *typeResponse;
+	DaoType *typeSession;
+	DaoType *typeCache;
+	DaoType *typeClient;
+
+	DaoType *typeKeyValue;
+	DaoType *typeNameStream;
+	DaoType *typeFileMap;
+	DaoType *typeStringList;
+
+	DMutex   mutex;
+	DMutex   mutex2;
+	daoint   sessionIndex;
+};
 
 
 /*==============================================================
@@ -89,6 +126,8 @@ DaoType *daox_type_stringlist = NULL;
 struct DaoxRequest
 {
 	DAO_CSTRUCT_COMMON;
+
+	DaoxServer  *server;
 
 	DaoMap   *http_get;    // <string,string>;
 	DaoMap   *http_post;   // <string,string>;
@@ -106,10 +145,11 @@ struct DaoxRequest
 	daoint    remote_port;
 };
 
-DaoxRequest* DaoxRequest_New()
+DaoxRequest* DaoxRequest_New( DaoxServer *server )
 {
 	DaoxRequest *self = (DaoxRequest*) dao_calloc( 1, sizeof(DaoxRequest) );
-	DaoCstruct_Init( (DaoCstruct*) self, daox_type_request );
+	DaoCstruct_Init( (DaoCstruct*) self, server->typeRequest );
+	self->server = server;
 	self->uri = DString_New();
 	self->host = DString_New();
 	self->method = DString_New();
@@ -129,11 +169,11 @@ DaoxRequest* DaoxRequest_New()
 	DaoGC_IncRC( (DaoValue*) self->http_cookie );
 	DaoGC_IncRC( (DaoValue*) self->http_file );
 	DaoGC_IncRC( (DaoValue*) self->http_uri );
-	DaoMap_SetType( self->http_get, daox_type_keyvalue );
-	DaoMap_SetType( self->http_post, daox_type_keyvalue );
-	DaoMap_SetType( self->http_cookie, daox_type_keyvalue );
-	DaoMap_SetType( self->http_file, daox_type_filemap );
-	DaoList_SetType( self->http_uri, daox_type_stringlist );
+	DaoMap_SetType( self->http_get, server->typeKeyValue );
+	DaoMap_SetType( self->http_post, server->typeKeyValue );
+	DaoMap_SetType( self->http_cookie, server->typeKeyValue );
+	DaoMap_SetType( self->http_file, server->typeFileMap );
+	DaoList_SetType( self->http_uri, server->typeStringList );
 	return self;
 }
 
@@ -324,7 +364,7 @@ void DaoxRequest_ParsePostData( DaoxRequest *self, mg_connection *conn )
 			memmove( buffer->chars, buffer->chars + pos2 + boundarylen, buffer->size );
 		}else{
 			DaoInteger isize = {DAO_INTEGER,0,0,0,0,0};
-			DaoFileStream *stream = _DaoFileStream_New();
+			DaoFileStream *stream = _DaoFileStream_New( self->server->vmspace );
 			DaoTuple *tuple = DaoTuple_New(3);
 			FILE *file = tmpfile();
 
@@ -332,7 +372,7 @@ void DaoxRequest_ParsePostData( DaoxRequest *self, mg_connection *conn )
 			stream->file = file;
 			stream->base.mode |= DAO_STREAM_READABLE|DAO_STREAM_WRITABLE;
 			_DaoFileStream_InitCallbacks( stream );
-			DaoTuple_SetType( tuple, daox_type_namestream );
+			DaoTuple_SetType( tuple, self->server->typeNameStream );
 			DaoTuple_SetItem( tuple, (DaoValue*) self->value, 0 );
 			DaoTuple_SetItem( tuple, (DaoValue*) stream, 2 );
 			DaoMap_Insert( self->http_file, (DaoValue*) self->key, (DaoValue*) tuple );
@@ -375,10 +415,10 @@ struct DaoxResponse
 	mg_connection *connection;
 };
 
-DaoxResponse* DaoxResponse_New()
+DaoxResponse* DaoxResponse_New( DaoxServer *server )
 {
 	DaoxResponse *self = (DaoxResponse*) dao_calloc( 1, sizeof(DaoxResponse) );
-	DaoCstruct_Init( (DaoCstruct*) self, daox_type_response );
+	DaoCstruct_Init( (DaoCstruct*) self, server->typeResponse );
 	self->cookies = DHash_New( DAO_DATA_STRING, DAO_DATA_STRING );
 	self->responded = 0;
 	return self;
@@ -468,11 +508,11 @@ struct DaoxSession
 	daoint      expire;
 };
 
-DaoxSession* DaoxSession_New()
+DaoxSession* DaoxSession_New( DaoxServer *server )
 {
 	DaoComplex com = {DAO_COMPLEX,0,0,0,1,{0.0,0.0}};
 	DaoxSession *self = (DaoxSession*) dao_calloc( 1, sizeof(DaoxSession) );
-	DaoCstruct_Init( (DaoCstruct*) self, daox_type_session );
+	DaoCstruct_Init( (DaoCstruct*) self, server->typeSession );
 	self->variables = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
 	self->cookie = DString_New();
 	self->timestamp = com;
@@ -515,11 +555,11 @@ struct DaoxCache
 	DMap       *variables;
 };
 
-DaoxCache* DaoxCache_New()
+DaoxCache* DaoxCache_New( DaoxServer *server )
 {
 	DaoComplex com = {DAO_COMPLEX,0,0,0,1,{0.0,0.0}};
 	DaoxCache *self = (DaoxCache*) dao_calloc( 1, sizeof(DaoxCache) );
-	DaoCstruct_Init( (DaoCstruct*) self, daox_type_cache );
+	DaoCstruct_Init( (DaoCstruct*) self, server->typeCache );
 	self->variables = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
 	return self;
 }
@@ -546,51 +586,17 @@ static void DaoxCache_Reset( DaoxCache *self )
 /*==============================================================
 // HTTP Server:
 //============================================================*/
-struct DaoxServer
-{
-	DAO_CSTRUCT_COMMON;
-
-	mg_context  *context;
-
-	DaoVmSpace *vmspace;
-	DaoProcess *process;
-	DaoVmCode  *sectCode;
-	int         entryIndex;
-
-	DString  *docroot;
-
-	DList   *indexFiles;
-	DMap    *staticMimes;
-
-	DMap  *uriToPaths;
-
-	DMap  *cookieToSessions;
-	DMap  *timestampToSessions;
-
-	DList  *processes;
-
-	DList  *freeRequests;
-	DList  *freeResponses;
-	DList  *freeSessions;
-	DList  *freeCaches;
-
-	DList  *allRequests;
-	DList  *allResponses;
-	DList  *allSessions;
-	DList  *allCaches;
-
-	DMutex   mutex;
-	DMutex   mutex2;
-	daoint   sessionIndex;
-};
 
 static void DaoxServer_InitMimeTypes( DaoxServer *self );
 static void DaoxServer_InitIndexFiles( DaoxServer *self );
 
 DaoxServer* DaoxServer_New( DaoVmSpace *vmspace )
 {
+	DaoNamespace *httpns = DaoVmSpace_GetNamespace( vmspace, "http" );
+	DaoType *type = DaoVmSpace_GetType( vmspace, & daoServerCore );
+
 	DaoxServer *self = (DaoxServer*) dao_calloc( 1, sizeof(DaoxServer) );
-	DaoCstruct_Init( (DaoCstruct*) self, daox_type_server );
+	DaoCstruct_Init( (DaoCstruct*) self, type );
 	self->vmspace = vmspace;
 	self->docroot = DString_New();
 	self->indexFiles = DList_New( DAO_DATA_STRING );
@@ -612,6 +618,17 @@ DaoxServer* DaoxServer_New( DaoVmSpace *vmspace )
 	DaoxServer_InitIndexFiles( self );
 	DMutex_Init( & self->mutex );
 	DMutex_Init( & self->mutex2 );
+
+	self->typeRequest = DaoVmSpace_GetType( vmspace, & daoRequestCore );
+	self->typeResponse = DaoVmSpace_GetType( vmspace, & daoResponseCore );
+	self->typeSession = DaoVmSpace_GetType( vmspace, & daoSessionCore );
+	self->typeCache = DaoVmSpace_GetType( vmspace, & daoCacheCore );
+	self->typeClient = DaoVmSpace_GetType( vmspace, & daoClientCore );
+
+	self->typeKeyValue = DaoNamespace_FindTypeChars( httpns, "map<string,string>" );
+	self->typeNameStream = DaoNamespace_FindTypeChars( httpns, "HttpUpload" );
+	self->typeFileMap = DaoNamespace_FindTypeChars( httpns, "map<string,HttpUpload>" );
+	self->typeStringList = DaoNamespace_FindTypeChars( httpns, "list<string>" );
 	return self;
 }
 
@@ -691,7 +708,7 @@ DaoxRequest* DaoxServer_MakeRequest( DaoxServer *self, mg_connection *conn )
 	}
 
 	if( request == NULL ){
-		request = DaoxRequest_New();
+		request = DaoxRequest_New( self );
 		DMutex_Lock( & self->mutex );
 		DList_Append( self->allRequests, request );
 		DMutex_Unlock( & self->mutex );
@@ -723,7 +740,7 @@ DaoxResponse* DaoxServer_MakeResponse( DaoxServer *self, mg_connection *conn )
 	}
 
 	if( response == NULL ){
-		response = DaoxResponse_New();
+		response = DaoxResponse_New( self );
 		DMutex_Lock( & self->mutex );
 		DList_Append( self->allResponses, response );
 		DMutex_Unlock( & self->mutex );
@@ -783,7 +800,7 @@ DaoxSession* DaoxServer_MakeSession( DaoxServer *self, mg_connection *conn, Daox
 		DMutex_Unlock( & self->mutex );
 	}
 	if( session == NULL ){
-		session = DaoxSession_New();
+		session = DaoxSession_New( self );
 		DMutex_Lock( & self->mutex );
 		DList_Append( self->allSessions, session );
 		DMap_Insert( self->cookieToSessions, session->cookie, session );
@@ -817,7 +834,7 @@ DaoxCache* DaoxServer_MakeCache( DaoxServer *self )
 	}
 
 	if( cache == NULL ){
-		cache = DaoxCache_New();
+		cache = DaoxCache_New( self );
 		DMutex_Lock( & self->mutex );
 		DList_Append( self->allCaches, cache );
 		DMutex_Unlock( & self->mutex );
@@ -1654,19 +1671,21 @@ DaoTypeCore daoClientCore =
 DAO_DLL int DaoHttp_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *streamns = DaoVmSpace_LinkModule( vmSpace, ns, "stream" );
-	DaoNamespace *httpns = DaoNamespace_GetNamespace( ns, "http" );
+	DaoNamespace *httpns = DaoVmSpace_GetNamespace( vmSpace, "http" );
 
-	daox_type_request = DaoNamespace_WrapType( httpns, & daoRequestCore, DAO_CSTRUCT, 0 );
-	daox_type_response = DaoNamespace_WrapType( httpns, & daoResponseCore, DAO_CSTRUCT, 0 );
-	daox_type_session = DaoNamespace_WrapType( httpns, & daoSessionCore, DAO_CSTRUCT, 0 );
-	daox_type_cache = DaoNamespace_WrapType( httpns, & daoCacheCore, DAO_CSTRUCT, 0 );
-	daox_type_server = DaoNamespace_WrapType( httpns, & daoServerCore, DAO_CSTRUCT, 0 );
-	daox_type_client = DaoNamespace_WrapType( httpns, & daoClientCore, DAO_CSTRUCT, 0 );
-	daox_type_keyvalue = DaoNamespace_ParseType( httpns, "map<string,string>" );
-	daox_type_namestream = DaoNamespace_DefineType( httpns,
-			"tuple<file:string,size:int,data:io::FileStream>", "HttpUpload" );
-	daox_type_filemap = DaoNamespace_ParseType( httpns, "map<string,HttpUpload>" );
-	daox_type_stringlist = DaoNamespace_ParseType( httpns, "list<string>" );
+	DaoNamespace_AddConstValue( ns, "http", (DaoValue*) httpns );
+
+	DaoNamespace_WrapType( httpns, & daoRequestCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( httpns, & daoResponseCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( httpns, & daoSessionCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( httpns, & daoCacheCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( httpns, & daoServerCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( httpns, & daoClientCore, DAO_CSTRUCT, 0 );
+
+	DaoNamespace_ParseType( httpns, "map<string,string>" );
+	DaoNamespace_DefineType( httpns, "tuple<file:string,size:int,data:io::FileStream>", "HttpUpload" );
+	DaoNamespace_ParseType( httpns, "map<string,HttpUpload>" );
+	DaoNamespace_ParseType( httpns, "list<string>" );
 	mg_init();
 	return 0;
 }

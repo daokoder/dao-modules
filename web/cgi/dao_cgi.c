@@ -39,6 +39,7 @@
 #include"dao.h"
 #include"daoStdtype.h"
 #include"daoNamespace.h"
+#include"daoProcess.h"
 
 #define DAO_HAS_STREAM
 #include"dao_api.h"
@@ -239,7 +240,7 @@ static void PreparePostData( DaoProcess *proc, DaoMap *httpPOSTS, DaoMap *httpPO
 			memmove( buffer->chars, buffer->chars + pos2 + boundarylen, buffer->size );
 		}else{
 			DaoInteger isize = {DAO_INTEGER,0,0,0,0,0};
-			DaoFileStream *stream = _DaoFileStream_New();
+			DaoFileStream *stream = _DaoFileStream_New( proc->vmSpace );
 			DaoTuple *tuple = DaoTuple_New(3);
 			FILE *file = tmpfile();
 

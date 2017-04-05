@@ -30,8 +30,8 @@
 
 #include "dao_set.h"
 #include "daoVmcode.h"
+#include "daoVmspace.h"
 
-static DaoType *daox_type_set = NULL;
 
 DaoSet* DaoSet_New( DaoType *type, int hashing )
 {
@@ -460,7 +460,7 @@ static void DaoSet_MulTo( DaoProcess *proc, DaoValue *p[], int N )
 static void DaoSet_ToString( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoSet *self = (DaoSet*)DaoValue_CastCstruct( p[0], NULL );
-	DaoStream *stream = DaoStream_New();
+	DaoStream *stream = DaoStream_New( proc->vmSpace );
 	DNode *node;
 	int first = 1;
 	DaoStream_SetStringMode( stream );
@@ -916,7 +916,7 @@ static DaoFunctionEntry daoSetMeths[] =
 
 static DaoType* DaoSet_CheckUnary( DaoType *type, DaoVmCode *op, DaoRoutine *ctx )
 {
-	if( op->code == DVM_SIZE ) return dao_type_int;
+	if( op->code == DVM_SIZE ) return ctx->nameSpace->vmSpace->typeInt;
 	return NULL;
 }
 
@@ -988,6 +988,6 @@ DaoTypeCore daoSetCore =
 DAO_DLL int DaoSet_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *stdns = DaoVmSpace_GetNamespace( vmSpace, "std" );
-	daox_type_set = DaoNamespace_WrapType( stdns, & daoSetCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( stdns, & daoSetCore, DAO_CSTRUCT, 0 );
 	return 0;
 }

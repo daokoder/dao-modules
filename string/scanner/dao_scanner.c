@@ -29,11 +29,10 @@
 
 #include"dao_scanner.h"
 
-static DaoType *daox_type_scanner = NULL;
 
-DaoScanner* DaoScanner_New()
+DaoScanner* DaoScanner_New( DaoType *type )
 {
-	DaoCstruct *cstruct = DaoCstruct_New( daox_type_scanner, sizeof(DaoScanner) );
+	DaoCstruct *cstruct = DaoCstruct_New( type, sizeof(DaoScanner) );
 	DaoScanner *self = (DaoScanner*) cstruct;
 	self->regex = NULL;
 	self->context = NULL;
@@ -51,7 +50,8 @@ void DaoScanner_Delete( DaoScanner *self )
 
 static void DaoScanner_Create( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoScanner *self = DaoScanner_New();
+	DaoType *retype = DaoProcess_GetReturnType( proc );
+	DaoScanner *self = DaoScanner_New( retype );
 	DString *str = p[0]->xString.value;
 	dao_integer pos = p[1]->xInteger.value;
 	if ( pos < 0 ) pos = str->size + pos;
@@ -360,6 +360,6 @@ DAO_DLL int DaoScanner_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoNamespace *strns = DaoVmSpace_GetNamespace( vmSpace, "str" );
 	DaoNamespace_AddConstValue( ns, "str", (DaoValue*)strns );
-	daox_type_scanner = DaoNamespace_WrapType( strns, & daoScannerCore, DAO_CSTRUCT, 0 );
+	DaoNamespace_WrapType( strns, & daoScannerCore, DAO_CSTRUCT, 0 );
 	return 0;
 }

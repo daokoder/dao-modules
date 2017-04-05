@@ -30,6 +30,7 @@
 #include<string.h>
 #include<ctype.h>
 #include"dao_xml.h"
+#include"daoVmspace.h"
 
 typedef int xml_error;
 
@@ -600,13 +601,11 @@ xml_error ParseXMLCharData( XMLContext *ctx, DString *dest )
 }
 
 static const char xmlerr[] = "XML";
-static DaoType *daox_type_xmlelem = NULL;
-static DaoType *daox_type_xmlcdata = NULL;
-static DaoType *daox_type_xmlinst = NULL;
-static DaoType *daox_type_xmldoc = NULL;
-static DaoType *daox_type_xmlwriter = NULL;
-static DaoType *daox_type_xmlmod = NULL;
 static DMutex xmlmtx;
+
+extern DaoTypeCore daoInstructionCore;
+extern DaoTypeCore daoElementCore;
+extern DaoTypeCore daoCharDataCore;
 
 void DaoXMLNode_Init( DaoXMLNode *self, xml_item kind )
 {
@@ -1152,6 +1151,7 @@ void GetXMLErrorMessage( xml_error error, char *buf )
 
 static void DaoXMLDocument_FromString( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *retype = DaoProcess_GetReturnType( proc );
 	DaoXMLDocument *doc = DaoXMLDocument_New();
 	xml_error res;
 	DString *xml = p[0]->xString.value;
@@ -1166,7 +1166,7 @@ static void DaoXMLDocument_FromString( DaoProcess *proc, DaoValue *p[], int N )
 		DaoXMLDocument_Delete( doc );
 	}
 	else
-		DaoProcess_PutCdata( proc, doc, daox_type_xmldoc );
+		DaoProcess_PutCdata( proc, doc, retype );
 }
 
 static void DaoXMLDocument_GetVersion( DaoProcess *proc, DaoValue *p[], int N )
@@ -1276,6 +1276,7 @@ static void DaoXMLDocument_SetDoctype( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoXMLDocument_GetInstructions( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *daox_type_xmlinst = DaoVmSpace_GetType( proc->vmSpace, &daoInstructionCore );
 	DaoXMLDocument *self = (DaoXMLDocument*)DaoValue_TryGetCdata( p[0] );
 	DaoList *ins = DaoProcess_PutList( proc );
 	daoint i;
@@ -1334,6 +1335,7 @@ static void DaoXMLDocument_SetInstructions( DaoProcess *proc, DaoValue *p[], int
 
 static void DaoXMLDocument_GetRoot( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *daox_type_xmlelem = DaoVmSpace_GetType( proc->vmSpace, &daoElementCore );
 	DaoXMLDocument *self = (DaoXMLDocument*)DaoValue_TryGetCdata( p[0] );
 	DaoXMLNode_AddRef( (DaoXMLNode*)self->root );
 	DaoProcess_PutCdata( proc, self->root, daox_type_xmlelem );
@@ -1349,11 +1351,12 @@ static void DaoXMLDocument_SetRoot( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoXMLDocument_Create( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *retype = DaoProcess_GetReturnType( proc );
 	DaoXMLElement *root = (DaoXMLElement*)DaoValue_TryGetCdata( p[0] );
 	DaoXMLDocument *res = DaoXMLDocument_New();
 	res->root = root;
 	DaoXMLNode_AddRef( (DaoXMLNode*)root );
-	DaoProcess_PutCdata( proc, res, daox_type_xmldoc );
+	DaoProcess_PutCdata( proc, res, retype );
 }
 
 daoint EscapeXMLMarkupChars(DString *str, DString *dest);
@@ -1607,6 +1610,7 @@ static void DaoXMLInstruction_SetData( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoXMLInstruction_Create( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *daox_type_xmlinst = DaoVmSpace_GetType( proc->vmSpace, &daoInstructionCore );
 	DaoXMLInstruction *res = DaoXMLInstruction_New();
 	DString_Assign( &res->name, p[0]->xString.value );
 	if ( !res->name.size ){
@@ -1656,7 +1660,7 @@ static void DaoXMLNode_CoreDelete( DaoValue *self )
 	DaoCstruct_Delete( (DaoCstruct*) self );
 }
 
-static DaoTypeCore daoInstructionCore =
+DaoTypeCore daoInstructionCore =
 {
 	"Instruction",                                         /* name */
 	sizeof(DaoXMLNode),                                    /* size */
@@ -1832,6 +1836,9 @@ static void DaoXMLElement_Clear( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoXMLElement_GetChildren( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *daox_type_xmlinst = DaoVmSpace_GetType( proc->vmSpace, &daoInstructionCore );
+	DaoType *daox_type_xmlcdata = DaoVmSpace_GetType( proc->vmSpace, &daoCharDataCore );
+	DaoType *daox_type_xmlelem = DaoVmSpace_GetType( proc->vmSpace, &daoElementCore );
 	DaoXMLElement *self = (DaoXMLElement*)DaoValue_TryGetCdata( p[0] );
 	DaoList *lst = DaoProcess_PutList( proc );
 	if ( self->kind == XMLTextElement ){
@@ -1895,6 +1902,7 @@ DString* DaoTuple_GetParamName( DaoTuple *self )
 
 static void DaoXMLElement_Create( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *daox_type_xmlelem = DaoVmSpace_GetType( proc->vmSpace, &daoElementCore );
 	DaoXMLElement *res = DaoXMLElement_New();
 	DString_Assign( &res->tag, p[0]->xString.value );
 	if ( !res->tag.size ){
@@ -2099,6 +2107,7 @@ static void DaoXMLElement_MapAttribs( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoXMLElement_GetElems( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *daox_type_xmlelem = DaoVmSpace_GetType( proc->vmSpace, &daoElementCore );
 	DaoXMLElement *self = (DaoXMLElement*)DaoValue_TryGetCdata( p[0] );
 	DaoList *lst = DaoProcess_PutList( proc );
 	if ( self->kind == XMLElement ) {
@@ -2115,6 +2124,9 @@ static void DaoXMLElement_GetElems( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoXMLElement_GetChild( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *daox_type_xmlinst = DaoVmSpace_GetType( proc->vmSpace, &daoInstructionCore );
+	DaoType *daox_type_xmlcdata = DaoVmSpace_GetType( proc->vmSpace, &daoCharDataCore );
+	DaoType *daox_type_xmlelem = DaoVmSpace_GetType( proc->vmSpace, &daoElementCore );
 	DaoXMLElement *self = (DaoXMLElement*)DaoValue_TryGetCdata( p[0] );
 	dao_integer at = p[1]->xInteger.value;
 	DaoXMLNode *node;
@@ -2194,6 +2206,7 @@ DaoXMLElement* ResolvePath( DaoXMLElement *el, DString *path, DString *endtag )
 
 static void DaoXMLElement_FindElem( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *daox_type_xmlelem = DaoVmSpace_GetType( proc->vmSpace, &daoElementCore );
 	DaoXMLElement *self = (DaoXMLElement*)DaoValue_TryGetCdata( p[0] );
 	DString *path = p[1]->xString.value;
 	if ( self->kind == XMLElement ){
@@ -2218,6 +2231,7 @@ static void DaoXMLElement_FindElem( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoXMLElement_FindElems( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *daox_type_xmlelem = DaoVmSpace_GetType( proc->vmSpace, &daoElementCore );
 	DaoXMLElement *self = (DaoXMLElement*)DaoValue_TryGetCdata( p[0] );
 	DString *path = p[1]->xString.value;
 	daoint i;
@@ -2665,7 +2679,7 @@ static DaoFunctionEntry xmlElemMeths[] =
 
 /*! XML element */
 
-static DaoTypeCore daoElementCore =
+DaoTypeCore daoElementCore =
 {
 	"Element",                                           /* name */
 	sizeof(DaoXMLNode),                                  /* size */
@@ -2732,6 +2746,7 @@ static void DaoXMLCharData_SetValue( DaoProcess *proc, DaoValue *p[], int N )
 
 static void DaoXMLCharData_Create( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *daox_type_xmlcdata = DaoVmSpace_GetType( proc->vmSpace, &daoCharDataCore );
 	DaoXMLCharData *res = DaoXMLCharData_New( p[1]->xEnum.value == 0? XMLText : XMLCdata );
 	DString_Assign( &res->data, p[0]->xString.value );
 	if ( res->kind == XMLCdata && strstr( res->data.chars, "]]>" ) ){
@@ -2789,7 +2804,7 @@ static DaoFunctionEntry xmlCdataMeths[] =
 
 /*! XML character data */
 
-static DaoTypeCore daoCharDataCore =
+DaoTypeCore daoCharDataCore =
 {
 	"CharData",                                            /* name */
 	sizeof(DaoXMLNode),                                    /* size */
@@ -2865,10 +2880,11 @@ void DaoXMLWriter_Delete( DaoXMLWriter *self )
 
 static void DaoXMLWriter_Create( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoType *retype = DaoProcess_GetReturnType( proc );
 	DaoXMLWriter *res = DaoXMLWriter_New();
 	if ( N == 0 ){
 		// TODO: this string stream is not readable through "Stream" methods;
-		res->stream = DaoStream_New();
+		res->stream = DaoStream_New( proc->vmSpace );
 		DaoStream_SetStringMode( res->stream );
 		DaoGC_IncRC( (DaoValue*) res->stream );
 	}
@@ -2884,7 +2900,7 @@ static void DaoXMLWriter_Create( DaoProcess *proc, DaoValue *p[], int N )
 			return;
 		}
 	}
-	DaoProcess_PutCdata( proc, res, daox_type_xmlwriter );
+	DaoProcess_PutCdata( proc, res, retype );
 }
 
 void DaoXMLWriter_Return( DaoXMLWriter *self )
@@ -3463,14 +3479,16 @@ static DaoTypeCore daoDecodableCore =
 
 DAO_DLL int DaoXML_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	DaoNamespace *xmlns;
+	DaoNamespace *xmlns = DaoVmSpace_GetNamespace( vmSpace, "xml" );
+
 	DMutex_Init( &xmlmtx );
-	xmlns = DaoNamespace_GetNamespace( ns, "xml" );
-	daox_type_xmlinst = DaoNamespace_WrapType( xmlns, &daoInstructionCore, DAO_CDATA, 0 );
-	daox_type_xmlcdata = DaoNamespace_WrapType( xmlns, &daoCharDataCore, DAO_CDATA, 0 );
-	daox_type_xmlelem = DaoNamespace_WrapType( xmlns, &daoElementCore, DAO_CDATA, 0 );
-	daox_type_xmldoc = DaoNamespace_WrapType( xmlns, &daoDocumentCore, DAO_CDATA, 0 );
-	daox_type_xmlwriter = DaoNamespace_WrapType( xmlns, &daoWriterCore, DAO_CDATA, 0 );
+	DaoNamespace_AddConstValue( ns, "xml", (DaoValue*) xmlns );
+
+	DaoNamespace_WrapType( xmlns, &daoInstructionCore, DAO_CDATA, 0 );
+	DaoNamespace_WrapType( xmlns, &daoCharDataCore, DAO_CDATA, 0 );
+	DaoNamespace_WrapType( xmlns, &daoElementCore, DAO_CDATA, 0 );
+	DaoNamespace_WrapType( xmlns, &daoDocumentCore, DAO_CDATA, 0 );
+	DaoNamespace_WrapType( xmlns, &daoWriterCore, DAO_CDATA, 0 );
 	DaoNamespace_WrapInterface( xmlns, &daoEncodableCore );
 	DaoNamespace_WrapInterface( xmlns, &daoDecodableCore );
 	DaoNamespace_WrapFunctions( xmlns, xmlMeths );
