@@ -73,6 +73,7 @@ struct DaoImage
 };
 #endif
 
+DAO_API( IMAGE, DaoType*, DaoImage_Type, (DaoVmSpace *vmspace) );
 
 DAO_API( IMAGE, DaoImage*, DaoImage_New, (DaoType *type) );
 DAO_API( IMAGE, void, DaoImage_Delete, (DaoImage *self) );

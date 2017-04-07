@@ -2,7 +2,7 @@
 // Dao DataFrame Module
 // http://www.daovm.net
 //
-// Copyright (c) 2013-2016, Limin Fu
+// Copyright (c) 2013-2017, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -77,7 +77,7 @@ DaoxDataColumn* DaoxDataColumn_New( DaoVmSpace *vmspace, DaoType *type )
 	DaoType *ctype = DaoVmSpace_GetType( vmspace, & daoDataColumnCore );
 
 	DaoCstruct_Init( (DaoCstruct*) self, ctype );
-	//if( type == NULL ) type = DaoVmSpace_GetCommonType( DAO_ANY, 0 );
+	if( type == NULL ) type = DaoVmSpace_GetCommonType( vmspace, DAO_ANY, 0 );
 	GC_IncRC( type );
 	self->vatype = type;
 	self->cells = DArray_New( DaoType_GetDataSize( type ) );
@@ -197,6 +197,7 @@ static void DaoxDataColumn_HandleGC( DaoValue *p, DList *values, DList *a, DList
 {
 	DaoxDataColumn *self = (DaoxDataColumn*) p;
 	if( self->vatype ) DList_Append( values, self->vatype );
+	if( self->cells->type == 0 ) DList_Append( a, self->cells );
 	if( rm ){
 		DaoxDataColumn_Reset( self, 0 );
 		self->vatype = NULL;

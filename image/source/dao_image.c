@@ -33,9 +33,16 @@
 #include <string.h>
 #include "dao_image.h"
 #include "daoValue.h"
+#include "daoVmspace.h"
 #include "lode_png.h"
 #include "micro_jpeg.h"
 
+extern DaoTypeCore daoImageCore;
+
+DaoType* DaoImage_Type( DaoVmSpace *vmspace )
+{
+	return DaoVmSpace_GetType( vmspace, & daoImageCore );
+}
 
 
 DaoImage* DaoImage_New( DaoType *type )
