@@ -42,6 +42,14 @@
 #define DAO_HAS_TIME
 #include"dao_api.h"
 
+#ifndef MAX_PATH
+#ifndef PATH_MAX
+#define MAX_PATH 512
+#else
+#define MAX_PATH PATH_MAX
+#endif
+#endif
+
 #ifdef WIN32
 
 typedef wchar_t char_t;
@@ -179,14 +187,6 @@ typedef struct stat stat_t;
 #include<unistd.h>
 #include<sys/time.h>
 #include<pwd.h>
-#endif
-
-#ifndef MAX_PATH
-#ifndef PATH_MAX
-#define MAX_PATH 512
-#else
-#define MAX_PATH PATH_MAX
-#endif
 #endif
 
 #define MAX_ERRMSG 100
@@ -1140,9 +1140,10 @@ static void FSNode_Copy( DaoProcess *proc, DaoValue *p[], int N )
 	if ( dir ){
 		path = (char_t*)dao_malloc( sizeof(char_t)*( MAX_PATH + 1) );
 		tcscpy( path, ( (DInode*)DaoValue_TryGetCdata( p[1] ) )->path );
-	}
-	else
+	} else {
+		DString_Reserve( p[1]->xString.value, MAX_PATH + 1 );
 		path = CharsToTChars( p[1]->xString.value->chars );
+	}
 	src = fopen( self->path, T("rb") );
 	if ( !src ){
 		char errbuf[MAX_ERRMSG] = "Unable to read file; ";
