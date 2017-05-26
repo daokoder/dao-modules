@@ -792,7 +792,7 @@ Concrete Interface
 When a type need to be used in places where an abstract interface type is expected,
 but the type does not support all the methods defined by the abstract interface,
 a concrete interface can be defined for the (target) type to implement the methods
-of the abstract interface, so that the target type can be used whereever the abstract
+of the abstract interface, so that the target type can be used wherever the abstract
 interface type is expected.
 For example,
 @[code]

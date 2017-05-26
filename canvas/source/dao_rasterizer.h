@@ -1,7 +1,7 @@
 /*
 // Polygon rasterizer, adapted from AGG2-Lite.
 //
-// Copyright (c) 2015, Limin Fu
+// Copyright (c) 2015-2017, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,

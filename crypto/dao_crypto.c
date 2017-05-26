@@ -249,7 +249,6 @@ void DString_SHA1( DString *self, DString *sha1 )
 	}
 	DString_Resize( sha1, 40 );
 	snprintf( sha1->chars, sha1->size, "%x%x%x%x%x", H[0], H[1], H[2], H[3], H[4] );
-	DString_Delete( self );
 }
 
 /* Corrected Block Tiny Encryption Algorithm (Corrected Block TEA, or XXTEA)

@@ -2,7 +2,7 @@
 // Dao Graphics Engine
 // http://www.daovm.net
 //
-// Copyright (c) 2013-2014, Limin Fu
+// Copyright (c) 2013-2017, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -36,7 +36,7 @@ DaoVmSpace *dao_vmspace_graphics = NULL;
 
 static void PATH_New( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxPath *path = DaoxPath_New();
+	DaoxPath *path = DaoxPath_New( proc->vmSpace );
 	DaoProcess_PutValue( proc, (DaoValue*) path );
 }
 static void PATH_MoveTo( DaoProcess *proc, DaoValue *p[], int N )
@@ -532,14 +532,14 @@ static void BRUSH_SetDash( DaoProcess *proc, DaoValue *p[], int N )
 static void BRUSH_SetStrokeGradient( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxBrush *self = (DaoxBrush*) p[0];
-	DaoxGradient *grad = DaoxGradient_New( DAOX_GRADIENT_BASE );
+	DaoxGradient *grad = DaoxGradient_New( proc->vmSpace, DAOX_GRADIENT_BASE );
 	GC_Assign( & self->strokeGradient, grad );
 	DaoProcess_PutValue( proc, (DaoValue*) self->strokeGradient );
 }
 static void BRUSH_SetFillGradient( DaoProcess *proc, DaoValue *p[], int N, int type )
 {
 	DaoxBrush *self = (DaoxBrush*) p[0];
-	DaoxGradient *grad = DaoxGradient_New( type );
+	DaoxGradient *grad = DaoxGradient_New( proc->vmSpace, type );
 	GC_Assign( & self->fillGradient, grad );
 	DaoProcess_PutValue( proc, (DaoValue*) self->fillGradient );
 }
@@ -1051,7 +1051,7 @@ DaoTypeCore daoCanvasImageCore =
 
 static void CANVAS_New( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxCanvas *self = DaoxCanvas_New( NULL );
+	DaoxCanvas *self = DaoxCanvas_New( proc->vmSpace );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void CANVAS_SetViewport( DaoProcess *proc, DaoValue *p[], int N )
@@ -1259,7 +1259,7 @@ DaoTypeCore daoCanvasCore =
 
 static void PAINTER_New( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxPainter *self = DaoxPainter_New();
+	DaoxPainter *self = DaoxPainter_New( proc->vmSpace );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void PAINTER_RenderToImage( DaoProcess *proc, DaoValue *p[], int N )
@@ -1287,6 +1287,13 @@ static DaoFunctionEntry daoPainterMeths[]=
 static void DaoxPainter_HandleGC( DaoValue *p, DList *values, DList *lists, DList *maps, int remove )
 {
 	DaoxPainter *self = (DaoxPainter*) p;
+
+	DList_Append( values, self->buffer );
+	DList_Append( values, self->gradient );
+	if( remove ){
+		self->buffer = NULL;
+		self->gradient = NULL;
+	}
 }
 
 DaoTypeCore daoPainterCore =

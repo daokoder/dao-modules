@@ -2,7 +2,7 @@
 // Dao Graphics Engine
 // http://www.daovm.net
 //
-// Copyright (c) 2012-2014, Limin Fu
+// Copyright (c) 2012-2017, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -175,11 +175,11 @@ struct DaoxPath
 
 extern DaoType* daox_type_path;
 
-DaoxPathSegment* DaoxPathSegment_New();
+DaoxPathSegment* DaoxPathSegment_New( DaoxPathComponent *component );
 void DaoxPathSegment_Delete( DaoxPathSegment *self );
 double DaoxPathSegment_Length( DaoxPathSegment *self, float factor );
 
-DaoxPath* DaoxPath_New();
+DaoxPath* DaoxPath_New( DaoVmSpace *vmspace );
 void DaoxPath_Delete( DaoxPath *self );
 void DaoxPath_Reset( DaoxPath *self );
 void DaoxPath_Copy( DaoxPath *self, DaoxPath *other );
@@ -237,7 +237,7 @@ struct DaoxPathMesh
 };
 extern DaoType *daox_type_path_mesh;
 
-DaoxPathMesh* DaoxPathMesh_New();
+DaoxPathMesh* DaoxPathMesh_New( DaoVmSpace *vmspace );
 void DaoxPathMesh_Delete( DaoxPathMesh *self );
 
 void DaoxPathMesh_Reset( DaoxPathMesh *self, DaoxPath *path, DaoxPathStyle *style );
@@ -262,7 +262,7 @@ struct DaoxPathCache
 };
 extern DaoType *daox_type_path_cache;
 
-DaoxPathCache* DaoxPathCache_New();
+DaoxPathCache* DaoxPathCache_New( DaoVmSpace *vmspace );
 void DaoxPathCache_Delete( DaoxPathCache *self );
 
 DaoxPath* DaoxPathCache_FindPath( DaoxPathCache *self, DaoxPath *path );

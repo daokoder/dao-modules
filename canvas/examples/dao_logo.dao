@@ -44,6 +44,9 @@ canvas.PopBrush();
 #}
 canvas.PopBrush();
 
+
+
+
 canvas.PushBrush()
 
 unit = 100;
@@ -170,6 +173,9 @@ path.Close()
 
 
 canvas.PopBrush()
+
+
+
 
 #{
 image = Image();

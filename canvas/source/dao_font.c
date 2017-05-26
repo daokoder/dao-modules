@@ -2,7 +2,7 @@
 // Dao Graphics Engine
 // http://www.daovm.net
 //
-// Copyright (c) 2012-2014, Limin Fu
+// Copyright (c) 2012-2017, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -35,6 +35,8 @@
 
 typedef unsigned long  ulong_t;
 
+extern DaoTypeCore daoFontCore;
+extern DaoTypeCore daoGlyphCore;
 
 
 enum DaoxTTPlatformIDs
@@ -75,12 +77,12 @@ ulong_t daox_tt_ulong( uchar_t *data )
 
 
 
-DaoxGlyph* DaoxGlyph_New()
+DaoxGlyph* DaoxGlyph_New( DaoVmSpace *vmspace )
 {
 	DaoxGlyph *self = (DaoxGlyph*) dao_calloc(1,sizeof(DaoxGlyph));
-	DaoCstruct_Init( (DaoCstruct*)self, daox_type_glyph );
+	DaoCstruct_Init( (DaoCstruct*)self, DaoVmSpace_GetType( vmspace, & daoGlyphCore ) );
 	self->codepoint = 0;
-	self->shape = DaoxPath_New();
+	self->shape = DaoxPath_New( vmspace );
 	DaoGC_IncRC( (DaoValue*) self->shape );
 	return self;
 }
@@ -94,10 +96,10 @@ void DaoxGlyph_Delete( DaoxGlyph *self )
 
 
 
-DaoxFont* DaoxFont_New()
+DaoxFont* DaoxFont_New( DaoVmSpace *vmspace )
 {
 	DaoxFont *self = (DaoxFont*) dao_calloc( 1, sizeof(DaoxFont) );
-	DaoCstruct_Init( (DaoCstruct*)self, daox_type_font );
+	DaoCstruct_Init( (DaoCstruct*)self, DaoVmSpace_GetType( vmspace, & daoFontCore ) );
 	self->buffer = DString_New();
 	self->glyphs = DMap_New(0,DAO_DATA_VALUE);
 	return self;
@@ -125,7 +127,7 @@ int DaoxFont_Init( DaoxFont *self, DString *ttfData )
 }
 DaoxGlyph* DaoxFont_LoadGlyph( DaoxFont *self, size_t codepoint )
 {
-	DaoxGlyph *glyph = DaoxGlyph_New();
+	DaoxGlyph *glyph = DaoxGlyph_New( DaoType_GetVmSpace( self->ctype ) );
 	stbtt_vertex *vertices = NULL;
 	int id = stbtt_FindGlyphIndex( & self->info, codepoint );
 	int i, num_verts = stbtt_GetGlyphShape( & self->info, id, & vertices );
@@ -185,7 +187,7 @@ int DaoxFont_Open( DaoxFont *self, const char *file )
 
 static void FONT_New( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxFont *self = DaoxFont_New();
+	DaoxFont *self = DaoxFont_New( proc->vmSpace );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 	if( N ) DaoxFont_Open( self, DaoValue_TryGetChars( p[0] ) );
 }
@@ -295,7 +297,7 @@ DAO_CANVAS_DLL int DaoFont_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	daox_type_font = DaoNamespace_WrapType( ns, & daoFontCore, DAO_CSTRUCT, 0 );
 	daox_type_glyph = DaoNamespace_WrapType( ns, & daoGlyphCore, DAO_CSTRUCT, 0 );
 	
-	daox_default_font = font = DaoxFont_New();
+	daox_default_font = font = DaoxFont_New( vmSpace );
 	DaoNamespace_AddConstValue( ns, "DefaultFont", (DaoValue*) font );
 	if( stbtt_InitFont( & font->info, daox_courier_code_roman_font_data, 0 ) == 0 ) return 1;
 	stbtt_GetFontVMetrics( & font->info, & font->ascent, & font->descent, & font->lineSpace );

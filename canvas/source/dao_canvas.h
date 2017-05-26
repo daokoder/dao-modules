@@ -2,7 +2,7 @@
 // Dao Graphics Engine
 // http://www.daovm.net
 //
-// Copyright (c) 2012-2014, Limin Fu
+// Copyright (c) 2012-2017, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -82,7 +82,7 @@ DAO_CANVAS_DLL DaoType *daox_type_linear_gradient;
 DAO_CANVAS_DLL DaoType *daox_type_radial_gradient;
 DAO_CANVAS_DLL DaoType *daox_type_path_gradient;
 
-DAO_CANVAS_DLL DaoxGradient* DaoxGradient_New( int type );
+DAO_CANVAS_DLL DaoxGradient* DaoxGradient_New( DaoVmSpace *vmspace, int type );
 DAO_CANVAS_DLL void DaoxGradient_Delete( DaoxGradient *self );
 DAO_CANVAS_DLL void DaoxGradient_Add( DaoxGradient *self, float stop, DaoxColor color );
 DAO_CANVAS_DLL void DaoxGradient_Copy( DaoxGradient *self, DaoxGradient *other );
@@ -106,7 +106,7 @@ struct DaoxBrush
 };
 DAO_CANVAS_DLL DaoType *daox_type_brush;
 
-DAO_CANVAS_DLL DaoxBrush* DaoxBrush_New();
+DAO_CANVAS_DLL DaoxBrush* DaoxBrush_New( DaoVmSpace *vmspace );
 DAO_CANVAS_DLL void DaoxBrush_Delete( DaoxBrush *self );
 DAO_CANVAS_DLL void DaoxBrush_Copy( DaoxBrush *self, DaoxBrush *other );
 
@@ -216,7 +216,7 @@ struct DaoxCanvas
 DAO_CANVAS_DLL DaoType *daox_type_canvas;
 
 
-DAO_CANVAS_DLL DaoxCanvas* DaoxCanvas_New();
+DAO_CANVAS_DLL DaoxCanvas* DaoxCanvas_New( DaoVmSpace *vmspace );
 DAO_CANVAS_DLL void DaoxCanvas_Delete( DaoxCanvas *self );
 
 DAO_CANVAS_DLL void DaoxCanvas_SetViewport( DaoxCanvas *self, float left, float right, float bottom, float top );

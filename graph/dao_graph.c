@@ -82,8 +82,8 @@ DaoxGraph* DaoxGraph_New( DaoType *type, int directed )
 	if( type ){
 		DaoType **types = type->args->items.pType;
 		daoint count = type->args->size;
-		self->nodeType = DaoType_Specialize( daox_node_template_type, types, count );
-		self->edgeType = DaoType_Specialize( daox_edge_template_type, types, count );
+		self->nodeType = DaoType_Specialize( daox_node_template_type, types, count, type->nameSpace );
+		self->edgeType = DaoType_Specialize( daox_edge_template_type, types, count, type->nameSpace );
 		GC_IncRC( self->nodeType );
 		GC_IncRC( self->edgeType );
 	}

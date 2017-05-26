@@ -2,7 +2,7 @@
 // Dao Canvas Module
 // http://www.daovm.net
 //
-// Copyright (c) 2015, Limin Fu
+// Copyright (c) 2015-2017, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -40,13 +40,14 @@ struct DaoxPainter
 
 	DaoxOBBox2D      obbox;
 	DaoImage        *buffer;
+	DaoImage        *target;
 	DaoxRenderer    *renderer;
 	DaoxRasterizer  *rasterizer;
 	DaoxGradient    *gradient;
 };
 extern DaoType *daox_type_painter;
 
-DaoxPainter* DaoxPainter_New();
+DaoxPainter* DaoxPainter_New( DaoVmSpace *vmspace );
 void DaoxPainter_Delete( DaoxPainter *self );
 
 

@@ -2,7 +2,7 @@
 // Dao Graphics Engine
 // http://www.daovm.net
 //
-// Copyright (c) 2012-2014, Limin Fu
+// Copyright (c) 2012-2017, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -54,7 +54,7 @@ struct DaoxGlyph
 };
 extern DaoType* daox_type_glyph;
 
-DaoxGlyph* DaoxGlyph_New();
+DaoxGlyph* DaoxGlyph_New( DaoVmSpace *vmspace );
 void DaoxGlyph_Delete( DaoxGlyph *self );
 
 
@@ -76,7 +76,7 @@ struct DaoxFont
 extern DaoType* daox_type_font;
 
 
-DaoxFont* DaoxFont_New();
+DaoxFont* DaoxFont_New( DaoVmSpace *vmspace );
 int DaoxFont_Init( DaoxFont *self, DString *ttfData );
 
 DaoxGlyph* DaoxFont_GetGlyph( DaoxFont *self, size_t codepoint );

@@ -525,7 +525,7 @@ DAO_DLL_EXPORT int DaoImage_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace_WrapType( ns, & daoImageCore, DAO_CSTRUCT, 0 );
 
 #define DAO_API_INIT
-//#include"dao_api.h"
+#include"dao_api.h"
 
 	return 0;
 }

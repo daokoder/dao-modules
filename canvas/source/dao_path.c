@@ -2,7 +2,7 @@
 // Dao Graphics Engine
 // http://www.daovm.net
 //
-// Copyright (c) 2012-2014, Limin Fu
+// Copyright (c) 2012-2017, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -243,10 +243,10 @@ void DaoxPathComponent_Delete( DaoxPathComponent *self )
 
 
 
-DaoxPath* DaoxPath_New()
+DaoxPath* DaoxPath_New( DaoVmSpace *vmspace )
 {
 	DaoxPath *self = (DaoxPath*) dao_calloc(1,sizeof(DaoxPath));
-	DaoCstruct_Init( (DaoCstruct*)self, daox_type_path );
+	DaoCstruct_Init( (DaoCstruct*)self, DaoVmSpace_GetType( vmspace, & daoPathCore ) );
 	self->first = self->last = DaoxPathComponent_New( self );
 	return self;
 }
@@ -1137,13 +1137,13 @@ void DaoxPathStyle_SetDashes( DaoxPathStyle *self, int count, float lens[] )
 
 
 
-DaoxPathMesh* DaoxPathMesh_New()
+DaoxPathMesh* DaoxPathMesh_New( DaoVmSpace *vmspace )
 {
 	DaoxPathMesh *self = (DaoxPathMesh*) dao_calloc(1,sizeof(DaoxPathMesh));
-	DaoCstruct_Init( (DaoCstruct*)self, daox_type_path_mesh );
+	DaoCstruct_Init( (DaoCstruct*)self, DaoVmSpace_GetType( vmspace, & daoPathMeshCore ) );
 	DaoxPathStyle_Init( & self->strokeStyle );
-	self->path = DaoxPath_New();
-	self->stroke = DaoxPath_New();
+	self->path = DaoxPath_New( vmspace );
+	self->stroke = DaoxPath_New( vmspace );
 	GC_IncRC( self->path );
 	GC_IncRC( self->stroke );
 	return self;
@@ -1514,11 +1514,11 @@ void DaoxPathMesh_ComputeStroke( DaoxPathMesh *self )
 
 
 
-DaoxPathCache* DaoxPathCache_New()
+DaoxPathCache* DaoxPathCache_New( DaoVmSpace *vmspace )
 {
-	DaoxPath *path = DaoxPath_New();
+	DaoxPath *path = DaoxPath_New( vmspace );
 	DaoxPathCache *self = (DaoxPathCache*) dao_calloc( 1, sizeof(DaoxPathCache) );
-	DaoCstruct_Init( (DaoCstruct*)self, daox_type_path_cache );
+	DaoCstruct_Init( (DaoCstruct*)self, DaoVmSpace_GetType( vmspace, & daoPathCacheCore ) );
 
 	self->paths = DHash_New(0,DAO_DATA_LIST);
 	self->meshes = DHash_New(0,DAO_DATA_LIST);
@@ -1699,7 +1699,7 @@ DaoxPath* DaoxPathCache_FindPath( DaoxPathCache *self, DaoxPath *path )
 		DList_Delete( ls );
 	}
 	self->pathCount += 1;
-	cached = DaoxPath_New();
+	cached = DaoxPath_New( DaoType_GetVmSpace( self->ctype ) );
 	cached->cached = 1;
 	DaoxPath_Copy( cached, path );
 	DList_Append( it->value.pList, cached );
@@ -1729,7 +1729,7 @@ DaoxPathMesh* DaoxPathCache_FindMesh( DaoxPathCache *self, DaoxPath *path, DaoxP
 	}
 	self->meshCount += 1;
 	if( path->cached == 0 ) path = DaoxPathCache_FindPath( self, path );
-	mesh = DaoxPathMesh_New();
+	mesh = DaoxPathMesh_New( DaoType_GetVmSpace( self->ctype ) );
 	mesh->hash = hash;
 	DList_Append( it->value.pList, mesh );
 	DaoxPathMesh_Reset( mesh, path, style );

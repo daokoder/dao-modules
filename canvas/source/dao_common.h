@@ -2,7 +2,7 @@
 // Dao Graphics Engine
 // http://www.daovm.net
 //
-// Copyright (c) 2012-2014, Limin Fu
+// Copyright (c) 2012-2017, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -50,6 +50,7 @@
 #include "dao.h"
 #include "daoStdtype.h"
 #include "daoValue.h"
+#include "daoVmspace.h"
 #include "daoGC.h"
 
 
@@ -284,5 +285,23 @@ double DaoxMath_Clamp( double value, double min, double max );
 
 extern DaoVmSpace *dao_vmspace_graphics;
 
+
+extern DaoTypeCore daoPathCore;
+extern DaoTypeCore daoPathMeshCore;
+extern DaoTypeCore daoPathCacheCore;
+extern DaoTypeCore daoGradientCore;
+extern DaoTypeCore daoLinearGradientCore;
+extern DaoTypeCore daoRadialGradientCore;
+extern DaoTypeCore daoBrushCore;
+extern DaoTypeCore daoCanvasNodeCore;
+extern DaoTypeCore daoCanvasLineCore;
+extern DaoTypeCore daoCanvasRectCore;
+extern DaoTypeCore daoCanvasCircleCore;
+extern DaoTypeCore daoCanvasEllipseCore;
+extern DaoTypeCore daoCanvasPathCore;
+extern DaoTypeCore daoCanvasTextCore;
+extern DaoTypeCore daoCanvasImageCore;
+extern DaoTypeCore daoCanvasCore;
+extern DaoTypeCore daoPainterCore;
 
 #endif

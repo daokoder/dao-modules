@@ -1,7 +1,7 @@
 /*
 // Polygon rasterizer, adapted from AGG2-Lite.
 //
-// Copyright (c) 2015, Limin Fu
+// Copyright (c) 2015-2017, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -42,7 +42,7 @@
 //          http://www.antigrain.com
 //----------------------------------------------------------------------------
 //
-// Class DaoxOutline - implementation.
+// Class Outline - implementation.
 //
 // Initially the rendering algorithm was designed by David Turner and the 
 // other authors of the FreeType library - see the above notice. I nearly 
@@ -967,7 +967,7 @@ static uint_t DaoxRasterizer_CalculateAlpha( DaoxRasterizer *self, int area)
 void DaoxRasterizer_Render( DaoxRasterizer *self, DaoxRenderer *r, DaoxPixBrush *b )
 {
 	DaoxPixCell** cells = DaoxOutline_Cells( self->outline );
-	const DaoxPixCell* cur_cell = *cells++;
+	const DaoxPixCell* cur_cell = cells ? *cells++ : NULL;
 	int x, y;
 	int cover;
 	int alpha;
@@ -1041,7 +1041,7 @@ void DaoxRasterizer_Render( DaoxRasterizer *self, DaoxRenderer *r, DaoxPixBrush 
 int DaoxRasterizer_HitTest( DaoxRasterizer *self, int tx, int ty)
 {
     DaoxPixCell** cells = DaoxOutline_Cells( self->outline );
-    const DaoxPixCell* cur_cell = *cells++;
+	const DaoxPixCell* cur_cell = cells ? *cells++ : NULL;
     int x, y;
     int cover;
     int alpha;

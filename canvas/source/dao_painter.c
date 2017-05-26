@@ -2,7 +2,7 @@
 // Dao Canvas Module
 // http://www.daovm.net
 //
-// Copyright (c) 2015, Limin Fu
+// Copyright (c) 2015-2017, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -28,25 +28,28 @@
 #include <math.h>
 #include "dao_painter.h"
 
-DaoxPainter* DaoxPainter_New()
+DaoxPainter* DaoxPainter_New( DaoVmSpace *vmspace )
 {
 	DaoxPainter *self = (DaoxPainter*)dao_calloc(1,sizeof(DaoxPainter));
-	DaoCstruct_Init( (DaoCstruct*) self, daox_type_painter );
-	self->gradient = DaoxGradient_New(DAOX_GRADIENT_BASE);
-	self->buffer = _DaoImage_New();
+	DaoCstruct_Init( (DaoCstruct*) self, DaoVmSpace_GetType( vmspace, & daoPainterCore ) );
+	self->gradient = DaoxGradient_New( vmspace, DAOX_GRADIENT_BASE );
+	self->buffer = _DaoImage_New( _DaoImage_Type( vmspace ) );
 	self->renderer = DaoxRenderer_New( self->buffer );
 	self->rasterizer = DaoxRasterizer_New();
 	self->rasterizer->filling_rule = DAOX_FILL_EVEN_ODD;
+	self->target = self->buffer;
 	DaoxRasterizer_SetGamma( self->rasterizer, 1.3);
+	DaoGC_IncRC( (DaoValue*) self->gradient );
+	DaoGC_IncRC( (DaoValue*) self->buffer );
 	return self;
 }
 void DaoxPainter_Delete( DaoxPainter *self )
 {
 	DaoCstruct_Free( (DaoCstruct*) self );
-	DaoxGradient_Delete( self->gradient );
 	DaoxRasterizer_Delete( self->rasterizer );
 	DaoxRenderer_Delete( self->renderer );
-	_DaoImage_Delete( self->buffer );
+	DaoGC_DecRC( (DaoValue*) self->gradient );
+	DaoGC_DecRC( (DaoValue*) self->buffer );
 	dao_free( self );
 }
 
@@ -54,8 +57,8 @@ void DaoxPainter_Delete( DaoxPainter *self )
 float DaoxPainter_CanvasScale( DaoxPainter *self, DaoxCanvas *canvas )
 {
 	DaoxAABBox2D box = canvas->viewport;
-	float xscale = fabs( box.right - box.left ) / (self->buffer->width + 1);
-	float yscale = fabs( box.top - box.bottom ) / (self->buffer->height + 1);
+	float xscale = fabs( box.right - box.left ) / (self->target->width + 1);
+	float yscale = fabs( box.top - box.bottom ) / (self->target->height + 1);
 	return 0.5 * (xscale + yscale);
 }
 
@@ -137,6 +140,7 @@ void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasNod
 	DaoxMatrix3D inverse;
 	DaoxVector3D itempos = {0.0,0.0,0.0};
 	DaoxMatrix3D transform2 = DaoxCanvasNode_GetLocalTransform( item );
+	DaoVmSpace *vmspace = DaoType_GetVmSpace( self->ctype );
 	float diameter;
 	float scale = DaoxPainter_CanvasScale( self, canvas );
 	float stroke = item->brush->strokeStyle.width / (scale + 1E-16);
@@ -160,7 +164,7 @@ void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasNod
 #endif
 
 	if( item->visible ){
-		if( item->ctype == daox_type_canvas_image ){
+		if( item->ctype == DaoVmSpace_GetType( vmspace, & daoCanvasImageCore ) ){
 			DaoxPainter_PaintImageItem( self, item, transform );
 		}else if( item->path ){
 			DaoxPainter_PaintItemData( self, canvas, item, transform );
@@ -183,7 +187,7 @@ void DaoxPainter_Paint( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D view
 	float H = viewport.top - viewport.bottom;
 	int i, n = canvas->nodes->size;
 
-	_DaoImage_Resize( self->buffer, W, H );
+	_DaoImage_Resize( self->target, W, H );
 
 	if( bgcolor.alpha >= 1.0/255.0 ) DaoxRenderer_Clear( self->renderer, bgcolor );
 
@@ -214,16 +218,16 @@ static DaoxColor Color_InitRGBA( uint_t r, uint_t g, uint_t b, uint_t a )
 void DaoxPainter_PaintCanvasImage( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D viewport, DaoImage *image, int width, int height )
 {
 	DaoxRenderer *renderer = self->renderer;
-	DaoImage *buffer = self->buffer;
+	DaoImage *target = self->target;
 
 	image->depth = DAOX_IMAGE_BIT32;
 	_DaoImage_Resize( image, width, height );
 
-	self->buffer = image;
+	self->target = image;
 	self->renderer = DaoxRenderer_New( image );
 	DaoxPainter_Paint( self, canvas, viewport );
 
 	DaoxRenderer_Delete( self->renderer );
 	self->renderer = renderer;
-	self->buffer = buffer;
+	self->target = target;
 }
