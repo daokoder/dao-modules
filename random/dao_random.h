@@ -49,6 +49,7 @@ typedef struct DaoRandGenerator DaoRandGenerator;
 DAO_API( RANDOM, DaoRandGenerator*, DaoRandGenerator_New, (uint_t seed) );
 DAO_API( RANDOM, void, DaoRandGenerator_Delete, (DaoRandGenerator *self) );
 DAO_API( RANDOM, void, DaoRandGenerator_Seed, (DaoRandGenerator *self, uint_t seed) );
+DAO_API( RANDOM, unsigned, DaoRandGenerator_GetUniformInt, (DaoRandGenerator *self, unsigned max) );
 DAO_API( RANDOM, double, DaoRandGenerator_GetUniform, (DaoRandGenerator *self) );
 DAO_API( RANDOM, double, DaoRandGenerator_GetNormal, (DaoRandGenerator *self) );
 

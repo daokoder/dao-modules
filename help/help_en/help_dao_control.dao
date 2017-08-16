@@ -140,8 +140,8 @@ if( declaration; condition ) {
 
 For example,
 @[code]
-if( rnd = rand(100); rnd > 50 ) io.writeln( "random number is >50" );
-if( var rnd = rand(100); rnd > 50 ) io.writeln( "random number is >50" );
+if( a = sin(100); a > 0 ) io.writeln( "positive sine" );
+if( var a = sin(100); a > 0 ) io.writeln( "positive sine" );
 @[code]
 
 
@@ -151,7 +151,7 @@ More Examples
 
 
 @[code(dao)]
-a = 5
+var a = 5
 if( a > 1 ) io.writeln( 'a > 1' )
 
 if( a > 2 )
@@ -217,14 +217,14 @@ For-in loop can normally used to iterate over the items of a container object.
 
 It is probably most useful with list,
 @[code]
-numbers = { 1, 2, 3, 4, 5 }
+var numbers = { 1, 2, 3, 4, 5 }
 for( num in numbers ) io.writeln( num )
 @[code]
 
 
 For-in loop can also be used with map or hash map,
 @[code]
-mapping = { 'AA'=>11, 'BB'=>22, 'CC'=>33 }
+var mapping = { 'AA'=>11, 'BB'=>22, 'CC'=>33 }
 for( pair in mapping ) io.writeln( pair )
 @[code]
 When iterating over a map or hash map, the iteration variable (@[code]pair@[code])
@@ -234,9 +234,9 @@ will store each pair of key and value as a tuple.
 In a single for-in loop, multiple @[code]in@[code] expressions can be used
 to iterate over multiple objects simutaneously,
 @[code]
-numbers = { 1, 2, 3, 4, 5 }
-mapping = { 'AA'=>11, 'BB'=>22, 'CC'=>33 }
-for( num in numbers; pair in mapping ) io.writeln( num, pair )
+var numbers = { 1, 2, 3, 4, 5 }
+var mapping = { 'AA'=>11, 'BB'=>22, 'CC'=>33 }
+for(var  num in numbers; var pair in mapping ) io.writeln( num, pair )
 @[code]
 
 
@@ -248,10 +248,10 @@ A range for loop uses an arithmetic progression condition to control the loop.
 The arithmetic progression condition usually consists of an initial value,
 an optional step value and a stopping value.
 @[code]
-for( index = 1 : 2 : 10 ) { # step value = 2;
+for(var index = 1 : 2 : 10 ) { # step value = 2;
 	io.writeln( index )
 }
-for( index = 1 : 10 ) {  # step value = 1;
+for(var index = 1 : 10 ) {  # step value = 1;
 	io.writeln( index )
 }
 @[code]
@@ -286,7 +286,7 @@ but the basic execution logic is the same.
 
 Example,
 @[code(dao)]
-for(i=0; i<3; ++i){
+for(var i=0; i<3; ++i){
    io.writeln( i );
 }
 for(var i, j=0; i<10; ++i, j+=2){
@@ -339,7 +339,7 @@ Examples
 @[subsection]
 
 @[code]
-i = 0;
+var i = 0;
 while( i < 5 ){
    io.writeln( i );
    i += 1;
@@ -390,7 +390,7 @@ Examples
 @[subsection]
 
 @[code(dao)]
-i = 0
+var i = 0
 do
 	i += 1
 while( i < 10 )
@@ -461,7 +461,7 @@ default: block0
 @[code]
 As a simple example,
 @[code(dao)]
-a = "a";
+var a = "a";
 switch( a ){
 case 1, "a" : io.write("case 1 or a");
 default :  io.write("case default");

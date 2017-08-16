@@ -61,7 +61,7 @@ their values will be simply increased by one from the values of their preceding 
 These symbols are not exposed to the current namespace.
 So they have to be accessed as fields of the enum type,
 @[code]
-e = MyEnum::AA  # Or: MyEnum.AA;
+var e = MyEnum::AA  # Or: MyEnum.AA;
 @[code]
 Since @[code]MyEnum@[code] is a state enum, so the variable @[code]e@[code]
 can only take one value (symbol) of @[code]MyEnum@[code].
@@ -120,7 +120,7 @@ enum Orientation
 	South ;
 	North
 }
-orientation = Orientation::East + Orientation::South
+var orientation = Orientation::East + Orientation::South
 io.writeln( orientation )  # Output: $East$South(5)
 @[code]
 
@@ -143,8 +143,8 @@ routine MySearch( values: list<int>, direction: enum<forward,backward> )
 {
 	...
 }
-values = { 1, 2, 3 }
-result = MySearch( values, $forward )
+var values = { 1, 2, 3 }
+var result = MySearch( values, $forward )
 @[code]
 
 

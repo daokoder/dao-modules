@@ -179,7 +179,7 @@ tuple<1,2>
 被标注为多型类型的变量可保存这个多型类型所表示的任意一种可能类型的值。
 例如：
 @[code]
-intstr : int|string = 123
+var intstr : int|string = 123
 intstr = 'abc'
 @[code]
 
@@ -191,13 +191,13 @@ intstr = 'abc'
 @[code]
 routine FindWord( source: string, word: string ) => int|none
 {
-	pos = source.find( word )
+	var pos = source.find( word )
 	if( pos < 0 ) return none
 	return pos
 }
 
-pos = FindWord( "dao language", "dao" )  # pos = 0
-pos = FindWord( "dao language", "lua" )  # pos = none
+var pos1 = FindWord( "dao language", "dao" )  # pos1 = 0
+var pos2 = FindWord( "dao language", "lua" )  # pos2 = none
 @[code]
 详情请参看@[node]dao.type.variant@[node]。
 
@@ -312,7 +312,7 @@ dao.type.variant
 一个多型类型的变量可保存其任意一种可能类型的值。
 例如：
 @[code]
-intstr : int|string = 123
+var intstr : int|string = 123
 intstr = 'abc'
 @[code]
 值得注意的是多型类型通常不支持它的可能类型的运算操作。它必须作适当的转换
@@ -383,7 +383,7 @@ class BB
 routine Test( object: AA|BB|HasSizeMethod )
 {
 # casting to an interface will invoke automatic binding:
-	object2 = (HasSizeMethod) object;
+	var object2 = (HasSizeMethod) object;
 	io.writeln( object2.Size() )
 }
 
@@ -420,15 +420,15 @@ class FakeImage
 	operator[]( i: int, js: tuple<int|none,int|none> )=>array<int>
 	{
         # one can simply return image[i,js], but the following is for demonstration purpose:
-		j1 = 0;
-		j2 = image.dim(1) - 1;
+		var j1 = 0;
+		var j2 = image.dim(1) - 1;
 		if( js[0] != none ) j1 = js[0];
 		if( js[1] != none ) j2 = js[1];
 		return image[i,j1:j2];
 	}
 }
 
-image = FakeImage();
+var image = FakeImage();
 io.writeln( image[1,1:] );
 io.writeln( image[2,:1] );
 @[code]
@@ -443,11 +443,11 @@ routine Sum( alist : list<@T<int|string>> ) => @T
 	return alist.sum();
 }
 
-s = Sum( { 1, 2, 3 } );
+var s = Sum( { 1, 2, 3 } );
 #s += 'a'; # typing error
 io.writeln( s );
 
-s2 = Sum( { 'a', 'b', 'c' } );
+var s2 = Sum( { 'a', 'b', 'c' } );
 io.writeln( s2 );
 @[code]
 @[text]

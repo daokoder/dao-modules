@@ -140,7 +140,7 @@ class Contact
 @[code]
 现在调用该类的构造方法是生产该类实例的唯一方法：
 @[code]
-obj = Contact( 'Mike', '123 Main Street' )
+var obj = Contact( 'Mike', '123 Main Street' )
 @[code]
 
 
@@ -180,7 +180,7 @@ class Klass
 	static routine StaticMethod(){ id = 1 }  # Wrong;
 	static routine StaticMethod(){ io.writeln( info ) }  # Correct;
 }
-obj = Klass::StaticMethod()
+var obj = Klass::StaticMethod()
 @[code]
 
 
@@ -219,7 +219,7 @@ class Sub : Base
 {
 	var value = 'abc'
 }
-obj = Sub()
+var obj = Sub()
 @[code]
 这个例子中，派生类的一个实例由该类的隐含的缺省构造方法产生。
 该构造函数将自动调用基类的构造方法（隐含的或显式定义的）以初始化基类的成员数据。
@@ -298,9 +298,9 @@ class Integer
 		return Integer( A.value + B.value );
 	}
 }
-I1 = Integer( 123 )
-I2 = Integer( 456 )
-I3 = I1 + I2
+var I1 = Integer( 123 )
+var I2 = Integer( 456 )
+var I3 = I1 + I2
 @[code]
 
 对类成员的访问也可以被定义。这种定义需要实现@[green]operator .field_name@[green]
@@ -317,8 +317,8 @@ class Integer
 	operator .value(){ io.writeln( 'get value' ) }
 	operator .value=( v : int ){ value = v; io.writeln( 'get value' ) }
 }
-I = Integer( 123 )
-v = I.value
+var I = Integer( 123 )
+var v = I.value
 I.value = 456
 @[code]
 
@@ -334,7 +334,7 @@ class IntList
 	operator []( index : int ){ return ints[index] }
 	operator []=( value :int, index : int ){ ints[index] = value }
 }
-ilist = IntList()
+var ilist = IntList()
 ilist.Append( 123 )
 ilist.Append( 456 )
 ilist[0] = 789
@@ -369,9 +369,11 @@ class Integer
 		return C;
 	}
 }
-I1 = Integer( 123 )
-I2 = Integer( 456 )
-for( i = 1 : 3 ) I3 = I1 + I2
+var I1 = Integer( 123 )
+var I2 = Integer( 456 )
+for(var i = 1 : 3 ){
+	var I3 = I1 + I2
+}
 @[code]
 #}
 
@@ -420,7 +422,7 @@ class Klass ( Base, Mixin )
 	routine Meth2( a : int ){ io.writeln( self, index, value, a ) }
 }
 
-k = Klass()
+var k = Klass()
 
 io.writeln( k.index )
 
@@ -431,192 +433,6 @@ k.Meth2( 789 )
 @[code]
 
 @[text]
-
-
-
-
-
-
-@[name]
-dao.class.decorator
-@[name]
-
-@[title]
-修饰器类
-@[title]
-
-
-@[text]
-
-修饰器类是一种特殊的类，它可用来修饰（修改）其他类。
-这种修饰是通过把这种类当作组件类用在新类里。
-作为组件类，它们的成员数据和方法将被加入到被修饰的类型，
-并且修饰器类的成员修饰器方法将按一定的规则被自动地应用到
-被修饰类的成员方法上。
-
-
-为了自动地应用成员修饰器方法，该方法的定义须指定应用规则。
-这种规则主要以前缀和后缀的形式存在，可按以下方式表示：
-@[list]
--- @[code]Prefix~@[code] : 前缀模式。
-
-   该修饰器方法将被自动地应用到方法名带此前缀且类型跟此该修饰器方法
-   的目标函数类型匹配的方法上；
-
--- @[code]~Suffix@[code] : 后缀模式。
-
-   该修饰器方法将被自动地应用到方法名带此后缀且类型跟此该修饰器方法
-   的目标函数类型匹配的方法上；
-
--- @[code]Prefix~Suffix@[code] : 前后缀模式。
-
-   该修饰器方法将被自动地应用到方法名带此前后缀且类型跟此该修饰器方法
-   的目标函数类型匹配的方法上；
-
--- @[code]~@[code] : 空模式。
-
-   该修饰器方法将被自动地应用到任意方法类型跟此该修饰器方法
-   的目标函数类型匹配的方法上；
-@[list]
-
-
-
-当一个主类使用了多个修饰器类时，最前面的修饰器类的修饰器方法将被最后应用。
-而同一个修饰器类的多个修饰器方法，最前面定义也将最后被应用。
-
-@[code]
-class @Header
-{
-    static routine @Delimiter( meth(args) : routine ) for ~ { 
-        io.writeln( '=======================' )
-        return meth( args, ... )
-    }   
-    routine @Delimiter( meth(args) : routine ) for ~ { 
-        io.writeln( '-----------------------' )
-        return meth( args, ... )
-    }   
-}
-class @Decorator
-{
-    var value = 654321
-
-    routine @Test( meth(args) : routine<self:@Decorator> ) for Test {
-        io.writeln( 'Decorator::Test()', value )
-        meth( args, ... );
-    }   
-    routine @Prefix( meth(args) : routine<self:@Decorator> ) for Prefix~ {
-        io.writeln( 'Decorator::Prefix()' )
-        meth( args, ... );
-    }
-    routine @Suffix( meth(args) : routine<self:@Decorator> ) for ~Suffix {
-        io.writeln( 'Decorator::Suffix()' )
-        meth( args, ... );
-    }
-    routine @Prefix_Suffix( meth(args) : routine<self:@Decorator> ) for Prefix~Suffix {
-        io.writeln( 'Decorator::Prefix_Suffix()' )
-        meth( args, ... );
-    }
-}
-
-class MyMixin ( @Header, @Decorator )
-{
-    routine Test(){
-        io.writeln( 'MyMixin::Test()' )
-    }
-    routine PrefixTest(){
-        io.writeln( 'MyMixin::PrefixTest()' )
-    }
-    routine TestSuffix(){
-        io.writeln( 'MyMixin::TestSuffix()' )
-    }
-    routine PrefixTestSuffix(){
-        io.writeln( 'MyMixin::PrefixTestSuffix()' )
-    }
-}
-
-obj = MyMixin()
-obj.Test()
-obj.PrefixTest()
-obj.TestSuffix()
-obj.PrefixTestSuffix()
-@[code]
-
-@[text]
-
-
-
-
-
-
-@[name]
-dao.class.aspect
-@[name]
-
-@[title]
-方面类
-@[title]
-
-
-@[text]
-
-
-在道语言里，一个修饰器类可以有效地用作面向方面(Aspect)编程里一个方面(Aspect)。
-这只需要定义一个自动应用修饰器类的目标模式。
-这种带自动应用目标模式的修饰器类即为方面类。
-
-
-这种类将按照其模式自动地作为组合类加入到匹配的目标类里。
-结果就是这种类的成员将被自动地加入到目标类里，
-并且它所定义的带目标模式的修饰器方法也将自动地应用到目标类里
-相应的方法上。
-
-
-为了避免意外的方面类应用，一个普通类只有在定义时才可能被方面类所修改，
-并且只能被定义处可见的方面类修改。更进一步，只有同一个文件里定义的，
-或直接载入的文件里定义的方面类才可在当前类里定义。
-
-
-方面类的自动应用目标模式跟修饰器方法的定义方式一样：
-@[code]
-# 可应用到所有类的方面类：
-class @AspectForAnyClass for ~
-{
-    var injected = {}
-
-	# 这个是构造方法，不是修饰器方法!
-    routine @AspectForAnyClass(){
-        io.writeln( 'In @AspectForAnyClass():' );
-        injected = { 1, 2, 3 }
-    }
-
-    # 这个修饰器方法也将被用到缺省的构造方法上: 
-    routine @DecoratorForAnyMethod( meth(args) : routine ) for ~ {
-        io.writeln( 'In @DecoratorForAnyMethod():', std.about(meth) )
-        io.writeln( injected )
-        return meth( args, ... )
-    }
-}
-
-# 只可应用到类名带My前缀的类的方面类：
-class @AspectForMyClasses for My~
-{
-    routine @Method( meth(args) : routine ) for Method~ {
-        io.writeln( 'In @AspectForMyClasses::@Method():', std.about(meth) )
-        return meth( args, ... )
-    }
-}
-
-class MyClass
-{
-    routine Method(){ io.writeln( 'MyClass::Method()' ) }
-}
-
-k = MyClass()  # 调用MyClass的缺省构造方法;
-k.Method()
-@[code]
-
-@[text]
-
 
 
 
@@ -678,7 +494,7 @@ routine Resize( object: Resizable, size: int )
 	object.resize( size )
 }
 
-ls = {}
+var ls = {}
 Resize( ls, 5 )
 io.writeln( ls )
 @[code]

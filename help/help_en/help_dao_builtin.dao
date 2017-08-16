@@ -25,12 +25,6 @@ Built-in Math Functions
 @[text]
 
 @[list]
---@[green]rand( x : int|float|double )@[green]
-  
-  Generate a random number of the same type as the parameter
-  between @[green]0@[green] (inclusive) and @[green]x@[green] (exclusive).
-
-
 --@[green]ceil( x : double|complex )@[green]
 
   Round to smallest integral value not less than @[green]x@[green].

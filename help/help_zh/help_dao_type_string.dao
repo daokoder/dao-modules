@@ -58,16 +58,16 @@ VerbatimString ::= '@[' [Delimiter] ']' Characters '@[' [Delimiter] ']'
 @[subsection]例子@[subsection]
 
 @[code]
-mbs = 'hello'
-wcs = "道语言"
-mbs2 = 'It\'s green'
-wcs2 = "\u9053\u8bed\u8a00" # the same as wcs;
+var mbs = 'hello'
+var wcs = "道语言"
+var mbs2 = 'It\'s green'
+var wcs2 = "\u9053\u8bed\u8a00" # the same as wcs;
 
 # verbatim strings:
-mbs = @[] some text @[]
+var mbs = @[] some text @[]
 
 # C++ codes in verbatim string:
-cpp =
+var cpp =
 @[cpp x]
 class AA
 {
@@ -78,7 +78,7 @@ struct BB{};
 
 
 # Lua codes in verbatim string:
-lua =
+var lua =
 @[lua]
 local a = 1;
 function Test()
@@ -87,7 +87,7 @@ end
 @[lua]
 
 # HTML codes in verbatim string:
-html =
+var html =
 @[html:123456]
 <body>
 <span name="test"></span>

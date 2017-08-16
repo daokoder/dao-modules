@@ -164,7 +164,7 @@ and each pair of index and name is followed by a semicolon.
 The substrings for bytecode tags and opcodes are seperated by a blank space.
 The rotating hash is computed by
 @[code]
-hash = length( text );
+var hash = length( text );
 for(byte in text) hash = ((hash<<4)^(hash>>28)^byte)&0x7fffffff;
 return hash;
 @[code]
@@ -536,10 +536,10 @@ class Klass
 
 routine Func()
 {
-    name = index
+    var name = index
 }
 
-klass = Klass()
+var klass = Klass()
 @[code]
 
 Output disassembled bytecode:

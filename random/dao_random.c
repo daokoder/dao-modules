@@ -88,6 +88,10 @@ static uint_t DaoRandGenerator_ExtractMT( DaoRandGenerator *self )
 	self->index = (self->index + 1) % DAO_MTCOUNT;
 	return y;
 }
+unsigned DaoRandGenerator_GetUniformInt( DaoRandGenerator *self, unsigned max )
+{
+	    return DaoRandGenerator_ExtractMT( self ) % (max + 1); 
+}
 double DaoRandGenerator_GetUniform( DaoRandGenerator *self )
 {
 	return DaoRandGenerator_ExtractMT( self ) / (double) 0xffffffff;
@@ -170,25 +174,31 @@ static void GEN_GetUniform2( DaoProcess *proc, DaoValue *p[], int N )
 static void GEN_GetUniformInt( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoRandGenWrapper *self = (DaoRandGenWrapper*) p[0];
-	double random = DaoRandGenerator_GetUniform( & self->generator );
 	dao_integer max = p[1]->xInteger.value;
+	unsigned random;
 	if( max < 0 ){
-		DaoProcess_PutInteger( proc, (max - 1) * random );
+		random = DaoRandGenerator_GetUniformInt( & self->generator, - max );
+		DaoProcess_PutInteger( proc, - random );
 	}else{
-		DaoProcess_PutInteger( proc, (max + 1) * random );
+		random = DaoRandGenerator_GetUniformInt( & self->generator, max );
+		DaoProcess_PutInteger( proc, random );
 	}
 }
 static void GEN_GetUniformInt2( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoRandGenWrapper *self = (DaoRandGenWrapper*) p[0];
-	double random = DaoRandGenerator_GetUniform( & self->generator );
 	dao_integer min = p[1]->xInteger.value;
 	dao_integer max = p[2]->xInteger.value;
-	if( max < min ){
+	unsigned random;
+	if( min > max ){
 		DaoProcess_RaiseError( proc, "Param", "invalid range" );
 		return;
+	}else if( min == max ){
+		DaoProcess_PutInteger( proc, min );
+		return;
 	}
-	DaoProcess_PutFloat( proc, min + (max - min + 1) * random );
+	random = DaoRandGenerator_GetUniformInt( & self->generator, max - min );
+	DaoProcess_PutInteger( proc, random + min );
 }
 
 static void GEN_GetNormal( DaoProcess *proc, DaoValue *p[], int N )
@@ -288,12 +298,14 @@ static void RAND_Rand( DaoProcess *proc, DaoValue *p[], int N )
 static void RAND_Rand2( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoRandGenerator *generator = DaoProcess_GetRandCache( proc, 0 );
-	double random = DaoRandGenerator_GetUniform( generator );
 	dao_integer max = p[0]->xInteger.value;
+	unsigned random;
 	if( max < 0 ){
-		DaoProcess_PutInteger( proc, (max - 1) * random );
+		random = DaoRandGenerator_GetUniformInt( generator, - max );
+		DaoProcess_PutInteger( proc, - random );
 	}else{
-		DaoProcess_PutInteger( proc, (max + 1) * random );
+		random = DaoRandGenerator_GetUniformInt( generator, max );
+		DaoProcess_PutInteger( proc, random );
 	}
 }
 

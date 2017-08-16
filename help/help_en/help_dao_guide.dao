@@ -174,7 +174,7 @@ To avoid this, one must the keyword @[code]var@[code] to explicitly
 declare the variable as local,
 @[code]
 var index = 789
-for( i = 1 : 3 ){
+for(var i = 1 : 3 ){
 	var index = 123  # Local to the loop;
 }
 @[code]
@@ -235,10 +235,10 @@ Boolean
 
 Boolean (@[code]bool@[code]) is a simple logical data type representing true and false.
 @[code]
-B1 = true
-B2 = false
-B3 = 3 > 2
-B4 = B1 and B2
+var B1 = true
+var B2 = false
+var B3 = 3 > 2
+var B4 = B1 and B2
 @[code]
 
 
@@ -257,13 +257,13 @@ parts of double precision complex numbers.
 
 Examples,
 @[code]
-I1 = 123     # Base-10 integer;
-I2 = 0xabc   # Base-16 integer;
-F1 = 456.7   # Double precision;
-F2 = 123e4   # Double precision;
-F3 = 123E4   # Double precision;
-C1 = 123C    # Double precision complex number with 0.0 real part and 123 imag part;
-C2 = 456.6C  # Double precision complex number;
+var I1 = 123     # Base-10 integer;
+var I2 = 0xabc   # Base-16 integer;
+var F1 = 456.7   # Double precision;
+var F2 = 123e4   # Double precision;
+var F3 = 123E4   # Double precision;
+var C1 = 123C    # Double precision complex number with 0.0 real part and 123 imag part;
+var C2 = 456.6C  # Double precision complex number;
 @[code]
 
 These types support most of the common operators that are meaningful for them.
@@ -272,11 +272,11 @@ For example, all the basic arithmetic operators such as:
 @[code]*@[code] (multiplication) and @[code]/@[code] (division).
 are supported.
 @[code]
-I1 = 123 + 456
-I2 = 789 % 123
-F1 = 123.5 ** 3
-F2 = 789.5 / 123
-C1 = 12.3 + 45.6C
+var I1 = 123 + 456
+var I2 = 789 % 123
+var F1 = 123.5 ** 3
+var F2 = 789.5 / 123
+var C1 = 12.3 + 45.6C
 @[code]
 
 Please see @[node]dao.type.int@[node], @[node]dao.type.float@[node]
@@ -300,7 +300,7 @@ enum MyEnum
 These symbols are not exposed to the current namespace.
 So they have to be accessed as fields of the enum type,
 @[code]
-a = MyEnum::AA  # Or: MyEnum.AA;
+var a = MyEnum::AA  # Or: MyEnum.AA;
 @[code]
 
 
@@ -345,10 +345,10 @@ But when processed as text, it is usually assumed to be encoded in UTF-8.
 Strings can be expressed as string literals quoted with double or single
 quotation marks.
 @[code]
-S1 = 'Something'
-S2 = "道语言"
-S3 = 'It\'s green'
-S4 = "\u9053\u8bed\u8a00" # the same as S2: "道语言";
+var S1 = 'Something'
+var S2 = "道语言"
+var S3 = 'It\'s green'
+var S4 = "\u9053\u8bed\u8a00" # the same as S2: "道语言";
 @[code]
 Inside string lieterals, some characters need to be escaped with backslashes.
 Some others such as @[code]\u@[code] are used to instruct Dao parser to
@@ -363,7 +363,7 @@ colons, dashes and assignment marks can be placed in between the squared bracket
 to make sure the marks will not appear inside the string.
 @[code]
 # C++ codes as verbatim string:
-cpp =
+var cpp =
 @[cpp x]
 class AA
 {
@@ -375,7 +375,7 @@ struct BB{};
 
 The content of a string can be accessed or altered using sub-indexing or slicing:
 @[code]
-str = "ABCDEFGHIJK";
+var str = "ABCDEFGHIJK";
 
 io.writeln( str[1] )    # the second character;
 io.writeln( str[:4] )   # the substring from the start to the 4th character;
@@ -388,7 +388,7 @@ str[2:5] = "123456"  # Change a substring: str = "AB123456GHIJK";
 
 String can be concaternated using @[code]+@[code] or @[code]+=@[code],
 @[code]
-str = "ABCDEFGHIJK";
+var str = "ABCDEFGHIJK";
 
 str2 = str + "123"  # str2 = ABCDEFGHIJK123
 str += "123" # Append a string: str = ABCDEFGHIJK123
@@ -415,23 +415,23 @@ a start value, a step value and the number of steps.
 If the step value is omitted, it will be assumed to be zero.
 
 @[code]
-vec1 = [1, 2, 3]            # array<int> vector, or 1x3 matrix;
-vec2 = [1.0; 2; 3]          # array<float> 3x1 matrix, or transposed vector;
-mat1 = [1.0, 2; 3, 4]       # array<float> 2x2 matrix;
-mat2 = [ [1, 2], [3, 4] ]   # 2x2 matrix
-mat3 = array{ 1, 2; 3, 4 }  # 2x2 matrix
+var vec1 = [1, 2, 3]            # array<int> vector, or 1x3 matrix;
+var vec2 = [1.0; 2; 3]          # array<float> 3x1 matrix, or transposed vector;
+var mat1 = [1.0, 2; 3, 4]       # array<float> 2x2 matrix;
+var mat2 = [ [1, 2], [3, 4] ]   # 2x2 matrix
+var mat3 = array{ 1, 2; 3, 4 }  # 2x2 matrix
 @[code]
 
 Like string, array support sub-indexing and slicing:
 @[code]
-mat = [ 1, 2, 3; 4, 5, 6; 7, 8, 9 ];  # 3x3 matrix;
+var mat = [ 1, 2, 3; 4, 5, 6; 7, 8, 9 ];  # 3x3 matrix;
 
-rowvec = mat[1,:]  # the second row;
-colvec = mat[:,1]  # the second column;
+var rowvec = mat[1,:]  # the second row;
+var colvec = mat[:,1]  # the second column;
 
-submat1 = mat[:1,:]  # the first two rows;
-submat2 = mat[:,1:]  # the last two columns;
-submat3 = mat[:1,1:] # intersection between the first two rows and the last two columns;
+var submat1 = mat[:1,:]  # the first two rows;
+var submat2 = mat[:,1:]  # the last two columns;
+var submat3 = mat[:1,1:] # intersection between the first two rows and the last two columns;
 
 mat[0,:]  = [11, 22, 33]  # set the first row to [11, 22, 33];
 mat[:,1] += [11, 22, 33]  # add [11, 22, 33] to the second column;
@@ -454,20 +454,20 @@ an arithmetic progression, but using @[code]{}@[code] or @[code]list{}@[code]
 instead of @[code][]@[code] or @[code]array{}@[code].
 
 @[code]
-list1 = { 1, 2, 3 }    # list<int>
-list2 = { 1.0, 2, 3 }  # list<float>
-list3 = { 1 : 2 : 5 }  # list<int>
+var list1 = { 1, 2, 3 }    # list<int>
+var list2 = { 1.0, 2, 3 }  # list<float>
+var list3 = { 1 : 2 : 5 }  # list<int>
 
-list4 = { 'abc', 'def' }  # list<string>
-list5 = { 123, 'abc' }    # list<any>
+var list4 = { 'abc', 'def' }  # list<string>
+var list5 = { 123, 'abc' }    # list<any>
 @[code]
 
 List also supports sub-indexing and slicing:
 @[code]
-alist = { 0, 1, 2, 3, 4, 5 }
+var alist = { 0, 1, 2, 3, 4, 5 }
 
-item = alist[1]
-sublist = alist[2:4]
+var item = alist[1]
+var sublist = alist[2:4]
 
 alist[3]  = 10
 alist[4] += 10
@@ -491,20 +491,20 @@ A map can be created using @[code]{key=>value...}@[code] or
 with colon @[code]->@[code] will create hash maps.
 Map and hash map can be used in identical ways.
 @[code]
-amap  = { 'abc' => 123, 'def' => 456 }
-ahash = { 'abc' -> 123, 'def' -> 456 }
+var amap  = { 'abc' => 123, 'def' => 456 }
+var ahash = { 'abc' -> 123, 'def' -> 456 }
 
-amap  = map{ 'abc' => 123, 'def' => 456 }
-ahash = map{ 'abc' -> 123, 'def' -> 456 }
+var amap  = map{ 'abc' => 123, 'def' => 456 }
+var ahash = map{ 'abc' -> 123, 'def' -> 456 }
 @[code]
 
 Sub-scripting and slicing are also supported for map to access value(s)
 through key(s).
 @[code]
-amap = { 'abc' => 123, 'def' => 456, 'ghi' => 789 }
+var amap = { 'abc' => 123, 'def' => 456, 'ghi' => 789 }
 
-value  = amap[ 'abc' ];
-submap = amap[ 'abc' : 'def' ];
+var value  = amap[ 'abc' ];
+var submap = amap[ 'abc' : 'def' ];
 @[code]
 
 
@@ -521,21 +521,21 @@ type annotation for each item. Each item may optionally have a field name.
 They can be created in similar ways as creating lists and maps,
 but using @[code]()@[code] instead.
 @[code]
-tup1 = ( 123, 'abc' )               # tuple with unnamed items;
-tup2 = ( index = 123, 'abc' )      # the first item is named as "index";
-tup3 = tuple{ 123, name = 'abc' }  # the second item is named as "name";
+var tup1 = ( 123, 'abc' )               # tuple with unnamed items;
+var tup2 = ( index = 123, 'abc' )      # the first item is named as "index";
+var tup3 = tuple{ 123, name = 'abc' }  # the second item is named as "name";
 @[code]
 
 Each item of a tuple can be accessed using its index or field (item name).
 New tuples can be created from other tuples by slicing.
 @[code]
-tup = ( index = 123, 'abc', [1,2,3] )
+var tup = ( index = 123, 'abc', [1,2,3] )
+var id = tup[0]
 
-id = tup[0]
 id = tup.index
 tup.index = 456
 
-tup2 = tup[:1]  # ( index = 123, 'abc' )
+var tup2 = tup[:1]  # ( index = 123, 'abc' )
 @[code]
 
 
@@ -571,21 +571,21 @@ If none of the conditions suceeds and
 there is an @[code]else@[code] clause,
 its block will be executed instead.
 @[code]
-if( rand(10) > 7 ){
-	io.writeln( "greater than 7" )
-}else if( rand(10) > 5 ){
-	io.writeln( "greater than 5" )
-}else if( rand(10) > 3 ){
-	io.writeln( "greater than 3" )
+if( sin(10) > 0.7 ){
+	io.writeln( "greater than 0.7" )
+}else if( sin(10) > 0.5 ){
+	io.writeln( "greater than 0.5" )
+}else if( sin(10) > 0.3 ){
+	io.writeln( "greater than 0.3" )
 }else{
-	io.writeln( "not greater than 3" )
+	io.writeln( "not greater than 0.3" )
 }
 @[code]
 
 Before each condition expression, there can be an optional expression
 or variable declaration, for example,
 @[code]
-if( rnd = rand(100); rnd > 50 ) io.writeln( "random number:", rnd );
+if(var a = sin(100); a > 0.0 ) io.writeln( "positive sine:", a );
 @[code]
 
 
@@ -608,7 +608,7 @@ Dao supports three different styles of for loops:
 For-in loop can normally used to iterate over the items of a container object.
 It is probably most useful with list.
 @[code]
-numbers = { 1, 2, 3, 4, 5 }
+var numbers = { 1, 2, 3, 4, 5 }
 for( num in numbers ) io.writeln( num )
 @[code]
 
@@ -617,10 +617,10 @@ A range for loop uses an arithmetic progression condition to control the loop.
 The arithmetic progression condition usually consists of an initial value,
 an optional step value and a stopping value.
 @[code]
-for( index = 1 : 2 : 10 ) { # step value = 2;
+for(var index = 1 : 2 : 10 ) { # step value = 2;
 	io.writeln( index )
 }
-for( index = 1 : 10 ) {  # step value = 1;
+for(var index = 1 : 10 ) {  # step value = 1;
 	io.writeln( index )
 }
 @[code]
@@ -648,7 +648,7 @@ but the basic execution logic is the same.
 
 Example,
 @[code(dao)]
-for(i=0; i<3; ++i){
+for(var i=0; i<3; ++i){
    io.writeln( i );
 }
 @[code(dao)]
@@ -674,7 +674,7 @@ until @[code]expression@[code] becomes false,
 namely, while @[code]expression@[code] is true, execute @[code]block@[code].
 
 @[code]
-i = 0;
+var i = 0;
 while( i < 5 ){
    io.writeln( i );
    i += 1;
@@ -737,7 +737,7 @@ default: block0
 @[code]
 As a simple example,
 @[code(dao)]
-a = "a";
+var a = "a";
 switch( a ){
 case 1, "a" : io.write("case 1 or a");
 default :  io.write("case default");
@@ -757,7 +757,7 @@ to skip the rest part of script and start the next cycle of a loop.
 @[code]skip@[code] is equivalent to @[code]continue@[code] in C/C++.
 
 @[code] 
-for( i=0; i<5; ++i ){
+for(var i=0; i<5; ++i ){
 	io.writeln( i ); 
 	if( i == 3 ) break;
 }
@@ -792,8 +792,8 @@ routine func( first, second )
    return first, second; # return more than one results.
 }
 
-(ret1, ret2) = func( 111, "AAA" );
-ret3 = func( ret1, ret2 );
+var (ret1, ret2) = func( 111, "AAA" );
+var ret3 = func( ret1, ret2 );
 @[code(dao)]
 defines a function that can take two parameters as inputs,
 and return two values as outputs.
@@ -857,7 +857,7 @@ it is created as a closure, otherwise as an anonymous function.
 
 Here is a simple example,
 @[code]
-abc = "ABC";
+var abc = "ABC";
 
 rout = routine( x, y: string, z = abc + abc ){
     abc += y;
@@ -949,7 +949,7 @@ Class constructors are the methods that have name the same as the class name.
 A class instance can be created by invoking a constructor of the class 
 in the same way as a function call,
 @[code]
-object = ClassOne( 'abc' )
+var object = ClassOne( 'abc' )
 @[code]
 Note that, the constructors are not used to create class instances,
 instead, an instance is created before, and then the constructor is called
@@ -965,11 +965,11 @@ class Point3D
 	var y = 0.0;
 	var z = 0.0;
 }
-point = Point3D.{ 1, 2, 3 };
+var point = Point3D.{ 1, 2, 3 };
 @[code]
 The names of instance variables may also be specified in enumeration,
 @[code]
-point = Point3D.{ y = 2, x = 1, z = 3 };
+var point = Point3D.{ y = 2, x = 1, z = 3 };
 @[code]
 
 
@@ -1035,7 +1035,7 @@ class MyNumber
 	}
 }
 
-num = MyNumber( 123 )
+var num = MyNumber( 123 )
 num.value = 456
 io.writeln( num.value )
 @[code(dao)]
@@ -1059,7 +1059,7 @@ class ColorRBG
 	}
 }
 
-yellow = ColorRBG( 1, 1, 0 ); # create an instance.
+var yellow = ColorRBG( 1, 1, 0 ); # create an instance.
 @[code]
 The following will define a derived class of @[code]ColorRBG@[code],
 @[code]

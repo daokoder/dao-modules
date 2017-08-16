@@ -50,10 +50,14 @@ Starting Tasklet
 The simplest way to start a tasklet is to use the functional method
 @[code]mt.start@[code] to run an expression or a block of codes:
 @[code]
-a = 123
-fut = mt.start { a*a }
-fut2 = mt.start {
-	for( i = 1 : 1000 ) b = a*a
+var a = 123
+var fut = mt.start { a*a }
+var fut2 = mt.start {
+	var sum2 = 0;
+	for(var i = 1 : 1000 ){
+		sum += a*a
+	}
+	io.writeln( sum2 )
 }
 @[code]
 This functional method is implemented as a code section (code block as in Ruby)
@@ -78,7 +82,7 @@ fut2.wait( 0.1 )
 @[code]
 Its value can be obtained by,
 @[code]
-value = fut.value()
+var value = fut.value()
 @[code]
 which will block the current tasklet and wait for the completion of the tasklet
 represented by @[code]fut@[code].
@@ -167,9 +171,9 @@ Any standard function call followed by @[code]!!@[code] will start an AFC.
 @[code]
 routine MyFunction( n = 10 )
 {
-	for( i = 1 : n ) io.writeln( i )
+	for(var i = 1 : n ) io.writeln( i )
 }
-f = MyFunction( 20 ) !!
+var f = MyFunction( 20 ) !!
 io.writeln( f.value() )
 @[code]
 
@@ -247,13 +251,15 @@ class Account !!
 	}
 }
 
-acount1 = Account( 100 )
-acount2 = Account( 100 )
+var acount1 = Account( 100 )
+var acount2 = Account( 100 )
 
-future1 = acount1.Withdraw( 10 )
-if( future1.value() == $true ) future2 = acount2.Deposit( 10 )
+var future1 = acount1.Withdraw( 10 )
+if( future1.value() == $true ){
+	var future2 = acount2.Deposit( 10 )
+}
 
-future3 = acount1.Deposit( 20 )
+var future3 = acount1.Deposit( 20 )
 
 io.writeln( 'Balance in account1:', acount1.Balance().value() )
 io.writeln( 'Balance in account2:', acount2.Balance().value() )
@@ -295,7 +301,7 @@ The @[code]Channel@[code] type is implemented as a customized C data type
 that supports template-like type arguments. So to construct a channel that 
 can send and receive integers, one can use,
 @[code]
-chan = mt::Channel<int>()
+var chan = mt::Channel<int>()
 @[code]
 Here @[code]Channel@[code] is prefixed with @[code]mt::@[code],
 because @[code]Channel@[code] is defined in the built-in @[code]mt@[code]
@@ -352,10 +358,10 @@ Here is a simple example, where integers are sent through one channel and string
 @[code]
 load sys
 
-chans = { mt::Channel<int>(1), mt::Channel<string>(1) }
+var chans = { mt::Channel<int>(1), mt::Channel<string>(1) }
 
 mt.start {
-    index = 0;
+    var index = 0;
     while( ++index <= 10 ){
         if( rand(2) ){
             io.writeln( "sending integer:", index );
@@ -372,7 +378,7 @@ mt.start {
 }
 
 while( 1 ){
-    data = mt::select( chans, 0.2 )
+    var data = mt::select( chans, 0.2 )
     io.writeln( "received:", data );
     if( data.status == $finished ) break
 }

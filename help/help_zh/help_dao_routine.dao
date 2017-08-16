@@ -30,8 +30,8 @@ routine func( first, second )
    return first, second; # 返回多个值;
 }
 
-(ret1, ret2) = func( 111, "AAA" );
-ret3 = func( ret1, ret2 );
+var (ret1, ret2) = func( 111, "AAA" );
+var ret3 = func( ret1, ret2 );
 @[code(dao)]
 这里定义了一个可带两个参数作为输入，并返回两个值作为输出。
 
@@ -103,7 +103,7 @@ dao.routine.closure
 
 下面是个简单的例子：
 @[code]
-rout = routine( name: string, value = 0 ){
+var rout = routine( name: string, value = 0 ){
 	io.writeln( name, value )
 	return name.size() + value
 }
@@ -121,7 +121,7 @@ routine MakeClosure( start: int )
 		return start + offset
 	}
 }
-rout = MakeClosure( 100 );
+var rout = MakeClosure( 100 );
 rout( 123 )
 @[code]
 这例中创建的函数访问了外层函数"MakeClosure()"的"start"局部变量，
@@ -240,7 +240,7 @@ sort( self :list<@T>, k=0 ) [X :@T, Y :@T => int] => list<@T>
 以便有代码块作比较。此代码块将依据代码块比较元素的结果作排序。
 因此该@[code]sort()@[code]方法可按如下方式使用:
 @[code]
-numlist = { 11, 44, 21, 32, 56, 67, 25 }
+var numlist = { 11, 44, 21, 32, 56, 67, 25 }
 
 # 按升序排序:
 numlist.sort { X < Y }
@@ -249,7 +249,7 @@ numlist.sort { X < Y }
 numlist.sort( 3 ) { X > Y }
 # 现在numlist的前三个元素即最大的三个元素;
 
-tuplist = { ( 2, 'ghi' ), ( 1, 'def' ), ( 2, 'abc' ), ( 1, 'abc' ) }
+var tuplist = { ( 2, 'ghi' ), ( 1, 'def' ), ( 2, 'abc' ), ( 1, 'abc' ) }
 tuplist.sort {
 	# 先按元组的第一个元素排序:
 	if( X[0] != Y[0] ) return X[0] < Y[0];
@@ -269,7 +269,7 @@ tuplist.sort {
 routine Test() [X :int => string] => string
 {
 	io.writeln( 'In functional method!' );
-	s = yield( 123 ); # 执行代码块;
+	var s = yield( 123 ); # 执行代码块;
 	io.writeln( 'Yielded value:', s );
 	return s;
 }
@@ -284,249 +284,3 @@ Test {
 @[text]
 
 
-
-@[name]
-dao.routine.decorator
-@[name]
-
-@[title]
-修饰器函数
-@[title]
-
-@[text]
-
-
-修饰器函数是另一种特殊的函数。这种函数可通过修饰其它函数来增强其功能。
-这种函数的修饰方式既可修改原函数，也可返回新的函数。
-
-
-函数可通过不同的途径被修饰，但只有在函数的定义处被修饰才会改变该函数。
-其他方式都将生成新的修改后的函数。
-
-
-修饰器函数的定义跟普通函数的定义基本一样。不过它的函数名需要带@[code]@@[code]前缀，
-且其第一个参数必须是一函数类型。此函数类型将决定该修饰器函数可以修饰哪些类型的函数。
-另外，第一个参数还需附带一个变量名，以表示修饰后的函数被调用时的参数。
-
-
-@[subsection]
-可修饰任意函数的修饰器函数
-@[subsection]
-
-要定一个可修饰任意函数的修饰器函数，它的第一参数里的函数类型必须
-最通用的函数类型@[code]routine@[code]。
-
-
-这里是一个这样的简单的修饰器函数：
-@[code]
-routine @Decorator( func(args): routine )
-{
-	io.writeln( 'Calling function:', std.about(func) );
-	return func( args, ... ); # ... 参数扩展;
-}
-@[code]
-
-
-在函数定义的地方修饰函数：
-@[code]
-@Decorator()
-routine Function(){ io.writeln( 'Function()' ); }
-@[code]
-修饰器函数的第二个及其后面的参数需放在@[code]@Decorator()@[code]的括号里。
-被它修饰的函数将总作为第一个参数传递给它。
-
-
-如果修饰器函数不带除被修饰的函数之外的参数，它后面的括号可省略：
-@[code]
-@Decorator
-routine Function( a: int ){ io.writeln( 'Function(int)', a ); }
-
-Function();
-Function(123);
-@[code]
-
-
-
-@[subsection]
-修饰某些特定函数类型的修饰器函数
-@[subsection]
-
-修饰器函数也可被定义为只能修饰某些特定函数类型的修饰器函数。
-要这样定义，仅需将其第一个参数里函数类型表达为所能修饰的函数类型即可。
-
-
-下面定义的修饰器函数只能被用来修饰以整型为参数和字符串类型为返回值的函数。
-这个修饰器函数还定义了额外的参数，用来表示被修饰函数所期望的返回值。
-@[code]
-routine @TestDecorator( func(args): routine<index:int=>string>, expected = '' )
-{
-	res = func( args, ... );
-	io.writeln( res );
-	io.writeln( 'Test result:', res == expected ? 'passed': 'failed' );
-	return res;
-}
-
-@TestDecorator( 'Hello' )
-routine Hello( index = 0 )
-{
-	io.writeln( 'Calling Hello(int)' );
-	return 'Hello';
-}
-
-Hello();
-@[code]
-
-
-
-@[subsection]
-修饰器函数的重载
-@[subsection]
-
-修饰器函数可以象普通函数那样根据参数进行重载。
-
-
-下面是一个重载的修饰器函数，它只能用来修饰以字符串类型为参数且以整型为返回值的函数：
-@[code]
-routine @TestDecorator( func(args): routine<name:string=>int>, expected = 0 )
-{
-	res = func( args, ... );
-	io.writeln( res );
-	io.writeln( 'Test result:', res == expected ? 'passed' : 'failed' );
-	return res;
-}
-@[code]
-
-
-
-# 多个修饰器函数可以连起来用:
-@[code]
-@Decorator
-@TestDecorator( 123 )
-routine Hello( name: string )
-{
-	io.writeln( 'Calling Hello(string)', name );
-	return 123;
-}
-
-io.writeln( Hello( 'abc' ) );
-@[code]
-
-
-
-@[subsection]
-表达式里的函数修饰
-@[subsection]
-
-修饰器函数可以按普通函数一样的方式用在表达式里。
-也就是允许象调用普通函数那样调用修饰器函数，
-并将被修饰函数和其他值以参数的形式传递给修饰器函数。
-@[code]
-anotherHello = @Decorator( Hello )
-@[code]
-这种方式修饰函数将产生新的修饰后的函数。
-
-
-如果所有传递给修饰器函数的参数都为常量，那么这个函数修饰表达式
-可在编译时求值。
-@[code]
-const Hello3 = @Decorator( Hello )
-Hello3( 'def' )
-@[code]
-
-这个特性可用来修改从其他模块载入的函数，并使用同样的函数名。
-@[code]
-load MyModule  # 假定这个模块定义MyFunction()函数;
-
-# 用函数修饰创建一个同名的新函数:
-const MyFunction = @MyDecorator( MyFunction )
-@[code]
-
-
-在非常量表达式里修饰函数，函数的修饰将在运行时进行：
-@[code]
-routine Hello2( index = 123 )
-{
-	io.writeln( 'Calling Hello2(int)', index );
-	return 'Hello';
-}
-# 运行时函数修饰:
-func = @TestDecorator( Hello2, 'Hello' );
-io.writeln( '--------' )
-func(123)
-
-func = @TestDecorator( func );
-io.writeln( '--------' )
-func(123)
-@[code]
-
-
-也同普通函数一样，修饰器函数也可被赋与变量并在运行时使用。
-@[code]
-deco = @Decorator;
-func = deco( func );
-
-io.writeln( '--------' )
-func(789);
-@[code]
-
-
-
-@[subsection]
-可修饰类成员方法的修饰器函数
-@[subsection]
-
-修饰器函数也可用来修饰类成员方法。
-这种修饰器函数即可定义在类外面，也可定义在类里面。
-
-
-如果修饰器函数的被修饰函数类型部包括@[code]self@[code]参数，
-那么它可被用来修饰类静态方法：
-@[code]
-routine @StaticDecorator( meth(args) :routine<id:int=>int>, value = 123 )
-{
-	io.writeln( args, value );
-	args.id = value;
-	return meth( args, ... );
-}
-@[code]
-否则它可用来修饰类实例方法：
-@[code]
-routine @MethodDecorator( meth(args) :routine<self:@T,id:int=>int>, value = 123 )
-{
-	io.writeln( args, value );
-	args.id = value;
-	return meth( args, ... );
-}
-@[code]
-
-
-当修饰器函数被定义在类里时，它必须被声明为静态方法。
-因为它的第一个参数必须是被修饰函数类型。
-@[code]
-class Klass
-{
-	static routine @ClassDecorator( meth(args) :routine<id:string=>?>, value = 'abc' ){
-		io.writeln( args, value );
-		args.id = value;
-		return meth( args, ... );
-	}
-
-	@StaticDecorator( 456 )
-	static routine StaticMeth( id :int ){ io.writeln( id ); return id }
-
-	@ClassDecorator
-	static routine StaticMeth( id :string ){ io.writeln( id ) }
-
-	@MethodDecorator( 789 )
-	routine Meth( id :int ){ io.writeln( id ); return id }
-}
-
-Klass::StaticMeth( 0 );
-Klass::StaticMeth( 'a' );
-
-k = Klass();
-k.Meth(1);
-@[code]
-
-
-@[text]

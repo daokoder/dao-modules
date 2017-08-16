@@ -61,16 +61,16 @@ does not appear in the string content.
 @[subsection]Examples@[subsection]
 
 @[code]
-mbs = 'hello'
-wcs = "道语言"
-mbs2 = 'It\'s green'
-wcs2 = "\u9053\u8bed\u8a00" # the same as wcs;
+var mbs = 'hello'
+var wcs = "道语言"
+var mbs2 = 'It\'s green'
+var wcs2 = "\u9053\u8bed\u8a00" # the same as wcs;
 
 # verbatim strings:
-mbs = @[] some text @[]
+var mbs = @[] some text @[]
 
 # C++ codes in verbatim string:
-cpp =
+var cpp =
 @[cpp x]
 class AA
 {
@@ -81,7 +81,7 @@ struct BB{};
 
 
 # Lua codes in verbatim string:
-lua =
+var lua =
 @[lua]
 local a = 1;
 function Test()
@@ -90,7 +90,7 @@ end
 @[lua]
 
 # HTML codes in verbatim string:
-html =
+var html =
 @[html:123456]
 <body>
 <span name="test"></span>
@@ -177,8 +177,8 @@ Create and return a string that is composed of "count" of "char".
 
 Examples,
 @[code]
-S1 = string( 5, 'S'[0] )   # SSSSS
-S2 = string( 3, 0x9053 )   # 道道道
+var S1 = string( 5, 'S'[0] )   # SSSSS
+var S2 = string( 3, 0x9053 )   # 道道道
 @[code]
 
 
@@ -194,9 +194,9 @@ strings from the exection of the code section.
 
 Examples,
 @[code]
-S1 = string( 5 ){ "S" }       # SSSSS
-S2 = string( 2 ){ "道语言" }  # 道语言道语言
-S3 = string( 6 ){ [index] (string) index }  # 012345
+var S1 = string( 5 ){ "S" }       # SSSSS
+var S2 = string( 2 ){ "道语言" }  # 道语言道语言
+var S3 = string( 6 ){ [index] (string) index }  # 012345
 @[code]
 
 
@@ -234,9 +234,9 @@ Return the number of bytes or characters in the string.
 
 Examples,
 @[code]
-S = "ABCDE"
-len1 = S.size()
-len2 = "XYZ".size()
+var S = "ABCDE"
+var len1 = S.size()
+var len2 = "XYZ".size()
 @[code]
 
 For efficiency, you might consider to use the size operator @[code]%@[code],
@@ -285,11 +285,11 @@ valid UTF-8 encoding sequence are removed from the end.
 
 Examples,
 @[code]
-S1 = "line\n"
-S2 = S1.chop()
+var S1 = "line\n"
+var S2 = S1.chop()
 
-S3 = "道语言"[:8]
-S4 = S3.chop( 1 )  # 道语
+var S3 = "道语言"[:8]
+var S4 = S3.chop( 1 )  # 道语
 @[code]
 
 
@@ -307,13 +307,13 @@ valid UTF-8 encoding sequence are trimmed as well.
 
 Examples,
 @[code]
-S1 = "\tline\n"
-S2 = S1.trim()         # "line"
-S3 = S1.trim( $head )  # "line\n"
+var S1 = "\tline\n"
+var S2 = S1.trim()         # "line"
+var S3 = S1.trim( $head )  # "line\n"
 
-S4 = "\t道语言"[:8]
-S5 = S4.trim()            # "道语??"
-S6 = S4.trim( $tail, 1 )  # "\t道语"
+var S4 = "\t道语言"[:8]
+var S5 = S4.trim()            # "道语??"
+var S6 = S4.trim( $tail, 1 )  # "\t道语"
 @[code]
 
 
@@ -336,9 +336,9 @@ Return the index of the last byte of the found substring for backward searching;
 
 Examples,
 @[code]
-S1 = "dao programming language and dao virtual machine"
-P1 = S1.find( "dao" )         # Find the first "dao";
-P2 = S2.find( "dao", -1, 1 )  # Find the last "dao";
+var S1 = "dao programming language and dao virtual machine"
+var P1 = S1.find( "dao" )         # Find the first "dao";
+var P2 = S2.find( "dao", -1, 1 )  # Find the last "dao";
 @[code]
 
 
@@ -361,9 +361,9 @@ Convert the string:
 
 Examples,
 @[code]
-S1 = "Dao Language"
-S2 = S1.convert( $upper )  # DAO LANGUAGE
-S3 = S1.convert( $lower )  # dao language
+var S1 = "Dao Language"
+var S2 = S1.convert( $upper )  # DAO LANGUAGE
+var S3 = S1.convert( $lower )  # dao language
 @[code]
 
 
@@ -386,10 +386,10 @@ Negative "index" is counted backwardly;
 
 Examples,
 @[code]
-S1 = "dao programming language and dao virtual machine"
-S2 = S1.replace( "dao", "fast", 1 )   # replace the first "dao" with "fast";
-S3 = S1.replace( "dao", "fast", -1 )  # replace the last  "dao" with "fast";
-S4 = S1.replace( "dao", "fast", 0 )   # replace all "dao" with "fast";
+var S1 = "dao programming language and dao virtual machine"
+var S2 = S1.replace( "dao", "fast", 1 )   # replace the first "dao" with "fast";
+var S3 = S1.replace( "dao", "fast", -1 )  # replace the last  "dao" with "fast";
+var S4 = S1.replace( "dao", "fast", 0 )   # replace all "dao" with "fast";
 @[code]
 
 
@@ -415,9 +415,9 @@ Otherwise kept.
 
 Examples,
 @[code]
-S1 = '<a href="@(url)">@(name)</a>'
-keyvalues = { "url" => "http://daovm.net", "name" => "Dao Website" }
-S2 = S1.expand( keyvalues, "@" )  # <a href="http://daovm.net">Dao Website</a>
+var S1 = '<a href="@(url)">@(name)</a>'
+var keyvalues = { "url" => "http://daovm.net", "name" => "Dao Website" }
+var S2 = S1.expand( keyvalues, "@" )  # <a href="http://daovm.net">Dao Website</a>
 @[code]
 
 
@@ -434,11 +434,11 @@ If "sep" is empty, split at character boundaries assuming UTF-8 encoding.
 
 Examples,
 @[code]
-S1 = "dao::io::stdio"
-L1 = S1.split( "::" )  # { "dao", "io", "stdio" }
+var S1 = "dao::io::stdio"
+var L1 = S1.split( "::" )  # { "dao", "io", "stdio" }
 
-S2 = "道语言"
-L2 = S2.split()  # { "道", "语", "言" }
+var S2 = "道语言"
+var L2 = S2.split()  # { "道", "语", "言" }
 @[code]
 
 

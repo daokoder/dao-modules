@@ -171,10 +171,10 @@ fetch( invar self: string, pattern: string, group = 0, start = 0, end = -1 )
 
 例子：
 @[code]
-S1 = "ABC123DEF456GHI"
-S2 = S1.fetch( "%d+" )          # S2 = "123"
-S3 = S1.fetch( "%d+(%a+)", 1 )  # S3 = "DEF"
-S4 = S1.fetch( "%d+", 0, 6 )    # S4 = "456"
+var S1 = "ABC123DEF456GHI"
+var S2 = S1.fetch( "%d+" )          # S2 = "123"
+var S3 = S1.fetch( "%d+(%a+)", 1 )  # S3 = "DEF"
+var S4 = S1.fetch( "%d+", 0, 6 )    # S4 = "456"
 @[code]
 
 
@@ -195,11 +195,11 @@ match( invar self: string, pattern: string, group = 0, start = 0, end = -1 )
 
 例子：
 @[code]
-S1 = "ABC123DEF(456)GHI"
-M2 = S1.match( "%d+" )          # M2 = (start=3,end=5); substring: "123"
-M3 = S1.match( "%b()" )         # M3 = (start=9,end=13); substring: "(456)"
-M4 = S1.match( "%b{}" )         # M4 = none;
-M5 = S1.match( "%d+(%a+)", 1 )  # M5 = (start=6,end=8); substring: "DEF"
+var S1 = "ABC123DEF(456)GHI"
+var M2 = S1.match( "%d+" )          # M2 = (start=3,end=5); substring: "123"
+var M3 = S1.match( "%b()" )         # M3 = (start=9,end=13); substring: "(456)"
+var M4 = S1.match( "%b{}" )         # M4 = none;
+var M5 = S1.match( "%d+(%a+)", 1 )  # M5 = (start=6,end=8); substring: "DEF"
 @[code]
 
 
@@ -222,9 +222,9 @@ change( invar self: string, pattern: string, target: string, index = 0,
 
 例子：
 @[code]
-S1 = "ABC123DEF456GHI"
-S2 = S.change( "%d+", ";" )          # S2 = "ABC;DEF;GHI"
-S3 = S.change( "(%d+)", "<%1>", 1 )  # S3 = "ABC<123>DEF456GHI"
+var S1 = "ABC123DEF456GHI"
+var S2 = S.change( "%d+", ";" )          # S2 = "ABC;DEF;GHI"
+var S3 = S.change( "(%d+)", "<%1>", 1 )  # S3 = "ABC<123>DEF456GHI"
 @[code]
 
 
@@ -244,9 +244,9 @@ capture( invar self: string, pattern: string, start = 0, end = -1 ) => list<stri
 
 例子：
 @[code]
-S1 = "ABC123DEF456GHI"
-L1 = S1.capture( "%d+" )        # L1 = { "123" }
-L2 = S1.capture( "%d+ (%a+)" )  # L2 = { "123DEF", "DEF" }
+var S1 = "ABC123DEF456GHI"
+var L1 = S1.capture( "%d+" )        # L1 = { "123" }
+var L2 = S1.capture( "%d+ (%a+)" )  # L2 = { "123DEF", "DEF" }
 @[code]
 
 
@@ -262,9 +262,9 @@ extract( invar self: string, pattern: string,
 
 例子：
 @[code]
-S1 = "ABC123DEF456GHI"
-L1 = S1.extract( "%d+" )   # L1 = { "123", "456" }
-L2 = S2.extract( "%d+", $unmatched )  # L2 = { "ABC", "DEF", "GHI" }
+var S1 = "ABC123DEF456GHI"
+var L1 = S1.extract( "%d+" )   # L1 = { "123", "456" }
+var L2 = S2.extract( "%d+", $unmatched )  # L2 = { "ABC", "DEF", "GHI" }
 @[code]
 
 
@@ -286,7 +286,7 @@ scan( invar self: string, pattern: string, start = 0, end = -1 )
 
 例子：
 @[code]
-S1 = "ABC123DEF"
+var S1 = "ABC123DEF"
 S1.scan( "%d+" ) { [start, end, state]
 	io.writeln( start, end, S1[start:end], state )
 }

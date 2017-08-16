@@ -42,8 +42,8 @@ otherwise, it will be checked at running time.
 Type annotations in Dao are usually placed after the variable, parameter or field names
 with a colon separating the names and the annotation.
 @[code]
-name: type
-name: type = value
+var name: type
+var name: type = value
 
 routine MyFunction( name: string, index: int = 1 ) { ... }
 
@@ -56,8 +56,8 @@ class Klass
 
 Multiple variables can be declared at once with the same type and initial value:
 @[code]
-name1, name2 : type
-name1, name2 : type = value
+var name1, name2 : type
+var name1, name2 : type = value
 @[code]
 
 
@@ -202,7 +202,7 @@ A variant type is declared by joining these alternative types using
 A variable of a variant type can hold value of any of the alternative types.
 For example,
 @[code]
-intstr : int|string = 123
+var intstr : int|string = 123
 intstr = 'abc'
 @[code]
 
@@ -216,13 +216,13 @@ For example,
 @[code]
 routine FindWord( source: string, word: string ) => int|none
 {
-	pos = source.find( word )
+	var pos = source.find( word )
 	if( pos < 0 ) return none
 	return pos
 }
 
-pos = FindWord( "dao language", "dao" )  # pos = 0
-pos = FindWord( "dao language", "lua" )  # pos = none
+var pos1 = FindWord( "dao language", "dao" )  # pos1 = 0
+var pos2 = FindWord( "dao language", "lua" )  # pos2 = none
 @[code]
 Please see @[node]dao.type.variant@[node] for more information.
 
@@ -344,7 +344,7 @@ A variant type is declared by joining these alternative types using
 A variable of a variant type can hold value of any of the alternative types.
 For example,
 @[code]
-intstr : int|string = 123
+var intstr : int|string = 123
 intstr = 'abc'
 @[code]
 Please note that a variant type normally does not support the operations of
@@ -391,7 +391,7 @@ inside the switch block.
 
 More examples:
 @[code]
-intstring: list<int|string> = {};
+var intstring: list<int|string> = {};
 
 intstring.append( 123 );
 intstring.append( 'abc' );
@@ -456,15 +456,15 @@ class FakeImage
 	operator[]( i: int, js: tuple<int|none,int|none> )=>array<int>
 	{
         # one can simply return image[i,js], but the following is for demonstration purpose:
-		j1 = 0;
-		j2 = image.dim(1) - 1;
+		var j1 = 0;
+		var j2 = image.dim(1) - 1;
 		if( js[0] != none ) j1 = js[0];
 		if( js[1] != none ) j2 = js[1];
 		return image[i,j1:j2];
 	}
 }
 
-image = FakeImage();
+var image = FakeImage();
 io.writeln( image[1,1:] );
 io.writeln( image[2,:1] );
 @[code]
@@ -479,11 +479,11 @@ routine Sum( alist : list<@T<int|string>> ) => @T
 	return alist.sum();
 }
 
-s = Sum( { 1, 2, 3 } );
+var s = Sum( { 1, 2, 3 } );
 #s += 'a'; # typing error
 io.writeln( s );
 
-s2 = Sum( { 'a', 'b', 'c' } );
+var s2 = Sum( { 'a', 'b', 'c' } );
 io.writeln( s2 );
 @[code]
 @[text]

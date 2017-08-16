@@ -51,10 +51,10 @@ dao.concurrent.threading
 创建轻任务的最简单的方法是使用函数式方法@[code]mt.start@[code]
 来运行一个表达式或代码块：
 @[code]
-a = 123
-fut = mt.start { a*a }
-fut2 = mt.start {
-	for( i = 1 : 1000 ) b = a*a
+var a = 123
+var fut = mt.start { a*a }
+var fut2 = mt.start {
+	for(var i = 1 : 1000 ) b = a*a
 }
 @[code]
 这个函数式方法是以代码块方法(类似Ruby里的Code Block)的形式实现，
@@ -79,7 +79,7 @@ fut2.wait( 0.1 )
 @[code]
 未来值所表示的轻任务的的结果可由下面的方法获得：
 @[code]
-value = fut.value()
+var value = fut.value()
 @[code]
 这个方法将无限时阻塞当前轻任务以等待它所表示的轻任务的结束.
 
@@ -165,9 +165,9 @@ dao.concurrent.async-call
 @[code]
 routine MyFunction( n = 10 )
 {
-	for( i = 1 : n ) io.writeln( i )
+	for(var i = 1 : n ) io.writeln( i )
 }
-f = MyFunction( 20 ) !!
+var f = MyFunction( 20 ) !!
 io.writeln( f.value() )
 @[code]
 
@@ -243,13 +243,15 @@ class Account !!
 	}
 }
 
-acount1 = Account( 100 )
-acount2 = Account( 100 )
+var acount1 = Account( 100 )
+var acount2 = Account( 100 )
 
-future1 = acount1.Withdraw( 10 )
-if( future1.value() == $true ) future2 = acount2.Deposit( 10 )
+var future1 = acount1.Withdraw( 10 )
+if( future1.value() == $true ){
+	var future2 = acount2.Deposit( 10 )
+}
 
-future3 = acount1.Deposit( 20 )
+var future3 = acount1.Deposit( 20 )
 
 io.writeln( 'Balance in account1:', acount1.Balance().value() )
 io.writeln( 'Balance in account2:', acount2.Balance().value() )
@@ -286,7 +288,7 @@ dao.concurrent.channel
 它可以带类似模版类型的类型参数。因此，要创建一个可发送和接收
 整数的管道，可用下面的方式：
 @[code]
-chan = mt::Channel<int>()
+var chan = mt::Channel<int>()
 @[code]
 这里@[code]Channel@[code]带了前缀@[code]mt::@[code]，
 因为@[code]Channel@[code]是多线程模块@[code]mt@[code]里定义的一个类型。
@@ -342,10 +344,10 @@ chan = mt::Channel<int>()
 @[code]
 load sys
 
-chans = { mt::Channel<int>(1), mt::Channel<string>(1) }
+var chans = { mt::Channel<int>(1), mt::Channel<string>(1) }
 
 mt.start {
-    index = 0;
+	var index = 0;
     while( ++index <= 10 ){
         if( rand(2) ){
             io.writeln( "sending integer:", index );
@@ -362,7 +364,7 @@ mt.start {
 }
 
 while( 1 ){
-    data = mt::select( chans, 0.2 )
+	var data = mt::select( chans, 0.2 )
     io.writeln( "received:", data );
     if( data.status == $finished ) break
 }

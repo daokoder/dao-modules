@@ -59,7 +59,7 @@ enum MyEnum
 这些符号只能通过相应的枚举类型来访问，
 应为它们并没有出现在当前的命名空间。
 @[code]
-a = MyEnum::AA  # Or: MyEnum.AA;
+var a = MyEnum::AA  # Or: MyEnum.AA;
 @[code]
 因为@[code]MyEnum@[code]的符号不可组合，变量@[code]e@[code]将只能取
 @[code]MyEnum@[code]的一个值或符号。
@@ -112,7 +112,7 @@ enum Orientation
 	South ;
 	North
 }
-orientation = Orientation::East + Orientation::South
+var orientation = Orientation::East + Orientation::South
 io.writeln( orientation )  # Output: $East$South(5)
 @[code]
 
@@ -136,8 +136,8 @@ routine MySearch( values: list<int>, direction: enum<forward,backward> )
 {
 	    ... 
 }
-values = { 1, 2, 3 } 
-result = MySearch( values, $forward )
+var values = { 1, 2, 3 } 
+var result = MySearch( values, $forward )
 @[code]
 
 

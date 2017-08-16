@@ -266,7 +266,7 @@ std.exec() [=>@T] => @T
 延迟代码块将允许错误被处理后，程序从此方法后面继续执行。
 
 @[code(dao)]
-fout = io::stdio
+var fout = io::stdio
 
 std.exec {
 	defer { recover() }
@@ -290,7 +290,7 @@ std.exec(defaultValue:@T)[=>@T]=>@T
 否则输出到标准输出。这其实就是上例所作的，那些代码可使用
 本方法作如下简化：
 @[code(dao)]
-fout = std.exec( io::stdio ){ io.open( "NonExistentFile.txt", 'r+' ) }
+var fout = std.exec( io::stdio ){ io.open( "NonExistentFile.txt", 'r+' ) }
 if( fout != io::stdio ) defer{ fout.close() }
 fout.writeln( 'hello' )
 @[code(dao)]

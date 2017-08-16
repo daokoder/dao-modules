@@ -155,7 +155,7 @@ invlist.append( 456 )  # 错误!
 要避免这样，关键词@[code]var@[code]必须被显式地使用。
 @[code]
 var index = 789
-for( i = 1 : 3 ){
+for(var i = 1 : 3 ){
 	var index = 123  # 循环内局域变量；
 }
 @[code]
@@ -209,10 +209,10 @@ var   varlist: list<int>
 
 布尔类型（@[code]bool@[code]）是一种简单的逻辑数据类型，可用来表示真与假值。
 @[code]
-B1 = true
-B2 = false
-B3 = 3 > 2
-B4 = B1 and B2
+var B1 = true
+var B2 = false
+var B3 = 3 > 2
+var B4 = B1 and B2
 @[code]
 
 
@@ -230,24 +230,24 @@ B4 = B1 and B2
 
 例子：
 @[code]
-I1 = 123     # 10进制整数;
-I2 = 0xabc   # 16进制整数;
-F1 = 456.7   # 双精度浮点数;
-F2 = 123e4   # 双精度浮点数;
-F3 = 123E4   # 双精度浮点数;
-C1 = 123C    # 双精度复数，实部0.0，虚部123;
-C2 = 456.6C  # 双精度复数，实部0.0，虚部456.6;
+var I1 = 123     # 10进制整数;
+var I2 = 0xabc   # 16进制整数;
+var F1 = 456.7   # 双精度浮点数;
+var F2 = 123e4   # 双精度浮点数;
+var F3 = 123E4   # 双精度浮点数;
+var C1 = 123C    # 双精度复数，实部0.0，虚部123;
+var C2 = 456.6C  # 双精度复数，实部0.0，虚部456.6;
 @[code]
 
 这些数字类型支持大部通常的运算符。例如以下算术运算符都被支持：
 @[code]+@[code] (加法，正号), @[code]-@[code] (减法，负号),
 @[code]*@[code] (乘法) 和@[code]/@[code] (除法)等。
 @[code]
-I1 = 123 + 456
-I2 = 789 % 123
-F1 = 123.5 ** 3
-F2 = 789.5 / 123
-C1 = 12.3 + 45.6C
+var I1 = 123 + 456
+var I2 = 789 % 123
+var F1 = 123.5 ** 3
+var F2 = 789.5 / 123
+var C1 = 12.3 + 45.6C
 @[code]
 
 详情请参看
@@ -272,7 +272,7 @@ enum MyEnum
 这些符号只能通过相应的枚举类型来访问，
 应为它们并没有出现在当前的命名空间。
 @[code]
-a = MyEnum::AA  # Or: MyEnum.AA;
+var a = MyEnum::AA  # Or: MyEnum.AA;
 @[code]
 
 
@@ -314,10 +314,10 @@ var e2: enum<AA=10,BB=20> = $BB
 但在当作文本处理是，它一般会当UTF-8编码处理。
 字符串常量可由单引号或双引号引用的一组字符来表示。
 @[code]
-S1 = 'Something'
-S2 = "道语言"
-S3 = 'It\'s green'
-S4 = "\u9053\u8bed\u8a00" # the same as S2: "道语言";
+var S1 = 'Something'
+var S2 = "道语言"
+var S3 = 'It\'s green'
+var S4 = "\u9053\u8bed\u8a00" # the same as S2: "道语言";
 @[code]
 在字符串常量里，有些字符必须使用反斜杠以转义符的方式表示。
 其他的如@[code]\u@[code]则将跟着的数字转义为特定的字符。
@@ -329,7 +329,7 @@ S4 = "\u9053\u8bed\u8a00" # the same as S2: "道语言";
 和等号，以保证这个组合字符标记不出现在字符穿内容之中。
 @[code]
 # C++ codes as verbatim string:
-cpp =
+var cpp =
 @[cpp x]
 class AA
 {
@@ -341,7 +341,7 @@ struct BB{};
 
 字符串的内容可通过下标访问或修改：
 @[code]
-str = "ABCDEFGHIJK";
+var str = "ABCDEFGHIJK";
 
 io.writeln( str[1] )    # 第二个字符;
 io.writeln( str[:4] )   # 前五个字符;
@@ -354,9 +354,9 @@ str[2:5] = "123456"  # 修改子字符串: str = "AB123456GHIJK";
 
 字符串也可通过@[code]+@[code]或@[code]+=@[code]连接：
 @[code]
-str = "ABCDEFGHIJK";
+var str = "ABCDEFGHIJK";
 
-str2 = str + "123"  # str2 = ABCDEFGHIJK123
+var str2 = str + "123"  # str2 = ABCDEFGHIJK123
 str += "123" # 从后面添加字符串: str = ABCDEFGHIJK123
 str += 88    # 从后面添加字符: str = ABCDEFGHIJK123X
 @[code]
@@ -377,23 +377,23 @@ str += 88    # 从后面添加字符: str = ABCDEFGHIJK123X
 这种构造可以要么枚举向量或矩阵里的所有的元素或定义一个
 算术级数（使用初始值，增量值，级数长度）生成这些元素。
 @[code]
-vec1 = [1, 2, 3]            # array<int> 向量, 即 1x3 矩阵;
-vec2 = [1.0; 2; 3]          # array<float> 3x1 矩阵, 即转置向量;
-mat1 = [1.0, 2; 3, 4]        # array<float> 2x2 矩阵;
-mat2 = [ [1, 2], [3, 4] ]   # 2x2 矩阵
-mat3 = array{ 1, 2; 3, 4 }  # 2x2 矩阵
+var vec1 = [1, 2, 3]            # array<int> 向量, 即 1x3 矩阵;
+var vec2 = [1.0; 2; 3]          # array<float> 3x1 矩阵, 即转置向量;
+var mat1 = [1.0, 2; 3, 4]        # array<float> 2x2 矩阵;
+var mat2 = [ [1, 2], [3, 4] ]   # 2x2 矩阵
+var mat3 = array{ 1, 2; 3, 4 }  # 2x2 矩阵
 @[code]
 
 类似字符串，数值数组的元素可通过下标访问或修改：
 @[code]
-mat = [ 1, 2, 3; 4, 5, 6; 7, 8, 9 ];  # 3x3 矩阵;
+var mat = [ 1, 2, 3; 4, 5, 6; 7, 8, 9 ];  # 3x3 矩阵;
 
-rowvec = mat[1,:]  # 第二行;
-colvec = mat[:,1]  # 第二列;
+var rowvec = mat[1,:]  # 第二行;
+var colvec = mat[:,1]  # 第二列;
 
-submat1 = mat[:1,:]  # 头两行;
-submat2 = mat[:,1:]  # 头两列;
-submat3 = mat[:1,1:] # 头两行和尾两列交叉部分子矩阵;
+var submat1 = mat[:1,:]  # 头两行;
+var submat2 = mat[:,1:]  # 头两列;
+var submat3 = mat[:1,1:] # 头两行和尾两列交叉部分子矩阵;
 
 mat[0,:]  = [11, 22, 33]  # 将首行设置为 [11, 22, 33];
 mat[:,1] += [11, 22, 33]  # 将 [11, 22, 33] 加到第二例;
@@ -415,20 +415,20 @@ mat[:1,1:] += [10, 20; 30, 40]  # 将 [10, 20; 30, 40] 加到下标表示的子�
 只不过列表需要用@[code]{}@[code]或@[code]list{}@[code]创建。
 
 @[code]
-list1 = { 1, 2, 3 }    # list<int>
-list2 = { 1.0, 2, 3 }  # list<float>
-list3 = { 1 : 2 : 5 }  # list<int>
+var list1 = { 1, 2, 3 }    # list<int>
+var list2 = { 1.0, 2, 3 }  # list<float>
+var list3 = { 1 : 2 : 5 }  # list<int>
 
-list4 = { 'abc', 'def' }  # list<string>
-list5 = { 123, 'abc' }    # list<any>
+var list4 = { 'abc', 'def' }  # list<string>
+var list5 = { 123, 'abc' }    # list<any>
 @[code]
 
 列表元素也可通过下标访问或修改：
 @[code]
-alist = { 0, 1, 2, 3, 4, 5 }
+var alist = { 0, 1, 2, 3, 4, 5 }
 
-item = alist[1]
-sublist = alist[2:4]
+var item = alist[1]
+var sublist = alist[2:4]
 
 alist[3]  = 10
 alist[4] += 10
@@ -452,19 +452,19 @@ alist[4] += 10
 而无序关联表则使用@[code]{key->value...}@[code]或
 @[code]map{key->value...}@[code]。
 @[code]
-amap  = { 'abc' => 123, 'def' => 456 }
-ahash = { 'abc' -> 123, 'def' -> 456 }
+var amap = { 'abc' => 123, 'def' => 456 }
+var ahash = { 'abc' -> 123, 'def' -> 456 }
 
-amap  = map{ 'abc' => 123, 'def' => 456 }
-ahash = map{ 'abc' -> 123, 'def' -> 456 }
+var amap = map{ 'abc' => 123, 'def' => 456 }
+var ahash = map{ 'abc' -> 123, 'def' -> 456 }
 @[code]
 
 关联表的下标访问与列表类似，只不过这里下标是键：
 @[code]
-amap = { 'abc' => 123, 'def' => 456, 'ghi' => 789 }
+var amap = { 'abc' => 123, 'def' => 456, 'ghi' => 789 }
 
-value  = amap[ 'abc' ];
-submap = amap[ 'abc' : 'def' ];
+var value = amap[ 'abc' ];
+var submap = amap[ 'abc' : 'def' ];
 @[code]
 
 
@@ -480,21 +480,21 @@ submap = amap[ 'abc' : 'def' ];
 另外，还可给元组里每个元素指定一个成员名。
 它的创建方式类似关联表，只不过要用@[code]()@[code]或@[code]tuple{}@[code]。
 @[code]
-tup1 = ( 123, 'abc' )               # 无成员名的元组;
-tup2 = ( index = 123, 'abc' )      # 第一个元素的成员名为"index";
-tup3 = tuple{ 123, name = 'abc' }  # 第二个元素的成员名为"name";
+var tup1 = ( 123, 'abc' )               # 无成员名的元组;
+var tup2 = ( index = 123, 'abc' )      # 第一个元素的成员名为"index";
+var tup3 = tuple{ 123, name = 'abc' }  # 第二个元素的成员名为"name";
 @[code]
 
 元组里的每个元素都可通过下标访问或修改。有成员名的元素也可通过成员名访问。
 对元组进行下标切片将产生新的元组。
 @[code]
-tup = ( index = 123, 'abc', [1,2,3] )
+var tup = ( index = 123, 'abc', [1,2,3] )
+var id = tup[0]
 
-id = tup[0]
 id = tup.index
 tup.index = 456
 
-tup2 = tup[:1]  # ( index = 123, 'abc' )
+var tup2 = tup[:1]  # ( index = 123, 'abc' )
 @[code]
 
 
@@ -561,17 +561,17 @@ For循环控制
 For-in 循环通常被用于历遍容器类型对象里的元素。
 最常用的就是历遍列表里的元素。
 @[code]
-numbers = { 1, 2, 3, 4, 5 }
-for( num in numbers ) io.writeln( num )
+var numbers = { 1, 2, 3, 4, 5 }
+for(var num in numbers ) io.writeln( num )
 @[code]
 
 
 一个区间for循环依据指定区间开始值，结束值和可选的步长值来控制循环的执行。
 @[code]
-for( index = 1 : 2 : 10 ) { # step value = 2;
+for(var index = 1 : 2 : 10 ) { # step value = 2;
 	io.writeln( index )
 }
-for( index = 1 : 10 ) {  # step value = 1;
+for(var index = 1 : 10 ) {  # step value = 1;
 	io.writeln( index )
 }
 @[code]
@@ -623,7 +623,7 @@ while( expression ){
 直到@[code]expression@[code]的值变假。
 
 @[code]
-i = 0;
+var i = 0;
 while( i < 5 ){
    io.writeln( i );
    i += 1;
@@ -683,7 +683,7 @@ default: block0
 @[code]
 这里是个简单的例子：
 @[code(dao)]
-a = "a";
+var a = "a";
 switch( a ){
 case 1, "a" : io.write("case 1 or a");
 default :  io.write("case default");
@@ -703,7 +703,7 @@ Break 和 Skip
 @[code]skip@[code]跟C/C++里的@[code]continue@[code]等价。
 
 @[code] 
-for( i=0; i<5; ++i ){
+for(var i=0; i<5; ++i ){
 	io.writeln( i ); 
 	if( i == 3 ) break;
 }
@@ -735,8 +735,8 @@ routine func( first, second )
    return first, second; # 返回多个值;
 }
 
-(ret1, ret2) = func( 111, "AAA" );
-ret3 = func( ret1, ret2 );
+var (ret1, ret2) = func( 111, "AAA" );
+var ret3 = func( ret1, ret2 );
 @[code(dao)]
 这里定义了一个可带两个参数作为输入，并返回两个值作为输出。
 
@@ -793,9 +793,9 @@ MyRout( 456, "script" )  # 调用此例中的MyRout()
 
 下面是个简单的例子：
 @[code]
-abc = "ABC";
+var abc = "ABC";
 
-rout = routine( x, y: string, z = abc + abc ){
+var rout = routine( x, y: string, z = abc + abc ){
     abc += y;
     io.writeln( "lambda ", abc )
     io.writeln( "lambda ", y )
@@ -881,7 +881,7 @@ class ClassOne
 类方法里与类同名的方法即为类构造方法。
 类实例可由调用类构造方法产生。类构造方法的调用与普通函数调用完全一样。
 @[code]
-object = ClassOne( 'abc' )
+var object = ClassOne( 'abc' )
 @[code]
 值得注意的是，类构造方法并不构造类实例，类实例实际上是在构造方法调用
 开始之时就已产生，构造方法实际上是用来初始化该对象。
@@ -896,11 +896,11 @@ class Point3D
 	var y = 0.0;
 	var z = 0.0;
 }
-point = Point3D.{ 1, 2, 3 };
+var point = Point3D.{ 1, 2, 3 };
 @[code]
 这种方式里，成员数据的名称也可被指定：
 @[code]
-point = Point3D.{ y = 2, x = 1, z = 3 };
+var point = Point3D.{ y = 2, x = 1, z = 3 };
 @[code]
 
 
@@ -962,7 +962,7 @@ class MyNumber
 	}
 }
 
-num = MyNumber( 123 )
+var num = MyNumber( 123 )
 num.value = 456
 io.writeln( num.value )
 @[code(dao)]
@@ -999,7 +999,7 @@ class ColorRGBA : ColorRBG
 	}
 }
 
-magenta = ColorRGBA( 1, 0, 1, 0 ); # not tranparent.
+var magenta = ColorRGBA( 1, 0, 1, 0 ); # not tranparent.
 magenta.alpha = 0.5; # change to half tranparency.
 @[code]
 

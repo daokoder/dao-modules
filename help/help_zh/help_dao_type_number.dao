@@ -15,10 +15,10 @@ dao.type.bool
 保留关键字常量@[code]true@[code]和@[code]false@[code]被用来分别表示真值和假值。
 比较和逻辑运算表达式的求值将产生布尔值。
 @[code]
-B1 = true
-B2 = false
-B3 = 3 > 2
-B4 = B1 and B2
+var B1 = true
+var B2 = false
+var B3 = 3 > 2
+var B4 = B1 and B2
 @[code]
 
 @[text]
@@ -51,9 +51,9 @@ Integer    ::= DecInteger | HexInteger
 
 @[subsection]例子@[subsection]
 @[code]
-A = 123
-B = 0x123a
-C: int = 789
+var A = 123
+var B = 0x123a
+var C: int = 789
 @[code]
 @[text]
 
@@ -88,11 +88,11 @@ Float  ::= DecNumber | SciNumber
 
 @[subsection]例子@[subsection]
 @[code]
-A = .12
-B = 12.
-C = 12.5
-D = 2e-3
-E = 2E-3
+var A = .12
+var B = 12.
+var C = 12.5
+var D = 2e-3
+var E = 2E-3
 @[code]
 @[text]
 
@@ -125,11 +125,11 @@ Complex ::= ( DecInteger | DecNumber | SciNumber ) 'C'
 
 @[subsection]例子@[subsection]
 @[code]
-A = 1C
-B = 123C
-C = 12.3C
-R = C.real;
-I = C.imag;
+var A = 1C
+var B = 123C
+var C = 12.3C
+var R = C.real;
+var I = C.imag;
 @[code]
 @[text]
 

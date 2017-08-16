@@ -25,9 +25,9 @@ Tuple ::= TupleEnum | TupleEnum2
 
 @[subsection]例子@[subsection]
 @[code(test)]
-tup1 = ( 123, 'abc' )          # 无成员名的元组;
-tup2 = ( index = 123, 'abc' )  # 第一个元素的成员名为"index";
-tup3 = tuple{ 123, name = 'abc' }
+var tup1 = ( 123, 'abc' )          # 无成员名的元组;
+var tup2 = ( index = 123, 'abc' )  # 第一个元素的成员名为"index";
+var tup3 = tuple{ 123, name = 'abc' }
 
 global __result__ = tup3
 global __answer__ = ( 123, 'abc' );

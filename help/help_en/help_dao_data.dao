@@ -47,9 +47,9 @@ Constants that are declared at the top lexical scope are global constants.
 And constants declared in nested scopes are local constants:
 @[code]
 const konst = "global constant"
-for( i = 1 : 5 ) {
+for(var i = 1 : 5 ) {
 	const konst = 123
-	for( i > 3 ) {
+	if( i > 3 ) {
 		const konst = "local constant"
 		io.writeln( konst )  # Output: local constant
 	}
@@ -96,9 +96,9 @@ If used at the top lexical scope, it will declare global variables,
 otherwise the declared variables will be local.
 @[code]
 var variable = "global variable"
-for( i = 1 : 5 ) {
+for(var i = 1 : 5 ) {
 	var variable = 123
-	for( i > 3 ) {
+	if( i > 3 ) {
 		var variable = "local variable"
 		io.writeln( variable )  # Output: local variable
 	}
@@ -118,7 +118,7 @@ class Klass
 }
 io.writeln( Klass.value )  # Error!
 
-klass = Klass()
+var klass = Klass()
 io.writeln( klass.value )  # OK!
 @[code]
 
@@ -142,9 +142,9 @@ In every places where @[green]var@[green] can be used, @[green]invar@[green]
 can be used as well, to declare local, global or member invariables.
 @[code]
 invar invariable = "global invariable"
-for( i = 1 : 5 ) {
+for(var i = 1 : 5 ) {
 	invar invariable = 123
-	for( i > 3 ) {
+	if( i > 3 ) {
 		invar invariable = "local invariable"
 		io.writeln( invariable )  # Output: local invariable
 	}
@@ -182,7 +182,7 @@ routine Rout( invar abc = 123 )
 Though invariables cannot be modified, they do can be reinitialized at their
 declaration sites. For example,
 @[code]
-for( i = 1 : 3 ){
+for(var i = 1 : 3 ){
 	invar index = i  # OK!
 	index += i       # Error!
 }
@@ -245,9 +245,9 @@ the @[green]static@[green] keyword.
 Static variables must be initialized with constant expressions.
 @[code]
 static stat = "static variable"
-for( i = 1 : 5 ) {
+for(var i = 1 : 5 ) {
 	static stat = 123
-	for( i > 3 ) {
+	if( i > 3 ) {
 		static stat = "local static variable"
 		static nested = [1,2,3]
 		io.writeln( stat )  # Output: local static variable

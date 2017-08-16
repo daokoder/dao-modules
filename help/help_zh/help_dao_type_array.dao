@@ -46,12 +46,12 @@ Array ::= VectorEnumeration | MatrixEnumeration | ArrayByArithProg
 
 @[subsection]例子@[subsection]
 @[code]
-vec1 = [1, 2, 3]            # array<int> vector, or 1x3 matrix;
-vec2 = [1F; 2; 3]           # array<float> 3x1 matrix, or transposed vector;
-mat1 = [1.0, 2; 3, 4]       # array<double> 2x2 matrix;
-mat2 = [ [1, 2], [3, 4] ]   # 2x2 matrix
-mat3 = array{ 1, 2; 3, 4 }  # 2x2 matrix
-mat4 = array<int>(5){ [1, 2, 3] }  # 5x3 matrix;
+var vec1 = [1, 2, 3]            # array<int> vector, or 1x3 matrix;
+var vec2 = [1F; 2; 3]           # array<float> 3x1 matrix, or transposed vector;
+var mat1 = [1.0, 2; 3, 4]       # array<double> 2x2 matrix;
+var mat2 = [ [1, 2], [3, 4] ]   # 2x2 matrix
+var mat3 = array{ 1, 2; 3, 4 }  # 2x2 matrix
+var mat4 = array<int>(5){ [1, 2, 3] }  # 5x3 matrix;
 @[code]
 
 @[text]

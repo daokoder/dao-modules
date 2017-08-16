@@ -29,10 +29,10 @@ Map ::= MapEnumeration | HashEnumeration
 Examples,
 @[code]
 # A map is created using "=>",
-map1  = { 'EE' => 5, 'BB' => 2, 'CC' => 3, 'AA' => 1 }
+var map1 = { 'EE' => 5, 'BB' => 2, 'CC' => 3, 'AA' => 1 }
 
 #A hash map is created using "->",
-hash1 = { 'EE' -> 5, 'BB' -> 2, 'CC' -> 3, 'AA' -> 1 }
+var hash1 = { 'EE' -> 5, 'BB' -> 2, 'CC' -> 3, 'AA' -> 1 }
 
 #Get value by key,
 io.writeln( map1['BB'] )
@@ -50,8 +50,8 @@ io.writeln( map2.keys() )    # get keys;
 io.writeln( map2.values() )  # get values;
 
 # Alternative way to define map/hash,
-map2  = map{ 'ABC' => 123, 'DEF' => 456 }
-hash2 = map{ 'ABC' -> 123, 'DEF' -> 456 }
+var map2 = map{ 'ABC' => 123, 'DEF' => 456 }
+var hash2 = map{ 'ABC' -> 123, 'DEF' -> 456 }
 
 # Iterate over maps,
 for( keyvalue in map1 ) io.writeln( keyvalue )
