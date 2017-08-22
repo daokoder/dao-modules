@@ -40,7 +40,7 @@ modules.AddDirectory( "regex",       "regex" );
 
 if( DaoMake::IsDir( "graph" ) ) modules.AddDirectory( "graph", "graph" );
 
-#if( DaoMake::IsDir( "DaoGraphics" ) ) modules.AddDirectory( "Graphics", "DaoGraphics" );
+if( DaoMake::IsDir( "DaoGraphics" ) ) modules.AddDirectory( "Graphics", "DaoGraphics" );
 
 ##if( DaoMake::IsDir( "DaoSDL" ) ) modules.AddDirectory( "SDL", "DaoSDL" );
 

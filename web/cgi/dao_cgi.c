@@ -327,8 +327,10 @@ static DaoFunctionEntry cgiMeths[]=
 DAO_DLL int DaoCGI_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	DaoProcess *process = DaoVmSpace_AcquireProcess( vmSpace );
+	DaoNamespace *imgns = DaoVmSpace_LinkModule( vmSpace, ns, "stream" );
 	DaoMap *httpENV, *httpGET, *httpPOST, *httpFILE, *httpCOOKIE;
 	DaoMap *httpGETS, *httpPOSTS;
+
 	srand( time(NULL) );
 
 	vmMaster = vmSpace;

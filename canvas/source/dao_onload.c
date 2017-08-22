@@ -1351,7 +1351,7 @@ DAO_CANVAS_DLL int DaoFont_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
 
 DAO_CANVAS_DLL int DaoCanvas_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 {
-	DaoNamespace *sqlns = DaoVmSpace_LinkModule( vmSpace, nspace, "image" );
+	DaoNamespace *imgns = DaoVmSpace_LinkModule( vmSpace, nspace, "image" );
 	DaoNamespace *ns = nspace;
 
 	dao_vmspace_graphics = vmSpace;

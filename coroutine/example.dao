@@ -3,15 +3,15 @@ load coroutine
 
 routine Test( self: Coroutine<int,string>, par:  int )
 {
-	for( i = 1 : 5 ) io.writeln( i, self.suspend( 'index_' + (string) (par*i) ) )
+	for(var i = 1 : 5 ) io.writeln( i, self.suspend( 'index_' + (string) (par*i) ) )
 	return 'done'
 }
 
-co = Coroutine<int,string>()
-
+var co = Coroutine<int,string>()
+ 
 io.writeln( co )
 
-a = co.start( Test, 100 )
+var a = co.start( Test, 100 )
 io.writeln( a )
 
-for( i = 1 : 6 ) io.writeln( co.resume( 100*i ), co.status() )
+for(var i = 1 : 6 ) io.writeln( co.resume( 100*i ), co.status() )
