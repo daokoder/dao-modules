@@ -93,6 +93,7 @@ void DaoxPainter_PaintItemData( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanva
 	DaoxBrush *brush = item->brush;
 	DaoxPathMesh *mesh = item->mesh;
 	DaoxPixBrush pixBrush = {daox_black_color, NULL, NULL};
+	DaoxMatrix3D gradtrans = transform;
 	float resolution = DaoxPainter_CanvasScale( self, canvas );
 	float scale = item->scale;
 	float stroke = brush->strokeStyle.width / (resolution + 1E-16);
@@ -108,7 +109,7 @@ void DaoxPainter_PaintItemData( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanva
 		if( brush->fillGradient ){
 			pixBrush.gradient = self->gradient;
 			DaoxGradient_Copy( self->gradient, brush->fillGradient );
-			DaoxGradient_Transform( self->gradient, & transform );
+			DaoxGradient_Transform( self->gradient, & gradtrans );
 		}
 		DaoxPainter_BufferPath( self, mesh->path, & transform );
 		DaoxRasterizer_Render( self->rasterizer, self->renderer, & pixBrush );
@@ -120,7 +121,7 @@ void DaoxPainter_PaintItemData( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanva
 		if( brush->strokeGradient ){
 			pixBrush.gradient = self->gradient;
 			DaoxGradient_Copy( self->gradient, brush->strokeGradient );
-			DaoxGradient_Transform( self->gradient, & transform );
+			DaoxGradient_Transform( self->gradient, & gradtrans );
 		}
 		DaoxPainter_BufferPath( self, mesh->stroke, & transform );
 		DaoxRasterizer_Render( self->rasterizer, self->renderer, & pixBrush );

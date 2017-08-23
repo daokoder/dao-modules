@@ -1,0 +1,156 @@
+
+load canvas;
+
+var canvas = Canvas();
+
+canvas.SetViewport( -1000, 1000, -1000, 800 );
+
+canvas.SetBackground( 1.0, 1.0, 1.0, 1.0 );
+
+var font = DefaultFont;
+#brush = canvas.PushBrush()
+#brush.SetFont( font, 30 );
+
+
+var path = Path();
+path.MoveTo( -50, 100 );
+path.CubicTo( 100, 0, 0, 80, 150, -100 )
+path.CubicTo( 100, 0, -150, -100 )
+path.CubicTo( -50, 0, -30, 0, 0, 40 )
+path.CubicTo( 20, 0, 20, 0, 0, 120 )
+path.CubicTo( -30, 0, -50, 0, 0, 40 )
+path.Close()
+
+path.MoveTo( 0, -60 );
+path.CubicTo( 20, 0, 0, -50, 60, 60 )
+path.CubicTo( 20, 0, -60, 60 )
+path.CubicTo( 0, 60, 0, -60 )
+path.CubicTo( -20, 0, 0, -60 )
+path.Close()
+
+
+var brush = canvas.PushBrush()
+brush.SetStrokeWidth( 20.0 );
+brush.SetStrokeColor( 0.0, 0.0, 0.7, 0.7 );
+
+var row1 =  650
+var row2 =  330
+var row3 =   80
+var row4 = -400
+var gap = 100
+
+canvas.AddLine( -800, row1, -400, row1 )
+canvas.AddRect( -800, row2, -400, row1-gap )
+canvas.AddCircle( -800+200, row3, 150 )
+
+var cpath = canvas.AddPath( path );
+cpath.Move( -600, row4 )
+cpath.Scale( 2.0 )
+
+brush = canvas.PushBrush()
+brush.SetFillColor( 0.6, 0.9, 0.4, 0.9 );
+brush.SetDashPattern( [30.0,10,50,10] )
+
+canvas.AddLine( -800+600, row1, -400+600, row1 )
+canvas.AddRect( -800+600, row2, -400+600, row1-gap )
+canvas.AddEllipse( -800+200+600, row3, 200, 100 )
+cpath = canvas.AddPath( path );
+cpath.Move( -600+600, row4 )
+cpath.Scale( 2.0 )
+
+
+canvas.PopBrush()
+brush = canvas.PushBrush()
+brush.SetFillColor( 0.6, 0.9, 0.4, 0.9 );
+
+brush = canvas.PushBrush()
+brush.SetStrokeWidth( 20.0 );
+brush.SetFillColor( 1.0, 1.0, 1.0, 0.1 );
+
+var strokeGrad = brush.SetStrokeGradient();
+strokeGrad.AddStop( 0.1, (0.6, 1.0, 0.6, 1.0) )
+strokeGrad.AddStop( 0.3, (0.1, 0.6, 0.1, 1.0) )
+strokeGrad.AddStop( 0.5, (0.6, 0.6, 0.1, 1.0) )
+strokeGrad.AddStop( 0.7, (0.6, 0.2, 0.1, 1.0) )
+strokeGrad.AddStop( 0.9, (0.8, 0.5, 0.1, 1.0) )
+
+var linearGrad = brush.SetLinearGradient();
+linearGrad.AddStop( 0.0, (0.6, 1.0, 0.6, 1.0) )
+linearGrad.AddStop( 0.25, (0.1, 0.6, 0.1, 1.0) )
+linearGrad.AddStop( 0.5, (0.6, 0.6, 0.1, 1.0) )
+linearGrad.AddStop( 0.75, (0.6, 0.2, 0.1, 1.0) )
+linearGrad.AddStop( 1.0, (1.0, 1.0, 0.0, 1.0) )
+linearGrad.SetStart( 0, 0 );
+linearGrad.SetEnd( 400, 0 );
+
+canvas.AddLine( -800+1200, row1, -400+1200, row1 )
+canvas.AddRect( -800+1200, row2, -400+1200, row1-gap, 50, 50 )
+
+brush = canvas.PushBrush()
+
+var grad_O = brush.SetRadialGradient();
+grad_O.AddStop( 0.0, (0.6, 1.0, 0.6, 1.0) )
+grad_O.AddStop( 0.25, (0.1, 0.6, 0.1, 1.0) )
+grad_O.AddStop( 0.5, (0.6, 0.6, 0.1, 1.0) )
+grad_O.AddStop( 0.75, (0.6, 0.2, 0.1, 1.0) )
+grad_O.AddStop( 1.0, (1.0, 1.0, 1.0, 1.0) )
+grad_O.SetCenter( 0, 0 );
+grad_O.SetFocus( 0, 0 );
+grad_O.SetRadius( 140 );
+
+canvas.AddCircle( -800+200+1200, row3, 150 )
+
+canvas.PopBrush()
+canvas.PopBrush()
+brush = canvas.PushBrush()
+strokeGrad = brush.SetStrokeGradient();
+strokeGrad.AddStop( 0.1, (0.6, 1.0, 0.6, 1.0) )
+strokeGrad.AddStop( 0.3, (0.1, 0.6, 0.1, 1.0) )
+strokeGrad.AddStop( 0.5, (0.6, 0.6, 0.1, 1.0) )
+strokeGrad.AddStop( 0.7, (0.6, 0.2, 0.1, 1.0) )
+strokeGrad.AddStop( 0.9, (0.8, 0.5, 0.1, 1.0) )
+
+cpath = canvas.AddPath( path );
+cpath.Move( -600+1200, row4 )
+cpath.Scale( 2.0 )
+
+
+
+
+
+
+canvas.PopBrush()
+
+brush = canvas.PushBrush()
+brush.SetStrokeWidth( 5 )
+brush.SetFont( font, 130 );
+brush.SetFillColor( 0.3, 0.5, 0.9, 0.9 );
+strokeGrad = brush.SetStrokeGradient();
+strokeGrad.AddStop( 0.1, (0.6, 1.0, 0.6, 1.0) )
+strokeGrad.AddStop( 0.3, (0.1, 0.6, 0.1, 1.0) )
+strokeGrad.AddStop( 0.5, (0.6, 0.6, 0.1, 1.0) )
+strokeGrad.AddStop( 0.7, (0.6, 0.2, 0.1, 1.0) )
+strokeGrad.AddStop( 0.9, (0.8, 0.5, 0.1, 1.0) )
+
+path = Path();
+path.MoveTo( 0, 0 );
+path.CubicAbsTo( 100, 100, 200, 100, 300, 0 );
+path.CubicAbsTo( 400, -100, 500, -100, 600, 0 );
+path.CubicAbsTo( 700, 100, 800, 100, 900, 0 );
+
+cpath = canvas.AddPath( path )
+cpath.Move( -700, -800 )
+var text = canvas.AddText( "Vector Graphics", path );
+text.Move( -700, -800 )
+
+#image = Image();
+#image.Load( "../media/images/mandrill.png" );
+#canvas.AddImage( image, 500, -850, 200 );
+
+
+var image = Image();
+canvas.SetViewport( -1000, 1000, -1000, 800 );
+
+var painter = Painter();
+painter.RenderToImage( canvas, image, 800, 600 );
+image.Save( "vector_graphics.png" );

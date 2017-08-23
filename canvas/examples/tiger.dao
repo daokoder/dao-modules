@@ -4,28 +4,27 @@ load tiger_data
 
 routine LoadTiger( canvas : Canvas )
 {
-	group = canvas.AddGroup()
+	var group = canvas.AddGroup()
 	group.Rotate( 180 );
 	group.Move( 100, 100 );
-	brush = canvas.PushBrush()
-	for( i = 0 : pathCount-1 ){
-	#for( i = pathCount-60 : pathCount-50 ){
-		commands = commandArrays[i]
-		points = dataArrays[i]
-		style = styleArrays[i];
+	var brush = canvas.PushBrush()
+	for(var i = 0 : pathCount ){
+		var commands = commandArrays[i]
+		var points = dataArrays[i]
+		var style = styleArrays[i];
 
 		brush = canvas.PushBrush()
 		brush.SetStrokeColor( style[0], style[1], style[2], style[3] )
 		brush.SetFillColor( style[4], style[5], style[6], style[7] )
 
 		# vgDrawPath(path,paintModes), style[9] is the paintModes:
-		strokeWidth = (((int)style[9]) & 1) ? style[8] : 0;
+		var strokeWidth = (((int)style[9]) & 1) ? style[8] : 0;
 		brush.SetStrokeWidth( strokeWidth )
 		
-		path = Path();
+		var path = Path();
 		canvas.AddPath( path );
-		k = 0;
-		for( j = 0 : commandCounts[i]-1 ){
+		var k = 0;
+		for(var j = 0 : commandCounts[i] ){
 			switch( commands[j] ){
 			case VG_MOVE_TO_ABS  :
 				path.MoveTo( points[k], points[k+1] );
@@ -48,14 +47,14 @@ routine LoadTiger( canvas : Canvas )
 routine main( save : string, width = 1200, height = 900 )
 {
 
-	canvas = Canvas();
+	var canvas = Canvas();
 	canvas.SetBackground( 1.0, 1.0, 1.0, 0.0 );
 	canvas.SetViewport( -400, 400, -300, 300 );
 
 	LoadTiger( canvas );
 
-	image = Image();
-	painter = Painter();
+	var image = Image();
+	var painter = Painter();
 	painter.RenderToImage( canvas, image, width, height );
 	image.Save( save );
 	return 0
