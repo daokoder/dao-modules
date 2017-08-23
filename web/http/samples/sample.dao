@@ -1,10 +1,10 @@
 
 load web.http
 
-port = 8080
-numthread = 4
+var port = 8080
+var numthread = 4
 
-server = http::Server()
+var server = http::Server()
 
 server.Start( port, numthread ){
 	[request, response]
