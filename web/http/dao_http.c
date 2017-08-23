@@ -84,27 +84,17 @@ struct DaoxServer
 	int         entryIndex;
 
 	DString  *docroot;
+	DString  *logfile;
 
-	DList   *indexFiles;
-	DMap    *staticMimes;
+	DList  *indexFiles;
+	DMap   *staticMimes;
 
-	DMap  *uriToPaths;
+	DMap   *cookieToSessions;
+	DMap   *timestampToSessions;
 
-	DMap  *cookieToSessions;
-	DMap  *timestampToSessions;
-
-	DList  *processes;
-
-	DList  *freeRequests;
-	DList  *freeResponses;
 	DList  *freeSessions;
-	DList  *freeCaches;
 	DList  *freeHandlers;
-
-	DList  *allRequests;
-	DList  *allResponses;
 	DList  *allSessions;
-	DList  *allCaches;
 	DList  *allHandlers;
 
 	DaoType *typeRequest;
@@ -121,7 +111,6 @@ struct DaoxServer
 	DaoType *typeFileCache;
 
 	DMutex   mutex;
-	DMutex   mutex2;
 	daoint   sessionIndex;
 };
 
@@ -691,27 +680,19 @@ DaoxServer* DaoxServer_New( DaoVmSpace *vmspace )
 	DaoCstruct_Init( (DaoCstruct*) self, type );
 	self->vmspace = vmspace;
 	self->docroot = DString_New();
+	self->logfile = DString_New();
 	self->indexFiles = DList_New( DAO_DATA_STRING );
 	self->staticMimes = DHash_New( DAO_DATA_STRING, DAO_DATA_STRING );
-	self->uriToPaths = DHash_New( DAO_DATA_STRING, DAO_DATA_STRING );
 	self->cookieToSessions = DHash_New( DAO_DATA_STRING, 0 );   // <DString*,DaoxSession*>
 	self->timestampToSessions = DMap_New( DAO_DATA_VALUE, 0 ); // <DaoComplex,DaoxSession*>
-	self->processes = DList_New(0); // <DaoProcess*>
-	self->freeRequests  = DList_New(0); // <DaoxRequest*>
-	self->freeResponses = DList_New(0); // <DaoxResponses*>
 	self->freeSessions = DList_New(0); // <DaoxSessions*>
-	self->freeCaches = DList_New(0); // <DaoxCaches*>
 	self->freeHandlers = DList_New(0); // <DaoxHandlers*>
-	self->allRequests  = DList_New( DAO_DATA_VALUE ); // <DaoxRequest*>
-	self->allResponses = DList_New( DAO_DATA_VALUE ); // <DaoxResponses*>
 	self->allSessions  = DList_New( DAO_DATA_VALUE ); // <DaoxSession*>
-	self->allCaches  = DList_New( DAO_DATA_VALUE ); // <DaoxCache*>
 	self->allHandlers  = DList_New( DAO_DATA_VALUE ); // <DaoxHandler*>
 	DString_SetChars( self->docroot, vmspace->startPath->chars );
 	DaoxServer_InitMimeTypes( self );
 	DaoxServer_InitIndexFiles( self );
 	DMutex_Init( & self->mutex );
-	DMutex_Init( & self->mutex2 );
 
 	self->typeRequest = DaoVmSpace_GetType( vmspace, & daoRequestCore );
 	self->typeResponse = DaoVmSpace_GetType( vmspace, & daoResponseCore );
@@ -730,52 +711,28 @@ DaoxServer* DaoxServer_New( DaoVmSpace *vmspace )
 
 static void DaoxServer_Delete( DaoxServer *self )
 {
-	int i;
-	for(i=0; i<self->processes->size; ++i){
-		DaoProcess *proc = (DaoProcess*) self->processes->items.pVoid[i];
-		DaoVmSpace_ReleaseProcess( self->vmspace, proc );
-	}
 	DString_Delete( self->docroot );
+	DString_Delete( self->logfile );
 	DList_Delete( self->indexFiles );
 	DMap_Delete( self->staticMimes );
-	DMap_Delete( self->uriToPaths );
 	DMap_Delete( self->cookieToSessions );
 	DMap_Delete( self->timestampToSessions );
-	DList_Delete( self->processes );
-	DList_Delete( self->freeRequests );
-	DList_Delete( self->freeResponses );
 	DList_Delete( self->freeSessions );
-	DList_Delete( self->freeCaches );
 	DList_Delete( self->freeHandlers );
-	DList_Delete( self->allRequests );
-	DList_Delete( self->allResponses );
 	DList_Delete( self->allSessions );
-	DList_Delete( self->allCaches );
 	DList_Delete( self->allHandlers );
 	DMutex_Destroy( & self->mutex );
-	DMutex_Destroy( & self->mutex2 );
 	DaoCstruct_Free( (DaoCstruct*) self );
 	dao_free( self );
 }
 static void DaoxServer_HandleGC( DaoValue *p, DList *vs, DList *arrays, DList *maps, int rm )
 {
 	DaoxServer *self = (DaoxServer*) p;
-	DList_Append( arrays, self->allRequests );
-	DList_Append( arrays, self->allResponses );
 	DList_Append( arrays, self->allSessions );
-	DList_Append( arrays, self->allCaches );
 	DList_Append( arrays, self->allHandlers );
 }
 
-DaoProcess* DaoxServer_AcquireProcess( DaoxServer *self )
-{
-	DaoProcess *proc = NULL;
-	DMutex_Lock( & self->mutex2 );
-	proc = (DaoProcess*) DList_PopBack( self->processes );
-	DMutex_Unlock( & self->mutex2 );
-	if( proc == NULL ) return DaoVmSpace_AcquireProcess( self->vmspace );
-	return proc;
-}
+#if 0
 /* In order to keep process auxiliary data such as states of random number generator: */
 void DaoxServer_ReleaseProcess( DaoxServer *self, DaoProcess *proc )
 {
@@ -788,68 +745,8 @@ void DaoxServer_ReleaseProcess( DaoxServer *self, DaoProcess *proc )
 	DList_Append( self->processes, proc );
 	DMutex_Unlock( & self->mutex2 );
 }
-
-#if 0
-DaoxRequest* DaoxServer_MakeRequest( DaoxServer *self, mg_connection *conn )
-{
-	DaoxRequest *request = NULL;
-	const mg_request_info *ri = mg_get_request_info( conn );
-	const char *cookie = mg_get_header( conn, "Cookie" );
-	const char *query = ri->query_string;
-    char host[1025];
-
-	if( self->freeRequests->size ){
-		DMutex_Lock( & self->mutex );
-		if( self->freeRequests->size ){
-			request = (DaoxRequest*) DList_PopFront( self->freeRequests );
-			DaoxRequest_Reset( request );
-		}
-		DMutex_Unlock( & self->mutex );
-	}
-
-	if( request == NULL ){
-		request = DaoxRequest_New( self );
-		DMutex_Lock( & self->mutex );
-		DList_Append( self->allRequests, request );
-		DMutex_Unlock( & self->mutex );
-	}
-	request->remote_ip = ri->remote_ip;
-	request->remote_port = ri->remote_port;
-
-	mg_get_hostname( conn, host, sizeof(host) );
-	DString_SetChars( request->host, host );
-	DString_SetChars( request->method, ri->request_method );
-
-	DaoxRequest_SetURI( request, ri->uri );
-	if( cookie ) DaoxRequest_ParseQueryString( request, request->http_cookie, cookie );
-	if( query ) DaoxRequest_ParseQueryString( request, request->http_get, query );
-	if( !strcmp( ri->request_method, "POST" ) ) DaoxRequest_ParsePostData( request, conn );
-	return request;
-}
-DaoxResponse* DaoxServer_MakeResponse( DaoxServer *self, mg_connection *conn )
-{
-	DaoxResponse *response = NULL;
-
-	if( self->freeResponses->size ){
-		DMutex_Lock( & self->mutex );
-		if( self->freeResponses->size ){
-			response = (DaoxResponse*) DList_PopFront( self->freeResponses );
-			DaoxResponse_Reset( response );
-		}
-		DMutex_Unlock( & self->mutex );
-	}
-
-	if( response == NULL ){
-		response = DaoxResponse_New( self );
-		DMutex_Lock( & self->mutex );
-		DList_Append( self->allResponses, response );
-		DMutex_Unlock( & self->mutex );
-	}
-
-	response->connection = conn;
-	return response;
-}
 #endif
+
 
 static int reused = 0;
 DaoxSession* DaoxServer_MakeSession( DaoxServer *self, mg_connection *conn, DaoxRequest *request )
@@ -922,27 +819,6 @@ DaoxSession* DaoxServer_MakeSession( DaoxServer *self, mg_connection *conn, Daox
 #endif
 	return session;
 }
-DaoxCache* DaoxServer_MakeCache( DaoxServer *self )
-{
-	DaoxCache *cache = NULL;
-
-	if( self->freeCaches->size ){
-		DMutex_Lock( & self->mutex );
-		if( self->freeCaches->size ){
-			cache = (DaoxCache*) DList_PopFront( self->freeCaches );
-			//DaoxCache_Reset( cache );
-		}
-		DMutex_Unlock( & self->mutex );
-	}
-
-	if( cache == NULL ){
-		cache = DaoxCache_New( self );
-		DMutex_Lock( & self->mutex );
-		DList_Append( self->allCaches, cache );
-		DMutex_Unlock( & self->mutex );
-	}
-	return cache;
-}
 
 DaoxHandler* DaoxServer_MakeHandler( DaoxServer *self, mg_connection *conn )
 {
@@ -1003,18 +879,6 @@ static void DaoxServer_CacheHandler( DaoxServer *self, DaoxHandler *handler, Dao
 	DMutex_Unlock( & self->mutex );
 }
 
-static void DaoxServer_CacheObjects( DaoxServer *self, DaoxRequest *request, DaoxResponse *response, DaoxSession *session, DaoxCache *cache )
-{
-	DMutex_Lock( & self->mutex );
-	if( request != NULL ) DList_Append( self->freeRequests, request );
-	if( response != NULL ) DList_Append( self->freeResponses, response );
-	if( cache != NULL ) DList_Append( self->freeCaches, cache );
-	if( session != NULL ){
-		session->timestamp.value.imag = ++ self->sessionIndex;
-		DMap_Insert( self->timestampToSessions, (void*) & session->timestamp, session );
-	}
-	DMutex_Unlock( & self->mutex );
-}
 
 
 typedef struct DaoxStaticMime DaoxStaticMime;
@@ -1622,11 +1486,13 @@ static void SERVER_New( DaoProcess *proc, DaoValue *p[], int N )
 	if( docroot->size ) DString_Assign( self->docroot, docroot );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
+
 static void SERVER_GetDocRoot( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxServer *self = (DaoxServer*) p[0];
 	DaoProcess_PutString( proc, self->docroot );
 }
+
 static void SERVER_SetDocRoot( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxServer *self = (DaoxServer*) p[0];
@@ -1637,6 +1503,19 @@ static void SERVER_SetDocRoot( DaoProcess *proc, DaoValue *p[], int N )
 	}
 }
 
+static void SERVER_GetLogFile( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxServer *self = (DaoxServer*) p[0];
+	DaoProcess_PutString( proc, self->logfile );
+}
+
+static void SERVER_SetLogFile( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxServer *self = (DaoxServer*) p[0];
+	DString *logfile = DaoValue_TryGetString( p[1] );
+	DString_Assign( self->logfile, logfile );
+}
+
 
 static void SERVER_Start( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1645,10 +1524,13 @@ static void SERVER_Start( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxServer *self = (DaoxServer*) p[0];
 	DaoVmCode *sect = DaoProcess_InitCodeSection( proc, 4 );
 	char port[16], numthd[16];
-	const char *options[7] = {
+	const char *options[11] = {
 		"document_root", ".",
 		"listening_ports", "8080",
-		"num_threads", "8", NULL
+		"num_threads", "8",
+		"access_log_file", "",
+		"error_log_file", "",
+		NULL
 	};
 
 	sprintf( port, "%i", (int) p[1]->xInteger.value );
@@ -1656,6 +1538,10 @@ static void SERVER_Start( DaoProcess *proc, DaoValue *p[], int N )
 	options[1] = self->docroot->chars;
 	options[3] = port;
 	options[5] = numthd;
+	if( self->logfile->size ){
+		options[7] = self->logfile->chars;
+		options[9] = self->logfile->chars;
+	}
 	memset(&callbacks, 0, sizeof(callbacks));
 	callbacks.begin_request = DaoxHttp_HandleRequest;
 
@@ -1689,6 +1575,8 @@ static DaoFunctionEntry daoServerMeths[] =
 	{ SERVER_New,        "Server( docroot = '' )" },
 	{ SERVER_GetDocRoot, ".DocumentRoot( self: Server ) => string" },
 	{ SERVER_SetDocRoot, ".DocumentRoot=( self: Server, docroot: string )" },
+	{ SERVER_GetLogFile, ".LogFile( self: Server ) => string" },
+	{ SERVER_SetLogFile, ".LogFile=( self: Server, logfile: string )" },
 	{ SERVER_Start,
 		"Start( self: Server, port = 80, numthread = 8 )"
 			"[request: Request, response: Response, session: Session, cache: Cache]"
