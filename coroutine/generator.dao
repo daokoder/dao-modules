@@ -1,0 +1,29 @@
+
+load coroutine
+
+routine Task( self: Coroutine<int,int> )
+{
+	var local = 0;
+
+	io.writeln( "Starting Task()" )
+	while(true){
+		var input = self.suspend( local )
+		local += input;
+
+		io.writeln( "Task resumed with input:", input )
+		io.writeln( "Local variable value:", local )
+	}
+
+	return local
+}
+
+var gen = Coroutine<int,int>()
+
+var output = gen.start( Task )
+
+io.writeln( gen, output )
+
+for(var i = 0 : 10 ){
+	output = gen.resume( i );
+	io.writeln( "Task output:", output )
+}

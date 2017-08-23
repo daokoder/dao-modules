@@ -1,6 +1,6 @@
 load web.json
 
-data = {
+var data = {
 	"module" =>               (json::Data) "DaoJSON",
 	"descriptioin" =>         "JSON serializer/parser",
 	"external dependences" => none,
@@ -16,9 +16,9 @@ data = {
     }
 };
 
-text = json.serialize(data);
+var text = json.serialize(data);
 io.writeln("Dao => JSON (readable):\n", text);
 io.writeln("\nDao => JSON (compact):\n", json.serialize(data, $compact));
 
-data2 = json.parse(text);
+var data2 = json.parse(text);
 io.writeln("\nJSON => Dao:\n", data2);

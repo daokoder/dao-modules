@@ -1,6 +1,6 @@
 load string.template
 
-source =
+var source =
 @[]
 <div class="post">
   <h1>By {{author.firstName}} {{author.lastName}}</h1>

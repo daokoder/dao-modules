@@ -1523,7 +1523,7 @@ static DaoTypeCore daoDocumentCore =
 	NULL,                        NULL,                     /* SetItem */
 	NULL,                        NULL,                     /* Unary */
 	NULL,                        NULL,                     /* Binary */
-	NULL,                        NULL,                     /* Conversion */
+	DaoCstruct_CheckConversion,  DaoCstruct_DoConversion,  /* Conversion */
 	NULL,                        NULL,                     /* ForEach */
 	NULL,                                                  /* Print */
 	NULL,                                                  /* Slice */
@@ -1674,7 +1674,7 @@ DaoTypeCore daoInstructionCore =
 	NULL,                        NULL,                     /* SetItem */
 	NULL,                        NULL,                     /* Unary */
 	NULL,                        NULL,                     /* Binary */
-	NULL,                        NULL,                     /* Conversion */
+	DaoCstruct_CheckConversion,  DaoCstruct_DoConversion,  /* Conversion */
 	NULL,                        NULL,                     /* ForEach */
 	NULL,                                                  /* Print */
 	NULL,                                                  /* Slice */
@@ -2693,7 +2693,7 @@ DaoTypeCore daoElementCore =
 	DaoCstruct_CheckSetItem,     DaoCstruct_DoSetItem,   /* SetItem */
 	NULL,                        NULL,                   /* Unary */
 	NULL,                        NULL,                   /* Binary */
-	NULL,                        NULL,                   /* Conversion */
+	DaoCstruct_CheckConversion,  DaoCstruct_DoConversion,/* Conversion */
 	NULL,                        NULL,                   /* ForEach */
 	NULL,                                                /* Print */
 	NULL,                                                /* Slice */
@@ -2818,7 +2818,7 @@ DaoTypeCore daoCharDataCore =
 	NULL,                        NULL,                     /* SetItem */
 	NULL,                        NULL,                     /* Unary */
 	NULL,                        NULL,                     /* Binary */
-	NULL,                        NULL,                     /* Conversion */
+	DaoCstruct_CheckConversion,  DaoCstruct_DoConversion,  /* Conversion */
 	NULL,                        NULL,                     /* ForEach */
 	NULL,                                                  /* Print */
 	NULL,                                                  /* Slice */
@@ -3387,7 +3387,7 @@ static DaoTypeCore daoWriterCore =
 	NULL,                        NULL,                     /* SetItem */
 	NULL,                        NULL,                     /* Unary */
 	NULL,                        NULL,                     /* Binary */
-	NULL,                        NULL,                     /* Conversion */
+	DaoCstruct_CheckConversion,  DaoCstruct_DoConversion,  /* Conversion */
 	NULL,                        NULL,                     /* ForEach */
 	NULL,                                                  /* Print */
 	NULL,                                                  /* Slice */

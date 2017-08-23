@@ -1,7 +1,7 @@
 load serializer;
 load math
 
-ser = Serializer();
+var ser = Serializer();
 
 io.writeln( ser.encode( "abc" ) )
 io.writeln( ser.decode( ser.encode( "abc" ) ) )
@@ -12,8 +12,8 @@ io.writeln( ser.decode( ser.encode( math ) ) )
 io.writeln( ser.encode( Serializer ) )
 io.writeln( ser.decode( ser.encode( Serializer ) ) )
 
-list1 = { 1.3, 2.5, 3.6 }
-list2 = {
+var list1 = { 1.3, 2.5, 3.6 }
+var list2 = {
 	(any)(name='dao',year=2006),
 	(123+456C, 'abc'),
 	[1.2, 3.4; 5.6, 7.8],
@@ -21,15 +21,15 @@ list2 = {
 	[true, false]
 }
 
-s1 = ser.encode( list1 );
-s2 = ser.encode( list2 );
+var s1 = ser.encode( list1 );
+var s2 = ser.encode( list2 );
 
 io.writeln( s2 )
 io.writeln( s1, ser.decode( s1 ) )
 io.writeln( s2, ser.decode( s2 ) )
 
-map1 = { 'abc'->123, 'def'->{} }
-s3 = ser.encode( map1 );
+var map1 = { 'abc'->123, 'def'->{} }
+var s3 = ser.encode( map1 );
 io.writeln( s3, ser.decode( s3 ) )
 
 
@@ -44,22 +44,23 @@ class Klass
 	routine Klass( tup: tuple<int,string> ){ index = tup[0]; name = tup[1]; }
 	routine serialize(){ return index, name }
 }
-object = Klass( 456, 'def' );
+var object = Klass( 456, 'def' );
 io.writeln( object.serialize() );
 
-ss = ser.encode( object );
+var ss = ser.encode( object );
 io.writeln( ss );
 object = (Klass)ser.decode( ss )[0]
 io.writeln( object, object.index, object.name );
 
 ss = ser.encode( object );
 io.writeln( ss );
-objects = ser.decode( ss )
+
+var objects = ser.decode( ss )
 object = objects[0]
 io.writeln( objects, object.index, object.name );
 
 
-e = Exception::Error( 'serialization test' );
+var e = Exception::Error( 'serialization test' );
 ss = ser.encode( e );
 io.writeln( ss, std.about(ss) );
 e = ser.decode( ss )[0]
@@ -73,7 +74,7 @@ class MyException : Exception::Error
 	routine typename(){ return 'MyException' } # To override typename() from Exception;
 }
 
-e2 = MyException( 'serialization test2' );
+var e2 = MyException( 'serialization test2' );
 ss = ser.encode( e2 );
 io.writeln( ss );
 

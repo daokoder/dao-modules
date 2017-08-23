@@ -1,10 +1,11 @@
 
 load web.http
+load random
 
-port = 8080
-numthread = 4
+var port = 8080
+var numthread = 4
 
-server = http::Server()
+var server = http::Server()
 
 server.Start( port, numthread ){
 	[request, response, session]
@@ -15,11 +16,11 @@ server.Start( port, numthread ){
 	session.SetTimeout( 30 )
 
 	# Get/Set session varaible:
-	value = session.GetVariable( 'Test' )
+	var value = session.GetVariable( 'Test' )
 	if( value == none ){
 		response.Write( 'Session expired!\n' )
 		response.Write( 'Setting new value for session variable \"Test\"!\n\n' )
-		session.SetVariable( 'Test', rand(1000) )
+		session.SetVariable( 'Test', random.rand(1000) )
 	}
 	response.Write( 'Session Variable: Test = ' + (string) session.GetVariable( 'Test' ) + '\n' )
 }

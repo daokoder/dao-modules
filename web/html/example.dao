@@ -1,6 +1,6 @@
 load web.html import html
 
-htmlForm = fragment {
+var htmlForm = fragment {
 	form(id="login_form", method=$post, action="#"){
 		input($hidden, id="lang_confirm", value="Confrim")
 		span(id="status_message", style="color:#FA8;margin-right:10pt"){}
@@ -16,13 +16,13 @@ htmlForm = fragment {
 
 io.writeln(htmlForm)
 
-doc = Document( htmlForm )
+var doc = Document( htmlForm )
 
 # Get the <html> node:
-node = doc.content
+var node = doc.content
 
 # Get element by id as field name:
-e = node.confirm_password;
+var e = node.confirm_password;
 
 # Change the text content:
 e.text = "Confirm Password"

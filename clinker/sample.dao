@@ -27,7 +27,7 @@ load link( 'sample', funcs, types ) import {
 	test_stream
 }
 
-x = [ 1, 2, 3, 4 ]
+var x = [ 1, 2, 3, 4 ]
 
 test( 123 );
 test_dao_list( { 1, 2, 3 } );
@@ -35,7 +35,8 @@ test_array_float( [ 1.0, 2, 3 ] );
 #test_array_double( [ 1.0, 2, 3 ] );
 
 test_array_short( x );
-s = test2( 123.5 );
+
+var s = test2( 123.5 );
 io.writeln( s, x )
 
 test_stream( io::stdio )

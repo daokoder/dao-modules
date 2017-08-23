@@ -8,10 +8,10 @@ class Server
 	{
 #		io.writeln( net.host( '127.0.0.1' ) );
 		io.writeln( net.host( 'localhost' ) );
-		sock = net.listen( ':10000' );
-		for (conn in sock){
-			stream = conn.stream;
-			message = stream.read();
+		var sock = net.listen( ':10000' );
+		for (var conn in sock){
+			var stream = conn.stream;
+			var message = stream.read();
 			io.writeln( conn.addr );
 			io.writeln( 'received', message );
 			stream.serialize( [1,2;4,5] )
@@ -30,23 +30,23 @@ class Client
 {
 	routine Start()
 	{
-		sockfd = net.connect( 'localhost:10000' );
+		var sockfd = net.connect( 'localhost:10000' );
 		io.writeln( 'sending' );
 		sockfd.write( 'TEST' );
-		object1 = sockfd.deserialize()
-		object2 = sockfd.deserialize()
-		object2 = sockfd.deserialize()
-		object3 = sockfd.deserialize()
-		object4 = sockfd.deserialize()
-		message = sockfd.read();
+		var object1 = sockfd.deserialize()
+		var object2 = sockfd.deserialize()
+		var object3 = sockfd.deserialize()
+		var object4 = sockfd.deserialize()
+		var object5 = sockfd.deserialize()
+		var message = sockfd.read();
 		io.writeln( 'received', object1, object2, std.about(object2), message );
 		io.writeln( 'received', object3, object4, std.about(object4), message );
 		sockfd.close();
 	}
 }
 
-server = Server()
+var server = Server()
 server.Start() !!
 os.sleep(1);
-client = Client()
+var client = Client()
 client.Start() !!

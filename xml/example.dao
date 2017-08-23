@@ -1,6 +1,6 @@
 load xml
 
-text =
+var text =
 @[xml]<?xml version="1.0" encoding="utf-8"?>
 	<root>
 		<?pi data?>
@@ -12,31 +12,32 @@ text =
 @[xml]
 
 # Parse XML into a tree structure
-doc = xml.parse(text)
+var doc = xml.parse(text)
 io.writeln('version =', doc.version, ' encoding =', doc.encoding)
 
 # Obtaining the root element
-root = doc.root
+var root = doc.root
 io.writeln('<', root.tag, root.empty? '/>' : '>')
 
 # processing instruction
-pi = (xml::Instruction)root.child(0)
+var pi = (xml::Instruction)root.child(0)
 io.writeln('<?', pi.target, pi.data, '?>' )
 
 # character data
-cd = (xml::CharData)root.child(1)
+var cd = (xml::CharData)root.child(1)
 io.writeln('chardata:', cd.kind, cd.data)
 
 # getting a sub-element
-gr = root.elements[0]
+var gr = root.elements[0]
 io.writeln('<', gr.tag, 'atr="', gr['atr'], '">')
 
 # finding a sub-element by path and/or attributes
-inner = root.find('group/el', b = '2')
+var inner = root.find('group/el', b = '2')
 io.writeln('inner text:', inner.text)
 
 # mapping of data
-io.writeln('inner attribs:', inner.map($attribs, type(tuple<a: enum<yes,no>, b: int>)))
+# io.writeln('inner attribs:', inner.map($attribs, type(tuple<a: enum<yes,no>, b: int>)))
+# TODO;
 
 # adding a sub-element <el2> <inner1>str</inner1> <inner2>1</inner2> </el2>
 gr.extend(el2 = (inner1 = 'str', inner2 = 1))

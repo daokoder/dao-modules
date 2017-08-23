@@ -55,7 +55,7 @@ public
                 if (count)
                     return false
 
-                for (char in p[offset :])
+                for (var char in p[offset :])
                     if (char in ':<>"|?*' or char < 32)
                         return false
 
@@ -171,7 +171,7 @@ public
     routine normalize() => Path {
         var parts: list<string> = {}
 
-        for (comp in split())
+        for (var comp in split())
             if (comp == '..'){
                 if (not %parts)
                     std.error(PathError, "Backtracking with '..' exceeds path boundaries")
@@ -191,8 +191,8 @@ public
 
         var (aparts, bparts) = ((list<string>){}, (list<string>){})
 
-        for (x in {a, b}; parts in {aparts, bparts})
-            for (comp in x.split())
+        for (var x in {a, b}; var parts in {aparts, bparts})
+            for (var comp in x.split())
                 if (comp == '..'){
                     if (not %parts)
                         return false
@@ -227,8 +227,8 @@ public
 
         var (aparts, bparts) = ((list<string>){}, (list<string>){})
 
-        for (x in {self, base}; parts in {aparts, bparts})
-            for (comp in x.split())
+        for (var x in {self, base}; var parts in {aparts, bparts})
+            for (var comp in x.split())
                 if (comp == '..'){
                     if (not %parts)
                         std.error(PathError, "Path boundaries exceeded while backtracking with '..'")
@@ -240,7 +240,7 @@ public
 
         var index = 0
 
-        for (x in aparts; y in bparts)
+        for (var x in aparts; var y in bparts)
             if (tp == $win? x.convert($lower) == y.convert($lower) : (x == y))
                 ++index
             else
