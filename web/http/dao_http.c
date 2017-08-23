@@ -720,11 +720,11 @@ DaoxServer* DaoxServer_New( DaoVmSpace *vmspace )
 	self->typeHandler = DaoVmSpace_GetType( vmspace, & daoHandlerCore );
 	self->typeClient = DaoVmSpace_GetType( vmspace, & daoClientCore );
 
-	self->typeKeyValue = DaoNamespace_FindTypeChars( httpns, "map<string,string>" );
+	self->typeKeyValue = DaoNamespace_ParseType( httpns, "map<string,string>" );
 	self->typeNameStream = DaoNamespace_FindTypeChars( httpns, "HttpUpload" );
-	self->typeFileMap = DaoNamespace_FindTypeChars( httpns, "map<string,HttpUpload>" );
-	self->typeStringList = DaoNamespace_FindTypeChars( httpns, "list<string>" );
-	self->typeFileCache = DaoNamespace_FindTypeChars( httpns, "tuple<file:string,time:float>");
+	self->typeFileMap = DaoNamespace_ParseType( httpns, "map<string,HttpUpload>" );
+	self->typeStringList = DaoNamespace_ParseType( httpns, "list<string>" );
+	self->typeFileCache = DaoNamespace_ParseType( httpns, "tuple<file:string,time:float>");
 	return self;
 }
 
