@@ -1,9 +1,9 @@
 #include"dao_cblas.h"
 
-DaoVmSpace *__daoVmSpace = NULL;
 #ifdef __cplusplus
 extern "C"{
 #endif
+
 static void dao__cblas_sdsdot( DaoProcess *_proc, DaoValue *_p[], int _n );
 static void dao__cblas_dsdot( DaoProcess *_proc, DaoValue *_p[], int _n );
 static void dao__cblas_sdot( DaoProcess *_proc, DaoValue *_p[], int _n );
@@ -142,7 +142,7 @@ static void dao__cblas_cherk( DaoProcess *_proc, DaoValue *_p[], int _n );
 static void dao__cblas_zherk( DaoProcess *_proc, DaoValue *_p[], int _n );
 static void dao__cblas_cher2k( DaoProcess *_proc, DaoValue *_p[], int _n );
 static void dao__cblas_zher2k( DaoProcess *_proc, DaoValue *_p[], int _n );
-static DaoFuncItem dao__Funcs[] = 
+static DaoFunctionEntry dao__Funcs[] = 
 {
   { dao__cblas_sdsdot, "cblas_sdsdot( n: int, alpha: float, x: array<float>, incx: int, y: array<float>, incy: int )=>float" },
   { dao__cblas_dsdot, "cblas_dsdot( n: int, x: array<float>, incx: int, y: array<float>, incy: int )=>float" },
@@ -284,7 +284,8 @@ static DaoFuncItem dao__Funcs[] =
   { dao__cblas_zher2k, "cblas_zher2k( Order: int, Uplo: int, Trans: int, N: int, K: int, alpha: array<float>, A: array<float>, lda: int, B: array<float>, ldb: int, beta: float, C: array<float>, ldc: int )" },
   { NULL, NULL }
 };
-/* ./cblas.h */
+
+/* cblas.h */
 static void dao__cblas_sdsdot( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -299,7 +300,7 @@ static void dao__cblas_sdsdot( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[4] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_sdsdot );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dsdot( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -313,7 +314,7 @@ static void dao__cblas_dsdot( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[3] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_dsdot );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_sdot( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -327,7 +328,7 @@ static void dao__cblas_sdot( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[3] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_sdot );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ddot( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -341,7 +342,7 @@ static void dao__cblas_ddot( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[3] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_ddot );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_sasum( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -352,7 +353,7 @@ static void dao__cblas_sasum( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[1] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_sasum );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dasum( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -363,7 +364,7 @@ static void dao__cblas_dasum( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[1] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_dasum );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_scasum( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -374,7 +375,7 @@ static void dao__cblas_scasum( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[1] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_scasum );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dzasum( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -385,7 +386,7 @@ static void dao__cblas_dzasum( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[1] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_dzasum );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_snrm2( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int N = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -396,7 +397,7 @@ static void dao__cblas_snrm2( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[1] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_snrm2 );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dnrm2( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int N = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -407,7 +408,7 @@ static void dao__cblas_dnrm2( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[1] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_dnrm2 );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_scnrm2( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int N = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -418,7 +419,7 @@ static void dao__cblas_scnrm2( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[1] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_scnrm2 );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dznrm2( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int N = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -429,7 +430,7 @@ static void dao__cblas_dznrm2( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[1] );
   DaoProcess_PutFloat( _proc, (dao_float) _cblas_dznrm2 );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_isamax( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -440,7 +441,7 @@ static void dao__cblas_isamax( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[1] );
   DaoProcess_PutInteger( _proc, (dao_integer) _cblas_isamax );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_idamax( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -451,7 +452,7 @@ static void dao__cblas_idamax( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[1] );
   DaoProcess_PutInteger( _proc, (dao_integer) _cblas_idamax );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_icamax( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -462,7 +463,7 @@ static void dao__cblas_icamax( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[1] );
   DaoProcess_PutInteger( _proc, (dao_integer) _cblas_icamax );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_izamax( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -473,7 +474,7 @@ static void dao__cblas_izamax( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[1] );
   DaoProcess_PutInteger( _proc, (dao_integer) _cblas_izamax );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_saxpy( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -487,7 +488,7 @@ static void dao__cblas_saxpy( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[2] );
   DaoArray_FromFloat32( (DaoArray*)_p[4] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_daxpy( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -501,7 +502,7 @@ static void dao__cblas_daxpy( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[2] );
   DaoArray_FromFloat64( (DaoArray*)_p[4] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_caxpy( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -516,7 +517,7 @@ static void dao__cblas_caxpy( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[2] );
   DaoArray_FromFloat32( (DaoArray*)_p[4] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_zaxpy( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -531,7 +532,7 @@ static void dao__cblas_zaxpy( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[2] );
   DaoArray_FromFloat64( (DaoArray*)_p[4] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_scopy( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -544,7 +545,7 @@ static void dao__cblas_scopy( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[1] );
   DaoArray_FromFloat32( (DaoArray*)_p[3] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dcopy( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -557,7 +558,7 @@ static void dao__cblas_dcopy( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[1] );
   DaoArray_FromFloat64( (DaoArray*)_p[3] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ccopy( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -570,7 +571,7 @@ static void dao__cblas_ccopy( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[1] );
   DaoArray_FromFloat32( (DaoArray*)_p[3] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_zcopy( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -583,7 +584,7 @@ static void dao__cblas_zcopy( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[1] );
   DaoArray_FromFloat64( (DaoArray*)_p[3] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_sswap( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -596,7 +597,7 @@ static void dao__cblas_sswap( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[1] );
   DaoArray_FromFloat32( (DaoArray*)_p[3] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dswap( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -609,7 +610,7 @@ static void dao__cblas_dswap( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[1] );
   DaoArray_FromFloat64( (DaoArray*)_p[3] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_cswap( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -622,7 +623,7 @@ static void dao__cblas_cswap( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[1] );
   DaoArray_FromFloat32( (DaoArray*)_p[3] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_zswap( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int n = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -635,7 +636,7 @@ static void dao__cblas_zswap( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[1] );
   DaoArray_FromFloat64( (DaoArray*)_p[3] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_srot( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int N = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -650,7 +651,7 @@ static void dao__cblas_srot( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[1] );
   DaoArray_FromFloat32( (DaoArray*)_p[3] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_drot( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int N = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -665,7 +666,7 @@ static void dao__cblas_drot( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[1] );
   DaoArray_FromFloat64( (DaoArray*)_p[3] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_srotg( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   float a = (float) DaoValue_TryGetFloat( _p[0] );
@@ -679,7 +680,7 @@ static void dao__cblas_srotg( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[3] );
   DaoProcess_PutFloat( _proc, (dao_float) a );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_drotg( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   double a = (double) DaoValue_TryGetFloat( _p[0] );
@@ -693,7 +694,7 @@ static void dao__cblas_drotg( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[3] );
   DaoProcess_PutFloat( _proc, (dao_float) a );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_srotm( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int N = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -708,7 +709,7 @@ static void dao__cblas_srotm( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[3] );
   DaoArray_FromFloat32( (DaoArray*)_p[5] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_drotm( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int N = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -723,7 +724,7 @@ static void dao__cblas_drotm( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[3] );
   DaoArray_FromFloat64( (DaoArray*)_p[5] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_srotmg( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   float d1 = (float) DaoValue_TryGetFloat( _p[0] );
@@ -738,7 +739,7 @@ static void dao__cblas_srotmg( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[4] );
   DaoProcess_PutFloat( _proc, (dao_float) d1 );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_drotmg( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   double d1 = (double) DaoValue_TryGetFloat( _p[0] );
@@ -753,7 +754,7 @@ static void dao__cblas_drotmg( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[4] );
   DaoProcess_PutFloat( _proc, (dao_float) d1 );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_sscal( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int N = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -764,7 +765,7 @@ static void dao__cblas_sscal( DaoProcess *_proc, DaoValue *_p[], int _n )
   cblas_sscal( N, alpha, X, incX );
   DaoArray_FromFloat32( (DaoArray*)_p[2] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dscal( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int N = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -775,7 +776,7 @@ static void dao__cblas_dscal( DaoProcess *_proc, DaoValue *_p[], int _n )
   cblas_dscal( N, alpha, X, incX );
   DaoArray_FromFloat64( (DaoArray*)_p[2] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_cscal( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int N = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -787,7 +788,7 @@ static void dao__cblas_cscal( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[1] );
   DaoArray_FromFloat32( (DaoArray*)_p[2] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_zscal( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int N = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -799,7 +800,7 @@ static void dao__cblas_zscal( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[1] );
   DaoArray_FromFloat64( (DaoArray*)_p[2] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_csscal( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int N = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -810,7 +811,7 @@ static void dao__cblas_csscal( DaoProcess *_proc, DaoValue *_p[], int _n )
   cblas_csscal( N, alpha, X, incX );
   DaoArray_FromFloat32( (DaoArray*)_p[2] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_zdscal( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
   const int N = (const int) DaoValue_TryGetInteger( _p[0] );
@@ -821,11 +822,11 @@ static void dao__cblas_zdscal( DaoProcess *_proc, DaoValue *_p[], int _n )
   cblas_zdscal( N, alpha, X, incX );
   DaoArray_FromFloat64( (DaoArray*)_p[2] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_sgemv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_TRANSPOSE trans = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_TRANSPOSE trans = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
   const int m = (const int) DaoValue_TryGetInteger( _p[2] );
   const int n = (const int) DaoValue_TryGetInteger( _p[3] );
   const float alpha = (const float) DaoValue_TryGetFloat( _p[4] );
@@ -842,11 +843,11 @@ static void dao__cblas_sgemv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[7] );
   DaoArray_FromFloat32( (DaoArray*)_p[10] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dgemv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_TRANSPOSE trans = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_TRANSPOSE trans = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
   const int m = (const int) DaoValue_TryGetInteger( _p[2] );
   const int n = (const int) DaoValue_TryGetInteger( _p[3] );
   const double alpha = (const double) DaoValue_TryGetFloat( _p[4] );
@@ -863,11 +864,11 @@ static void dao__cblas_dgemv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[7] );
   DaoArray_FromFloat64( (DaoArray*)_p[10] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_cgemv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_TRANSPOSE trans = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_TRANSPOSE trans = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
   const int m = (const int) DaoValue_TryGetInteger( _p[2] );
   const int n = (const int) DaoValue_TryGetInteger( _p[3] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[6] );
@@ -886,11 +887,11 @@ static void dao__cblas_cgemv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[9] );
   DaoArray_FromFloat32( (DaoArray*)_p[10] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_zgemv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_TRANSPOSE trans = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_TRANSPOSE trans = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
   const int m = (const int) DaoValue_TryGetInteger( _p[2] );
   const int n = (const int) DaoValue_TryGetInteger( _p[3] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[6] );
@@ -909,10 +910,10 @@ static void dao__cblas_zgemv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[9] );
   DaoArray_FromFloat64( (DaoArray*)_p[10] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_sger( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
   const int M = (const int) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const float alpha = (const float) DaoValue_TryGetFloat( _p[3] );
@@ -928,10 +929,10 @@ static void dao__cblas_sger( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dger( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
   const int M = (const int) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const double alpha = (const double) DaoValue_TryGetFloat( _p[3] );
@@ -947,10 +948,10 @@ static void dao__cblas_dger( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_cgeru( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
   const int M = (const int) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[5] );
@@ -967,10 +968,10 @@ static void dao__cblas_cgeru( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_cgerc( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
   const int M = (const int) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[5] );
@@ -987,10 +988,10 @@ static void dao__cblas_cgerc( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_zgeru( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
   const int M = (const int) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[5] );
@@ -1007,10 +1008,10 @@ static void dao__cblas_zgeru( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_zgerc( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
   const int M = (const int) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[5] );
@@ -1027,13 +1028,13 @@ static void dao__cblas_zgerc( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_strsv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[6] );
   float* X = (float*) DaoArray_ToFloat32( (DaoArray*)_p[7] );
@@ -1044,13 +1045,13 @@ static void dao__cblas_strsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[5] );
   DaoArray_FromFloat32( (DaoArray*)_p[7] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dtrsv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[6] );
   double* X = (double*) DaoArray_ToFloat64( (DaoArray*)_p[7] );
@@ -1061,13 +1062,13 @@ static void dao__cblas_dtrsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[5] );
   DaoArray_FromFloat64( (DaoArray*)_p[7] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ctrsv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[6] );
   float* X = (float*) DaoArray_ToFloat32( (DaoArray*)_p[7] );
@@ -1078,13 +1079,13 @@ static void dao__cblas_ctrsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[5] );
   DaoArray_FromFloat32( (DaoArray*)_p[7] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ztrsv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[6] );
   double* X = (double*) DaoArray_ToFloat64( (DaoArray*)_p[7] );
@@ -1095,13 +1096,13 @@ static void dao__cblas_ztrsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[5] );
   DaoArray_FromFloat64( (DaoArray*)_p[7] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_strmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[6] );
   float* X = (float*) DaoArray_ToFloat32( (DaoArray*)_p[7] );
@@ -1112,13 +1113,13 @@ static void dao__cblas_strmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[5] );
   DaoArray_FromFloat32( (DaoArray*)_p[7] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dtrmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[6] );
   double* X = (double*) DaoArray_ToFloat64( (DaoArray*)_p[7] );
@@ -1129,13 +1130,13 @@ static void dao__cblas_dtrmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[5] );
   DaoArray_FromFloat64( (DaoArray*)_p[7] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ctrmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[6] );
   float* X = (float*) DaoArray_ToFloat32( (DaoArray*)_p[7] );
@@ -1146,13 +1147,13 @@ static void dao__cblas_ctrmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[5] );
   DaoArray_FromFloat32( (DaoArray*)_p[7] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ztrmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[6] );
   double* X = (double*) DaoArray_ToFloat64( (DaoArray*)_p[7] );
@@ -1163,11 +1164,11 @@ static void dao__cblas_ztrmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[5] );
   DaoArray_FromFloat64( (DaoArray*)_p[7] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ssyr( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const float alpha = (const float) DaoValue_TryGetFloat( _p[3] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[5] );
@@ -1179,11 +1180,11 @@ static void dao__cblas_ssyr( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[4] );
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dsyr( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const double alpha = (const double) DaoValue_TryGetFloat( _p[3] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[5] );
@@ -1195,11 +1196,11 @@ static void dao__cblas_dsyr( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[4] );
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_cher( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const float alpha = (const float) DaoValue_TryGetFloat( _p[3] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[5] );
@@ -1211,11 +1212,11 @@ static void dao__cblas_cher( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[4] );
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_zher( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const double alpha = (const double) DaoValue_TryGetFloat( _p[3] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[5] );
@@ -1227,11 +1228,11 @@ static void dao__cblas_zher( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[4] );
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ssyr2( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const float alpha = (const float) DaoValue_TryGetFloat( _p[3] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[5] );
@@ -1246,11 +1247,11 @@ static void dao__cblas_ssyr2( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dsyr2( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const double alpha = (const double) DaoValue_TryGetFloat( _p[3] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[5] );
@@ -1265,11 +1266,11 @@ static void dao__cblas_dsyr2( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_cher2( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[5] );
   const int incY = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -1285,11 +1286,11 @@ static void dao__cblas_cher2( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_zher2( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[5] );
   const int incY = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -1305,11 +1306,11 @@ static void dao__cblas_zher2( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_sgbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
   const int M = (const int) DaoValue_TryGetInteger( _p[2] );
   const int N = (const int) DaoValue_TryGetInteger( _p[3] );
   const int KL = (const int) DaoValue_TryGetInteger( _p[4] );
@@ -1328,11 +1329,11 @@ static void dao__cblas_sgbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[9] );
   DaoArray_FromFloat32( (DaoArray*)_p[12] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dgbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
   const int M = (const int) DaoValue_TryGetInteger( _p[2] );
   const int N = (const int) DaoValue_TryGetInteger( _p[3] );
   const int KL = (const int) DaoValue_TryGetInteger( _p[4] );
@@ -1351,11 +1352,11 @@ static void dao__cblas_dgbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[9] );
   DaoArray_FromFloat64( (DaoArray*)_p[12] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_cgbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
   const int M = (const int) DaoValue_TryGetInteger( _p[2] );
   const int N = (const int) DaoValue_TryGetInteger( _p[3] );
   const int KL = (const int) DaoValue_TryGetInteger( _p[4] );
@@ -1376,11 +1377,11 @@ static void dao__cblas_cgbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[11] );
   DaoArray_FromFloat32( (DaoArray*)_p[12] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_zgbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
   const int M = (const int) DaoValue_TryGetInteger( _p[2] );
   const int N = (const int) DaoValue_TryGetInteger( _p[3] );
   const int KL = (const int) DaoValue_TryGetInteger( _p[4] );
@@ -1401,11 +1402,11 @@ static void dao__cblas_zgbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[11] );
   DaoArray_FromFloat64( (DaoArray*)_p[12] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ssbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const int K = (const int) DaoValue_TryGetInteger( _p[3] );
   const float alpha = (const float) DaoValue_TryGetFloat( _p[4] );
@@ -1422,11 +1423,11 @@ static void dao__cblas_ssbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[7] );
   DaoArray_FromFloat32( (DaoArray*)_p[10] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dsbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const int K = (const int) DaoValue_TryGetInteger( _p[3] );
   const double alpha = (const double) DaoValue_TryGetFloat( _p[4] );
@@ -1443,13 +1444,13 @@ static void dao__cblas_dsbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[7] );
   DaoArray_FromFloat64( (DaoArray*)_p[10] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_stbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int K = (const int) DaoValue_TryGetInteger( _p[5] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -1461,13 +1462,13 @@ static void dao__cblas_stbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dtbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int K = (const int) DaoValue_TryGetInteger( _p[5] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -1479,13 +1480,13 @@ static void dao__cblas_dtbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ctbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int K = (const int) DaoValue_TryGetInteger( _p[5] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -1497,13 +1498,13 @@ static void dao__cblas_ctbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ztbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int K = (const int) DaoValue_TryGetInteger( _p[5] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -1515,13 +1516,13 @@ static void dao__cblas_ztbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_stbsv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int K = (const int) DaoValue_TryGetInteger( _p[5] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -1533,13 +1534,13 @@ static void dao__cblas_stbsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dtbsv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int K = (const int) DaoValue_TryGetInteger( _p[5] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -1551,13 +1552,13 @@ static void dao__cblas_dtbsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ctbsv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int K = (const int) DaoValue_TryGetInteger( _p[5] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -1569,13 +1570,13 @@ static void dao__cblas_ctbsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ztbsv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int K = (const int) DaoValue_TryGetInteger( _p[5] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -1587,13 +1588,13 @@ static void dao__cblas_ztbsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_stpmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   float* X = (float*) DaoArray_ToFloat32( (DaoArray*)_p[6] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -1603,13 +1604,13 @@ static void dao__cblas_stpmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[5] );
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dtpmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   double* X = (double*) DaoArray_ToFloat64( (DaoArray*)_p[6] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -1619,13 +1620,13 @@ static void dao__cblas_dtpmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[5] );
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ctpmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   float* X = (float*) DaoArray_ToFloat32( (DaoArray*)_p[6] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -1635,13 +1636,13 @@ static void dao__cblas_ctpmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[5] );
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ztpmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   double* X = (double*) DaoArray_ToFloat64( (DaoArray*)_p[6] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -1651,13 +1652,13 @@ static void dao__cblas_ztpmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[5] );
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_stpsv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   float* X = (float*) DaoArray_ToFloat32( (DaoArray*)_p[6] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -1667,13 +1668,13 @@ static void dao__cblas_stpsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[5] );
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dtpsv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   double* X = (double*) DaoArray_ToFloat64( (DaoArray*)_p[6] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -1683,13 +1684,13 @@ static void dao__cblas_dtpsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[5] );
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ctpsv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   float* X = (float*) DaoArray_ToFloat32( (DaoArray*)_p[6] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -1699,13 +1700,13 @@ static void dao__cblas_ctpsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[5] );
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ztpsv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   double* X = (double*) DaoArray_ToFloat64( (DaoArray*)_p[6] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -1715,11 +1716,11 @@ static void dao__cblas_ztpsv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[5] );
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ssymv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const float alpha = (const float) DaoValue_TryGetFloat( _p[3] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[5] );
@@ -1735,11 +1736,11 @@ static void dao__cblas_ssymv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[9] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dsymv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const double alpha = (const double) DaoValue_TryGetFloat( _p[3] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[5] );
@@ -1755,11 +1756,11 @@ static void dao__cblas_dsymv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[9] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_chemv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[5] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -1777,11 +1778,11 @@ static void dao__cblas_chemv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
   DaoArray_FromFloat32( (DaoArray*)_p[9] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_zhemv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[5] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -1799,11 +1800,11 @@ static void dao__cblas_zhemv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
   DaoArray_FromFloat64( (DaoArray*)_p[9] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_sspmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const float alpha = (const float) DaoValue_TryGetFloat( _p[3] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[6] );
@@ -1818,11 +1819,11 @@ static void dao__cblas_sspmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[5] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dspmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const double alpha = (const double) DaoValue_TryGetFloat( _p[3] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[6] );
@@ -1837,11 +1838,11 @@ static void dao__cblas_dspmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[5] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_sspr( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const float alpha = (const float) DaoValue_TryGetFloat( _p[3] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[5] );
@@ -1852,11 +1853,11 @@ static void dao__cblas_sspr( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[4] );
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dspr( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const double alpha = (const double) DaoValue_TryGetFloat( _p[3] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[5] );
@@ -1867,11 +1868,11 @@ static void dao__cblas_dspr( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[4] );
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_chpr( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const float alpha = (const float) DaoValue_TryGetFloat( _p[3] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[5] );
@@ -1882,11 +1883,11 @@ static void dao__cblas_chpr( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[4] );
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_zhpr( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const double alpha = (const double) DaoValue_TryGetFloat( _p[3] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[5] );
@@ -1897,11 +1898,11 @@ static void dao__cblas_zhpr( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[4] );
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_sspr2( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const float alpha = (const float) DaoValue_TryGetFloat( _p[3] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[5] );
@@ -1915,11 +1916,11 @@ static void dao__cblas_sspr2( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dspr2( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const double alpha = (const double) DaoValue_TryGetFloat( _p[3] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[5] );
@@ -1933,11 +1934,11 @@ static void dao__cblas_dspr2( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_chpr2( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[5] );
   const int incY = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -1952,11 +1953,11 @@ static void dao__cblas_chpr2( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_zhpr2( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[5] );
   const int incY = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -1971,11 +1972,11 @@ static void dao__cblas_zhpr2( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_chbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const int K = (const int) DaoValue_TryGetInteger( _p[3] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[6] );
@@ -1994,11 +1995,11 @@ static void dao__cblas_chbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[9] );
   DaoArray_FromFloat32( (DaoArray*)_p[10] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_zhbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const int K = (const int) DaoValue_TryGetInteger( _p[3] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[6] );
@@ -2017,11 +2018,11 @@ static void dao__cblas_zhbmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[9] );
   DaoArray_FromFloat64( (DaoArray*)_p[10] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_chpmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[6] );
   float* Y = (float*) DaoArray_ToFloat32( (DaoArray*)_p[8] );
@@ -2038,11 +2039,11 @@ static void dao__cblas_chpmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[7] );
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_zhpmv( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_ORDER order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
   const int N = (const int) DaoValue_TryGetInteger( _p[2] );
   const int incX = (const int) DaoValue_TryGetInteger( _p[6] );
   double* Y = (double*) DaoArray_ToFloat64( (DaoArray*)_p[8] );
@@ -2059,12 +2060,12 @@ static void dao__cblas_zhpmv( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[7] );
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_sgemm( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransB = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransB = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
   const int M = (const int) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int K = (const int) DaoValue_TryGetInteger( _p[5] );
@@ -2082,12 +2083,12 @@ static void dao__cblas_sgemm( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[9] );
   DaoArray_FromFloat32( (DaoArray*)_p[12] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dgemm( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransB = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransB = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
   const int M = (const int) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int K = (const int) DaoValue_TryGetInteger( _p[5] );
@@ -2105,12 +2106,12 @@ static void dao__cblas_dgemm( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[9] );
   DaoArray_FromFloat64( (DaoArray*)_p[12] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_cgemm( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransB = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransB = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
   const int M = (const int) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int K = (const int) DaoValue_TryGetInteger( _p[5] );
@@ -2130,12 +2131,12 @@ static void dao__cblas_cgemm( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[11] );
   DaoArray_FromFloat32( (DaoArray*)_p[12] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_zgemm( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE TransB = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE TransB = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
   const int M = (const int) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int K = (const int) DaoValue_TryGetInteger( _p[5] );
@@ -2155,12 +2156,12 @@ static void dao__cblas_zgemm( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[11] );
   DaoArray_FromFloat64( (DaoArray*)_p[12] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ssymm( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_SIDE Side = (const enum CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_SIDE Side = (const CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
   const int M = (const int) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const float alpha = (const float) DaoValue_TryGetFloat( _p[5] );
@@ -2177,12 +2178,12 @@ static void dao__cblas_ssymm( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
   DaoArray_FromFloat32( (DaoArray*)_p[11] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dsymm( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_SIDE Side = (const enum CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_SIDE Side = (const CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
   const int M = (const int) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const double alpha = (const double) DaoValue_TryGetFloat( _p[5] );
@@ -2199,12 +2200,12 @@ static void dao__cblas_dsymm( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
   DaoArray_FromFloat64( (DaoArray*)_p[11] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_csymm( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_SIDE Side = (const enum CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_SIDE Side = (const CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
   const int M = (const int) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -2223,12 +2224,12 @@ static void dao__cblas_csymm( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[10] );
   DaoArray_FromFloat32( (DaoArray*)_p[11] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_zsymm( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_SIDE Side = (const enum CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_SIDE Side = (const CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
   const int M = (const int) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -2247,12 +2248,12 @@ static void dao__cblas_zsymm( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[10] );
   DaoArray_FromFloat64( (DaoArray*)_p[11] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ssyrk( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE Trans = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE Trans = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
   const int N = (const int) DaoValue_TryGetInteger( _p[3] );
   const int K = (const int) DaoValue_TryGetInteger( _p[4] );
   const float alpha = (const float) DaoValue_TryGetFloat( _p[5] );
@@ -2266,12 +2267,12 @@ static void dao__cblas_ssyrk( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[9] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dsyrk( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE Trans = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE Trans = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
   const int N = (const int) DaoValue_TryGetInteger( _p[3] );
   const int K = (const int) DaoValue_TryGetInteger( _p[4] );
   const double alpha = (const double) DaoValue_TryGetFloat( _p[5] );
@@ -2285,12 +2286,12 @@ static void dao__cblas_dsyrk( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[9] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_csyrk( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE Trans = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE Trans = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
   const int N = (const int) DaoValue_TryGetInteger( _p[3] );
   const int K = (const int) DaoValue_TryGetInteger( _p[4] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -2306,12 +2307,12 @@ static void dao__cblas_csyrk( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
   DaoArray_FromFloat32( (DaoArray*)_p[9] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_zsyrk( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE Trans = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE Trans = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
   const int N = (const int) DaoValue_TryGetInteger( _p[3] );
   const int K = (const int) DaoValue_TryGetInteger( _p[4] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -2327,12 +2328,12 @@ static void dao__cblas_zsyrk( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
   DaoArray_FromFloat64( (DaoArray*)_p[9] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ssyr2k( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE Trans = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE Trans = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
   const int N = (const int) DaoValue_TryGetInteger( _p[3] );
   const int K = (const int) DaoValue_TryGetInteger( _p[4] );
   const float alpha = (const float) DaoValue_TryGetFloat( _p[5] );
@@ -2349,12 +2350,12 @@ static void dao__cblas_ssyr2k( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
   DaoArray_FromFloat32( (DaoArray*)_p[11] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dsyr2k( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE Trans = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE Trans = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
   const int N = (const int) DaoValue_TryGetInteger( _p[3] );
   const int K = (const int) DaoValue_TryGetInteger( _p[4] );
   const double alpha = (const double) DaoValue_TryGetFloat( _p[5] );
@@ -2371,12 +2372,12 @@ static void dao__cblas_dsyr2k( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
   DaoArray_FromFloat64( (DaoArray*)_p[11] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_csyr2k( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE Trans = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE Trans = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
   const int N = (const int) DaoValue_TryGetInteger( _p[3] );
   const int K = (const int) DaoValue_TryGetInteger( _p[4] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -2395,12 +2396,12 @@ static void dao__cblas_csyr2k( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[10] );
   DaoArray_FromFloat32( (DaoArray*)_p[11] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_zsyr2k( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE Trans = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE Trans = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
   const int N = (const int) DaoValue_TryGetInteger( _p[3] );
   const int K = (const int) DaoValue_TryGetInteger( _p[4] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -2419,14 +2420,14 @@ static void dao__cblas_zsyr2k( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[10] );
   DaoArray_FromFloat64( (DaoArray*)_p[11] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_strmm( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_SIDE Side = (const enum CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[3] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[4] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_SIDE Side = (const CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[4] );
   const int M = (const int) DaoValue_TryGetInteger( _p[5] );
   const int N = (const int) DaoValue_TryGetInteger( _p[6] );
   const float alpha = (const float) DaoValue_TryGetFloat( _p[7] );
@@ -2439,14 +2440,14 @@ static void dao__cblas_strmm( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
   DaoArray_FromFloat32( (DaoArray*)_p[10] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dtrmm( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_SIDE Side = (const enum CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[3] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[4] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_SIDE Side = (const CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[4] );
   const int M = (const int) DaoValue_TryGetInteger( _p[5] );
   const int N = (const int) DaoValue_TryGetInteger( _p[6] );
   const double alpha = (const double) DaoValue_TryGetFloat( _p[7] );
@@ -2459,14 +2460,14 @@ static void dao__cblas_dtrmm( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
   DaoArray_FromFloat64( (DaoArray*)_p[10] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ctrmm( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_SIDE Side = (const enum CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[3] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[4] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_SIDE Side = (const CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[4] );
   const int M = (const int) DaoValue_TryGetInteger( _p[5] );
   const int N = (const int) DaoValue_TryGetInteger( _p[6] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[9] );
@@ -2480,14 +2481,14 @@ static void dao__cblas_ctrmm( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
   DaoArray_FromFloat32( (DaoArray*)_p[10] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ztrmm( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_SIDE Side = (const enum CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[3] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[4] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_SIDE Side = (const CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[4] );
   const int M = (const int) DaoValue_TryGetInteger( _p[5] );
   const int N = (const int) DaoValue_TryGetInteger( _p[6] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[9] );
@@ -2501,14 +2502,14 @@ static void dao__cblas_ztrmm( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
   DaoArray_FromFloat64( (DaoArray*)_p[10] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_strsm( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_SIDE Side = (const enum CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[3] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[4] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_SIDE Side = (const CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[4] );
   const int M = (const int) DaoValue_TryGetInteger( _p[5] );
   const int N = (const int) DaoValue_TryGetInteger( _p[6] );
   const float alpha = (const float) DaoValue_TryGetFloat( _p[7] );
@@ -2521,14 +2522,14 @@ static void dao__cblas_strsm( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
   DaoArray_FromFloat32( (DaoArray*)_p[10] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_dtrsm( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_SIDE Side = (const enum CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[3] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[4] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_SIDE Side = (const CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[4] );
   const int M = (const int) DaoValue_TryGetInteger( _p[5] );
   const int N = (const int) DaoValue_TryGetInteger( _p[6] );
   const double alpha = (const double) DaoValue_TryGetFloat( _p[7] );
@@ -2541,14 +2542,14 @@ static void dao__cblas_dtrsm( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
   DaoArray_FromFloat64( (DaoArray*)_p[10] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ctrsm( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_SIDE Side = (const enum CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[3] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[4] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_SIDE Side = (const CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[4] );
   const int M = (const int) DaoValue_TryGetInteger( _p[5] );
   const int N = (const int) DaoValue_TryGetInteger( _p[6] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[9] );
@@ -2562,14 +2563,14 @@ static void dao__cblas_ctrsm( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
   DaoArray_FromFloat32( (DaoArray*)_p[10] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_ztrsm( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_SIDE Side = (const enum CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
-  const enum CBLAS_TRANSPOSE TransA = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[3] );
-  const enum CBLAS_DIAG Diag = (const enum CBLAS_DIAG) DaoValue_TryGetInteger( _p[4] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_SIDE Side = (const CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_TRANSPOSE TransA = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[3] );
+  const CBLAS_DIAG Diag = (const CBLAS_DIAG) DaoValue_TryGetInteger( _p[4] );
   const int M = (const int) DaoValue_TryGetInteger( _p[5] );
   const int N = (const int) DaoValue_TryGetInteger( _p[6] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[9] );
@@ -2583,12 +2584,12 @@ static void dao__cblas_ztrsm( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
   DaoArray_FromFloat64( (DaoArray*)_p[10] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_chemm( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_SIDE Side = (const enum CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_SIDE Side = (const CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
   const int M = (const int) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -2607,12 +2608,12 @@ static void dao__cblas_chemm( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[10] );
   DaoArray_FromFloat32( (DaoArray*)_p[11] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_zhemm( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_SIDE Side = (const enum CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_SIDE Side = (const CBLAS_SIDE) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[2] );
   const int M = (const int) DaoValue_TryGetInteger( _p[3] );
   const int N = (const int) DaoValue_TryGetInteger( _p[4] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -2631,12 +2632,12 @@ static void dao__cblas_zhemm( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[10] );
   DaoArray_FromFloat64( (DaoArray*)_p[11] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_cherk( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE Trans = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE Trans = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
   const int N = (const int) DaoValue_TryGetInteger( _p[3] );
   const int K = (const int) DaoValue_TryGetInteger( _p[4] );
   const float alpha = (const float) DaoValue_TryGetFloat( _p[5] );
@@ -2650,12 +2651,12 @@ static void dao__cblas_cherk( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[6] );
   DaoArray_FromFloat32( (DaoArray*)_p[9] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_zherk( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE Trans = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE Trans = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
   const int N = (const int) DaoValue_TryGetInteger( _p[3] );
   const int K = (const int) DaoValue_TryGetInteger( _p[4] );
   const double alpha = (const double) DaoValue_TryGetFloat( _p[5] );
@@ -2669,12 +2670,12 @@ static void dao__cblas_zherk( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[6] );
   DaoArray_FromFloat64( (DaoArray*)_p[9] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_cher2k( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE Trans = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE Trans = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
   const int N = (const int) DaoValue_TryGetInteger( _p[3] );
   const int K = (const int) DaoValue_TryGetInteger( _p[4] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -2692,12 +2693,12 @@ static void dao__cblas_cher2k( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat32( (DaoArray*)_p[8] );
   DaoArray_FromFloat32( (DaoArray*)_p[11] );
 }
-/* ./cblas.h */
+/* cblas.h */
 static void dao__cblas_zher2k( DaoProcess *_proc, DaoValue *_p[], int _n )
 {
-  const enum CBLAS_ORDER Order = (const enum CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
-  const enum CBLAS_UPLO Uplo = (const enum CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
-  const enum CBLAS_TRANSPOSE Trans = (const enum CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
+  const CBLAS_ORDER Order = (const CBLAS_ORDER) DaoValue_TryGetInteger( _p[0] );
+  const CBLAS_UPLO Uplo = (const CBLAS_UPLO) DaoValue_TryGetInteger( _p[1] );
+  const CBLAS_TRANSPOSE Trans = (const CBLAS_TRANSPOSE) DaoValue_TryGetInteger( _p[2] );
   const int N = (const int) DaoValue_TryGetInteger( _p[3] );
   const int K = (const int) DaoValue_TryGetInteger( _p[4] );
   const int lda = (const int) DaoValue_TryGetInteger( _p[7] );
@@ -2715,10 +2716,12 @@ static void dao__cblas_zher2k( DaoProcess *_proc, DaoValue *_p[], int _n )
   DaoArray_FromFloat64( (DaoArray*)_p[8] );
   DaoArray_FromFloat64( (DaoArray*)_p[11] );
 }
+
 #ifdef __cplusplus
 }
 #endif
-static DaoNumItem dao__Nums[] = 
+
+static DaoNumberEntry dao__Nums[] = 
 {
   { "CblasRowMajor", DAO_INTEGER, CblasRowMajor },
   { "CblasColMajor", DAO_INTEGER, CblasColMajor },
@@ -2744,12 +2747,13 @@ static const char *dao__Aliases[] =
 	"int", "CBLAS_SIDE",
 	NULL
 };
+
 #ifdef __cplusplus
 extern "C"{
 #endif
-int DaoOnLoad( DaoVmSpace *vms, DaoNamespace *ns )
+
+int DaoCBLAS_OnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 {
-	__daoVmSpace = vms;
 	DaoNamespace *aux = DaoVmSpace_LinkModule( vms, ns, "aux" );
 	if( aux == NULL ) return 1;
 	DaoNamespace_AddConstNumbers( ns, dao__Nums );
@@ -2757,6 +2761,8 @@ int DaoOnLoad( DaoVmSpace *vms, DaoNamespace *ns )
 	DaoNamespace_WrapFunctions( ns, dao__Funcs );
 	return 0;
 }
+
 #ifdef __cplusplus
 }
 #endif
+

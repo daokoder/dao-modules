@@ -11,4 +11,5 @@ server.Start( port, numthread ){
 
 	response.WriteHeader( 200, {'Content-Type' => 'text/plain'} );
 	response.Write('Hello World\n');
+	#server.Stop();
 }
