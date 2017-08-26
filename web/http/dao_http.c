@@ -1517,10 +1517,47 @@ static void SERVER_SetLogFile( DaoProcess *proc, DaoValue *p[], int N )
 }
 
 
+#ifdef UNIX
+#include <execinfo.h>
+#endif
+
+static DString *traceFile = NULL;
+
+static void DaoStackTrace( FILE *fout )
+{
+#ifdef UNIX
+	void *array[128];
+	int size = backtrace(array, 128);
+	char **strings = backtrace_symbols(array, size);
+	time_t tm = time(NULL);
+	int i;
+
+	fprintf( fout, "\n\n>> %s\n", ctime( & tm ) );
+	fprintf( fout, "ERROR: program failed with segmentation error!\n" );
+	fprintf( fout, "The calling stack for the error:\n" );
+
+	for(i = 0; i < size; ++i) fprintf( fout, "%s\n", strings[i] );
+	free(strings);
+#else
+	fprintf( fout, "ERROR: program failed with segmentation error!\n" );
+#endif
+	fflush( fout );
+}
+
+static void DaoSignalHandler( int sig )
+{
+	FILE *fout = stdout;
+	if( traceFile ) fout = fopen( traceFile->chars, "a+" );
+	DaoStackTrace( fout );
+	if( fout != stdout ) fclose( fout );
+	exit( sig );
+}
+
 static void SERVER_Start( DaoProcess *proc, DaoValue *p[], int N )
 {
 	mg_context *ctx;
 	mg_callbacks callbacks;
+	DString *buffer = NULL;
 	DaoxServer *self = (DaoxServer*) p[0];
 	DaoVmCode *sect = DaoProcess_InitCodeSection( proc, 4 );
 	char port[16], numthd[16];
@@ -1559,10 +1596,20 @@ static void SERVER_Start( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, NULL, "failed to start the server" );
 		return;
 	}
+
+	if( self->logfile->size ){
+		buffer = DString_Copy( self->logfile );
+		DString_AppendChars( buffer, ".error" );
+		traceFile = buffer;
+	}
+	signal( SIGSEGV, DaoSignalHandler );
+
 	self->context = ctx;
 	mg_wait( ctx );
 	self->context = NULL;
 	mg_quit( ctx );
+	if( buffer ) DString_Delete( buffer );
+	traceFile = NULL;
 }
 static void SERVER_Stop( DaoProcess *proc, DaoValue *p[], int N )
 {
