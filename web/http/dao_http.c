@@ -335,18 +335,24 @@ void DaoxRequest_ParsePostData( DaoxRequest *self, mg_connection *conn )
 		key->size = 0;
 		fname->size = 0;
 		pos = DString_FindChars( buffer, "name=", 20 ); /* Skip: Content-Disposition: ; */
-		pos2 = DString_FindChar( buffer, '\"', pos+6 );
-		DString_SubString( buffer, key, pos + 6, pos2 - pos - 6 );
+		if( pos != DAO_NULLPOS ){
+			pos2 = DString_FindChar( buffer, '\"', pos+6 );
+			if( pos2 == DAO_NULLPOS ){
+				pos2 = pos + 5;
+			}else{
+				DString_SubString( buffer, key, pos + 6, pos2 - pos - 6 );
+			}
 
-		pos_rnrn = DString_FindChars( buffer, "\r\n\r\n", pos2 );
-		pos = DString_FindChars( buffer, "filename=", pos2 );
-		if( pos != DAO_NULLPOS && pos < pos_rnrn ){
-			daoint pos3 = DString_FindChar( buffer, '\"', pos+10 );
-			DString_SubString( buffer, fname, pos + 10, pos3 - pos - 10 );
+			pos_rnrn = DString_FindChars( buffer, "\r\n\r\n", pos2 );
+			pos = DString_FindChars( buffer, "filename=", pos2 );
+			if( pos != DAO_NULLPOS && pos < pos_rnrn ){
+				daoint pos3 = DString_FindChar( buffer, '\"', pos+10 );
+				DString_SubString( buffer, fname, pos + 10, pos3 - pos - 10 );
+			}
+
+			buffer->size -= pos_rnrn + 4;
+			memmove( buffer->chars, buffer->chars + pos_rnrn + 4, buffer->size );
 		}
-
-		buffer->size -= pos_rnrn + 4;
-		memmove( buffer->chars, buffer->chars + pos_rnrn + 4, buffer->size );
 		if( fname->size == 0 ){
 			offset = 0;
 			while( (pos2 = DString_FindChars( buffer, boundary, offset )) == DAO_NULLPOS ){
