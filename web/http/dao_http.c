@@ -316,7 +316,12 @@ void DaoxRequest_ParsePostData( DaoxRequest *self, mg_connection *conn )
 		DString_Delete( buffer );
 		return;
 	}
-	boundary = strstr( content_type, "boundary=" ) + strlen( "boundary=" );
+	boundary = strstr( content_type, "boundary=" );
+	if( boundary == NULL ){
+		DString_Delete( buffer );
+		return;
+	}
+	boundary += strlen( "boundary=" );
 	boundarylen = strlen( boundary );
 
 	fname = DString_New();
