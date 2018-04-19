@@ -691,7 +691,9 @@ DaoxCanvasEllipse* DaoxCanvas_AddEllipse( DaoxCanvas *self, float x, float y, fl
 
 DaoxCanvasPath* DaoxCanvas_AddPath( DaoxCanvas *self, DaoxPath *path )
 {
-	DaoxCanvasPath *node = DaoxCanvasPath_New( DaoType_GetVmSpace( self->ctype ) );
+	DaoVmSpace *vmspace = DaoType_GetVmSpace( self->ctype );
+	DaoxCanvasPath *node = DaoxCanvasPath_New( vmspace );
+	if( path == NULL ) path = DaoxPath_New( vmspace );
 	DaoGC_IncRC( (DaoValue*) path );
 	node->path = path;
 	DaoxCanvas_AddNode( self, node );

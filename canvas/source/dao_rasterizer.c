@@ -363,7 +363,7 @@ void DaoxOutline_SetCurrentCell( DaoxOutline *self, int x, int y)
 
 
 
-void DaoxOutline_RenderDaoxScanline( DaoxOutline *self, int ey, int x1, int y1, int x2, int y2)
+void DaoxOutline_RenderScanline( DaoxOutline *self, int ey, int x1, int y1, int x2, int y2)
 {
     int ex1 = x1 >> DAOX_POLY_BASE_SHIFT;
     int ex2 = x2 >> DAOX_POLY_BASE_SHIFT;
@@ -477,14 +477,14 @@ void DaoxOutline_RenderLine( DaoxOutline *self, int x1, int y1, int x2, int y2)
     //everything is on a single scanline
     if(ey1 == ey2)
     {
-        DaoxOutline_RenderDaoxScanline( self, ey1, x1, fy1, x2, fy2);
+        DaoxOutline_RenderScanline( self, ey1, x1, fy1, x2, fy2);
         return;
     }
 
     //Vertical line - we have to calculate start and end cells,
     //and then - the common values of the area and coverage for
     //all cells of the line. We know exactly there's only one 
-    //cell, so, we don't have to call DaoxOutline_RenderDaoxScanline( self ).
+    //cell, so, we don't have to call DaoxOutline_RenderScanline( self ).
     incr  = 1;
     if(dx == 0)
     {
@@ -545,7 +545,7 @@ void DaoxOutline_RenderLine( DaoxOutline *self, int x1, int y1, int x2, int y2)
     }
 
     x_from = x1 + delta;
-    DaoxOutline_RenderDaoxScanline( self, ey1, x1, fy1, x_from, first);
+    DaoxOutline_RenderScanline( self, ey1, x1, fy1, x_from, first);
 
     ey1 += incr;
     DaoxOutline_SetCurrentCell( self, x_from >> DAOX_POLY_BASE_SHIFT, ey1);
@@ -574,14 +574,14 @@ void DaoxOutline_RenderLine( DaoxOutline *self, int x1, int y1, int x2, int y2)
             }
 
             x_to = x_from + delta;
-            DaoxOutline_RenderDaoxScanline( self, ey1, x_from, DAOX_POLY_BASE_SIZE - first, x_to, first);
+            DaoxOutline_RenderScanline( self, ey1, x_from, DAOX_POLY_BASE_SIZE - first, x_to, first);
             x_from = x_to;
 
             ey1 += incr;
             DaoxOutline_SetCurrentCell( self, x_from >> DAOX_POLY_BASE_SHIFT, ey1);
         }
     }
-    DaoxOutline_RenderDaoxScanline( self, ey1, x_from, DAOX_POLY_BASE_SIZE - first, x2, fy2);
+    DaoxOutline_RenderScanline( self, ey1, x_from, DAOX_POLY_BASE_SIZE - first, x2, fy2);
 }
 
 

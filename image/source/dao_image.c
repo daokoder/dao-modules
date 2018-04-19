@@ -215,6 +215,141 @@ void daox_encode_short( DString *buffer, short i )
 	DString_AppendChar( buffer, (i>>8)&0xFF );
 }
 
+// Compact Pixel Map (CPM):
+int DaoImage_EncodeCPM( DaoImage *self, DString *buffer, FILE *fout )
+{
+	int stride = self->buffer.stride;
+	int depth = self->depth;
+	int i, j;
+
+	DString_AppendChars( buffer, "CPM\r\n" );
+	DString_AppendChar( buffer, 1 + self->depth );
+	daox_encode_int( buffer, self->width );
+	daox_encode_int( buffer, self->height );
+
+	if( fout ){
+		DaoFile_WriteString( fout, buffer );
+		DString_Reset( buffer, 0 );
+	}
+	for(i=0; i<self->height; ++i){
+		uchar_t *pix = self->buffer.data.uchars + i * self->stride;
+		unsigned curpix = 0;
+		unsigned count = 0;
+		for(j=0;  j<self->width;  ++j, pix += stride){
+			unsigned pixel = pix[0] | (pix[1]<<8) | (pix[2]<<16);
+			if( depth == DAOX_IMAGE_BIT32 ) pixel |= pix[3]<<24;
+
+			if( count == 0 ){
+				curpix = pixel;
+				count = 1;
+			}else if( pixel == curpix ){
+				if( count >= 0x7f ){
+					DString_AppendChar( buffer, count );
+					DString_AppendBytes( buffer, (char*) pix, stride );
+					count = 0;
+				}
+				count += 1;
+			}else if( count > 1 ){
+				DString_AppendChar( buffer, count );
+				DString_AppendBytes( buffer, (char*) (pix - stride), stride );
+				curpix = pixel;
+				count = 1;
+			}else if( count == 1 ){
+				uchar_t *pixels = pix - stride;
+				int k, pos = self->width;
+				for(k=j+1; k<self->width; ++k, pix += stride){
+					unsigned pixel = pix[0] | (pix[1]<<8) | (pix[2]<<16);
+					if( depth == DAOX_IMAGE_BIT32 ) pixel |= pix[3]<<24;
+					if( pixel == curpix ){
+						pos = k;
+						break;
+					}
+					curpix = pixel;
+					if( k > j + 0x80 ) break;
+				}
+				if( pos > j+2 && pos < self->width ) pos -= 2;  // Last two are the same;
+				count = 0x7f;
+				if( pos < (j-1) + 0x7f ) count = pos - (j-1);
+				DString_AppendChar( buffer, 0x80 | count );
+				DString_AppendBytes( buffer, (char*) pixels, count * stride );
+				pix = pixels + (count - 1) * stride;
+				j += count - 2;
+				count = 0;
+			}else{
+				curpix = pixel;
+				count = 1;
+			}
+		}
+		if( count > 0 ){
+			DString_AppendChar( buffer, count );
+			DString_AppendChar( buffer, curpix & 0xFF );
+			DString_AppendChar( buffer, (curpix>>8) & 0xFF );
+			DString_AppendChar( buffer, (curpix>>16) & 0xFF );
+			if( depth == DAOX_IMAGE_BIT32 ) DString_AppendChar( buffer, (curpix>>24) & 0xFF );
+		}
+		if( fout ){
+			DaoFile_WriteString( fout, buffer );
+			DString_Reset( buffer, 0 );
+		}
+	}
+	return 1;
+}
+
+int DaoImage_SaveCPM( DaoImage *self, const char *file )
+{
+	DString *buffer = DString_New();
+	FILE *fout = fopen( file, "w+" );
+	int ret = DaoImage_EncodeCPM( self, buffer, fout );
+	DString_Delete( buffer );
+	fclose( fout );
+	return ret;
+}
+
+int DaoImage_DecodeCPM( DaoImage *self, DString *buffer )
+{
+	uchar_t *data = (uchar_t*) buffer->chars;
+	uchar_t *end = data + buffer->size;
+	int width, height, stride;
+	int i, j;
+
+	if( data[0] != 'C' || data[1] != 'P' || data[2] != 'M' ) return 0;
+	if( data[3] != '\r' || data[4] != '\n' ) return 0;
+
+	stride = data[5];
+	width  = dao_read_int( data + 6 );
+	height = dao_read_int( data + 10 );
+
+	self->depth = stride - 1;
+	DaoImage_Resize( self, width, height );
+
+	data += 14;
+	for(i=0; i<height; ++i){
+		uchar_t *dest = self->buffer.data.uchars + i * self->stride;
+		for(j=0; j<width && data<end; ){
+			int count = data[0];
+			if( count & 0x80 ){
+				count = count & 0x7f;
+				memmove( dest, data+1, count * stride );
+				data += count * stride + 1;
+				dest += count * stride;
+				j += count;
+			}else{
+				j += count;
+				while( count-- ){
+					dest[0] = data[1];
+					dest[1] = data[2];
+					dest[2] = data[3];
+					if( stride == 4 ) dest[3] = data[4];
+					dest += stride;
+				}
+				data += stride + 1;
+			}
+		}
+	}
+
+	return 1;
+}
+
 int DaoImage_EncodeBMP( DaoImage *self, DString *buffer )
 {
 	int i, j, pixelBytes = self->buffer.stride;
@@ -342,6 +477,7 @@ int DaoImage_LoadJPEG( DaoImage *self, const char *file )
 }
 int DaoImage_Decode( DaoImage *self, DString *data )
 {
+	if( DaoImage_DecodeCPM( self, data ) ) return 1;
 	if( DaoImage_DecodeBMP( self, data ) ) return 1;
 	if( DaoImage_DecodePNG( self, data ) ) return 1;
 	return DaoImage_DecodeJPEG( self, data );
@@ -376,7 +512,7 @@ int DaoImage_EncodePNG( DaoImage *self, DString *data )
 }
 int DaoImage_Encode( DaoImage *self, DString *data, int format )
 {
-	if( format == 0 ) return DaoImage_EncodeBMP( self, data );
+	if( format == 0 ) return DaoImage_EncodeCPM( self, data, NULL );
 	return DaoImage_EncodePNG( self, data );
 }
 
@@ -436,6 +572,8 @@ static void IMAGE_Save( DaoProcess *proc, DaoValue *p[], int N )
 		ret = DaoImage_SavePNG( self, file->chars );
 	}else if( DString_Match( file, "<I>%.BMP $", NULL, NULL ) ){
 		ret = DaoImage_SaveBMP( self, file->chars );
+	}else if( DString_Match( file, "<I>%.CPM $", NULL, NULL ) ){
+		ret = DaoImage_SaveCPM( self, file->chars );
 	}
 	if( ret == 0 ) DaoProcess_RaiseError( proc, NULL, "file saving failed" );
 }
@@ -479,7 +617,7 @@ static DaoFunctionEntry daoImageMeths[]=
 	{ IMAGE_New,     "Image()" },
 	{ IMAGE_Load,    "Load( self: Image, file: string )" },
 	{ IMAGE_Save,    "Save( self: Image, file: string )" },
-	{ IMAGE_Encode,  "Encode( self: Image, format: enum<bmp,png> ) => string" },
+	{ IMAGE_Encode,  "Encode( self: Image, format: enum<CPM,PNG> = $CPM ) => string" },
 	{ IMAGE_Decode,  "Decode( self: Image, data: string ) => bool" },
 	{ IMAGE_Export,  "Export( self: Image, channel: enum<red;grean;blue;alpha>, matrix: array<@T<int|float>>, factor: @T = 1 )" },
 

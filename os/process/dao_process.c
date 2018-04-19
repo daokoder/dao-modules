@@ -1042,7 +1042,7 @@ DaoValue* DaoOSProcess_Start( DaoOSProcess *self, DaoProcess *proc, DString *cmd
 		DMutex_Lock( &proc_mtx );
 		DMap_Insert( proc_map, key, value );
 		if ( proc_map->size == 1 )
-			DaoCallServer_AddTask( WaitForChildren, NULL, 1 ); // spawning child tracking tasklet
+			DaoVmSpace_AddTaskletJob( proc->vmSpace, WaitForChildren, NULL, 1 ); // spawning child tracking tasklet
 #ifdef WIN32
 		SetEvent( exec_event ); // rise and shine, new process has been added
 #endif

@@ -31,6 +31,10 @@
 #include "dao_canvas.h"
 #include "dao_rasterizer.h"
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 typedef struct DaoxPainter     DaoxPainter;
 
 
@@ -45,14 +49,20 @@ struct DaoxPainter
 	DaoxRasterizer  *rasterizer;
 	DaoxGradient    *gradient;
 };
-extern DaoType *daox_type_painter;
+DAO_CANVAS_DLL DaoType *daox_type_painter;
 
-DaoxPainter* DaoxPainter_New( DaoVmSpace *vmspace );
-void DaoxPainter_Delete( DaoxPainter *self );
+DAO_CANVAS_DLL DaoxPainter* DaoxPainter_New( DaoVmSpace *vmspace );
+DAO_CANVAS_DLL void DaoxPainter_Delete( DaoxPainter *self );
 
 
-void DaoxPainter_Paint( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D viewport );
+DAO_CANVAS_DLL void DaoxPainter_Paint( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D viewport );
 
-void DaoxPainter_PaintCanvasImage( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D viewport, DaoImage *image, int width, int height );
+DAO_CANVAS_DLL void DaoxPainter_PaintCanvasImage( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D viewport, DaoImage *image, int width, int height );
+
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
